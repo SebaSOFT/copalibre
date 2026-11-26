@@ -1080,13 +1080,19 @@ export function TvDashboard({
   if (isCornerOverlay) {
     const overlayRootClass = `tv-root-container tv-overlay-root tv-overlay-root--${presentation}`;
     // An overlay names the state of the match it shows, not the tournament's: a delayed match is not live.
+    // Each state keeps its own word and tone, from the shared state labels; a delayed match is the one
+    // upcoming match that carries its delayed word.
     const matchStatus = (match: LiveMatch): { tone: TvStatusTone; label: string } => {
-      if (match.state === 'live') return { tone: 'live', label: dashboardLabels.resultState.live };
-      if (match.state === 'final')
-        return { tone: 'final', label: dashboardLabels.resultState.final };
-      if (isMatchDelayed(match) && dashboardLabels.delayed !== undefined)
+      if (
+        match.state === 'upcoming' &&
+        isMatchDelayed(match) &&
+        dashboardLabels.delayed !== undefined
+      )
         return { tone: 'delayed', label: dashboardLabels.delayed };
-      return { tone: 'upcoming', label: dashboardLabels.resultState.upcoming };
+      return {
+        tone: match.state,
+        label: presentState(match.state, dashboardLabels.resultState).label,
+      };
     };
     if (spotlightMatch === undefined) {
       // Nothing to show paints nothing on air. The state reaches assistive tech and tests through one line.

@@ -67,6 +67,14 @@ const ALL_STATES: readonly ResultState[] = [
   'cancelled',
 ];
 
+/**
+ * Whether a match in this state carries a score to show. A disputed match keeps the score it was recorded
+ * with; an upcoming, cancelled or undecided match has none, so its score position reads as a dash.
+ */
+export function stateHasScore(state: ResultState): boolean {
+  return state === 'live' || state === 'final' || state === 'disputed';
+}
+
 export function presentState(state: ResultState, labels: ResultStateLabels): StatePresentation {
   return { state, label: labels[state], icon: ICON[state], className: CLASS_NAME[state] };
 }

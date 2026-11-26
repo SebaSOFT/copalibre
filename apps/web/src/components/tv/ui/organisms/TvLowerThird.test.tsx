@@ -76,4 +76,33 @@ describe('TvLowerThird', () => {
     expect(container.querySelector('.tv-lower-third__score')?.textContent).toBe('–');
     expect(container.querySelector('.tv-start-time')).not.toBeNull();
   });
+
+  it('keeps the score of a disputed match, with its own state word', () => {
+    const { container } = renderBand({
+      match: match({ state: 'disputed' }),
+      statusTone: 'disputed',
+      statusLabel: 'Disputed',
+    });
+
+    expect(container.querySelector('.tv-lower-third__score')?.textContent).toContain(':');
+    expect(container.querySelector('.tv-status-badge, .tv-scorebug__badge')?.textContent).toContain(
+      'Disputed',
+    );
+  });
+
+  it('shows a dash and the cancelled word, never a score or the upcoming word, for a cancelled match', () => {
+    const { container } = renderBand({
+      match: match({
+        state: 'cancelled',
+        scheduledAt: '2026-11-23T16:00:00.000Z',
+        sides: match().sides.map((side) => ({ ...side, state: 'cancelled', score: 0 })),
+      }),
+      statusTone: 'cancelled',
+      statusLabel: 'Cancelled',
+    });
+
+    expect(container.querySelector('.tv-lower-third__score')?.textContent).toBe('–');
+    expect(container.querySelector('.tv-scorebug__badge')?.textContent).toContain('Cancelled');
+    expect(container.textContent).not.toContain('Upcoming');
+  });
 });

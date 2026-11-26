@@ -2,6 +2,7 @@ import type { LiveMatch } from '../../../../lib/live-state.js';
 import type { TvMatchProgress } from '../../../../lib/tv-match-progress.js';
 import { LiveMatchClock, type LiveMatchClockLabels } from '../../../ui/atoms/LiveMatchClock.js';
 import { ValueFlash } from '../../../ui/atoms/ValueFlash.js';
+import { stateHasScore } from '../../../../lib/result-state.js';
 import type { TvDashboardLabels } from '../../tv-types.js';
 import { TvStatusBadge } from '../atoms/TvStatusBadge.js';
 import type { TvStatusTone } from '../atoms/tv-status-tone.js';
@@ -35,7 +36,7 @@ export function TvOverlayBug({
   clockLabels,
 }: TvOverlayBugProps): React.JSX.Element {
   const [home, away] = match.sides;
-  const upcoming = match.state === 'upcoming';
+  const showsScore = stateHasScore(match.state);
   return (
     <div className="tv-overlay-bug cl-chamfer" data-testid="tv-overlay-bug">
       <TvStatusBadge label={statusLabel} tone={statusTone} />
@@ -43,14 +44,14 @@ export function TvOverlayBug({
         {home?.abbreviation ?? home?.name ?? labels.homeSide}
       </span>
       <span className="tv-overlay-bug__score">
-        {upcoming ? (
-          '–'
-        ) : (
+        {showsScore ? (
           <>
             <ValueFlash value={home?.score ?? 0} />
             <span className="tv-overlay-bug__score-sep">:</span>
             <ValueFlash value={away?.score ?? 0} />
           </>
+        ) : (
+          '–'
         )}
       </span>
       <span className="tv-overlay-bug__side">

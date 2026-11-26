@@ -4,6 +4,7 @@ import { EntrantEmblem } from '../../../ui/molecules/EntrantEmblem.js';
 import { EntrantName } from '../../../ui/atoms/EntrantName.js';
 import { LiveMatchClock, type LiveMatchClockLabels } from '../../../ui/atoms/LiveMatchClock.js';
 import { ValueFlash } from '../../../ui/atoms/ValueFlash.js';
+import { stateHasScore } from '../../../../lib/result-state.js';
 import type { TvClubItem, TvDashboardLabels } from '../../tv-types.js';
 import { TvStartTime } from '../atoms/TvStartTime.js';
 import { TvStatusBadge } from '../atoms/TvStatusBadge.js';
@@ -98,6 +99,7 @@ export function TvLowerThird({
 }: TvLowerThirdProps): React.JSX.Element {
   const [home, away] = match.sides;
   const upcoming = match.state === 'upcoming';
+  const showsScore = stateHasScore(match.state);
   const emblemOf = (side: LiveMatch['sides'][number] | undefined): string | undefined =>
     side?.clubId === undefined
       ? undefined
@@ -112,14 +114,14 @@ export function TvLowerThird({
           {...(emblemOf(home) === undefined ? {} : { emblemUrl: emblemOf(home) })}
         />
         <span className="tv-lower-third__score">
-          {upcoming ? (
-            '–'
-          ) : (
+          {showsScore ? (
             <>
               <ValueFlash value={home?.score ?? 0} />
               <span className="tv-lower-third__score-sep">:</span>
               <ValueFlash value={away?.score ?? 0} />
             </>
+          ) : (
+            '–'
           )}
         </span>
         <LowerThirdSide
