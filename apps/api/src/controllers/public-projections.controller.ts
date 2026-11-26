@@ -1246,6 +1246,15 @@ export class PublicProjectionsController {
       organizationTimeZone,
       tournamentAlias,
       tournamentName: tournament.name,
+      ...(targetRecord.games.length > 1 && game !== undefined
+        ? {
+            gameNumber: game.number,
+            games: targetRecord.games.map((candidate) => ({
+              number: candidate.number,
+              status: gameStatusOf(candidate.status),
+            })),
+          }
+        : {}),
       ...(descriptor.images === undefined
         ? {}
         : { disciplineImages: descriptor.images.map((reference) => ({ ...reference })) }),
@@ -2789,6 +2798,12 @@ function publicScores(
 }
 
 export { seriesResponseOf } from './stage-series.js';
+
+/** A game's status as the series switcher shows it: a game a decided series never plays is not required. */
+function gameStatusOf(status: string): 'upcoming' | 'live' | 'final' | 'not-required' {
+  if (status === 'not-required') return 'not-required';
+  return publicMatchStatus(status);
+}
 
 function publicMatchStatus(status: string): PublicMatchReportResponse['status'] {
   if (status === 'finalized') return 'final';

@@ -647,6 +647,14 @@ export class PublicRegisteredSquadsResponse {
   away?: PublicRegisteredSquadMemberResponse[];
 }
 
+export class PublicMatchGameResponse {
+  @ApiProperty({ description: 'The game’s number within its fixture, 1-based play order' })
+  number!: number;
+
+  @ApiProperty({ enum: ['upcoming', 'live', 'final', 'not-required'] })
+  status!: 'upcoming' | 'live' | 'final' | 'not-required';
+}
+
 export class PublicMatchEventResponse {
   @ApiProperty({ format: 'uuid' })
   eventId!: string;
@@ -861,6 +869,19 @@ export class PublicMatchReportResponse extends FixtureSourcesResponse {
     description: 'The link the match is watched through, when the organizer attached one',
   })
   streamUrl?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'The game this report is for, when its fixture has more than one game (a series); absent otherwise',
+  })
+  gameNumber?: number;
+
+  @ApiPropertyOptional({
+    type: [PublicMatchGameResponse],
+    description:
+      'Every game of the fixture in play order, with its status, so a page can switch between them; present only for a series',
+  })
+  games?: PublicMatchGameResponse[];
 
   @ApiPropertyOptional({
     type: [PublicRosterRoleResponse],

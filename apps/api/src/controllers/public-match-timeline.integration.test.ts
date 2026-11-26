@@ -464,6 +464,12 @@ describe('public match report timeline', () => {
     expect(await reportFor(3)).toMatchObject({
       status: 'final',
       streamUrl: 'https://example.org/live/game-3',
+      gameNumber: 3,
+      games: [
+        { number: 1, status: 'upcoming' },
+        { number: 2, status: 'upcoming' },
+        { number: 3, status: 'final' },
+      ],
     });
     expect(await reportFor(1)).toMatchObject({
       status: 'upcoming',
