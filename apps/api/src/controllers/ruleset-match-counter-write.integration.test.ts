@@ -84,6 +84,28 @@ describe('match counter override on ruleset save and read', () => {
     });
   });
 
+  it('reports a matchCounters problem together with every other violation of the same save', async () => {
+    const { tournaments, descriptor, tournamentId } = await seed();
+    const error: unknown = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      tournaments.createRuleset(uow, {
+        tournamentId,
+        organizationId,
+        descriptor,
+        overrides: { matchCounters: { 'team-fouls': { hidden: 'yes' } }, unknownField: 1 },
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    ).then(
+      () => undefined,
+      (caught: unknown) => caught,
+    );
+    const violations = (error as { details?: { violations?: readonly { field: string }[] } })
+      .details?.violations;
+    expect(violations?.map((violation) => violation.field)).toEqual(
+      expect.arrayContaining(['matchCounters', 'unknownField']),
+    );
+  });
+
   it('compiles a stored ruleset with an invalid matchCounters entry, keeping its segment overrides', async () => {
     const { tournaments, descriptor, tournamentId } = await seed();
     await withTransaction(scratch.db as Kysely<Database>, (uow) =>

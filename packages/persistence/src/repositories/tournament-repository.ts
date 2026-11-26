@@ -2,6 +2,7 @@ import {
   Alias,
   compileEffectiveRuleset,
   matchCounterOverrideViolations,
+  RulesetCompilationError,
   evaluateCustomScriptsMutation,
   resolveLabel,
   transitionTournament,
@@ -438,20 +439,14 @@ export class TournamentRepository {
       customScripts: customScriptsToPersist,
     };
 
-    // A malformed match-counter override is refused here, on write. Compilation skips it on read.
+    // A malformed match-counter override is refused here, on write, together with every other violation
+    // the compile finds. Compilation itself skips it on read.
     const counterViolations = matchCounterOverrideViolations(input.descriptor, input.overrides);
-    if (counterViolations.length > 0) {
-      throw new InvariantViolationError(
-        `Effective ruleset compilation failed: ${counterViolations.map((v) => v.message).join('; ')}`,
-        { violations: counterViolations },
-      );
-    }
-
     const compiled = compileEffectiveRuleset(input.descriptor, candidate);
-    if (!compiled.ok) {
-      throw new InvariantViolationError(compiled.error.message, {
-        violations: compiled.error.violations,
-      });
+    const violations = [...counterViolations, ...(compiled.ok ? [] : compiled.error.violations)];
+    if (!compiled.ok || violations.length > 0) {
+      const error = new RulesetCompilationError(violations);
+      throw new InvariantViolationError(error.message, { violations });
     }
 
     await uow.tx
