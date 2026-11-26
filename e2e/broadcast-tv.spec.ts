@@ -537,12 +537,87 @@ test('the overlay is transparent in the first response, before any script runs',
   expect(['rgba(0, 0, 0, 0)', 'transparent']).toContain(background);
 });
 
-test('bare ?mode=overlay still resolves to the lower third', async ({ page, context }) => {
-  // An OBS source already configured with the old URL keeps working.
+test('bare ?mode=overlay still resolves to the corner bug, not the lower third', async ({
+  page,
+  context,
+}) => {
+  // An OBS source already configured with the old URL keeps its corner bug.
   await context.route('**/*.js', (route) => route.abort());
   await page.goto(`${TV_PATH}?mode=overlay`);
 
-  await expect(page.locator('html')).toHaveClass(/tv-overlay--lower/);
+  await expect(page.locator('html')).toHaveClass(/tv-overlay--scorebug/);
+});
+
+test('mode=overlay-lower places the lower third on the bottom band, inside the 5 % safe area', async ({
+  page,
+}) => {
+  await mockOpenStream(page);
+  clockFixtureMode = 'timed';
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await gotoTv(page, `${TV_PATH}/stages/1/matches/1?mode=overlay-lower`);
+  const band = await page.getByTestId('tv-lower-third').boundingBox();
+  if (band === null) throw new Error('the lower third did not render');
+  // 5 % of 1080 is 54 px: the band's bottom edge sits on the bottom inset, never below it.
+  expect(1080 - (band.y + band.height)).toBeGreaterThanOrEqual(53);
+  expect(1080 - (band.y + band.height)).toBeLessThanOrEqual(55);
+  expect(band.x).toBeGreaterThanOrEqual(96 - 1);
+  expect(band.x + band.width).toBeLessThanOrEqual(1920 - 96 + 1);
+});
+
+test('mode=overlay and mode=overlay-scorebug place the corner bug top right, inside the 5 % safe area', async ({
+  page,
+}) => {
+  await mockOpenStream(page);
+  clockFixtureMode = 'timed';
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  for (const mode of ['overlay', 'overlay-scorebug']) {
+    await gotoTv(page, `${TV_PATH}/stages/1/matches/1?mode=${mode}`);
+    const bug = await page.getByTestId('tv-overlay-bug').boundingBox();
+    if (bug === null) throw new Error(`the ${mode} corner bug did not render`);
+    expect(bug.y).toBeGreaterThanOrEqual(54 - 1);
+    expect(1920 - (bug.x + bug.width)).toBeGreaterThanOrEqual(96 - 1);
+  }
+});
+
+test('overlays keep html and body transparent for every overlay mode', async ({
+  page,
+  context,
+}) => {
+  await context.route('**/*.js', (route) => route.abort());
+  for (const mode of ['overlay', 'overlay-lower']) {
+    await page.goto(`${TV_PATH}?mode=${mode}`);
+    for (const selector of ['html', 'body']) {
+      const background = await page
+        .locator(selector)
+        .evaluate((element) => getComputedStyle(element).backgroundColor);
+      // eslint-disable-next-line no-restricted-syntax -- asserting a computed browser style value, not an app styling literal
+      expect(['rgba(0, 0, 0, 0)', 'transparent']).toContain(background);
+    }
+  }
+});
+
+test('an overlay with nothing to show renders no ticker and paints no text', async ({ page }) => {
+  await mockOpenStream(page);
+  await gotoTv(page, `${TV_PATH}?mode=overlay-lower&bg=transparent`);
+  await expect(page.locator('[data-state="no-match"]')).toHaveCount(1);
+  await expect(page.locator('[data-ticker]')).toHaveCount(0);
+  await expect(page.locator('body')).not.toContainText('Todavía no hay partidos que informar');
+  await expect(page.locator('body')).not.toContainText('Ningún partido seleccionado');
+});
+
+test('chroma overlay graphics have no shadow and opaque fills', async ({ page }) => {
+  await mockOpenStream(page);
+  clockFixtureMode = 'timed';
+  await gotoTv(page, `${TV_PATH}/stages/1/matches/1?mode=overlay-lower&bg=chroma`);
+  const band = page.getByTestId('tv-lower-third');
+  await expect(band).toBeVisible();
+  const style = await band.evaluate((element) => {
+    const computed = getComputedStyle(element);
+    return { shadow: computed.boxShadow, fill: computed.backgroundColor };
+  });
+  expect(style.shadow).toBe('none');
+  // A fully opaque fill reads as rgb(), never rgba() with an alpha below 1.
+  expect(style.fill).toMatch(/^rgb\(/);
 });
 
 test('?chroma paints a solid key colour for switchers without an alpha channel', async ({
@@ -597,10 +672,10 @@ test('overlay match bug shows advancing game clock when timed and never prints w
 }) => {
   await mockOpenStream(page);
   clockFixtureMode = 'timed';
-  await gotoTv(page, `${TV_PATH}/stages/1/matches/1?mode=overlay&lang=es`);
+  await gotoTv(page, `${TV_PATH}/stages/1/matches/1?mode=overlay-lower&lang=es`);
 
   const bug = page.getByTestId('tv-lower-third');
-  const timer = bug.locator('.tv-lower-third__clock[role="timer"]');
+  const timer = bug.locator('.tv-overlay-clock[role="timer"]');
   await expect(timer).toBeVisible();
   await expect(timer.locator('.cl-live-clock__segment')).toHaveText('1er tiempo');
 
@@ -613,8 +688,8 @@ test('overlay match bug shows advancing game clock when timed and never prints w
   await expect.poll(readSeconds, { timeout: 6_000 }).toBeGreaterThan(586);
 
   clockFixtureMode = 'untimed';
-  await gotoTv(page, `${TV_PATH}/stages/1/matches/1?mode=overlay&lang=es`);
-  await expect(bug.locator('.tv-lower-third__clock')).toHaveCount(0);
+  await gotoTv(page, `${TV_PATH}/stages/1/matches/1?mode=overlay-lower&lang=es`);
+  await expect(bug.locator('.tv-overlay-clock')).toHaveCount(0);
   await expect(bug.getByRole('timer')).toHaveCount(0);
   await expect(bug.getByTestId('tv-segment')).toHaveText('1er set');
   await expect(bug).not.toContainText(/\d{2}:\d{2}/);
@@ -706,6 +781,17 @@ test('TV match list uses short dynamic timestamps, marks delayed matches with cl
   await expect(nextMatches).toHaveCount(2);
   await expect(nextMatches.nth(0)).toContainText('Próximo Mañana');
   await expect(nextMatches.nth(1)).toContainText('Próximo Futuro');
+});
+
+test('the pinned route keeps the court names of the presentation layout next matches', async ({
+  page,
+}) => {
+  await mockOpenStream(page);
+  clockFixtureMode = 'delayed-schedule';
+  await gotoTv(page, `${TV_PATH}/stages/1/matches/1?layout=presentation&lang=es`);
+  const nextMatches = page.getByTestId('tv-next-match');
+  await expect(nextMatches.first()).toBeVisible();
+  await expect(nextMatches.first().locator('small').last()).toHaveText(/Cancha/);
 });
 
 test('the pinned match and the kiosk list the same featured player first, and the header holds still across a rail rotation', async ({

@@ -1135,3 +1135,11 @@ export function referenceSchedule(): readonly ScheduleStage[] {
     },
   ];
 }
+
+/**
+ * The address the TV launcher builds for the reference competition: its transparent lower third, in the
+ * language the preview asks for. The fixture organization and tournament are the ones the other references use.
+ */
+export function referenceTvLauncherAddress(language: string): string {
+  return `/tv/liga-san-juan/tournaments/copa-premier?lang=${encodeURIComponent(language)}&bg=transparent&mode=overlay-lower`;
+}

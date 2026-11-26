@@ -45,6 +45,11 @@ import { winnerZonesOf } from '../../../../../../../../lib/tv-winners.ts';
 import { bracketZonesOf } from '../../../../../../../../lib/bracket.ts';
 import type { BracketZone } from '../../../../../../../../lib/bracket-projection.ts';
 import { TV_BACKGROUNDS, type TvBackground } from '../../../../../../../../lib/tv-background.ts';
+import {
+  tvMatchEntriesOfView,
+  tvMatchLabelTextOf,
+  type TvMatchEntry,
+} from '../../../../../../../../lib/tv-match-list.ts';
 
 export const prerender = false;
 
@@ -212,11 +217,13 @@ try {
  */
 const modeParam = Astro.url.searchParams.get('mode');
 const overlayMode =
-  modeParam === 'overlay' || modeParam === 'overlay-lower'
-    ? 'lower'
-    : modeParam === 'overlay-full'
-      ? 'full'
-      : undefined;
+  modeParam === 'overlay' || modeParam === 'overlay-scorebug'
+    ? 'scorebug'
+    : modeParam === 'overlay-lower'
+      ? 'lower'
+      : modeParam === 'overlay-full'
+        ? 'full'
+        : undefined;
 const chromaKey = Astro.url.searchParams.get('chroma') ?? undefined;
 const requestedBackground =
   Astro.url.searchParams.get('bg') ?? Astro.url.searchParams.get('background');
@@ -227,20 +234,19 @@ const layoutParam = Astro.url.searchParams.get('layout');
 const layoutVariant =
   layoutParam === 'presentation' || layoutParam === 'dashboard' ? layoutParam : 'kiosk';
 
+// The bracket of the pinned match's stage: it names the match's overall place, as the tournament route does.
 let initialBracket: { stageNumber: number; zones: readonly BracketZone[] } | undefined;
-if (presentation !== 'lower') {
-  try {
-    const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, stageNumber);
-    if (rawBracket) {
-      const mapped = mapBracketResponse(rawBracket, intl.formatMessage(messages.resultStateTbd));
-      const zones = bracketZonesOf(mapped);
-      if (zones.length > 0) {
-        initialBracket = { stageNumber, zones };
-      }
+try {
+  const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, stageNumber);
+  if (rawBracket) {
+    const mapped = mapBracketResponse(rawBracket, intl.formatMessage(messages.resultStateTbd));
+    const zones = bracketZonesOf(mapped);
+    if (zones.length > 0) {
+      initialBracket = { stageNumber, zones };
     }
-  } catch {
-    // A bracket outage does not affect the pinned match or event ticker.
   }
+} catch {
+  // A bracket outage does not affect the pinned match or event ticker.
 }
 
 /*
@@ -261,6 +267,38 @@ try {
   }
 } catch {
   performerProjection = undefined;
+}
+
+/*
+  The matches view names the pinned match's competition and round, and its court, for the lower third
+  and the scorebug. A failure costs those two labels, never the match.
+*/
+let matchList: readonly TvMatchEntry[] = [];
+let venueNameByMatchId: Record<string, string> = {};
+// Overlays and the full-frame layouts name courts and competitions from the matches view; only the plain
+// pinned kiosk shows neither, so only it skips the tournament's whole matches view.
+if (presentation !== 'kiosk' || layoutVariant !== 'kiosk') {
+  try {
+    const view = await fetchMatchesView(organizationAlias, tournamentAlias, { state: 'all' });
+    if (view) {
+      const rows = mapMatchesViewResponse(
+        view,
+        intl.formatMessage(messages.personHiddenAtRequest),
+        language,
+      ).matches;
+      venueNameByMatchId = Object.fromEntries(
+        rows.flatMap((row) => (row.venueName === undefined ? [] : [[row.matchId, row.venueName]])),
+      );
+      matchList = tvMatchEntriesOfView(
+        rows,
+        tvMatchLabelTextOf(tvDashboardLabels(intl)),
+        initialBracket,
+        Date.now(),
+      );
+    }
+  } catch {
+    // No competition label and no court name is a degraded overlay, not a broken one.
+  }
 }
 
 const referenceDate = Date.now();
@@ -292,6 +330,8 @@ const organizationDisplayName = organizationName ?? intl.formatMessage(messages.
     streamPath={streamPath}
     branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
     pinnedMatch={{ stageNumber, ordinal: matchOrdinal }}
+    matchList={presentation === 'kiosk' && layoutVariant === 'kiosk' ? undefined : matchList}
+    venueNameByMatchId={venueNameByMatchId}
     seriesByMatchId={seriesByMatchId}
     timeZone={organizationTimeZone}
     referenceDate={referenceDate}

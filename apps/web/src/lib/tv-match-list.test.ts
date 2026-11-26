@@ -11,6 +11,8 @@ import {
   overlayTvEntries,
   pageTvMatches,
   tvMatchEntriesOf,
+  tvMatchEntriesOfView,
+  tvMatchLabelTextOf,
   type TvMatchEntry,
 } from './tv-match-list.js';
 
@@ -443,5 +445,41 @@ describe('the list follows the live projection', () => {
   it('cuts rows into fixed pages of the measured size', () => {
     expect(chunkTvRows([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
     expect(chunkTvRows([], 2)).toEqual([]);
+  });
+});
+
+describe('tvMatchEntriesOfView', () => {
+  const text = tvMatchLabelTextOf({
+    resultState: state,
+    bracketRound: 'Round',
+    sideSource: sideSourceLabels(publicIntl('en')),
+    overallPlace: '{place} overall',
+  });
+  const fifth = row({
+    nodeKey: 'placement-5',
+    matchNumber: 4,
+    stageNumber: 2,
+    zoneName: 'Copa Oro',
+    groupName: undefined,
+    placement: { from: 5 },
+  });
+  const bracket = {
+    stageNumber: 2,
+    zones: [{ zoneName: 'Copa Oro', overallPlaceOffset: 4 }],
+  };
+
+  it('names a placement with its overall place when its stage bracket is at hand', () => {
+    const [entry] = tvMatchEntriesOfView([fifth], text, bracket, Date.now());
+    expect(entry?.scope).toBe('Copa Oro · 5th place · 9 overall');
+  });
+
+  it('names the same placement without the overall place when its stage bracket is not held', () => {
+    const [entry] = tvMatchEntriesOfView([fifth], text, undefined, Date.now());
+    expect(entry?.scope).toBe('Copa Oro · 5th place');
+  });
+
+  it('keeps a bracket of another stage out of the label', () => {
+    const [entry] = tvMatchEntriesOfView([fifth], text, { ...bracket, stageNumber: 1 }, Date.now());
+    expect(entry?.scope).toBe('Copa Oro · 5th place');
   });
 });

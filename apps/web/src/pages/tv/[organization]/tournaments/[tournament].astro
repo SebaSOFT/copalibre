@@ -47,7 +47,11 @@ import {
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
 import { bracketZonesOf } from '../../../../lib/bracket.ts';
 import type { PublicSeriesState } from '../../../../lib/series.ts';
-import { tvMatchEntriesOf, type TvMatchEntry } from '../../../../lib/tv-match-list.ts';
+import {
+  tvMatchEntriesOfView,
+  tvMatchLabelTextOf,
+  type TvMatchEntry,
+} from '../../../../lib/tv-match-list.ts';
 import type { BracketZone } from '../../../../lib/bracket-projection.ts';
 import { TV_BACKGROUNDS, type TvBackground } from '../../../../lib/tv-background.ts';
 import {
@@ -210,17 +214,21 @@ standingsProjection = await standingsRead;
  */
 const modeParam = Astro.url.searchParams.get('mode');
 const overlayMode =
-  modeParam === 'overlay' || modeParam === 'overlay-lower'
-    ? 'lower'
-    : modeParam === 'overlay-full'
-      ? 'full'
-      : undefined;
+  modeParam === 'overlay' || modeParam === 'overlay-scorebug'
+    ? 'scorebug'
+    : modeParam === 'overlay-lower'
+      ? 'lower'
+      : modeParam === 'overlay-full'
+        ? 'full'
+        : undefined;
 const chromaKey = Astro.url.searchParams.get('chroma') ?? undefined;
 const requestedBackground =
   Astro.url.searchParams.get('bg') ?? Astro.url.searchParams.get('background');
 const background = TV_BACKGROUNDS.find((value) => value === requestedBackground) as
   TvBackground | undefined;
 const presentation = overlayMode ?? 'kiosk';
+// The corner bug and the lower third are strips over footage: no rail, no bracket, no list.
+const isCornerOverlay = presentation === 'scorebug' || presentation === 'lower';
 
 /*
   Multi-court grid mode: only meaningful for a real venue
@@ -294,7 +302,7 @@ let initialBracket: { stageNumber: number; zones: readonly BracketZone[] } | und
 const featuredStage =
   dashboard.matches.find((match) => match.state === 'live')?.stageNumber ??
   dashboard.matches[0]?.stageNumber;
-if (presentation !== 'lower' && featuredStage !== undefined) {
+if (!isCornerOverlay && featuredStage !== undefined) {
   try {
     const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, featuredStage);
     if (rawBracket) {
@@ -333,28 +341,12 @@ try {
     seriesByMatchId = Object.fromEntries(
       rows.flatMap((row) => (row.series === undefined ? [] : [[row.matchId, row.series]])),
     );
-    if (presentation !== 'lower') {
-      const dashboardText = tvDashboardLabels(intl);
-      matchList = tvMatchEntriesOf(
-        rows,
-        {
-          state: dashboardText.resultState,
-          delayed: dashboardText.delayed,
-          round: dashboardText.bracketRound,
-          sideSource: dashboardText.sideSource,
-          zonePrefix: dashboardText.zonePrefix,
-          ...(dashboardText.overallPlace === undefined
-            ? {}
-            : { overallPlace: dashboardText.overallPlace }),
-          overallPlaceOffsetOf: (row) =>
-            initialBracket?.stageNumber === row.stageNumber
-              ? initialBracket.zones.find((zone) => zone.zoneName === row.zoneName)
-                  ?.overallPlaceOffset
-              : undefined,
-        },
-        referenceDate,
-      );
-    }
+    matchList = tvMatchEntriesOfView(
+      rows,
+      tvMatchLabelTextOf(tvDashboardLabels(intl)),
+      initialBracket,
+      referenceDate,
+    );
   }
 } catch {
   // No court names, no series and no list is a degraded kiosk, not a broken one.
@@ -367,18 +359,20 @@ try {
 const tickerChrome = tickerChromeLabels(intl);
 const tournamentDisplayName = tournamentName ?? intl.formatMessage(messages.pageHeaderLoading);
 const organizationDisplayName = organizationName ?? intl.formatMessage(messages.pageHeaderLoading);
-const tickerItems =
-  presentation === 'kiosk' && layoutVariant === 'kiosk'
-    ? buildTickerItems({
-        matches: overviewMatches,
-        ...(performerProjection === undefined ? {} : { performers: performerProjection }),
-        ...(leaderProjection === undefined ? {} : { leaders: leaderProjection }),
-        labels: tickerLabels(intl),
-        language,
-        ...(organizationTimeZone === undefined ? {} : { timeZone: organizationTimeZone }),
-        referenceDate,
-      })
-    : [];
+// The full frame carries the same ticker as the venue screen; the corner overlays carry none.
+const showsTicker =
+  layoutVariant === 'kiosk' && (presentation === 'kiosk' || presentation === 'full');
+const tickerItems = showsTicker
+  ? buildTickerItems({
+      matches: overviewMatches,
+      ...(performerProjection === undefined ? {} : { performers: performerProjection }),
+      ...(leaderProjection === undefined ? {} : { leaders: leaderProjection }),
+      labels: tickerLabels(intl),
+      language,
+      ...(organizationTimeZone === undefined ? {} : { timeZone: organizationTimeZone }),
+      referenceDate,
+    })
+  : [];
 ---
 
 <TvLayout
@@ -392,8 +386,9 @@ const tickerItems =
   <h1 aria-busy={!tournamentName ? 'true' : undefined} class="cl-visually-hidden">
     {tournamentDisplayName}
   </h1>
-  {layoutVariant === 'kiosk' && (
+  {showsTicker && (
     <ScoreTicker
+      omitWhenEmpty={presentation === 'full'}
       emptyLabel={tickerChrome.empty}
       items={tickerItems}
       label={intl.formatMessage(messages.tickerLabel)}

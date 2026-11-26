@@ -18,11 +18,38 @@ describe('resolveTvBackground', () => {
     ).toBe('transparent');
   });
 
+  it('defaults scorebug overlays to transparent output, like lower thirds', () => {
+    expect(
+      resolveTvBackground({
+        searchParams: new URLSearchParams('mode=overlay'),
+        overlayMode: 'scorebug',
+      }).background,
+    ).toBe('transparent');
+  });
+
+  it('keeps full overlays on the discipline background by default', () => {
+    expect(
+      resolveTvBackground({
+        searchParams: new URLSearchParams('mode=overlay-full'),
+        overlayMode: 'full',
+      }).background,
+    ).toBe('discipline');
+  });
+
   it('keeps the legacy lower-overlay chroma query working', () => {
     expect(
       resolveTvBackground({
         searchParams: new URLSearchParams('mode=overlay&chroma=%2300b140'),
         overlayMode: 'lower',
+      }).background,
+    ).toBe('chroma');
+  });
+
+  it('applies the legacy chroma query to scorebug overlays as well', () => {
+    expect(
+      resolveTvBackground({
+        searchParams: new URLSearchParams('mode=overlay&chroma=%2300b140'),
+        overlayMode: 'scorebug',
       }).background,
     ).toBe('chroma');
   });

@@ -3,22 +3,22 @@ import { TvSeriesAndSets } from './TvSeriesAndSets.js';
 import { publicIntl, tvDashboardLabels } from '../../../../lib/i18n/public-intl.js';
 
 /**
- * Rendered inside the lower-third overlay bug (`.tv-lower-third__bug`, `TvDashboard.tsx`) — an
+ * Rendered inside the corner bug (`.tv-overlay-bug`, `TvOverlayBug.tsx`) — an
  * OBS/vMix browser-source composited over a live camera feed. See "TV/Kiosk & Full-Frame
  * Widget/TvSeriesAndSets" for the same component on a flat ground; the markup does not change, only
  * its host does.
  *
- * Wrapped in the `tv-root-container tv-lower-third` markup production renders, so the bug sits low
+ * Wrapped in the `tv-root-container tv-overlay-root tv-overlay-root--scorebug` markup production renders, so the bug sits low
  * in frame over the backdrop the toolbar picks.
  */
-function StreamWidgetLowerThird({
+function StreamWidgetCornerBug({
   children,
 }: {
   readonly children: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <div className="tv-root-container tv-lower-third">
-      <div className="tv-lower-third__bug cl-chamfer">{children}</div>
+    <div className="tv-root-container tv-overlay-root tv-overlay-root--scorebug">
+      <div className="tv-overlay-bug cl-chamfer">{children}</div>
     </div>
   );
 }
@@ -29,9 +29,9 @@ const meta = {
   args: { labels: tvDashboardLabels(publicIntl('es')) },
   decorators: [
     (Story) => (
-      <StreamWidgetLowerThird>
+      <StreamWidgetCornerBug>
         <Story />
-      </StreamWidgetLowerThird>
+      </StreamWidgetCornerBug>
     ),
   ],
   parameters: { layout: 'fullscreen' },
