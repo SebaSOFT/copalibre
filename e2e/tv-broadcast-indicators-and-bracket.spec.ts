@@ -266,15 +266,20 @@ test('kiosk shows each counter per side, and a counter at its warning value carr
   await expect(warning).toContainText('Team fouls: 4 (warning)');
 });
 
-test('lower third shows the counters on its second row', async ({ page }) => {
+test("lower third shows each side's counters under its name", async ({ page }) => {
   live = liveMatchWithCounters(1, 1);
   await gotoTv(page, `${TV_PATH}/stages/1/matches/1?mode=overlay-lower`);
 
   const lowerThird = page.locator('.tv-lower-third').first();
-  await expect(lowerThird.locator('.tv-match-counters')).toContainText('F 1');
+  const [home, away] = [
+    lowerThird.locator('.tv-match-counters').first(),
+    lowerThird.locator('.tv-match-counters').last(),
+  ];
+  await expect(home).toContainText('F 1');
+  await expect(away).toContainText('F 1');
   // One timeout against an allowance of one is at its warning value; the fouls are not.
   await expect(page.locator('.tv-match-counter--warning')).toHaveCount(1);
-  await expect(page.locator('.tv-match-counter--warning')).toContainText('TM 1/1');
+  await expect(page.locator('.tv-match-counter--warning')).toContainText('TM 1/1!');
 });
 
 test('a counter takes a newly recorded event on the next projection, without a reload', async ({
