@@ -67,6 +67,14 @@ export interface TvLauncherDestination {
 
 export type TvLauncherPreset = TvLauncherDestination;
 
+/**
+ * Whether a source names a stage and a match: both whole numbers from 1. The address reader and the
+ * preset reader both decide it here, so they read the same source the same way.
+ */
+export function namesStageAndMatch(stage: unknown, match: unknown): boolean {
+  return isOrdinal(stage) && isOrdinal(match);
+}
+
 const isOrdinal = (value: unknown): value is number =>
   typeof value === 'number' && Number.isSafeInteger(value) && value >= 1;
 
@@ -119,13 +127,14 @@ const LEGACY_VIEW_NAMES: ReadonlyMap<string, TvLauncherView> = new Map([
 ]);
 
 /**
- * The view a stored name means. A list name that carries a stage and a match is the pinned match, as it
- * always was; the other legacy names map through the table; a current name is itself. `named` says whether
- * the source carries that stage and match.
+ * The view a stored name means. `matches` with a stage and a match is the pinned match, as the launcher
+ * always read it; `fixtures` was only ever the list's old name, so it stays the list. The other legacy
+ * names map through the table; a current name is itself. `named` says whether the source carries a valid
+ * stage and match (see {@link namesStageAndMatch}).
  */
 export function resolveViewName(name: unknown, named: boolean): TvLauncherView | undefined {
   if (typeof name !== 'string') return undefined;
-  if (named && (name === 'matches' || name === 'fixtures')) return 'match';
+  if (named && name === 'matches') return 'match';
   const legacy = LEGACY_VIEW_NAMES.get(name);
   if (legacy !== undefined) return legacy;
   return (TV_LAUNCHER_VIEWS as readonly string[]).includes(name)
@@ -135,8 +144,8 @@ export function resolveViewName(name: unknown, named: boolean): TvLauncherView |
 
 /**
  * A view as it is stored. Presets saved before the launcher named its views are read as the view they
- * meant: `dashboard` was the rotating panel, `overlay` was the corner bug, and `matches` named the pinned
- * match when it carried a stage and a match.
+ * meant: `dashboard` was the rotating panel, `overlay` was the corner bug, `fixtures` was the list, and
+ * `matches` named the pinned match when it carried a stage and a match.
  */
 function viewOf(stored: unknown, named: boolean): TvLauncherView | undefined {
   return resolveViewName(stored, named);
@@ -161,7 +170,7 @@ export function parseTvLauncherPreset(value: unknown): TvLauncherPreset | undefi
 
   const stage = Number(preset.stage);
   const match = Number(preset.match);
-  const named = isOrdinal(stage) && isOrdinal(match);
+  const named = namesStageAndMatch(stage, match);
   const view = viewOf(preset.view, named);
   if (view === undefined) return undefined;
   if (view === 'match' && !named) return undefined;
@@ -333,7 +342,7 @@ export function viewFromParams(params: URLSearchParams): TvLauncherView {
   if (layout === 'dashboard') return 'dashboardLayout';
   if (layout === 'multicourt') return 'multicourt';
   // The launcher's own form submits every view by its name, so a tournament switch keeps the view chosen.
-  const named = params.has('stage') && params.has('match');
+  const named = namesStageAndMatch(Number(params.get('stage')), Number(params.get('match')));
   return resolveViewName(params.get('view'), named) ?? 'kiosk';
 }
 
@@ -392,9 +401,9 @@ export function openingStage(
 }
 
 /**
- * The match an address pins. It applies only when the stage the address asked for is the one the launcher
- * opens on, and that stage has the match: a match number is a number within its stage, so one requested
- * beside a stage the tournament lacks names nothing.
+ * The match an address pins: a match number is a number within its stage, so it applies only to the stage
+ * the launcher opens on, and only when that stage has the match. An address that names no stage means the
+ * opening stage; one requested beside a stage the tournament lacks names nothing.
  */
 export function pinnedMatchOf(
   choices: readonly TvLauncherMatchChoice[],
@@ -402,7 +411,9 @@ export function pinnedMatchOf(
   openingStage: number | undefined,
   match: number | undefined,
 ): number | undefined {
-  if (requestedStage === undefined || requestedStage !== openingStage || match === undefined) {
+  // A match belongs to the stage it was asked for. An address that names no stage means the stage the
+  // launcher opens on; one that names a stage the tournament lacks pins nothing.
+  if (match === undefined || (requestedStage !== undefined && requestedStage !== openingStage)) {
     return undefined;
   }
   return choices.some((choice) => choice.stage === openingStage && choice.match === match)

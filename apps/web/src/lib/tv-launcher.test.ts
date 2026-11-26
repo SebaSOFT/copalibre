@@ -359,7 +359,33 @@ describe('a pinned match and a court are kept only when this tournament has them
   it('pins nothing when the stage it asked for is not the one the launcher opens on', () => {
     // stage=9 names no stage here: the launcher opens on stage 2, and match 1 of stage 2 is not what was asked.
     expect(pinnedMatchOf(choices, 9, 2, 1)).toBeUndefined();
-    expect(pinnedMatchOf(choices, undefined, 2, 1)).toBeUndefined();
+  });
+
+  it('reads a match with no stage as a match of the stage the launcher opens on', () => {
+    expect(pinnedMatchOf(choices, undefined, 2, 1)).toBe(1);
+  });
+
+  it('reads the address and a saved preset the same way when the stage or match is not a number from 1', () => {
+    for (const [stage, match] of [
+      ['1', ''],
+      ['1', '0'],
+      ['x', '2'],
+    ]) {
+      const params = new URLSearchParams({
+        view: 'matches',
+        stage: stage ?? '',
+        match: match ?? '',
+      });
+      expect(viewFromParams(params)).toBe('matches');
+      expect(
+        parseTvLauncherPreset({
+          ...base,
+          view: 'matches',
+          stage: Number(stage),
+          match: Number(match),
+        })?.view,
+      ).toBe('matches');
+    }
   });
 
   it('pins nothing when the opening stage does not have the match', () => {
@@ -379,7 +405,8 @@ describe('every legacy view name reads the same on the address path and the pres
     ['dashboard', false, 'kiosk'],
     ['overlay', false, 'overlay-scorebug'],
     ['fixtures', false, 'matches'],
-    ['fixtures', true, 'match'],
+    // `fixtures` was only ever the list's old name: a stage and a match beside it do not pin.
+    ['fixtures', true, 'matches'],
     ['matches', false, 'matches'],
     ['matches', true, 'match'],
   ];

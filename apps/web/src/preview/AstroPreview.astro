@@ -328,6 +328,7 @@ const [compactSample] = referenceJourneyBracket(true);
     {component === 'tv-launcher-link-preview' && (
       <TvLauncherLinkPreview
         url={referenceTvLauncherAddress(locale)}
+        previewSrc={referenceTvLauncherAddress(locale)}
         transparent
         finalLinkLabel={TV_LAUNCHER_LABELS[locale].finalLink ?? ''}
         copyLabel={TV_LAUNCHER_LABELS[locale].copyLink ?? ''}

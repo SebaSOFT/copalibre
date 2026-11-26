@@ -479,8 +479,9 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
     const labelsFor = (): Readonly<Record<string, string>> =>
       TV_LAUNCHER_LABELS[(language?.value ?? 'en') as Language] ?? TV_LAUNCHER_LABELS.en;
 
-    // The match select: the overlay views may pin nothing (they follow a court instead), the pinned
-    // kiosk must name one. The options of the chosen stage read in the chosen language.
+    // The match select starts on its empty choice in every view: a match is pinned only when the
+    // operator picks one. An overlay may stay empty (it follows a court instead); the pinned view cannot
+    // launch, copy or preview until a match is picked. The options read in the chosen language.
     const renderMatches = (): void => {
       if (!stage || !match || !view || !language) return;
       const labels = labelsFor();
@@ -604,9 +605,13 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
         launch.href = unavailable ? '#' : destination;
         launch.setAttribute('aria-disabled', String(unavailable));
       }
-      if (urlField && urlField.value !== absolute) urlField.value = absolute;
+      // Without a match the pinned view has no address: nothing to copy, and no page to preview.
+      const shown = unavailable ? '' : absolute;
+      if (urlField && urlField.value !== shown) urlField.value = shown;
+      if (copy) copy.disabled = unavailable;
       if (copied) copied.textContent = '';
-      if (preview && !unavailable && preview.getAttribute('src') !== absolute) {
+      if (preview && unavailable) preview.removeAttribute('src');
+      else if (preview && preview.getAttribute('src') !== absolute) {
         preview.setAttribute('src', absolute);
       }
     };
