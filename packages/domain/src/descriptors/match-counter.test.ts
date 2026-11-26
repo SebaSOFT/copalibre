@@ -3,6 +3,7 @@ import { validateDisciplineDescriptorDocument } from './descriptor-schema.js';
 import type { DisciplineDescriptor, MatchCounterDefinition } from './discipline-descriptor.js';
 import {
   matchCounterOverrideProblem,
+  matchCounterOverrideViolations,
   resolveEffectiveMatchCounters,
 } from './match-counter-resolution.js';
 import { compileEffectiveRuleset } from '../rulesets/compiler.js';
@@ -221,12 +222,8 @@ describe('countMatchCounters', () => {
 });
 
 describe('matchCounters override validation', () => {
-  const compile = (descriptor: DisciplineDescriptor, overrides: unknown) =>
-    compileEffectiveRuleset(descriptor, {
-      rulesetId: 'r1',
-      version: 1,
-      overrides: { matchCounters: overrides },
-    } as never);
+  const writeViolations = (descriptor: DisciplineDescriptor, overrides: unknown) =>
+    matchCounterOverrideViolations(descriptor, { matchCounters: overrides });
 
   it.each([
     ['a null counter entry', { 'team-fouls': null }],
@@ -235,24 +232,31 @@ describe('matchCounters override validation', () => {
     ['a string allowance', { timeouts: { allowance: 'abc' } }],
     ['an unknown key', { timeouts: { color: 'red' } }],
     ['a non-boolean hidden flag', { timeouts: { hidden: 'yes' } }],
-  ])('reports %s as an invalid override, and the compilation fails', (_name, overrides) => {
-    expect(matchCounterOverrideProblem(overrides)).toBeDefined();
-    const result = compile(withCounters([FOUL, TIMEOUT]), overrides);
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error.violations).toEqual([
+  ])('refuses %s on save, with an invalid-override violation', (_name, overrides) => {
+    expect(writeViolations(withCounters([FOUL, TIMEOUT]), overrides)).toEqual([
       expect.objectContaining({ field: 'matchCounters', reason: 'invalid-override' }),
     ]);
   });
 
   it('accepts a well-formed override, with null clearing a default', () => {
     expect(
-      matchCounterOverrideProblem({
+      writeViolations(withCounters([FOUL, TIMEOUT]), {
         'team-fouls': { warnAt: 10 },
         timeouts: { allowance: null, hidden: false },
       }),
-    ).toBeUndefined();
-    expect(compile(withCounters([FOUL, TIMEOUT]), { timeouts: { allowance: null } }).ok).toBe(true);
+    ).toEqual([]);
+  });
+
+  it('skips a malformed stored entry on compile: the compile succeeds and the other overrides apply', () => {
+    const descriptor = withCounters([FOUL, TIMEOUT]);
+    const result = compileEffectiveRuleset(descriptor, {
+      rulesetId: 'r1',
+      version: 1,
+      overrides: { 'scoring.pointsPerWin': 5, matchCounters: { 'team-fouls': null } },
+    } as never);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.config).toMatchObject({ scoring: { pointsPerWin: 5 } });
   });
 
   it('never throws in the resolver on a malformed override, and skips the bad entries', () => {
@@ -270,17 +274,14 @@ describe('matchCounters override validation', () => {
     ).toBe(1);
   });
 
-  it('rejects any override under an explicit forbidden field policy', () => {
+  it('refuses any override under an explicit forbidden field policy, on save', () => {
     const descriptor = fixtureDescriptor({
       matchCounters: [FOUL],
       fieldPolicies: {
         matchCounters: { permission: { kind: 'forbidden' }, mutationClass: 'safe' },
       },
     });
-    const result = compile(descriptor, { 'team-fouls': { hidden: true } });
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error.violations).toEqual([
+    expect(writeViolations(descriptor, { 'team-fouls': { hidden: true } })).toEqual([
       expect.objectContaining({ field: 'matchCounters', reason: 'forbidden-override' }),
     ]);
   });

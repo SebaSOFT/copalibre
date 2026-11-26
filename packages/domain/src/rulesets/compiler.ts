@@ -2,7 +2,6 @@ import type { DisciplineDescriptor } from '../descriptors/discipline-descriptor.
 import type { MergeStrategyName, OverrideSet } from '../descriptors/override-policy.js';
 import { RulesetCompilationError, type PolicyViolation } from '../errors.js';
 import { err, ok, type Result } from '../result.js';
-import { matchCounterOverrideProblem } from '../descriptors/match-counter-resolution.js';
 import type { MatchRuleset } from './match-ruleset.js';
 import type { StageConfiguration, TournamentRuleset } from './tournament-ruleset.js';
 
@@ -53,25 +52,9 @@ function applyOverrideLayer(
 ): Record<string, unknown> {
   for (const [field, value] of Object.entries(overrides)) {
     // Match counters are display data, not configuration: resolved by `resolveEffectiveMatchCounters`.
-    // Their override is only checked here, for shape and for an explicit `forbidden` policy.
-    if (field === 'matchCounters') {
-      const forbidden = descriptor.fieldPolicies['matchCounters']?.permission.kind === 'forbidden';
-      const problem = matchCounterOverrideProblem(value);
-      if (forbidden) {
-        violations.push({
-          field,
-          reason: 'forbidden-override',
-          message: `Field "${field}" is forbidden to override`,
-        });
-      } else if (problem !== undefined) {
-        violations.push({
-          field,
-          reason: 'invalid-override',
-          message: `Field "${field}" ${problem}`,
-        });
-      }
-      continue;
-    }
+    // A malformed stored entry is skipped here, so it never fails the compile of the other fields.
+    // The write path refuses it (see `matchCounterOverrideViolations`).
+    if (field === 'matchCounters') continue;
     const policy = descriptor.fieldPolicies[field];
 
     if (!policy) {

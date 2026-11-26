@@ -145,7 +145,10 @@ export type {
   MatchCounterOverrides,
   EffectiveMatchCounter,
 } from './descriptors/match-counter-resolution.js';
-export { resolveEffectiveMatchCounters } from './descriptors/match-counter-resolution.js';
+export {
+  resolveEffectiveMatchCounters,
+  matchCounterOverrideViolations,
+} from './descriptors/match-counter-resolution.js';
 export type {
   CountableRoster,
   MatchCounterValue,

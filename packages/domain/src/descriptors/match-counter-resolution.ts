@@ -1,5 +1,6 @@
 import type { DisciplineDescriptor, MatchCounterDefinition } from './discipline-descriptor.js';
 import type { OverrideSet } from './override-policy.js';
+import type { PolicyViolation } from '../errors.js';
 
 /** Ruleset tuning for one declared counter. `null` clears the descriptor's default. */
 export interface MatchCounterOverride {
@@ -13,13 +14,6 @@ export type MatchCounterOverrides = Readonly<Record<string, MatchCounterOverride
 
 export type EffectiveMatchCounter = MatchCounterDefinition;
 
-/**
- * The counters a match shows, after the tournament ruleset's per-counter tuning.
- *
- * Match counters are display only, so their field policy is `safe` by construction:
- * a descriptor that declares no `fieldPolicies['matchCounters']` permits the override.
- * Only an explicit `forbidden` policy ignores it. Nothing here refuses or warns.
- */
 /**
  * The first problem with an `overrides.matchCounters` value, or undefined when it is well formed: an
  * object keyed by counter code, each value an object whose only keys are `hidden` (boolean),
@@ -45,6 +39,37 @@ export function matchCounterOverrideProblem(value: unknown): string | undefined 
     }
   }
   return undefined;
+}
+
+/**
+ * The violations a ruleset write must be refused for, on the `matchCounters` override: a malformed
+ * value, or any override under an explicit `forbidden` policy. Checked when a ruleset is saved, never
+ * when it is read: a stored ruleset with an invalid entry still compiles, and the entry is skipped.
+ */
+export function matchCounterOverrideViolations(
+  descriptor: DisciplineDescriptor,
+  overrides: OverrideSet,
+): readonly PolicyViolation[] {
+  if (overrides['matchCounters'] === undefined) return [];
+  if (descriptor.fieldPolicies['matchCounters']?.permission.kind === 'forbidden') {
+    return [
+      {
+        field: 'matchCounters',
+        reason: 'forbidden-override',
+        message: 'Field "matchCounters" is forbidden to override',
+      },
+    ];
+  }
+  const problem = matchCounterOverrideProblem(overrides['matchCounters']);
+  return problem === undefined
+    ? []
+    : [
+        {
+          field: 'matchCounters',
+          reason: 'invalid-override',
+          message: `Field "matchCounters" ${problem}`,
+        },
+      ];
 }
 
 /**

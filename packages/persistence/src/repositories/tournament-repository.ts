@@ -1,6 +1,7 @@
 import {
   Alias,
   compileEffectiveRuleset,
+  matchCounterOverrideViolations,
   evaluateCustomScriptsMutation,
   resolveLabel,
   transitionTournament,
@@ -436,6 +437,15 @@ export class TournamentRepository {
       overrides: input.overrides,
       customScripts: customScriptsToPersist,
     };
+
+    // A malformed match-counter override is refused here, on write. Compilation skips it on read.
+    const counterViolations = matchCounterOverrideViolations(input.descriptor, input.overrides);
+    if (counterViolations.length > 0) {
+      throw new InvariantViolationError(
+        `Effective ruleset compilation failed: ${counterViolations.map((v) => v.message).join('; ')}`,
+        { violations: counterViolations },
+      );
+    }
 
     const compiled = compileEffectiveRuleset(input.descriptor, candidate);
     if (!compiled.ok) {
