@@ -275,8 +275,9 @@ try {
 */
 let matchList: readonly TvMatchEntry[] = [];
 let venueNameByMatchId: Record<string, string> = {};
-// The plain kiosk shows neither label, so it does not read the tournament's whole matches view for them.
-if (presentation !== 'kiosk') {
+// Overlays and the full-frame layouts name courts and competitions from the matches view; only the plain
+// pinned kiosk shows neither, so only it skips the tournament's whole matches view.
+if (presentation !== 'kiosk' || layoutVariant !== 'kiosk') {
   try {
     const view = await fetchMatchesView(organizationAlias, tournamentAlias, { state: 'all' });
     if (view) {
@@ -329,7 +330,7 @@ const organizationDisplayName = organizationName ?? intl.formatMessage(messages.
     streamPath={streamPath}
     branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
     pinnedMatch={{ stageNumber, ordinal: matchOrdinal }}
-    matchList={presentation === 'kiosk' ? undefined : matchList}
+    matchList={presentation === 'kiosk' && layoutVariant === 'kiosk' ? undefined : matchList}
     venueNameByMatchId={venueNameByMatchId}
     seriesByMatchId={seriesByMatchId}
     timeZone={organizationTimeZone}

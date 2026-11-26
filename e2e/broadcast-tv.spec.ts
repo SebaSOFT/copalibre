@@ -789,6 +789,17 @@ test('TV match list uses short dynamic timestamps, marks delayed matches with cl
   await expect(nextMatches.nth(1)).toContainText('Próximo Futuro');
 });
 
+test('the pinned route keeps the court names of the presentation layout next matches', async ({
+  page,
+}) => {
+  await mockOpenStream(page);
+  clockFixtureMode = 'delayed-schedule';
+  await gotoTv(page, `${TV_PATH}/stages/1/matches/1?layout=presentation&lang=es`);
+  const nextMatches = page.getByTestId('tv-next-match');
+  await expect(nextMatches.first()).toBeVisible();
+  await expect(nextMatches.first().locator('small').last()).toHaveText(/Cancha/);
+});
+
 test('the pinned match and the kiosk list the same featured player first, and the header holds still across a rail rotation (8.9)', async ({
   page,
 }) => {
