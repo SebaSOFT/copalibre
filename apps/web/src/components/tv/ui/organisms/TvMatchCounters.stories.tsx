@@ -15,7 +15,13 @@ const MATCH: LiveMatch = {
   state: 'live',
   projectionVersion: 1,
   sides: [
-    { entrantId: 'e-1', name: 'Club Atlético Independiente', abbreviation: 'CAI', score: 2, state: 'live' },
+    {
+      entrantId: 'e-1',
+      name: 'Club Atlético Independiente',
+      abbreviation: 'CAI',
+      score: 2,
+      state: 'live',
+    },
     { entrantId: 'e-2', name: 'Deportivo San Juan', abbreviation: 'DSJ', score: 1, state: 'live' },
   ],
   counters: [

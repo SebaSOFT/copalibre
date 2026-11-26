@@ -8,6 +8,11 @@ const TEXTS = {
   warning: 'en advertencia',
 };
 
+const SIDES = [
+  { entrantId: 'home', name: 'Club Andes' },
+  { entrantId: 'away', name: 'Deportivo Sur' },
+];
+
 const VIEWS = matchCounterView(
   [
     {
@@ -31,29 +36,31 @@ const VIEWS = matchCounterView(
 describe('MatchCounters', () => {
   it('renders nothing with no counters and no penalties', () => {
     const { container } = render(
-      <MatchCounters penalties={[]} penaltyTemplate="{side}: {time}" views={[]} />,
+      <MatchCounters penalties={[]} penaltyTemplate="{side}: {time}" sides={SIDES} views={[]} />,
     );
     expect(container.firstChild).toBeNull();
   });
 
-  it('shows the full label and value per side, in the page language', () => {
+  it('shows one row per counter, each side named with its value, in the page language', () => {
     const { container } = render(
-      <MatchCounters penalties={[]} penaltyTemplate="{side}: {time}" views={VIEWS} />,
+      <MatchCounters penalties={[]} penaltyTemplate="{side}: {time}" sides={SIDES} views={VIEWS} />,
+    );
+    expect(container.querySelector('.cl-match-counter-row__label')?.textContent).toBe(
+      'Faltas de equipo',
     );
     const items = Array.from(container.querySelectorAll('.cl-match-counter'));
-    expect(items[0]?.textContent).toContain('Faltas de equipo 3');
-    expect(items[1]?.textContent).toContain('Faltas de equipo 1');
+    expect(items[0]?.querySelector('[aria-hidden="true"]')?.textContent).toBe('Club Andes 3 !');
+    expect(items[1]?.querySelector('[aria-hidden="true"]')?.textContent).toBe('Deportivo Sur 1');
   });
 
-  it('gives each counter an accessible name with the full label, and a text cue when in warning', () => {
+  it('gives each side an accessible name with the side and the full label, and a text cue in warning', () => {
     const { container } = render(
-      <MatchCounters penalties={[]} penaltyTemplate="{side}: {time}" views={VIEWS} />,
+      <MatchCounters penalties={[]} penaltyTemplate="{side}: {time}" sides={SIDES} views={VIEWS} />,
     );
     const [home, away] = Array.from(container.querySelectorAll('.cl-match-counter'));
     expect(home?.classList.contains('cl-match-counter--warning')).toBe(true);
-    expect(home?.querySelector('[aria-hidden="true"]')?.textContent).toBe('Faltas de equipo 3 !');
     expect(home?.querySelector('.cl-visually-hidden')?.textContent).toBe(
-      'Faltas de equipo: 3 (en advertencia)',
+      'Club Andes, Faltas de equipo: 3 (en advertencia)',
     );
     expect(away?.classList.contains('cl-match-counter--warning')).toBe(false);
   });
@@ -63,6 +70,7 @@ describe('MatchCounters', () => {
       <MatchCounters
         penalties={[{ timerId: 't1', entrantId: 'away', remainingSeconds: 120, sideName: 'Sur' }]}
         penaltyTemplate="{side}: {time} de suspensión"
+        sides={SIDES}
         views={[]}
       />,
     );

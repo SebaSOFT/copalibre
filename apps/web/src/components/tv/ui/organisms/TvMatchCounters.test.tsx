@@ -41,7 +41,12 @@ function match(overrides: Partial<LiveMatch> = {}): LiveMatch {
 describe('TvMatchCounters', () => {
   it('renders nothing when the match declares no counters', () => {
     const { container } = render(
-      <TvMatchCounters density="compact" language="es" match={match({ counters: undefined })} texts={TEXTS} />,
+      <TvMatchCounters
+        density="compact"
+        language="es"
+        match={match({ counters: undefined })}
+        texts={TEXTS}
+      />,
     );
     expect(container.firstChild).toBeNull();
   });
@@ -52,8 +57,8 @@ describe('TvMatchCounters', () => {
     );
     const counters = Array.from(container.querySelectorAll('.tv-match-counter'));
     expect(counters.map((node) => node.textContent)).toEqual([
-      'F 4!Faltas de equipo: 4 (en advertencia)',
-      'F 1Faltas de equipo: 1',
+      'BOC F 4!Boca Juniors, Faltas de equipo: 4 (en advertencia)',
+      'RIV F 1River Plate, Faltas de equipo: 1',
     ]);
   });
 
@@ -64,7 +69,8 @@ describe('TvMatchCounters', () => {
     const [home, away] = Array.from(container.querySelectorAll('.tv-match-counter'));
     expect(home?.classList.contains('tv-match-counter--warning')).toBe(true);
     expect(home?.querySelector('.tv-match-counter__cue')?.textContent).toBe('!');
-    expect(home?.textContent).toContain('Faltas de equipo: 4 (en advertencia)');
+    expect(home?.textContent).toContain('BOC Faltas de equipo 4');
+    expect(home?.textContent).toContain('Boca Juniors, Faltas de equipo: 4 (en advertencia)');
     expect(away?.classList.contains('tv-match-counter--warning')).toBe(false);
     expect(away?.querySelector('.tv-match-counter__cue')).toBeNull();
   });

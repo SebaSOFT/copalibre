@@ -57,5 +57,12 @@ export function LiveMatchCounters({
           sides.find((side) => side.entrantId === penalty.entrantId)?.name ?? penalty.entrantId,
       }))
     : [];
-  return <MatchCounters penalties={penalties} penaltyTemplate={penaltyTemplate} views={views} />;
+  return (
+    <MatchCounters
+      penalties={penalties}
+      penaltyTemplate={penaltyTemplate}
+      sides={sides}
+      views={views}
+    />
+  );
 }

@@ -163,13 +163,18 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--cl-space-2);
+  gap: var(--cl-space-3);
 }
 
+/* The two sides of one counter sit closer together than two counters do, so a pair reads as one value. */
 .tv-match-counter-group {
   display: inline-flex;
   align-items: center;
-  gap: var(--cl-space-2);
+  gap: var(--cl-space-1);
+}
+
+.tv-match-counter__side {
+  opacity: 0.75;
 }
 
 .tv-match-counter {

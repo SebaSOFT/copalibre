@@ -19,10 +19,14 @@ export function TvMatchCounters({
   readonly texts: MatchCounterTexts;
   readonly density: 'compact' | 'full';
 }): React.JSX.Element | null {
-  const views = matchCounterView(match?.counters, match?.sides ?? [], language, texts);
+  const sides = match?.sides ?? [];
+  const views = matchCounterView(match?.counters, sides, language, texts);
   if (views.length === 0) return null;
   return (
-    <div className={`tv-match-counters tv-match-counters--${density}`} data-testid="tv-match-counters">
+    <div
+      className={`tv-match-counters tv-match-counters--${density}`}
+      data-testid="tv-match-counters"
+    >
       {views.map((view) => (
         <div className="tv-match-counter-group" key={view.code}>
           {view.sides.map((side) => (
@@ -30,17 +34,41 @@ export function TvMatchCounters({
               className={`tv-match-counter cl-chamfer${side.warning ? ' tv-match-counter--warning' : ''}`}
               key={side.entrantId}
             >
-              <span aria-hidden="true">{density === 'compact' ? side.compactText : side.fullText}</span>
+              <span aria-hidden="true">
+                <span className="tv-match-counter__side">{sideLabel(sides, side.entrantId)}</span>{' '}
+                {density === 'compact' ? side.compactText : side.fullText}
+              </span>
               {side.warning && (
                 <span aria-hidden="true" className="tv-match-counter__cue">
                   !
                 </span>
               )}
-              <span className="cl-visually-hidden">{side.accessibleName}</span>
+              <span className="cl-visually-hidden">
+                {`${sideName(sides, side.entrantId)}, ${side.accessibleName}`}
+              </span>
             </span>
           ))}
         </div>
       ))}
     </div>
   );
+}
+
+function sideName(
+  sides: readonly { readonly entrantId: string; readonly name?: string }[],
+  entrantId: string,
+): string {
+  return sides.find((side) => side.entrantId === entrantId)?.name ?? '';
+}
+
+function sideLabel(
+  sides: readonly {
+    readonly entrantId: string;
+    readonly name?: string;
+    readonly abbreviation?: string;
+  }[],
+  entrantId: string,
+): string {
+  const side = sides.find((candidate) => candidate.entrantId === entrantId);
+  return side?.abbreviation ?? side?.name ?? '';
 }

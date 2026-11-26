@@ -15,6 +15,8 @@ export interface MatchCounterTexts {
 export interface MatchCounterSideView {
   readonly entrantId: string;
   readonly value: number;
+  /** The value, or "value/allowance" when the counter has an allowance. */
+  readonly valueText: string;
   /** Short label and value, "F 4" or "TM 1/1": for compact graphics. */
   readonly compactText: string;
   /** Full label and value, "Team fouls 4": for a wide surface. */
@@ -66,6 +68,7 @@ export function matchCounterView(
         return {
           entrantId: side.entrantId,
           value,
+          valueText,
           compactText: `${shortLabel} ${valueText}`,
           fullText: `${label} ${valueText}`,
           accessibleName: warning ? `${words} (${texts.warning})` : words,

@@ -49,6 +49,10 @@ const meta: Meta<typeof MatchCounters> = {
   component: MatchCounters,
   args: {
     views: VIEWS,
+    sides: [
+      { entrantId: 'home', name: 'Club Andes' },
+      { entrantId: 'away', name: 'Deportivo Sur' },
+    ],
     penalties: [{ timerId: 't1', entrantId: 'away', remainingSeconds: 120, sideName: 'Sur' }],
     penaltyTemplate: '{side}: {time} suspension',
   },

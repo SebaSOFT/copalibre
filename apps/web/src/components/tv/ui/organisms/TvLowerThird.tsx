@@ -165,7 +165,12 @@ export function TvLowerThird({
           possessionLabel={labels.possession}
           penaltyLabel={labels.penalty}
         />
-        <TvMatchCounters density="compact" language={language} match={match} texts={labels.counters} />
+        <TvMatchCounters
+          density="compact"
+          language={language}
+          match={match}
+          texts={labels.counters}
+        />
       </div>
     </div>
   );
