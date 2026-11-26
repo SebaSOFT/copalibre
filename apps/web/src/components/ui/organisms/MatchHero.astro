@@ -38,6 +38,8 @@ export interface Props {
   readonly statusLabel: string;
   readonly rescheduledLabel?: string;
   readonly liveMatchId?: string;
+  /** The match's 1-based position in its stage, as the page's route addresses it. */
+  readonly matchOrdinal?: number;
   readonly homeEntrantId?: string;
   readonly awayEntrantId?: string;
   readonly liveClock?: LiveMatchClock;
@@ -58,6 +60,7 @@ const {
   statusLabel,
   rescheduledLabel,
   liveMatchId,
+  matchOrdinal,
   homeEntrantId,
   awayEntrantId,
   liveClock,
@@ -109,10 +112,9 @@ const awayAdvances =
 const homeEliminated = awayAdvances && !homeAdvances;
 const awayEliminated = homeAdvances && !awayAdvances;
 const advancesLabel = intl.formatMessage(messages.bracketAdvances);
-const hasCounters = model.counters !== undefined || (model.activePenalties?.length ?? 0) > 0;
 const counterSides = [
-  { entrantId: resolvedHomeEntrantId ?? '', name: home.fullName },
-  { entrantId: resolvedAwayEntrantId ?? '', name: away.fullName },
+  { entrantId: resolvedHomeEntrantId ?? '', name: home.fullName, place: 'home' as const },
+  { entrantId: resolvedAwayEntrantId ?? '', name: away.fullName, place: 'away' as const },
 ].filter((side) => side.entrantId !== '');
 ---
 
@@ -200,21 +202,29 @@ const counterSides = [
     </div>
   </div>
 
-  {(model.status === 'live' || hasCounters) && organizationAlias && tournamentAlias && (
-    <LiveMatchCounters
-      client:load
-      initialCounters={model.counters ?? []}
-      initialPenalties={model.activePenalties ?? []}
-      language={resolvedLanguage}
-      live={model.status === 'live' && liveMatchId !== undefined}
-      matchId={liveMatchId ?? ''}
-      organizationAlias={organizationAlias}
-      penaltyTemplate={matchPenaltyTemplate(intl)}
-      sides={counterSides}
-      texts={matchCounterTexts(intl)}
-      tournamentAlias={tournamentAlias}
-    />
-  )}
+  {model.tracksLiveIndicators === true &&
+    (model.status !== 'final' || model.counters !== undefined) &&
+    organizationAlias &&
+    tournamentAlias &&
+    (model.matchId ?? liveMatchId) !== undefined &&
+    matchOrdinal !== undefined && (
+      <LiveMatchCounters
+        client:load
+        finished={model.status === 'final'}
+        initialCounters={model.counters ?? []}
+        initialPenalties={model.activePenalties ?? []}
+        language={resolvedLanguage}
+        live={model.status === 'live'}
+        matchId={model.matchId ?? liveMatchId ?? ''}
+        matchOrdinal={matchOrdinal}
+        organizationAlias={organizationAlias}
+        penaltyTemplate={matchPenaltyTemplate(intl)}
+        sides={counterSides}
+        stageNumber={model.stageNumber}
+        texts={matchCounterTexts(intl)}
+        tournamentAlias={tournamentAlias}
+      />
+    )}
 
   {model.scheduledAt ? (
     <p class="cl-match-venue">

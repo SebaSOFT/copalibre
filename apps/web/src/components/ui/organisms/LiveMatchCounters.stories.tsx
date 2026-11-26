@@ -34,8 +34,8 @@ const meta: Meta<typeof LiveMatchCounters> = {
     ],
     initialPenalties: [],
     sides: [
-      { entrantId: 'home', name: 'Norte' },
-      { entrantId: 'away', name: 'Sur' },
+      { entrantId: 'home', name: 'Norte', place: 'home' },
+      { entrantId: 'away', name: 'Sur', place: 'away' },
     ],
     language: 'en',
     texts: TEXTS,

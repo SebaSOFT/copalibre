@@ -43,7 +43,11 @@ const TIMEOUTS = {
 
 const SUSPENSION = { timerId: 'timer-1', entrantId: AWAY_ID, remainingSeconds: 120 };
 
-function report(status: 'live' | 'final', counters: unknown[], activePenalties: unknown[]) {
+function report(
+  status: 'upcoming' | 'live' | 'final',
+  counters: unknown[],
+  activePenalties: unknown[],
+) {
   return {
     organizationAlias: ORGANIZATION,
     organizationName: 'Liga Mendocina',
@@ -55,6 +59,8 @@ function report(status: 'live' | 'final', counters: unknown[], activePenalties: 
     matchNumber: 5,
     round: 3,
     status,
+    matchId: 'match-5',
+    tracksLiveIndicators: true,
     homeEntrantId: HOME_ID,
     awayEntrantId: AWAY_ID,
     homeName: 'Club Andes',
@@ -123,10 +129,10 @@ test('a live match shows each counter per side and the penalty counting down', a
 
   const counters = page.locator('.cl-match-counters');
   await expect(counters).toContainText('Team fouls');
-  await expect(counters).toContainText('Club Andes 3!');
-  await expect(counters).toContainText('Deportivo Sur 1');
-  await expect(counters).toContainText('Club Andes 1/1!');
-  await expect(counters).toContainText('Deportivo Sur 0/1');
+  await expect(counters).toContainText('Club Andes, Team fouls: 3, warning');
+  await expect(counters).toContainText('Deportivo Sur, Team fouls: 1');
+  await expect(counters).toContainText('Club Andes, Timeouts: 1 of 1, warning');
+  await expect(counters).toContainText('Deportivo Sur, Timeouts: 0 of 1');
 
   const penalty = page.locator('.cl-match-penalty time');
   await expect(penalty).toContainText('Deportivo Sur:');
@@ -142,9 +148,9 @@ test('a counter at its warning value is marked with a text cue, not colour alone
 
   // Three team fouls against a warning value of three.
   const warning = page.locator('.cl-match-counter--warning').first();
-  await expect(warning).toContainText('Club Andes 3!');
+  await expect(warning).toContainText('Club Andes, Team fouls: 3, warning');
   await expect(warning.locator('.cl-visually-hidden')).toHaveText(
-    'Club Andes, Team fouls: 3 (warning)',
+    'Club Andes, Team fouls: 3, warning',
   );
 });
 
@@ -153,7 +159,9 @@ test('a finished match keeps the match-scope totals and no penalty', async ({ pa
   await page.goto(MATCH_URL);
 
   await expect(page.locator('.cl-match-counters')).toContainText('Team fouls');
-  await expect(page.locator('.cl-match-counters')).toContainText('Club Andes 3!');
+  await expect(page.locator('.cl-match-counters')).toContainText(
+    'Club Andes, Team fouls: 3, warning',
+  );
   await expect(page.locator('.cl-match-counters')).not.toContainText('Timeouts');
   await expect(page.locator('.cl-match-penalty')).toHaveCount(0);
 });
@@ -224,7 +232,9 @@ test.describe('live updates on the match page', () => {
     test.setTimeout(30_000);
     await mockControllablePublicStream(page);
     await page.goto(MATCH_URL);
-    await expect(page.locator('.cl-match-counters')).toContainText('Club Andes 3!');
+    await expect(page.locator('.cl-match-counters')).toContainText(
+      'Club Andes, Team fouls: 3, warning',
+    );
 
     liveBody = {
       matches: [
@@ -250,9 +260,12 @@ test.describe('live updates on the match page', () => {
       { matchId: 'match-5', definitionCode: 'team-foul', side: HOME_ID },
       2,
     );
-    await expect(page.locator('.cl-match-counters')).toContainText('Club Andes 4!', {
-      timeout: 3000,
-    });
+    await expect(page.locator('.cl-match-counters')).toContainText(
+      'Club Andes, Team fouls: 4, warning',
+      {
+        timeout: 3000,
+      },
+    );
   });
 
   test('a timed-penalty recording makes the penalty appear, counting down', async ({ page }) => {
@@ -298,5 +311,73 @@ test.describe('live updates on the match page', () => {
     await expect(page.locator('.cl-match-penalty')).toHaveCount(0);
     // The match-scope total stays as the final tally.
     await expect(page.locator('.cl-match-counters')).toContainText('Team fouls');
+  });
+});
+
+test('an upcoming page follows its stream: match.started, then a counted event, and the counters appear without a reload', async ({
+  page,
+}) => {
+  test.setTimeout(30_000);
+  await mockControllablePublicStream(page);
+  reportBody = report('upcoming', [], []);
+  liveBody = { matches: [] };
+  await page.goto(MATCH_URL);
+  await expect(page.locator('.cl-match-counters')).toHaveCount(0);
+
+  // The match starts: the page turns live, and the counters are on the projection from now on.
+  liveBody = {
+    matches: [
+      {
+        ...LIVE_MATCH,
+        counters: [
+          {
+            ...TEAM_FOULS,
+            values: [
+              { entrantId: HOME_ID, value: 0 },
+              { entrantId: AWAY_ID, value: 0 },
+            ],
+          },
+          TIMEOUTS,
+        ],
+        activePenalties: [],
+      },
+    ],
+  };
+  await pushPublicEvent(
+    page,
+    'match.started',
+    { matchId: 'match-5', startedAt: new Date().toISOString() },
+    2,
+  );
+  await expect(page.locator('.cl-match-counters')).toContainText('Club Andes, Team fouls: 0', {
+    timeout: 3000,
+  });
+
+  liveBody = {
+    matches: [
+      {
+        ...LIVE_MATCH,
+        counters: [
+          {
+            ...TEAM_FOULS,
+            values: [
+              { entrantId: HOME_ID, value: 1 },
+              { entrantId: AWAY_ID, value: 0 },
+            ],
+          },
+          TIMEOUTS,
+        ],
+        activePenalties: [],
+      },
+    ],
+  };
+  await pushPublicEvent(
+    page,
+    'match.event-recorded',
+    { matchId: 'match-5', definitionCode: 'team-foul', side: HOME_ID },
+    3,
+  );
+  await expect(page.locator('.cl-match-counters')).toContainText('Club Andes, Team fouls: 1', {
+    timeout: 3000,
   });
 });

@@ -5,14 +5,17 @@ import {
   resetLiveScoreboardStore,
   seedLiveScoreboardMatch,
 } from './live-scoreboard-store.js';
-import {
-  PUBLIC_COUNTERS_RECONCILE_MS,
-  subscribePublicMatchCounters,
-} from './public-match-counters.js';
+import { PUBLIC_COUNTERS_RECONCILE_MS, watchPublicMatchCounters } from './public-match-counters.js';
 import type { LiveMatchCounter } from './live-state.js';
 
 const MATCH_ID = 'm-1';
-const OPTIONS = { matchId: MATCH_ID, organizationAlias: 'liga', tournamentAlias: 'apertura' };
+const OPTIONS = {
+  matchId: MATCH_ID,
+  organizationAlias: 'liga',
+  tournamentAlias: 'apertura',
+  stageNumber: 1,
+  matchOrdinal: 5,
+};
 
 function envelope(
   eventType: string,
@@ -27,19 +30,17 @@ function envelope(
   } as unknown as EventEnvelope;
 }
 
-const SNAPSHOT_COUNTER: LiveMatchCounter = {
-  code: 'team-fouls',
-  label: { en: 'Team fouls' },
-  shortLabel: 'F',
-  scope: 'match',
-  events: ['team-foul'],
-  values: [{ entrantId: 'home', value: 4 }],
-};
-const SNAPSHOT_MATCH = {
-  matchId: MATCH_ID,
-  counters: [SNAPSHOT_COUNTER],
-  activePenalties: [{ timerId: 't1', entrantId: 'home', remainingSeconds: 90 }],
-};
+/** A server whose counts the test changes: the live projection and the report both read it. */
+function counter(fouls: number): LiveMatchCounter {
+  return {
+    code: 'team-fouls',
+    label: { en: 'Team fouls' },
+    shortLabel: 'F',
+    scope: 'match',
+    events: ['team-foul'],
+    values: [{ entrantId: 'home', value: fouls }],
+  };
+}
 
 function jsonResponse(body: unknown, ok = true) {
   return { ok, json: async () => body };
@@ -49,12 +50,20 @@ async function flush(): Promise<void> {
   for (let index = 0; index < 5; index += 1) await Promise.resolve();
 }
 
-describe('subscribePublicMatchCounters', () => {
+describe('watchPublicMatchCounters', () => {
+  let serverFouls: number;
   let fetchMock: ReturnType<typeof jest.fn>;
 
   beforeEach(() => {
     resetLiveScoreboardStore();
-    fetchMock = jest.fn(async () => jsonResponse({ matches: [SNAPSHOT_MATCH] }));
+    serverFouls = 0;
+    fetchMock = jest.fn(async (input: unknown) => {
+      const url = String(input);
+      if (url.includes('/stages/')) return jsonResponse({ counters: [counter(serverFouls)] });
+      return jsonResponse({
+        matches: [{ matchId: MATCH_ID, counters: [counter(serverFouls)], activePenalties: [] }],
+      });
+    });
     (globalThis as { fetch?: unknown }).fetch = fetchMock;
   });
 
@@ -69,8 +78,9 @@ describe('subscribePublicMatchCounters', () => {
     jest.useFakeTimers();
     seedLiveScoreboardMatch({ matchId: MATCH_ID, projectionVersion: 1, state: 'live' });
     const onUpdate = jest.fn();
-    const unsubscribe = subscribePublicMatchCounters(OPTIONS, onUpdate);
+    const watch = watchPublicMatchCounters(OPTIONS, { onUpdate, onFinal: jest.fn() });
 
+    serverFouls = 1;
     publishLiveScoreboardEvent(
       envelope('match.event-recorded', 1, { definitionCode: 'team-foul' }),
     );
@@ -85,42 +95,70 @@ describe('subscribePublicMatchCounters', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
     jest.advanceTimersByTime(1000);
+    serverFouls = 2;
     publishLiveScoreboardEvent(
       envelope('match.event-recorded', 2, { definitionCode: 'team-foul' }),
     );
     await flush();
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(fetchMock).toHaveBeenLastCalledWith(
-      expect.stringContaining('/organizations/liga/tournaments/apertura/live'),
-    );
-    expect(onUpdate).toHaveBeenCalledWith({
-      counters: SNAPSHOT_MATCH.counters,
-      activePenalties: SNAPSHOT_MATCH.activePenalties,
+    expect(onUpdate).toHaveBeenLastCalledWith({
+      counters: [counter(2)],
+      activePenalties: [],
     });
-    unsubscribe();
+    watch.dispose();
   });
 
-  it('refreshes on a timed-penalty recording, a segment change and the end of the match', async () => {
+  it('takes the final counts from the report when the match finalizes, after a pending refresh', async () => {
     jest.useFakeTimers();
-    const unsubscribe = subscribePublicMatchCounters(OPTIONS, jest.fn());
-    publishLiveScoreboardEvent(envelope('match.event-recorded', 1, { definitionCode: 'sin-bin' }));
+    const onUpdate = jest.fn();
+    const onFinal = jest.fn();
+    const watch = watchPublicMatchCounters(OPTIONS, { onUpdate, onFinal });
+
+    serverFouls = 1;
+    publishLiveScoreboardEvent(
+      envelope('match.event-recorded', 1, { definitionCode: 'team-foul' }),
+    );
     await flush();
-    publishLiveScoreboardEvent(envelope('match.clock-changed', 2, { segmentNumber: 2 }));
-    jest.advanceTimersByTime(1000);
+
+    jest.advanceTimersByTime(300);
+    serverFouls = 2;
+    publishLiveScoreboardEvent(
+      envelope('match.event-recorded', 2, { definitionCode: 'team-foul' }),
+    );
+    jest.advanceTimersByTime(200);
     publishLiveScoreboardEvent(envelope('match.finalized', 3, { result: {} }));
-    jest.advanceTimersByTime(1000);
     await flush();
-    jest.useRealTimers();
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-    unsubscribe();
+
+    // The final count is the server's, though the trailing refresh was pending when the match ended.
+    expect(onFinal).toHaveBeenCalledTimes(1);
+    expect(onFinal).toHaveBeenCalledWith([counter(2)]);
+    expect(
+      fetchMock.mock.calls.some((call) => String(call[0]).includes('/stages/1/matches/5')),
+    ).toBe(true);
+
+    // Nothing from before the end lands after it, and the watch has stopped.
+    jest.advanceTimersByTime(5000);
+    await flush();
+    expect(onFinal).toHaveBeenCalledTimes(1);
+    const callsAfterEnd = fetchMock.mock.calls.length;
+    publishLiveScoreboardEvent(
+      envelope('match.event-recorded', 4, { definitionCode: 'team-foul' }),
+    );
+    await flush();
+    expect(fetchMock.mock.calls.length).toBe(callsAfterEnd);
+    watch.dispose();
   });
 
-  it('does not refresh for an event that is not public to the match page', async () => {
-    const unsubscribe = subscribePublicMatchCounters(OPTIONS, jest.fn());
+  it('refreshes on a recorded event before the match starts, and ignores an event the page does not show', async () => {
+    jest.useFakeTimers();
+    const watch = watchPublicMatchCounters(OPTIONS, { onUpdate: jest.fn(), onFinal: jest.fn() });
     publishLiveScoreboardEvent(envelope('standings.recalculated', 1, {}));
     await flush();
     expect(fetchMock).not.toHaveBeenCalled();
-    unsubscribe();
+    publishLiveScoreboardEvent(envelope('match.started', 1, { startedAt: 'x' }));
+    await flush();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    watch.dispose();
   });
 
   it('keeps the shown tally when the projection is unavailable, lacks the match, or fails', async () => {
@@ -133,30 +171,38 @@ describe('subscribePublicMatchCounters', () => {
       },
     ];
     for (const failure of failures) {
-      const unsubscribe = subscribePublicMatchCounters(OPTIONS, onUpdate);
+      const watch = watchPublicMatchCounters(OPTIONS, { onUpdate, onFinal: jest.fn() });
       fetchMock.mockImplementationOnce(failure);
       publishLiveScoreboardEvent(
         envelope('match.event-recorded', 1, { definitionCode: 'team-foul' }),
       );
       await flush();
-      unsubscribe();
+      watch.dispose();
     }
-    expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(onUpdate).not.toHaveBeenCalled();
   });
 
-  it('reconciles every 15 seconds while live, and stops on unsubscribe', async () => {
+  it('reconciles every 15 seconds only while live, and stops on dispose', async () => {
     jest.useFakeTimers();
-    const unsubscribe = subscribePublicMatchCounters(OPTIONS, jest.fn());
+    const watch = watchPublicMatchCounters(OPTIONS, { onUpdate: jest.fn(), onFinal: jest.fn() });
+    jest.advanceTimersByTime(PUBLIC_COUNTERS_RECONCILE_MS * 2);
+    await flush();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    watch.setLive(true);
     jest.advanceTimersByTime(PUBLIC_COUNTERS_RECONCILE_MS);
     await flush();
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    jest.advanceTimersByTime(PUBLIC_COUNTERS_RECONCILE_MS);
-    await flush();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    unsubscribe();
+
+    watch.setLive(false);
     jest.advanceTimersByTime(PUBLIC_COUNTERS_RECONCILE_MS * 3);
     await flush();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    watch.setLive(true);
+    watch.dispose();
+    jest.advanceTimersByTime(PUBLIC_COUNTERS_RECONCILE_MS * 3);
+    await flush();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -50,8 +50,8 @@ const meta: Meta<typeof MatchCounters> = {
   args: {
     views: VIEWS,
     sides: [
-      { entrantId: 'home', name: 'Club Andes' },
-      { entrantId: 'away', name: 'Deportivo Sur' },
+      { entrantId: 'home', name: 'Club Andes', place: 'home' },
+      { entrantId: 'away', name: 'Deportivo Sur', place: 'away' },
     ],
     penalties: [{ timerId: 't1', entrantId: 'away', remainingSeconds: 120, sideName: 'Sur' }],
     penaltyTemplate: '{side}: {time} suspension',

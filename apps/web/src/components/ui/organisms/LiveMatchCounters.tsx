@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { SupportedLanguage } from '@copalibre/domain';
 import { MatchCounters, type MatchPenaltyView } from '../molecules/MatchCounters.js';
 import type { LiveMatchCounter } from '../../../lib/live-state.js';
@@ -9,21 +9,27 @@ import {
   subscribeLiveScoreboardMatch,
 } from '../../../lib/live-scoreboard-store.js';
 import {
-  subscribePublicMatchCounters,
+  watchPublicMatchCounters,
   type PublicMatchCountersSnapshot,
+  type PublicMatchCountersWatch,
 } from '../../../lib/public-match-counters.js';
 
 /**
- * A match's counters and active penalties on its public page. It starts from the server-rendered values
- * and takes each new projection while the match is live. The match's state comes from the live store, so
- * when the store records the end of the match (its state or a `match.finalized` event), the segment
- * counters and the penalties leave, and the subscription stops. The server's `live` prop is only the
- * starting view for a match the store has not seen.
+ * A match's counters and active penalties on its public page, for a match that tracks its live indicators.
+ *
+ * The page follows the stream from before the match starts. Its phase comes from the stream: a
+ * `match.started` event, or the store's state, makes it live, and turns on the 15 s reconcile; a
+ * `match.finalized` event, or the store's final state, ends it, once the final match-scope counters are
+ * taken from the report and the segment counters and penalties leave. A page rendered after the match has
+ * ended takes no part in the stream.
  */
 export function LiveMatchCounters({
   matchId,
   organizationAlias,
   tournamentAlias,
+  stageNumber,
+  matchOrdinal,
+  finished,
   initialCounters,
   initialPenalties,
   sides,
@@ -35,12 +41,21 @@ export function LiveMatchCounters({
   readonly matchId: string;
   readonly organizationAlias: string;
   readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly matchOrdinal: number;
+  /** The server rendered the match as over: the page takes no part in the stream. */
+  readonly finished: boolean;
   readonly initialCounters: readonly LiveMatchCounter[];
   readonly initialPenalties: PublicMatchCountersSnapshot['activePenalties'];
-  readonly sides: readonly { readonly entrantId: string; readonly name: string }[];
+  readonly sides: readonly {
+    readonly entrantId: string;
+    readonly name: string;
+    readonly place: 'home' | 'away';
+  }[];
   readonly language: SupportedLanguage;
   readonly texts: MatchCounterTexts;
   readonly penaltyTemplate: string;
+  /** The server rendered the match as live. */
   readonly live: boolean;
 }): React.JSX.Element | null {
   const [snapshot, setSnapshot] = useState<PublicMatchCountersSnapshot>({
@@ -48,7 +63,9 @@ export function LiveMatchCounters({
     activePenalties: initialPenalties,
   });
   const [storeState, setStoreState] = useState(() => getLiveScoreboardPatch(matchId)?.state);
-  const [ended, setEnded] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [ended, setEnded] = useState(finished);
+  const watch = useRef<PublicMatchCountersWatch | null>(null);
 
   useEffect(
     () =>
@@ -60,32 +77,51 @@ export function LiveMatchCounters({
   useEffect(
     () =>
       subscribeLiveScoreboardEvents(matchId, (event) => {
+        if (event.eventType === 'match.started') setStarted(true);
         if (event.eventType === 'match.finalized') setEnded(true);
       }),
     [matchId],
   );
 
-  const isLive = !ended && (storeState === undefined ? live : storeState === 'live');
+  const over = ended || storeState === 'final';
+  const isLive = !over && (started || storeState === 'live' || (storeState === undefined && live));
 
   useEffect(() => {
-    if (!isLive) return undefined;
-    return subscribePublicMatchCounters(
-      { matchId, organizationAlias, tournamentAlias },
-      setSnapshot,
+    if (finished) return undefined;
+    const created = watchPublicMatchCounters(
+      { matchId, organizationAlias, tournamentAlias, stageNumber, matchOrdinal },
+      {
+        onUpdate: setSnapshot,
+        onFinal: (counters) => setSnapshot({ counters, activePenalties: [] }),
+      },
     );
-  }, [isLive, matchId, organizationAlias, tournamentAlias]);
+    watch.current = created;
+    return () => {
+      created.dispose();
+      watch.current = null;
+    };
+  }, [finished, matchId, organizationAlias, tournamentAlias, stageNumber, matchOrdinal]);
 
-  const shownCounters = isLive
-    ? snapshot.counters
-    : snapshot.counters.filter((counter) => counter.scope === 'match');
+  useEffect(() => {
+    watch.current?.setLive(isLive);
+  }, [isLive, matchId, organizationAlias, tournamentAlias, stageNumber, matchOrdinal]);
+
+  useEffect(() => {
+    if (over) watch.current?.finish();
+  }, [over]);
+
+  const shownCounters = over
+    ? snapshot.counters.filter((counter) => counter.scope === 'match')
+    : snapshot.counters;
   const views = matchCounterView(shownCounters, sides, language, texts);
-  const penalties: readonly MatchPenaltyView[] = isLive
-    ? snapshot.activePenalties.map((penalty) => ({
-        ...penalty,
-        sideName:
-          sides.find((side) => side.entrantId === penalty.entrantId)?.name ?? penalty.entrantId,
-      }))
-    : [];
+  const penalties: readonly MatchPenaltyView[] =
+    isLive && !over
+      ? snapshot.activePenalties.map((penalty) => ({
+          ...penalty,
+          sideName:
+            sides.find((side) => side.entrantId === penalty.entrantId)?.name ?? penalty.entrantId,
+        }))
+      : [];
   return (
     <MatchCounters
       penalties={penalties}

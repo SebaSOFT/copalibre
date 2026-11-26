@@ -10,6 +10,7 @@ import type { BracketMatch } from './bracket.js';
 import { competitionContextLabels, publicIntl, sideSourceLabels } from './i18n/public-intl.js';
 
 const report = (): PublicMatchReportResponse => ({
+  matchId: 'match-1',
   organizationAlias: 'liga-orbital',
   organizationName: 'Liga Orbital',
   tournamentAlias: 'apertura',

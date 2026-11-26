@@ -89,6 +89,10 @@ export interface MatchReportModel {
   readonly clock?: LiveMatchClock;
   /** Declared match counters; absent when the discipline declares none. */
   readonly counters?: readonly LiveMatchCounter[];
+  /** The match's id: its page follows the match stream. */
+  readonly matchId?: string;
+  /** The page follows the match stream: a counter or a timed penalty is shown. */
+  readonly tracksLiveIndicators?: boolean;
   /** Timed penalties in force while the match is live. */
   readonly activePenalties?: readonly {
     readonly timerId: string;
@@ -266,6 +270,8 @@ export function buildMatchReport(
       ? {}
       : { segments: response.segments as readonly LiveSegment[] }),
     ...(response.clock === undefined ? {} : { clock: response.clock }),
+    ...(response.matchId === undefined ? {} : { matchId: response.matchId }),
+    ...(response.tracksLiveIndicators === true ? { tracksLiveIndicators: true } : {}),
     ...(response.counters === undefined
       ? {}
       : { counters: response.counters as readonly LiveMatchCounter[] }),

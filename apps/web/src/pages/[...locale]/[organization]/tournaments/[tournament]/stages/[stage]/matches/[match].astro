@@ -163,8 +163,9 @@ const liveMatch = liveDashboard?.matches.find(
     candidate.stageNumber === stageNumber &&
     (candidate.stageOrdinal ?? candidate.matchNumber) === matchNumber,
 );
+// A live match streams; so does an upcoming one whose page follows its indicators, to hear it start.
 const liveStreamPath =
-  model.status === 'live'
+  model.status === 'live' || (model.status === 'upcoming' && model.tracksLiveIndicators === true)
     ? publicStreamPath({ organizationAlias: organization!, tournamentAlias: tournament! })
     : undefined;
 const liveMatchSeed = liveMatch
@@ -317,9 +318,9 @@ const structuredData = {
       stages={stageSwitcherItems}
     />
     <article class="cl-match-page">
-      {liveStreamPath && liveMatchSeed && (
+      {liveStreamPath && (
         <div data-live-stream={liveStreamPath} hidden>
-          <span data-live-match-seed={JSON.stringify(liveMatchSeed)} />
+          {liveMatchSeed && <span data-live-match-seed={JSON.stringify(liveMatchSeed)} />}
         </div>
       )}
       <MatchHero
@@ -338,6 +339,7 @@ const structuredData = {
         delayed={matchDelayed}
         referenceDate={referenceDate}
         liveMatchId={liveMatch?.matchId}
+        matchOrdinal={matchNumber}
         homeEntrantId={liveMatch?.sides[0]?.entrantId}
         awayEntrantId={liveMatch?.sides[1]?.entrantId}
         liveClock={liveMatch?.clock}
