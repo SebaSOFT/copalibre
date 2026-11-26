@@ -69,7 +69,17 @@ if (
   return Astro.rewrite(notFoundPath);
 }
 
-const response = await fetchMatchReport(organization!, tournament!, stageNumber, matchNumber);
+// A series game is read with `?game=N`. Anything but a positive whole number is ignored, so the fixture's first game shows.
+const requestedGame = Number(Astro.url.searchParams.get('game'));
+const gameNumber =
+  Number.isSafeInteger(requestedGame) && requestedGame >= 1 ? requestedGame : undefined;
+const response = await fetchMatchReport(
+  organization!,
+  tournament!,
+  stageNumber,
+  matchNumber,
+  gameNumber,
+);
 if (!response) {
   return Astro.rewrite(notFoundPath);
 }
@@ -120,6 +130,7 @@ const sourceFinalRound = bracketMatches[0]?.sourceFinalRound;
 const model = buildMatchReport(response, {
   locale: resolvedLocale,
   hiddenPersonLabel: intl.formatMessage(messages.personHiddenAtRequest),
+  genericSegmentLabel: intl.formatMessage(messages.matchTimelineSegmentFallback),
   sideSource: sideSourceLabels(intl),
   sourceFinalRound,
   zoneNodeKeys,
@@ -181,6 +192,22 @@ const liveMatchSeed = liveMatch
       awayEntrantId: liveMatch.sides[1]?.entrantId,
     }
   : undefined;
+
+// A live match leads with what is happening: its timeline and rosters come before the bracket.
+const liveFirst = model.status === 'live';
+const bracketProps = {
+  currentMatchNumber: matchNumber,
+  intl,
+  localePrefix,
+  matches: bracketMatches,
+  matchesView: zoneMatchesView,
+  organizationAlias: organization!,
+  organizationTimeZone: response.organizationTimeZone,
+  stageNumber,
+  tournamentAlias: tournament!,
+  zoneName: ownZoneName ?? response.zoneName,
+  overallPlaceOffset: ownZoneOffset,
+};
 
 const formatOverallPlace = (place: number): string =>
   intl.formatMessage(messages.bracketOverallPlace, { place });
@@ -244,6 +271,16 @@ const stakeLines =
           }),
       })
     : [];
+// The series switcher is the same pill group the stage switcher uses. Its items carry game numbers, shown
+// as the page's own game labels, and link to the same page with `?game=N`.
+const gameSwitcherItems = (response.games ?? []).map((game) => ({
+  stageNumber: game.number,
+  label: intl.formatMessage(messages.matchReportGameNumber, {
+    number: game.number,
+    total: (response.games ?? []).length,
+  }),
+  href: `${Astro.url.pathname}?game=${game.number}`,
+}));
 const trailBase = trailBaseOf({
   organizationAlias: organization!,
   organizationName: model.organizationName,
@@ -318,6 +355,13 @@ const structuredData = {
       stages={stageSwitcherItems}
     />
     <article class="cl-match-page">
+      {gameSwitcherItems.length > 1 && (
+        <StageSwitcher
+          currentStageNumber={response.gameNumber ?? 1}
+          label={intl.formatMessage(messages.matchReportGamesLabel)}
+          stages={gameSwitcherItems}
+        />
+      )}
       {liveStreamPath && (
         <div
           data-live-awaiting={model.status === 'live' ? undefined : ''}
@@ -351,42 +395,56 @@ const structuredData = {
         stakeLines={stakeLines}
       />
 
-      {bracketMatches.length > 0 && (
-        <MatchBracketContext
-          currentMatchNumber={matchNumber}
-          intl={intl}
-          localePrefix={localePrefix}
-          matches={bracketMatches}
-          matchesView={zoneMatchesView}
-          organizationAlias={organization!}
-          organizationTimeZone={response.organizationTimeZone}
-          stageNumber={stageNumber}
-          tournamentAlias={tournament!}
-          zoneName={ownZoneName ?? response.zoneName}
-          overallPlaceOffset={ownZoneOffset}
-        />
-      )}
+      {!liveFirst && bracketMatches.length > 0 && <MatchBracketContext {...bracketProps} />}
 
-      <div class="cl-match-details">
-        <div class="cl-match-details__rosters">
-          <MatchRosters
-            model={model}
-            intl={intl}
-            locale={locale}
-            organization={organization!}
-            tournament={tournament!}
-          />
+      {liveFirst ? (
+        <div class="cl-match-details cl-match-details--live">
+          <div class="cl-match-details__timeline">
+            <MatchTimeline
+              model={model}
+              intl={intl}
+              organizationTimeZone={response.organizationTimeZone}
+              referenceDate={referenceDate}
+            />
+          </div>
+          <div class="cl-match-details__side">
+            <MatchRosters
+              model={model}
+              intl={intl}
+              locale={locale}
+              organization={organization!}
+              tournament={tournament!}
+            />
+            <MatchOfficials model={model} intl={intl} />
+          </div>
+          {bracketMatches.length > 0 && (
+            <div class="cl-match-details__bracket">
+              <MatchBracketContext {...bracketProps} />
+            </div>
+          )}
         </div>
-        <div class="cl-match-details__side">
-          <MatchOfficials model={model} intl={intl} />
-          <MatchTimeline
-            model={model}
-            intl={intl}
-            organizationTimeZone={response.organizationTimeZone}
-            referenceDate={referenceDate}
-          />
+      ) : (
+        <div class="cl-match-details">
+          <div class="cl-match-details__primary">
+            <MatchRosters
+              model={model}
+              intl={intl}
+              locale={locale}
+              organization={organization!}
+              tournament={tournament!}
+            />
+          </div>
+          <div class="cl-match-details__side">
+            <MatchOfficials model={model} intl={intl} />
+            <MatchTimeline
+              model={model}
+              intl={intl}
+              organizationTimeZone={response.organizationTimeZone}
+              referenceDate={referenceDate}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </article>
   </Container>
 </PublicLayout>
@@ -407,10 +465,12 @@ const structuredData = {
     margin-top: var(--cl-space-6);
   }
 
+  .cl-match-details__primary,
   .cl-match-details__side {
     display: flex;
     flex-direction: column;
     gap: var(--cl-space-6);
+    min-width: 0;
   }
 
   @media (min-width: 1024px) {
@@ -418,6 +478,29 @@ const structuredData = {
       display: grid;
       grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
       align-items: start;
+    }
+
+    /* A live match: the timeline opens the first column and the bracket sits under it; the rosters and
+       officials run down the second column beside both. */
+    .cl-match-details--live {
+      grid-template-areas:
+        'timeline side'
+        'bracket side';
+      grid-template-rows: auto 1fr;
+    }
+
+    .cl-match-details__timeline {
+      grid-area: timeline;
+      min-width: 0;
+    }
+
+    .cl-match-details__bracket {
+      grid-area: bracket;
+      min-width: 0;
+    }
+
+    .cl-match-details--live > .cl-match-details__side {
+      grid-area: side;
     }
   }
 </style>

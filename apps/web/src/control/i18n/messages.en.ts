@@ -3785,6 +3785,27 @@ export const messages = defineMessages({
     id: 'control.scheduleBuilder.preview',
     defaultMessage: 'Preview',
   },
+  scheduleBuilderStreamUrl: {
+    id: 'control.scheduleBuilder.streamUrl',
+    defaultMessage: 'Stream link',
+  },
+  scheduleBuilderStreamUrlInvalid: {
+    id: 'control.scheduleBuilder.streamUrlInvalid',
+    defaultMessage:
+      'Enter a full link, up to 2048 characters, that starts with http:// or https://',
+  },
+  scheduleBuilderStreamUrlEdit: {
+    id: 'control.scheduleBuilder.streamUrlEdit',
+    defaultMessage: 'Edit stream',
+  },
+  scheduleBuilderStreamUrlSave: {
+    id: 'control.scheduleBuilder.streamUrlSave',
+    defaultMessage: 'Save link',
+  },
+  scheduleBuilderStreamUrlClear: {
+    id: 'control.scheduleBuilder.streamUrlClear',
+    defaultMessage: 'Remove link',
+  },
   scheduleBuilderPublish: {
     id: 'control.scheduleBuilder.publish',
     defaultMessage: 'Publish schedule',

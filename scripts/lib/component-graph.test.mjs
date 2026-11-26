@@ -21,8 +21,8 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
 // them in the same commit, and say what changed in the commit message, not in this title.
 test('the web component graph resolves every node and edge', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 490);
-  assert.equal(graph.edges.length, 2214);
+  assert.equal(graph.nodes.size, 491);
+  assert.equal(graph.edges.length, 2221);
 });
 
 test('a type-only import is not counted as a render', () => {

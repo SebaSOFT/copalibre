@@ -6,6 +6,7 @@
 import { rescheduledStatement } from '../../../lib/reschedule.ts';
 import { AdvancingBadge } from '../atoms/AdvancingBadge.tsx';
 import { Badge } from '../atoms/Badge.tsx';
+import EmblemImage from '../atoms/EmblemImage.astro';
 import Icon from '../atoms/Icon.astro';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
 import { formatTimeZoneParts } from '../../../lib/format-timestamp.ts';
@@ -128,6 +129,17 @@ const counterSides = [
     ) : (
       <Badge className={`cl-badge--${model.status.toLowerCase()}`}>{statusLabel}</Badge>
     )}
+    {model.streamUrl && (
+      <a
+        class="cl-stream-link cl-focusable"
+        href={model.streamUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <Icon name="external-link" size={16} />
+        <span>{intl.formatMessage(messages.matchReportWatchStream)}</span>
+      </a>
+    )}
     {model.status === 'live' && (effectiveClock || liveSegmentLabel) && (
       <LiveMatchScoreboard
         client:load
@@ -151,6 +163,18 @@ const counterSides = [
       ]}
     >
       <span class="cl-team-identity">
+        {model.home.crestSrc && (
+          <span class="cl-team-crest">
+            <EmblemImage
+              src={model.home.crestSrc}
+              alt={home.fullName}
+              placeholderAlt={home.fullName}
+              size={56}
+              eager
+              decorative
+            />
+          </span>
+        )}
         <span class="cl-team-name">
           {homeClubHref ? (
             <a class="cl-team-name__link cl-focusable" href={homeClubHref}>
@@ -187,6 +211,18 @@ const counterSides = [
         {displayedScore(model.status, model.away.score) ?? '—'}
       </span>
       <span class="cl-team-identity">
+        {model.away.crestSrc && (
+          <span class="cl-team-crest">
+            <EmblemImage
+              src={model.away.crestSrc}
+              alt={away.fullName}
+              placeholderAlt={away.fullName}
+              size={56}
+              eager
+              decorative
+            />
+          </span>
+        )}
         <span class="cl-team-name">
           {awayClubHref ? (
             <a class="cl-team-name__link cl-focusable" href={awayClubHref}>
@@ -320,6 +356,27 @@ const counterSides = [
     display: flex;
     flex-direction: column;
     min-width: 0;
+  }
+
+  .cl-team-crest {
+    display: inline-flex;
+    margin-bottom: var(--cl-space-1);
+  }
+
+  .cl-stream-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+    padding: var(--cl-space-1) var(--cl-space-3);
+    border: 1px solid var(--cl-border-accent);
+    color: var(--cl-text-accent);
+    font-size: var(--cl-font-size-sm);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .cl-stream-link:hover {
+    text-decoration: underline;
   }
 
   .cl-scoreboard__side--home .cl-team-identity {

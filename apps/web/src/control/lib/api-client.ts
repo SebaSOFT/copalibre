@@ -750,6 +750,14 @@ export interface ControlApiClient {
     stageId: string,
     request: ScheduleRequest,
   ) => Promise<ScheduleResponse>;
+  /** Sets or clears one match's stream link; the change is audited. */
+  readonly setMatchStreamUrl?: (
+    organizationAlias: string,
+    tournamentAlias: string,
+    stageId: string,
+    matchId: string,
+    streamUrl: string | null,
+  ) => Promise<MatchStreamUrlResponse>;
   /** The organization's most recent distinct typed reasons for published schedule changes. */
   readonly recentScheduleReasons?: (
     organizationAlias: string,
@@ -1068,6 +1076,8 @@ export interface FixtureMatchResponse {
   readonly status: 'scheduled' | 'in-progress' | 'finalized' | 'not-required';
   /** The slot this match had occupied before a decided series freed it. */
   readonly releasedSlotId?: string;
+  /** This game's stream link, when one is attached to it. */
+  readonly streamUrl?: string;
 }
 
 export interface FixtureSeriesResponse {
@@ -1095,6 +1105,11 @@ export interface FixtureResponse {
   /** Every match of this fixture in play order; exactly one unless it declares a series. */
   readonly matches?: readonly FixtureMatchResponse[];
   readonly series?: FixtureSeriesResponse;
+}
+
+export interface MatchStreamUrlResponse {
+  readonly matchId: string;
+  readonly streamUrl: string | null;
 }
 
 export interface StageFixturesResponse {
@@ -3491,6 +3506,13 @@ export function createControlApiClient(input: {
         input.fetch,
         `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageId)}/schedule`,
         { method: 'POST', body },
+      ),
+
+    setMatchStreamUrl: (organizationAlias, tournamentAlias, stageId, matchId, streamUrl) =>
+      requestJson<MatchStreamUrlResponse>(
+        input.fetch,
+        `${baseUrl}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/stages/${encodeURIComponent(stageId)}/schedule/matches/${encodeURIComponent(matchId)}/stream-url`,
+        { method: 'PUT', body: { streamUrl } },
       ),
 
     recentScheduleReasons: (organizationAlias) =>

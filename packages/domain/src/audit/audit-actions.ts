@@ -166,6 +166,7 @@ export const AUDIT_ACTIONS = [
   'schedule.published',
   'schedule.placement-changed',
   'schedule.placement-withdrawn',
+  'schedule.stream-url-changed',
 
   // Display tokens
   'display-token.issued',

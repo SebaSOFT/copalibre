@@ -1244,6 +1244,12 @@ export const messages: Record<string, string> = {
     'Устраните перечисленные конфликты перед публикацией расписания.',
   'control.scheduleBuilder.preview': 'Предпросмотр',
   'control.scheduleBuilder.publish': 'Опубликовать расписание',
+  'control.scheduleBuilder.streamUrl': 'Ссылка на трансляцию',
+  'control.scheduleBuilder.streamUrlInvalid':
+    'Введите полную ссылку длиной до 2048 символов, которая начинается с http:// или https://',
+  'control.scheduleBuilder.streamUrlEdit': 'Изменить трансляцию',
+  'control.scheduleBuilder.streamUrlSave': 'Сохранить ссылку',
+  'control.scheduleBuilder.streamUrlClear': 'Удалить ссылку',
   'control.scheduleBuilder.published': 'Расписание опубликовано.',
   'control.scheduleBuilder.conflictsHeading': 'Конфликты',
   'control.scheduleBuilder.affectedPublishedHeading':

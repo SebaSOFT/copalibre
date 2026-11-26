@@ -1235,6 +1235,12 @@ export const messages: Record<string, string> = {
     'Resolva os conflitos listados antes de publicar.',
   'control.scheduleBuilder.preview': 'Pré-visualizar',
   'control.scheduleBuilder.publish': 'Publicar o horário',
+  'control.scheduleBuilder.streamUrl': 'Link da transmissão',
+  'control.scheduleBuilder.streamUrlInvalid':
+    'Informe um link completo, de até 2048 caracteres, que comece com http:// ou https://',
+  'control.scheduleBuilder.streamUrlEdit': 'Editar transmissão',
+  'control.scheduleBuilder.streamUrlSave': 'Salvar link',
+  'control.scheduleBuilder.streamUrlClear': 'Remover link',
   'control.scheduleBuilder.published': 'Horário publicado.',
   'control.scheduleBuilder.conflictsHeading': 'Conflitos',
   'control.scheduleBuilder.affectedPublishedHeading': 'Este lote moveria uma partida já publicada',

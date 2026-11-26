@@ -1103,6 +1103,73 @@ export class ScheduleRepository {
     );
   }
 
+  /**
+   * Sets or clears one match's stream link, scoped to the stage and tournament the request names. The
+   * write is audited, and publishes `match.stream-url-changed` through the outbox in the same transaction.
+   * The event bumps its own `match-stream-link` projection version, not the public `match-schedule` one,
+   * because a link does not move a match in the schedule. Returns `null` when the match is not in that
+   * stage, so the caller reports it as not found.
+   */
+  async setMatchStreamUrl(
+    uow: UnitOfWork,
+    input: AuditContext & {
+      readonly tournamentId: string;
+      readonly stageId: string;
+      readonly matchId: string;
+      readonly streamUrl: string | null;
+    },
+  ): Promise<{ readonly previousStreamUrl: string | null } | null> {
+    await lockRowsForMutation(
+      this.db,
+      uow.tx.selectFrom('matches').select('match_id').where('match_id', '=', input.matchId),
+    ).execute();
+    const match = await uow.tx
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .innerJoin('stages', 'stages.stage_id', 'fixtures.stage_id')
+      .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
+      .select(['matches.stream_url', 'seasons.tournament_id', 'stages.stage_id'])
+      .where('matches.match_id', '=', input.matchId)
+      .executeTakeFirst();
+    if (!match || match.tournament_id !== input.tournamentId || match.stage_id !== input.stageId) {
+      return null;
+    }
+
+    const previousStreamUrl = match.stream_url ?? null;
+    await uow.tx
+      .updateTable('matches')
+      .set({ stream_url: input.streamUrl })
+      .where('match_id', '=', input.matchId)
+      .execute();
+    await uow.recordAudit({
+      organizationId: input.organizationId,
+      entityType: 'match',
+      entityId: input.matchId,
+      action: 'schedule.stream-url-changed',
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+      previousState: { streamUrl: previousStreamUrl },
+      resultingState: { streamUrl: input.streamUrl },
+    });
+    const projectionVersion = await new ProjectionStore(uow.tx).nextVersion(uow, {
+      projectionType: 'match-stream-link',
+      entityId: input.matchId,
+    });
+    await uow.publishEvent({
+      organizationId: input.organizationId,
+      stream: `match:${input.matchId}`,
+      entityId: input.matchId,
+      eventType: 'match.stream-url-changed',
+      projectionVersion,
+      payload: {
+        matchId: input.matchId,
+        stageId: input.stageId,
+        streamUrl: input.streamUrl,
+      },
+    });
+    return { previousStreamUrl };
+  }
+
   async publishSchedule(
     uow: UnitOfWork,
     input: ScheduleBatch & AuditContext,

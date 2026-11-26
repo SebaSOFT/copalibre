@@ -3084,6 +3084,97 @@
         ]
       }
     },
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule/matches/{matchId}/stream-url": {
+      "put": {
+        "description": "The link must be an absolute http or https URL of at most 2048 characters, or null to clear it. The change is audited. No result, standing or schedule rule reads the link.",
+        "operationId": "SchedulesController_setStreamUrl",
+        "parameters": [
+          {
+            "name": "organizationAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tournamentAlias",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "matchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchStreamUrlRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchStreamUrlResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set or clear a match's stream link",
+        "tags": [
+          "schedules"
+        ]
+      }
+    },
     "/api/organizations/{organizationAlias}/schedule": {
       "get": {
         "description": "Assignments whose start falls in `[from, to)` (epoch milliseconds, at most 31 days), optionally narrowed to a tournament, stage or venue, each with its estimated end.",
@@ -7938,6 +8029,7 @@
     },
     "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageNumber}/matches/{matchNumber}": {
       "get": {
+        "description": "A series fixture has one stage number and one page; `game` selects one of its games (1-based, play order), and the report then carries that game’s own status, roster and stream link. Without it the report is the fixture’s first game.",
         "operationId": "PublicProjectionsController_matchReport",
         "parameters": [
           {
@@ -7970,6 +8062,15 @@
             "in": "path",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "game",
+            "required": false,
+            "in": "query",
+            "description": "Game number within the fixture",
+            "schema": {
+              "type": "number"
             }
           }
         ],
@@ -16135,6 +16236,40 @@
           "freedSlotIds"
         ]
       },
+      "MatchStreamUrlRequest": {
+        "type": "object",
+        "properties": {
+          "streamUrl": {
+            "type": "string",
+            "description": "Absolute http or https link to the broadcast, or null to clear it",
+            "nullable": true,
+            "maxLength": 2048,
+            "example": "https://example.org/live/semifinal-1"
+          }
+        },
+        "required": [
+          "streamUrl"
+        ]
+      },
+      "MatchStreamUrlResponse": {
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "description": "The match whose link changed",
+            "format": "uuid"
+          },
+          "streamUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "The stored link, or null when cleared"
+          }
+        },
+        "required": [
+          "matchId",
+          "streamUrl"
+        ]
+      },
       "OrganizationScheduleEntryResponse": {
         "type": "object",
         "properties": {
@@ -19108,6 +19243,10 @@
             "type": "string",
             "format": "uuid",
             "description": "The slot this match had occupied before a decided series freed it. Present only on an anulled match that held one; the slot itself is free and open to anyone."
+          },
+          "streamUrl": {
+            "type": "string",
+            "description": "This game’s stream link, when the organizer attached one to it"
           }
         },
         "required": [
@@ -19249,6 +19388,11 @@
             "type": "number",
             "description": "1-based round within the stage",
             "example": 1
+          },
+          "streamUrl": {
+            "type": "string",
+            "deprecated": true,
+            "description": "Deprecated: the first game’s stream link. Read `matches[].streamUrl` for every game."
           },
           "homeEntrantId": {
             "type": "string",
@@ -21022,6 +21166,69 @@
           "away"
         ]
       },
+      "PublicRegisteredSquadMemberResponse": {
+        "type": "object",
+        "properties": {
+          "personId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "hiddenAtRequest": {
+            "type": "boolean"
+          },
+          "publicProfileAvailable": {
+            "type": "boolean"
+          },
+          "nationality": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "publicProfileAvailable"
+        ]
+      },
+      "PublicRegisteredSquadsResponse": {
+        "type": "object",
+        "properties": {
+          "home": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicRegisteredSquadMemberResponse"
+            }
+          },
+          "away": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicRegisteredSquadMemberResponse"
+            }
+          }
+        }
+      },
+      "PublicMatchGameResponse": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "description": "The game’s number within its fixture, 1-based play order"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "upcoming",
+              "live",
+              "final",
+              "not-required"
+            ]
+          }
+        },
+        "required": [
+          "number",
+          "status"
+        ]
+      },
       "PublicRosterRoleResponse": {
         "type": "object",
         "properties": {
@@ -21078,6 +21285,19 @@
           },
           "segmentNumber": {
             "type": "number"
+          },
+          "segmentElapsedSeconds": {
+            "type": "number",
+            "description": "Seconds into its segment when recorded; absent for an untimed segment and for events recorded before it was stored"
+          },
+          "scoreAfter": {
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "The score [home, away] after this event, on every event that changes the score: the last one equals the final score",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
           },
           "side": {
             "type": "string",
@@ -21394,6 +21614,26 @@
             "type": "string",
             "description": "Away club's alias, when present"
           },
+          "homeClubId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Home club's id, for its crest"
+          },
+          "homeEmblemObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Home club's emblem object, for its crest"
+          },
+          "awayClubId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Away club's id, for its crest"
+          },
+          "awayEmblemObjectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Away club's emblem object, for its crest"
+          },
           "homeScore": {
             "type": "number"
           },
@@ -21418,6 +21658,29 @@
           },
           "rosters": {
             "$ref": "#/components/schemas/PublicMatchRostersResponse"
+          },
+          "registeredSquads": {
+            "description": "Each team side’s registered players, present only for a scheduled match whose side has no match-day roster recorded yet",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicRegisteredSquadsResponse"
+              }
+            ]
+          },
+          "streamUrl": {
+            "type": "string",
+            "description": "The link the match is watched through, when the organizer attached one"
+          },
+          "gameNumber": {
+            "type": "number",
+            "description": "The game this report is for, when its fixture has more than one game (a series); absent otherwise"
+          },
+          "games": {
+            "description": "Every game of the fixture in play order, with its status, so a page can switch between them; present only for a series",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicMatchGameResponse"
+            }
           },
           "rosterRoles": {
             "description": "The discipline's declared roster roles, so a client can label each member's role codes.",

@@ -527,6 +527,8 @@ export interface MatchesTable {
   number: number;
   status: string;
   result: JSONColumnType<Record<string, unknown>> | null;
+  /** Absolute http(s) link to the broadcast. Presentation only: no rule reads it. Added by 0049. */
+  stream_url: string | null;
   created_at: Timestamp;
 }
 

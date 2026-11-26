@@ -53,6 +53,16 @@ export function seriesSegments(input: SeriesInput): readonly SegmentState[] {
   return segments;
 }
 
+/**
+ * The games of a series that have their own page to link to: those played, and the one in progress. A game
+ * the series will not need, and a game not yet scheduled, stay unlinked, because there is no page for them to show.
+ */
+export function linkableSeriesGames(state: PublicSeriesState): readonly number[] {
+  return state.games
+    .filter((game) => game.status === 'finalized' || game.status === 'in-progress')
+    .map((game) => game.number);
+}
+
 export function seriesScore(input: SeriesInput): { readonly home: number; readonly away: number } {
   return {
     home: input.results.filter((winner) => winner === 'home').length,

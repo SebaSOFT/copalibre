@@ -747,6 +747,81 @@ function withReferenceRoleLabels(member: PublicMatchRosterMemberResponse) {
   return { ...member, roleLabels: (member.roles ?? []).map(humanizeCode) };
 }
 
+/** A finished match whose timeline carries segment markers, game time and the running score. */
+export function referenceTimedMatchReportModel(): MatchReportModel {
+  const base = referenceMatchReportModel();
+  const goal = (
+    eventId: string,
+    side: 'home' | 'away',
+    elapsedSeconds: number,
+    scoreAfter: readonly [number, number],
+  ) => ({
+    eventId,
+    label: 'Goal',
+    occurredAt: '2026-09-01T18:22:00.000Z',
+    segmentNumber: 1,
+    segmentLabel: 'Half',
+    elapsedSeconds,
+    side,
+    scoreAfter,
+  });
+  const timeline: MatchReportTimelineGroup[] = [
+    { kind: 'segment-start', events: [], segment: { number: 1, label: 'Half' } },
+    { kind: 'single', events: [goal('01936f4a-7101-7000-8000-000000000001', 'home', 480, [1, 0])] },
+    {
+      kind: 'single',
+      events: [goal('01936f4a-7102-7000-8000-000000000002', 'away', 1260, [1, 1])],
+    },
+    {
+      kind: 'segment-end',
+      events: [],
+      segment: { number: 1, label: 'Half', scores: [1, 1] },
+    },
+  ];
+  return {
+    ...base,
+    status: 'final',
+    home: { ...base.home, score: 1 },
+    away: { ...base.away, score: 1 },
+    timeline,
+  };
+}
+
+/** A finished match with no recorded events: the timeline says so, and no score is invented. */
+export function referenceEmptyTimelineMatchReportModel(): MatchReportModel {
+  return { ...referenceMatchReportModel(), status: 'final', timeline: [] };
+}
+
+/** An upcoming match whose sides have no recorded roster yet: each shows its registered squad. */
+export function referenceRegisteredSquadMatchReportModel(): MatchReportModel {
+  const base = referenceMatchReportModel();
+  const registered = (members: readonly PublicMatchRosterMemberResponse[]) =>
+    members.map((member) => ({
+      personId: member.personId,
+      name: member.name,
+      publicProfileAvailable: true,
+      roleLabels: [],
+      onField: false,
+    }));
+  return {
+    ...base,
+    status: 'upcoming',
+    home: {
+      ...base.home,
+      score: undefined,
+      roster: [],
+      registeredSquad: registered(REFERENCE_ROSTER_HOME),
+    },
+    away: {
+      ...base.away,
+      score: undefined,
+      roster: [],
+      registeredSquad: registered(REFERENCE_ROSTER_AWAY),
+    },
+    timeline: [],
+  };
+}
+
 /** The full match-report model: rosters, officials and a mixed single/workflow timeline. */
 export function referenceMatchReportModel(): MatchReportModel {
   const [home, away] = REFERENCE_ENTRANTS;

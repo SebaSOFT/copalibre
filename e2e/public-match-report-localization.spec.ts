@@ -76,6 +76,56 @@ const populatedMatchReport = {
   disciplineImages: {},
 };
 
+/** A finished match whose timeline carries game time, side markers, running scores and segment markers. */
+const timedMatchNumber = '6';
+const timedMatchReport = {
+  ...populatedMatchReport,
+  matchNumber: 6,
+  homeEntrantId: '00000000-0000-7000-8000-000000000301',
+  awayEntrantId: '00000000-0000-7000-8000-000000000302',
+  homeScore: 1,
+  awayScore: 1,
+  segments: [
+    {
+      number: 1,
+      type: 'half',
+      label: { en: 'Half', es: 'Tiempo' },
+      timed: true,
+      state: 'completed',
+      scores: [1, 1],
+    },
+  ],
+  timeline: [
+    {
+      eventId: '00000000-0000-7000-8000-000000000311',
+      definitionCode: 'goal',
+      label: 'Goal',
+      labels: { en: 'Goal', es: 'Gol' },
+      occurredAt: '2025-11-02T11:08:00.000Z',
+      sequence: 1,
+      segmentNumber: 1,
+      segmentElapsedSeconds: 480,
+      side: '00000000-0000-7000-8000-000000000301',
+      scoreAfter: [1, 0],
+      personId: '00000000-0000-7000-8000-000000000101',
+      payload: {},
+    },
+    {
+      eventId: '00000000-0000-7000-8000-000000000312',
+      definitionCode: 'goal',
+      label: 'Goal',
+      labels: { en: 'Goal', es: 'Gol' },
+      occurredAt: '2025-11-02T11:20:00.000Z',
+      sequence: 2,
+      segmentNumber: 1,
+      side: '00000000-0000-7000-8000-000000000302',
+      scoreAfter: [1, 1],
+      personId: '00000000-0000-7000-8000-000000000102',
+      payload: {},
+    },
+  ],
+};
+
 let apiServer: Server;
 
 test.beforeAll(async ({ workerPort }) => {
@@ -88,6 +138,11 @@ test.beforeAll(async ({ workerPort }) => {
       return;
     }
 
+    if (path === `${BASE}/stages/${STAGE}/matches/${timedMatchNumber}`) {
+      res.end(JSON.stringify(timedMatchReport));
+      return;
+    }
+
     res.statusCode = 404;
     res.end(JSON.stringify({ message: 'not found' }));
   });
@@ -96,6 +151,30 @@ test.beforeAll(async ({ workerPort }) => {
 
 test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
+});
+
+test.describe('Match report timeline in game time', () => {
+  test('marks each event with its side, its time in the segment and the running score, and the segment ends', async ({
+    page,
+  }) => {
+    await page.goto(
+      `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${timedMatchNumber}`,
+    );
+    await expectNoVisibleIdentifiers(page, FIXTURE_ALIASES);
+
+    const timeline = page.locator('.cl-timeline-list');
+    await expect(timeline.locator('.cl-timeline-time').first()).toHaveText('Tiempo 1 · 08:00');
+    await expect(timeline.locator('.cl-timeline-side').first()).toContainText('AND');
+    await expect(timeline.locator('.cl-timeline-entry[data-side="away"]').first()).toBeVisible();
+    await expect(timeline.locator('.cl-timeline-score').first()).toHaveText('1–0');
+    await expect(timeline.locator('.cl-timeline-score').nth(1)).toHaveText('1–1');
+    await expect(timeline.locator('[data-segment-marker="segment-start"]')).toHaveText('Tiempo 1');
+    await expect(timeline.locator('[data-segment-marker="segment-end"]')).toHaveText(
+      'Fin · Tiempo 1 · 1–1',
+    );
+    // A finished match has no on-field column.
+    await expect(page.getByRole('columnheader', { name: 'En cancha' })).toHaveCount(0);
+  });
 });
 
 test.describe('Match report localization and timestamps', () => {
@@ -117,10 +196,11 @@ test.describe('Match report localization and timestamps', () => {
 
     // The rosters table's column headers are localized too (one table per side).
     await expect(page.getByRole('columnheader', { name: 'Jugador' }).first()).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'En cancha' }).first()).toBeVisible();
+    // A finished match has no on-field column: it would read as nobody having played.
+    await expect(page.getByRole('columnheader', { name: 'En cancha' })).toHaveCount(0);
 
-    // The event timeline's timestamp is humanized, not a raw ISO-8601 string.
-    const timelineTime = page.locator('.cl-timeline-time');
+    // The event timeline's wall-clock time is humanized, not a raw ISO-8601 string.
+    const timelineTime = page.locator('.cl-timeline-clock');
     await expect(timelineTime).toBeVisible();
     await expect(timelineTime).not.toContainText('2025-11-02T11:17:30');
     await expect(page.getByText('2025-11-02T11:17:30.000Z')).toHaveCount(0);

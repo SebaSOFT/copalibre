@@ -77,6 +77,8 @@ export function ScheduleBuilderPage({
   const [concurrentNotice, setConcurrentNotice] = useState<string>();
   const currentDraft = useRef<Readonly<Record<string, DraftAssignment>>>({});
   const previewGeneration = useRef(0);
+  // The last stream-link version applied per match. It lives across reconnects, so a replayed change is not re-read.
+  const streamLinkVersions = useRef(new Map<string, number>());
 
   const stageName = useStageName(api, organizationAlias, tournamentAlias, stageNumber);
   const read = useResilientRead(
@@ -134,6 +136,11 @@ export function ScheduleBuilderPage({
   }, [drafts]);
   const { stageId, fixtures = [], venues = [], officials = [], schedules = [] } = read.data ?? {};
   const reload = read.refresh;
+  // The realtime handler reads the latest reload without re-connecting when the read object changes.
+  const reloadRef = useRef(reload);
+  useEffect(() => {
+    reloadRef.current = reload;
+  });
   const conflictsRead = useResilientRead(
     `control-schedule-conflicts:${organizationAlias}:${tournamentAlias}:${stageId}`,
     () =>
@@ -197,6 +204,18 @@ export function ScheduleBuilderPage({
         // A result resolved a side into a clash with a published placement: re-read what is real now.
         if (event.eventType === 'schedule.conflict-arose') {
           void refreshConflicts();
+          return;
+        }
+        // A stream link changed for a game of this stage: re-read the schedule, once per projection version.
+        if (event.eventType === 'match.stream-url-changed' && event.payload.stageId === stageId) {
+          const linkedMatchId = event.payload.matchId;
+          if (
+            typeof linkedMatchId !== 'string' ||
+            event.projectionVersion <= (streamLinkVersions.current.get(linkedMatchId) ?? 0)
+          )
+            return;
+          streamLinkVersions.current.set(linkedMatchId, event.projectionVersion);
+          void reloadRef.current();
           return;
         }
         if (event.eventType !== 'match.rescheduled' || event.payload.stageId !== stageId) return;
@@ -267,6 +286,16 @@ export function ScheduleBuilderPage({
         ? current.officialIds.filter((candidate) => candidate !== officialId)
         : [...current.officialIds, officialId],
     });
+  }
+
+  async function setStreamUrl(matchId: string, streamUrl: string | null): Promise<void> {
+    if (!api.setMatchStreamUrl || stageId === undefined) return;
+    try {
+      await api.setMatchStreamUrl(organizationAlias, tournamentAlias, stageId, matchId, streamUrl);
+      void reload();
+    } catch (error) {
+      pushError(error);
+    }
   }
 
   async function preview(batch: readonly ScheduleAssignmentDto[]): Promise<void> {
@@ -348,6 +377,7 @@ export function ScheduleBuilderPage({
         onPublish={(batch, reason) => void publish(batch, reason)}
         onSetDraft={setDraft}
         onToggleOfficial={toggleOfficial}
+        onSetStreamUrl={setStreamUrl}
         organizationAlias={organizationAlias}
         organizationTimeZone={pageHeader?.organizationTimeZone}
         placements={placements}

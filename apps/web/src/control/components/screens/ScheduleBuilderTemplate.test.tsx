@@ -3,6 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { withIntl } from '../../i18n/test-support.js';
 import { ScheduleBuilderTemplate } from './ScheduleBuilderTemplate.js';
+import type { FixtureResponse } from '../../lib/api-client.js';
 
 const scheduleId = '019927d0-0000-7000-8000-000000000010';
 const organizationId = '019927d0-0000-7000-8000-000000000011';
@@ -174,6 +175,150 @@ describe('ScheduleBuilderTemplate', () => {
     expect(screen.getByText('No officials are available to assign.')).toBeDefined();
     expect(screen.queryByRole('group', { name: 'Officials' })).toBeNull();
     expect(screen.getAllByText('No officials are available to assign.')).toHaveLength(1);
+  });
+
+  describe('the stream link of a match', () => {
+    const row = 'Club A vs Club B';
+    const streamProps = (
+      overrides: Partial<ComponentProps<typeof ScheduleBuilderTemplate>> = {},
+    ): ComponentProps<typeof ScheduleBuilderTemplate> => ({
+      ...props,
+      onSetStreamUrl: jest.fn(),
+      ...overrides,
+    });
+
+    it('refuses an unusable link on the page and saves a valid one', () => {
+      const streamProps0 = streamProps();
+      render(withIntl(<ScheduleBuilderTemplate {...streamProps0} />));
+
+      fireEvent.click(screen.getByRole('button', { name: `Edit stream — ${row}` }));
+      fireEvent.change(screen.getByLabelText('Stream link'), {
+        target: { value: 'ftp://example.org/stream' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save link' }));
+
+      expect(screen.getByRole('alert').textContent).toBe(
+        'Enter a full link, up to 2048 characters, that starts with http:// or https://',
+      );
+      expect(streamProps0.onSetStreamUrl).not.toHaveBeenCalled();
+
+      // A link one character over the limit is refused on the page too.
+      fireEvent.change(screen.getByLabelText('Stream link'), {
+        target: {
+          value: `https://example.org/${'a'.repeat(2048 - 'https://example.org/'.length + 1)}`,
+        },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save link' }));
+      expect(screen.getByRole('alert').textContent).toContain('2048 characters');
+      expect(streamProps0.onSetStreamUrl).not.toHaveBeenCalled();
+
+      fireEvent.change(screen.getByLabelText('Stream link'), {
+        target: { value: ' https://example.org/live/semifinal-1 ' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save link' }));
+
+      expect(streamProps0.onSetStreamUrl).toHaveBeenCalledWith(
+        'match-1',
+        'https://example.org/live/semifinal-1',
+      );
+      expect(screen.queryByLabelText('Stream link')).toBeNull();
+    });
+
+    it('opens with the saved link and clears it on request', () => {
+      const withSaved = streamProps({
+        fixtures: props.fixtures.map((fixture) =>
+          fixture.matchId === 'match-1'
+            ? {
+                ...fixture,
+                matches: [
+                  {
+                    matchId: 'match-1',
+                    number: 1,
+                    status: 'scheduled',
+                    streamUrl: 'https://example.org/live/saved',
+                  },
+                ],
+              }
+            : fixture,
+        ),
+      });
+      render(withIntl(<ScheduleBuilderTemplate {...withSaved} />));
+
+      fireEvent.click(screen.getByRole('button', { name: `Edit stream — ${row}` }));
+      expect((screen.getByLabelText('Stream link') as HTMLInputElement).value).toBe(
+        'https://example.org/live/saved',
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Remove link' }));
+
+      expect(withSaved.onSetStreamUrl).toHaveBeenCalledWith('match-1', null);
+    });
+
+    it('shows and edits each game of a best-of-three on its own link, never the first game’s', () => {
+      const series = {
+        span: 3,
+        guaranteedMatches: 2,
+        matchesPlayed: 0,
+        anulledMatchNumbers: [],
+      };
+      const bestOfThree: FixtureResponse = {
+        fixtureId: 'fixture-series',
+        matchId: 'game-1',
+        round: 1,
+        homeEntrantId: 'club-a',
+        homeName: 'Club A',
+        awayEntrantId: 'club-d',
+        awayName: 'Club D',
+        series,
+        matches: [
+          { matchId: 'game-1', number: 1, status: 'scheduled' },
+          {
+            matchId: 'game-2',
+            number: 2,
+            status: 'scheduled',
+            streamUrl: 'https://example.org/live/game-2',
+          },
+          { matchId: 'game-3', number: 3, status: 'scheduled' },
+        ],
+      };
+      const series3 = streamProps({ fixtures: [bestOfThree] });
+      render(withIntl(<ScheduleBuilderTemplate {...series3} />));
+
+      // Game 1 has no link, so its row shows none and its editor opens empty.
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Edit stream — Club A vs Club D — Game 1 of 3' }),
+      );
+      expect((screen.getByLabelText('Stream link') as HTMLInputElement).value).toBe('');
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Edit stream — Club A vs Club D — Game 1 of 3' }),
+      );
+
+      // Game 2's own link shows on its row and opens in its editor; saving the editor as shown keeps it.
+      expect(screen.getByText('https://example.org/live/game-2')).toBeDefined();
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Edit stream — Club A vs Club D — Game 2 of 3' }),
+      );
+      expect((screen.getByLabelText('Stream link') as HTMLInputElement).value).toBe(
+        'https://example.org/live/game-2',
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Save link' }));
+      expect(series3.onSetStreamUrl).toHaveBeenCalledWith(
+        'game-2',
+        'https://example.org/live/game-2',
+      );
+      expect(series3.onSetStreamUrl).not.toHaveBeenCalledWith('game-2', null);
+    });
+
+    it('closes the editor when its disclosure is pressed again, without saving', () => {
+      const closing = streamProps();
+      render(withIntl(<ScheduleBuilderTemplate {...closing} />));
+
+      fireEvent.click(screen.getByRole('button', { name: `Edit stream — ${row}` }));
+      expect(screen.getByLabelText('Stream link')).toBeDefined();
+      fireEvent.click(screen.getByRole('button', { name: `Edit stream — ${row}` }));
+
+      expect(screen.queryByLabelText('Stream link')).toBeNull();
+      expect(closing.onSetStreamUrl).not.toHaveBeenCalled();
+    });
   });
 
   it('explains that a preview is required before publishing', () => {

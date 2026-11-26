@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Post, Put, Req } from '@nestjs/common';
 import {
   BadRequestException,
   ConflictException,
@@ -12,6 +12,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { InvalidStreamUrlError, normalizeStreamUrl } from '@copalibre/domain';
 import {
   InvariantViolationError,
   ScheduleConflictError,
@@ -30,6 +31,8 @@ import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
 import {
   ScheduleRequest,
+  MatchStreamUrlRequest,
+  MatchStreamUrlResponse,
   ScheduleResponse,
   SchedulePreviewResponse,
   type ScheduleAssignmentResponse,
@@ -197,6 +200,67 @@ export class SchedulesController {
       }
       throw cause;
     }
+  }
+
+  @Put('matches/:matchId/stream-url')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-schedule')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: "Set or clear a match's stream link",
+    description:
+      'The link must be an absolute http or https URL of at most 2048 characters, or null to clear ' +
+      'it. The change is audited. No result, standing or schedule rule reads the link.',
+  })
+  @ApiOkResponse({ type: MatchStreamUrlResponse })
+  @ApiUnauthorizedResponse({ type: ProblemResponse })
+  @ApiForbiddenResponse({ type: ProblemResponse })
+  async setStreamUrl(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('tournamentAlias') tournamentAlias: string,
+    @Param('stageId') stageId: string,
+    @Param('matchId') matchId: string,
+    @Body() body: MatchStreamUrlRequest,
+    @Req() request: RequestWithSubject,
+  ): Promise<MatchStreamUrlResponse> {
+    const tournament = await this.resolveTournament(organizationAlias, tournamentAlias);
+    const subject = request.subject;
+    enforcePolicy({
+      plane: 'admin-control',
+      subject,
+      resource: {
+        organizationId: tournament.organizationId,
+        ownerTournamentId: tournament.tournamentId,
+      },
+    });
+
+    let streamUrl: string | null;
+    try {
+      streamUrl = normalizeStreamUrl(body.streamUrl);
+    } catch (cause) {
+      if (cause instanceof InvalidStreamUrlError) {
+        throw new BadRequestException(cause.message, { errorCode: 'schedule-bad-request' });
+      }
+      throw cause;
+    }
+
+    const result = await withTransaction(this.db, (uow) =>
+      new ScheduleRepository(this.db).setMatchStreamUrl(uow, {
+        organizationId: tournament.organizationId,
+        tournamentId: tournament.tournamentId,
+        stageId,
+        matchId,
+        streamUrl,
+        actor: `user:${subject?.subjectId ?? 'unknown'}`,
+        authorizationContext: (subject?.scopes ?? []).join(' '),
+      }),
+    );
+    if (result === null) {
+      throw new NotFoundException(`No match "${matchId}" in stage "${stageId}"`, {
+        errorCode: 'schedule-not-found',
+      });
+    }
+    return { matchId, streamUrl };
   }
 
   /**

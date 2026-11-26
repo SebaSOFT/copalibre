@@ -622,6 +622,39 @@ export class PublicMatchRostersResponse {
   away!: PublicMatchRosterMemberResponse[];
 }
 
+export class PublicRegisteredSquadMemberResponse {
+  @ApiPropertyOptional({ format: 'uuid' })
+  personId?: string;
+
+  @ApiPropertyOptional()
+  name?: string;
+
+  @ApiPropertyOptional()
+  hiddenAtRequest?: boolean;
+
+  @ApiProperty()
+  publicProfileAvailable!: boolean;
+
+  @ApiPropertyOptional()
+  nationality?: string;
+}
+
+export class PublicRegisteredSquadsResponse {
+  @ApiPropertyOptional({ type: [PublicRegisteredSquadMemberResponse] })
+  home?: PublicRegisteredSquadMemberResponse[];
+
+  @ApiPropertyOptional({ type: [PublicRegisteredSquadMemberResponse] })
+  away?: PublicRegisteredSquadMemberResponse[];
+}
+
+export class PublicMatchGameResponse {
+  @ApiProperty({ description: 'The game’s number within its fixture, 1-based play order' })
+  number!: number;
+
+  @ApiProperty({ enum: ['upcoming', 'live', 'final', 'not-required'] })
+  status!: 'upcoming' | 'live' | 'final' | 'not-required';
+}
+
 export class PublicMatchEventResponse {
   @ApiProperty({ format: 'uuid' })
   eventId!: string;
@@ -654,6 +687,21 @@ export class PublicMatchEventResponse {
 
   @ApiPropertyOptional()
   segmentNumber?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Seconds into its segment when recorded; absent for an untimed segment and for events recorded before it was stored',
+  })
+  segmentElapsedSeconds?: number;
+
+  @ApiPropertyOptional({
+    type: [Number],
+    minItems: 2,
+    maxItems: 2,
+    description:
+      'The score [home, away] after this event, on every event that changes the score: the last one equals the final score',
+  })
+  scoreAfter?: [number, number];
 
   @ApiPropertyOptional({ format: 'uuid' })
   side?: string;
@@ -777,6 +825,18 @@ export class PublicMatchReportResponse extends FixtureSourcesResponse {
   @ApiPropertyOptional({ description: "Away club's alias, when present" })
   awayClubAlias?: string;
 
+  @ApiPropertyOptional({ format: 'uuid', description: "Home club's id, for its crest" })
+  homeClubId?: string;
+
+  @ApiPropertyOptional({ format: 'uuid', description: "Home club's emblem object, for its crest" })
+  homeEmblemObjectId?: string;
+
+  @ApiPropertyOptional({ format: 'uuid', description: "Away club's id, for its crest" })
+  awayClubId?: string;
+
+  @ApiPropertyOptional({ format: 'uuid', description: "Away club's emblem object, for its crest" })
+  awayEmblemObjectId?: string;
+
   @ApiPropertyOptional()
   homeScore?: number;
 
@@ -797,6 +857,31 @@ export class PublicMatchReportResponse extends FixtureSourcesResponse {
 
   @ApiProperty({ type: PublicMatchRostersResponse })
   rosters!: PublicMatchRostersResponse;
+
+  @ApiPropertyOptional({
+    type: () => PublicRegisteredSquadsResponse,
+    description:
+      'Each team side’s registered players, present only for a scheduled match whose side has no match-day roster recorded yet',
+  })
+  registeredSquads?: PublicRegisteredSquadsResponse;
+
+  @ApiPropertyOptional({
+    description: 'The link the match is watched through, when the organizer attached one',
+  })
+  streamUrl?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'The game this report is for, when its fixture has more than one game (a series); absent otherwise',
+  })
+  gameNumber?: number;
+
+  @ApiPropertyOptional({
+    type: [PublicMatchGameResponse],
+    description:
+      'Every game of the fixture in play order, with its status, so a page can switch between them; present only for a series',
+  })
+  games?: PublicMatchGameResponse[];
 
   @ApiPropertyOptional({
     type: [PublicRosterRoleResponse],

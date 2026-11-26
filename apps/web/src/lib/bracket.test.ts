@@ -602,3 +602,27 @@ describe('the outcome each side of a cross reads as', () => {
     expect(stageOutcomes([played([1, 1], 'live')])).toEqual([]);
   });
 });
+
+describe('matchReportUrl and a series game', () => {
+  const base = {
+    organizationAlias: 'liga-mendocina',
+    tournamentAlias: 'apertura-2026',
+    stageNumber: 1,
+    matchNumber: 4,
+  };
+
+  it('keeps the fixture’s own page without a game parameter', () => {
+    expect(matchReportUrl(base)).toBe(
+      '/liga-mendocina/tournaments/apertura-2026/stages/1/matches/4',
+    );
+  });
+
+  it('appends ?game=N for a series game, and ignores a game that is not a positive whole number', () => {
+    expect(matchReportUrl({ ...base, game: 2, localePrefix: '/es' })).toBe(
+      '/es/liga-mendocina/tournaments/apertura-2026/stages/1/matches/4?game=2',
+    );
+    expect(matchReportUrl({ ...base, game: 0 })).not.toContain('?game');
+    expect(matchReportUrl({ ...base, game: 1.5 })).not.toContain('?game');
+    expect(matchReportUrl({ ...base, game: Number.NaN })).not.toContain('?game');
+  });
+});

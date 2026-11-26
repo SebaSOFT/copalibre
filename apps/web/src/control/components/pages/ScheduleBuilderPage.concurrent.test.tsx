@@ -112,3 +112,57 @@ it('names the match and operator, reruns the current draft and ignores own, unre
   unmount();
   expect(close).toHaveBeenCalled();
 });
+
+it('re-reads the schedule when a game’s stream link changes in this stage, once per version', async () => {
+  const { api } = client();
+  const getStageFixtures = jest.spyOn(
+    api as unknown as { getStageFixtures: (...args: unknown[]) => Promise<unknown> },
+    'getStageFixtures',
+  );
+  render(
+    withIntl(
+      <ScheduleBuilderPage
+        client={api}
+        organizationAlias="liga"
+        tournamentAlias="copa"
+        stageNumber={1}
+      />,
+    ),
+  );
+  await waitFor(() => expect(handlers).toBeDefined());
+  await waitFor(() => expect(getStageFixtures).toHaveBeenCalledTimes(1));
+  const link = (version: number, payload: Record<string, unknown> = {}) =>
+    ({
+      ...event(version),
+      eventType: 'match.stream-url-changed',
+      stream: 'match:match',
+      payload: {
+        matchId: 'match',
+        stageId: 'stage',
+        streamUrl: 'https://example.org/live',
+        ...payload,
+      },
+    }) as EventEnvelope;
+  await act(async () => {
+    handlers.onEvent(link(1));
+  });
+  await waitFor(() => expect(getStageFixtures.mock.calls.length).toBeGreaterThan(1));
+  // Let the page settle after its own re-read, then count what the ignored events add.
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  });
+  const settled = getStageFixtures.mock.calls.length;
+  await act(async () => {
+    handlers.onEvent(link(1));
+    handlers.onEvent(link(2, { stageId: 'elsewhere' }));
+    handlers.onEvent(link(3, { matchId: null }));
+  });
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  });
+  expect(getStageFixtures).toHaveBeenCalledTimes(settled);
+  await act(async () => {
+    handlers.onEvent(link(4));
+  });
+  await waitFor(() => expect(getStageFixtures.mock.calls.length).toBeGreaterThan(settled));
+});

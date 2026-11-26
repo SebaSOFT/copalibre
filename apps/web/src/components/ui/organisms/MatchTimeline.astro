@@ -1,12 +1,20 @@
 ---
 /**
- * Extracted from the match report page, unchanged
- * in markup and styling except for localization and timestamp handling.
+ * The match timeline: one row per event with its side, its game time in the
+ * segment, the running score where the event changed it and the wall-clock time
+ * as secondary text. Each segment opens and, when completed, closes with a marker.
  */
 import type { IntlShape } from 'react-intl';
+import EmblemImage from '../atoms/EmblemImage.astro';
+import { sideMarkerOf } from '../../../lib/side-marker.ts';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
-import type { MatchReportModel } from '../../../lib/match-report.ts';
+import {
+  formatElapsed,
+  type MatchReportModel,
+  type MatchReportSide,
+  type MatchReportTimelineEvent,
+} from '../../../lib/match-report.ts';
 
 export interface Props {
   readonly model: MatchReportModel;
@@ -16,6 +24,28 @@ export interface Props {
 }
 
 const { model, intl, organizationTimeZone, referenceDate } = Astro.props;
+
+const sideOf = (side: MatchReportSide): MatchReportModel['home'] => model[side];
+
+/** "Tiempo 1 · 08:00" when the event's time in its segment is known, the segment alone otherwise. */
+const gameTimeOf = (event: MatchReportTimelineEvent): string | undefined => {
+  if (event.segmentNumber === undefined) return undefined;
+  const segment = event.segmentLabel ?? '';
+  if (event.elapsedSeconds === undefined) {
+    return intl.formatMessage(messages.matchTimelineSegmentStart, {
+      segment,
+      number: event.segmentNumber,
+    });
+  }
+  return intl.formatMessage(messages.matchTimelineSegmentTime, {
+    segment,
+    number: event.segmentNumber,
+    time: formatElapsed(event.elapsedSeconds),
+  });
+};
+
+const scoreText = (score: readonly [number, number]): string =>
+  intl.formatMessage(messages.matchTimelineScoreAfter, { home: score[0], away: score[1] });
 ---
 
 <section class="cl-section-card cl-chamfer" aria-labelledby="timeline-heading">
@@ -26,27 +56,105 @@ const { model, intl, organizationTimeZone, referenceDate } = Astro.props;
     <p class="cl-text-muted">{intl.formatMessage(messages.matchTimelineEmpty)}</p>
   ) : (
     <ol class="cl-timeline-list">
-      {model.timeline.map((group) => (
-        <li
-          class="cl-timeline-item"
-          data-workflow-group={group.kind === 'workflow' ? 'true' : undefined}
-        >
-          {group.events.map((event) => (
-            <div class="cl-timeline-entry">
-              <ResponsiveTimestamp
-                client:load
-                timestamp={event.occurredAt}
-                locale={intl.locale}
-                referenceDate={referenceDate}
-                timeZone={organizationTimeZone}
-                className="cl-timeline-time"
-              />
-              <span class="cl-timeline-label">{event.label}</span>
-              {event.actor ? <span class="cl-timeline-actor">· {event.actor}</span> : null}
-            </div>
-          ))}
-        </li>
-      ))}
+      {model.timeline.map((group) => {
+        if (group.kind === 'segment-start' || group.kind === 'segment-end') {
+          const segment = group.segment;
+          const text =
+            group.kind === 'segment-start'
+              ? intl.formatMessage(messages.matchTimelineSegmentStart, {
+                  segment: segment?.label ?? '',
+                  number: segment?.number ?? '',
+                })
+              : intl.formatMessage(messages.matchTimelineSegmentEnd, {
+                  segment: segment?.label ?? '',
+                  number: segment?.number ?? '',
+                  score: segment?.scores === undefined ? '' : scoreText(segment.scores),
+                });
+          return (
+            <li
+              class:list={[
+                'cl-timeline-marker',
+                group.kind === 'segment-start'
+                  ? 'cl-timeline-marker--start'
+                  : 'cl-timeline-marker--end',
+              ]}
+              data-segment-marker={group.kind}
+            >
+              <span class="cl-timeline-marker__text">{text}</span>
+            </li>
+          );
+        }
+        return (
+          <li
+            class="cl-timeline-item"
+            data-workflow-group={group.kind === 'workflow' ? 'true' : undefined}
+          >
+            {group.events.map((event) => {
+              const side = event.side;
+              const sideModel = side === undefined ? undefined : sideOf(side);
+              const gameTime = gameTimeOf(event);
+              return (
+                <div class="cl-timeline-entry" data-side={side}>
+                  {sideModel && sideMarkerOf(sideModel).kind === 'crest' && (
+                    <span class="cl-timeline-side" title={sideModel.name}>
+                      <EmblemImage
+                        src={sideModel.crestSrc}
+                        alt={sideModel.name}
+                        placeholderAlt={sideModel.name}
+                        abbreviation={sideModel.abbreviation}
+                        size={24}
+                        decorative={true}
+                      />
+                      <span class="cl-timeline-side__name">
+                        {sideModel.abbreviation ?? sideModel.name}
+                      </span>
+                    </span>
+                  )}
+                  {sideModel && sideMarkerOf(sideModel).kind === 'monogram' && (
+                    /* No crest: the monogram tile carries the abbreviation, so the text is not repeated. */
+                    <span class="cl-timeline-side" title={sideModel.name}>
+                      <EmblemImage
+                        alt={sideModel.name}
+                        placeholderAlt={sideModel.name}
+                        abbreviation={sideModel.abbreviation}
+                        size={24}
+                      />
+                    </span>
+                  )}
+                  {sideModel && sideMarkerOf(sideModel).kind === 'icon-text' && (
+                    /* No crest and no monogram: the shield and the side's own text tell the sides apart. */
+                    <span class="cl-timeline-side" title={sideModel.name}>
+                      <EmblemImage
+                        alt={sideModel.name}
+                        placeholderAlt={sideModel.name}
+                        size={24}
+                        decorative={true}
+                      />
+                      <span class="cl-timeline-side__name">
+                        {sideModel.abbreviation ?? sideModel.name}
+                      </span>
+                    </span>
+                  )}
+                  {gameTime && <span class="cl-timeline-time">{gameTime}</span>}
+                  <span class="cl-timeline-label">{event.label}</span>
+                  {event.actor ? <span class="cl-timeline-actor">· {event.actor}</span> : null}
+                  {event.scoreAfter && (
+                    <span class="cl-timeline-score">{scoreText(event.scoreAfter)}</span>
+                  )}
+                  <ResponsiveTimestamp
+                    client:load
+                    timestamp={event.occurredAt}
+                    locale={intl.locale}
+                    referenceDate={referenceDate}
+                    timeZone={organizationTimeZone}
+                    className="cl-timeline-clock"
+                  />
+                </div>
+              );
+            })}
+          </li>
+        );
+      })}
     </ol>
   )}
 </section>
@@ -84,17 +192,38 @@ const { model, intl, organizationTimeZone, referenceDate } = Astro.props;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: 0.5rem 0.75rem;
     font-size: 0.875rem;
+    border-inline-start: 3px solid transparent;
+    padding-inline-start: var(--cl-space-3);
+  }
+
+  .cl-timeline-entry[data-side='home'] {
+    border-inline-start-color: var(--cl-text-accent);
+  }
+
+  .cl-timeline-entry[data-side='away'] {
+    border-inline-start-color: var(--cl-border-strong);
+  }
+
+  .cl-timeline-side {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+    min-width: 0;
+  }
+
+  .cl-timeline-side__name {
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    color: var(--cl-text-secondary);
   }
 
   .cl-timeline-time {
     font-family: var(--cl-font-mono);
     color: var(--cl-text-accent);
     font-size: var(--cl-font-size-xs);
-    /* An ISO timestamp has no space to wrap at; at
-       the 188px floor it needs an in-word break rather than pushing the row
-       past the viewport. */
+    font-variant-numeric: tabular-nums;
     overflow-wrap: anywhere;
   }
 
@@ -104,5 +233,44 @@ const { model, intl, organizationTimeZone, referenceDate } = Astro.props;
 
   .cl-timeline-actor {
     color: var(--cl-text-muted);
+  }
+
+  .cl-timeline-score {
+    font-family: var(--cl-font-display);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--cl-text-primary);
+  }
+
+  .cl-timeline-clock {
+    margin-inline-start: auto;
+    color: var(--cl-text-muted);
+    font-size: var(--cl-font-size-xs);
+    overflow-wrap: anywhere;
+  }
+
+  .cl-timeline-marker {
+    display: flex;
+    align-items: center;
+    gap: var(--cl-space-3);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    letter-spacing: var(--cl-tracking-wide);
+    color: var(--cl-text-secondary);
+    text-transform: uppercase;
+  }
+
+  .cl-timeline-marker::before,
+  .cl-timeline-marker::after {
+    content: '';
+    flex: 1 1 auto;
+    height: 1px;
+    background: var(--cl-border-muted);
+  }
+
+  .cl-timeline-marker__text {
+    flex: 0 1 auto;
+    text-align: center;
+    overflow-wrap: anywhere;
   }
 </style>

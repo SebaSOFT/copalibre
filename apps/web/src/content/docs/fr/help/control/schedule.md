@@ -63,6 +63,10 @@ ferme : d’abord la liste de suggestions ouverte, puis la boîte de dialogue.
 « Retirer du créneau » sort un match placé de son créneau dans le lot : l’aperçu l’affiche sans horaire
 et liste les créneaux libérés, pour qu’un autre match puisse en prendre un dans la même publication.
 
+## Lien de diffusion
+
+Un match peut porter le lien par lequel sa diffusion est suivie. La commande **Modifier la diffusion** de la ligne du match ouvre un champ : saisissez un lien absolu commençant par `https://` (un lien `http://` est aussi accepté), puis enregistrez-le. **Retirer le lien** l'efface. Une valeur qui n'est pas une adresse web absolue est refusée, et le match conserve son lien précédent. La page publique du match affiche alors un lien « Voir le direct » qui s'ouvre dans une nouvelle page. CopaLibre ne vérifie pas quel service de diffusion le lien désigne.
+
 ## Ce que vous ne pouvez pas faire ici
 
 Replanifier un match déjà terminé est refusé : son horaire est désormais un enregistrement, pas un plan,

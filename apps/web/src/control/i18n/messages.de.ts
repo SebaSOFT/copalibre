@@ -1253,6 +1253,12 @@ export const messages: Record<string, string> = {
     'Beheben Sie die aufgeführten Konflikte, bevor Sie den Spielplan veröffentlichen.',
   'control.scheduleBuilder.preview': 'Vorschau',
   'control.scheduleBuilder.publish': 'Spielplan veröffentlichen',
+  'control.scheduleBuilder.streamUrl': 'Übertragungslink',
+  'control.scheduleBuilder.streamUrlInvalid':
+    'Gib einen vollständigen Link mit höchstens 2048 Zeichen ein, der mit http:// oder https:// beginnt',
+  'control.scheduleBuilder.streamUrlEdit': 'Übertragung bearbeiten',
+  'control.scheduleBuilder.streamUrlSave': 'Link speichern',
+  'control.scheduleBuilder.streamUrlClear': 'Link entfernen',
   'control.scheduleBuilder.published': 'Spielplan veröffentlicht.',
   'control.scheduleBuilder.conflictsHeading': 'Konflikte',
   'control.scheduleBuilder.affectedPublishedHeading':

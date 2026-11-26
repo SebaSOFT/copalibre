@@ -37,6 +37,7 @@ export {
  * touches the domain. It lives at `@copalibre/domain/import-export`, and every
  * consumer of it is server-side.
  */
+export { InvalidStreamUrlError, MAX_STREAM_URL_LENGTH, normalizeStreamUrl } from './stream-url.js';
 export {
   suggestAlias,
   suggestAvailableAlias,

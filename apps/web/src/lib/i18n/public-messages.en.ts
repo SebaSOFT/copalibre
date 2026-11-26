@@ -624,6 +624,18 @@ export const messages = defineMessages({
     id: 'publicWeb.placement.zonePrefix',
     defaultMessage: '{zone} · {placement}',
   },
+  matchReportGameLinkLabel: {
+    id: 'publicWeb.matchReport.gameLinkLabel',
+    defaultMessage: '{game}: {home} {score} {away}',
+  },
+  matchReportGameNumber: {
+    id: 'publicWeb.matchReport.gameNumber',
+    defaultMessage: 'Game {number} of {total}',
+  },
+  matchReportGamesLabel: {
+    id: 'publicWeb.matchReport.gamesLabel',
+    defaultMessage: 'Games of this series',
+  },
   matchReportStakeWinner: {
     id: 'publicWeb.matchReport.stakeWinner',
     defaultMessage: 'Winner plays {match}{when}',
@@ -1507,6 +1519,42 @@ export const messages = defineMessages({
   matchOfficialRoleObserver: {
     id: 'publicWeb.matchOfficials.role.observer',
     defaultMessage: 'Observer',
+  },
+  matchTimelineSegmentStart: {
+    id: 'publicWeb.matchTimeline.segmentStart',
+    defaultMessage: '{segment} {number}',
+  },
+  matchTimelineSegmentTime: {
+    id: 'publicWeb.matchTimeline.segmentTime',
+    defaultMessage: '{segment} {number} · {time}',
+  },
+  matchTimelineSegmentFallback: {
+    id: 'publicWeb.matchTimeline.segmentFallback',
+    defaultMessage: 'Segment',
+  },
+  matchTimelineSegmentEnd: {
+    id: 'publicWeb.matchTimeline.segmentEnd',
+    defaultMessage: 'End of {segment} {number} · {score}',
+  },
+  matchTimelineScoreAfter: {
+    id: 'publicWeb.matchTimeline.scoreAfter',
+    defaultMessage: '{home}–{away}',
+  },
+  matchRostersRegisteredHeading: {
+    id: 'publicWeb.matchRosters.registeredHeading',
+    defaultMessage: 'Registered squad',
+  },
+  matchRostersRegisteredNote: {
+    id: 'publicWeb.matchRosters.registeredNote',
+    defaultMessage: 'The match-day list is confirmed at kickoff',
+  },
+  matchRostersViewFullSquad: {
+    id: 'publicWeb.matchRosters.viewFullSquad',
+    defaultMessage: 'View full squad',
+  },
+  matchReportWatchStream: {
+    id: 'publicWeb.matchReport.watchStream',
+    defaultMessage: 'Watch stream',
   },
   matchRostersHeading: {
     id: 'publicWeb.matchRosters.heading',

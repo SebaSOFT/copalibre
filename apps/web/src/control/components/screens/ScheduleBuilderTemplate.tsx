@@ -11,6 +11,7 @@ import {
   type ScheduleDetailResponse,
   type VenueResponse,
 } from '../../lib/api-client.js';
+import { normalizeStreamUrl, InvalidStreamUrlError } from '@copalibre/domain';
 import {
   builderGroups,
   pendingReleases,
@@ -23,6 +24,7 @@ import { Card } from '../ui/atoms/card.js';
 import { Checkbox } from '../ui/atoms/checkbox.js';
 import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
+import { Input } from '../ui/atoms/input.js';
 import { Alert } from '../ui/atoms/alert.js';
 import {
   ScheduleReasonPrompt,
@@ -122,6 +124,7 @@ export function ScheduleBuilderTemplate({
   onPreview,
   onPublish,
   onToggleOfficial,
+  onSetStreamUrl,
   onSetDraft,
   organizationAlias,
   organizationTimeZone,
@@ -159,6 +162,8 @@ export function ScheduleBuilderTemplate({
   readonly recentReasons?: readonly string[];
   readonly onSetDraft: (matchId: string, patch: Partial<DraftAssignment>) => void;
   readonly onToggleOfficial: (matchId: string, officialId: string) => void;
+  /** Sets (a valid link) or clears (`null`) one match's stream link. */
+  readonly onSetStreamUrl?: (matchId: string, streamUrl: string | null) => void;
   readonly organizationAlias: string;
   readonly organizationTimeZone?: string;
   readonly previewed: boolean;
@@ -177,6 +182,10 @@ export function ScheduleBuilderTemplate({
   const [rowDays, setRowDays] = useState<Readonly<Record<string, string>>>({});
   // Only one match opens its official picker at a time, so the page height does not follow the roster.
   const [editingOfficialsFor, setEditingOfficialsFor] = useState<string | undefined>(undefined);
+  // The stream link editor works the same way: one open at a time, with its own draft and refusal.
+  const [editingStreamFor, setEditingStreamFor] = useState<string | undefined>(undefined);
+  const [streamDraft, setStreamDraft] = useState('');
+  const [streamRefused, setStreamRefused] = useState(false);
 
   const draftFor = useCallback(
     (matchId: string): DraftAssignment => drafts[matchId] ?? EMPTY_DRAFT,
@@ -184,6 +193,19 @@ export function ScheduleBuilderTemplate({
   );
 
   const groups = useMemo(() => builderGroups(fixtures), [fixtures]);
+
+  // Every game of a series carries its own link, so each row is looked up by its own match id.
+  const streamUrls = useMemo(
+    () =>
+      new Map(
+        fixtures.flatMap((fixture) =>
+          (fixture.matches ?? []).flatMap((game) =>
+            game.streamUrl === undefined ? [] : [[game.matchId, game.streamUrl] as const],
+          ),
+        ),
+      ),
+    [fixtures],
+  );
 
   const entrantNames = useMemo(() => {
     const names = new Map<string, { fullName: string; abbreviation?: string }>();
@@ -550,6 +572,32 @@ export function ScheduleBuilderTemplate({
       draft.officialIds.includes(official.officialId),
     );
     const editingOfficials = editingOfficialsFor === row.matchId;
+    const savedStreamUrl = streamUrls.get(row.matchId);
+    const editingStream = editingStreamFor === row.matchId;
+
+    const openStreamEditor = () => {
+      if (editingStream) {
+        setEditingStreamFor(undefined);
+        return;
+      }
+      setStreamDraft(savedStreamUrl ?? '');
+      setStreamRefused(false);
+      setEditingStreamFor(row.matchId);
+    };
+    const saveStream = (value: string | null) => {
+      let normalized: string | null;
+      try {
+        normalized = normalizeStreamUrl(value);
+      } catch (cause) {
+        if (cause instanceof InvalidStreamUrlError) {
+          setStreamRefused(true);
+          return;
+        }
+        throw cause;
+      }
+      onSetStreamUrl?.(row.matchId, normalized);
+      setEditingStreamFor(undefined);
+    };
 
     return (
       <div className="cl-schedule-builder__assignment-row">
@@ -632,6 +680,59 @@ export function ScheduleBuilderTemplate({
           >
             <FormattedMessage {...messages.scheduleBuilderWithdraw} />
           </Button>
+        )}
+
+        {onSetStreamUrl !== undefined && (
+          <div className="cl-schedule-builder__stream">
+            <Button
+              aria-expanded={editingStream}
+              aria-label={`${intl.formatMessage(messages.scheduleBuilderStreamUrlEdit)} — ${label}`}
+              onClick={openStreamEditor}
+              type="button"
+              variant="secondary"
+            >
+              <FormattedMessage {...messages.scheduleBuilderStreamUrlEdit} />
+            </Button>
+            {!editingStream && savedStreamUrl !== undefined && (
+              <span className="cl-schedule-builder__stream-current" title={savedStreamUrl}>
+                {savedStreamUrl}
+              </span>
+            )}
+            {editingStream && (
+              <div className="cl-schedule-builder__stream-editor">
+                <Field
+                  id={`stream-${row.matchId}`}
+                  label={intl.formatMessage(messages.scheduleBuilderStreamUrl)}
+                  errorText={
+                    streamRefused
+                      ? intl.formatMessage(messages.scheduleBuilderStreamUrlInvalid)
+                      : undefined
+                  }
+                >
+                  <Input
+                    id={`stream-${row.matchId}`}
+                    inputMode="url"
+                    invalid={streamRefused}
+                    onChange={(event) => {
+                      setStreamDraft(event.target.value);
+                      setStreamRefused(false);
+                    }}
+                    value={streamDraft}
+                  />
+                </Field>
+                <div className="cl-schedule-builder__stream-actions">
+                  <Button onClick={() => saveStream(streamDraft)} type="button" variant="secondary">
+                    <FormattedMessage {...messages.scheduleBuilderStreamUrlSave} />
+                  </Button>
+                  {savedStreamUrl !== undefined && (
+                    <Button onClick={() => saveStream(null)} type="button" variant="secondary">
+                      <FormattedMessage {...messages.scheduleBuilderStreamUrlClear} />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {officials.length > 0 && (

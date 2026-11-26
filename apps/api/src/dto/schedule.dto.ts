@@ -11,6 +11,7 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -320,6 +321,11 @@ export class FixtureMatchResponse {
       'anulled match that held one; the slot itself is free and open to anyone.',
   })
   releasedSlotId?: string;
+
+  @ApiPropertyOptional({
+    description: 'This game’s stream link, when the organizer attached one to it',
+  })
+  streamUrl?: string;
 }
 
 /**
@@ -382,6 +388,17 @@ export class FixtureResponse extends FixtureSourcesResponse {
   @ApiProperty({ description: '1-based round within the stage', example: 1 })
   round!: number;
 
+  /**
+   * Deprecated alias for the first game's link, kept so a v1 client needs no change. Each game's own
+   * link is on `matches[].streamUrl`.
+   */
+  @ApiPropertyOptional({
+    deprecated: true,
+    description:
+      'Deprecated: the first game’s stream link. Read `matches[].streamUrl` for every game.',
+  })
+  streamUrl?: string;
+
   @ApiPropertyOptional({ format: 'uuid' })
   homeEntrantId?: string;
 
@@ -416,4 +433,31 @@ export class StageFixturesResponse {
 
   @ApiProperty({ type: [FixtureResponse] })
   fixtures!: FixtureResponse[];
+}
+
+/** A match's stream link. `null` clears it; a value must be an absolute http(s) URL. */
+export class MatchStreamUrlRequest {
+  @ApiProperty({
+    description: 'Absolute http or https link to the broadcast, or null to clear it',
+    type: String,
+    nullable: true,
+    maxLength: 2048,
+    example: 'https://example.org/live/semifinal-1',
+  })
+  @ValidateIf((_, value: unknown) => value !== null)
+  @IsString()
+  @MaxLength(2048)
+  streamUrl!: string | null;
+}
+
+export class MatchStreamUrlResponse {
+  @ApiProperty({ description: 'The match whose link changed', format: 'uuid' })
+  matchId!: string;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'The stored link, or null when cleared',
+  })
+  streamUrl!: string | null;
 }

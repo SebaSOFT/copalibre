@@ -147,6 +147,9 @@ const MORE_FIXTURES = [
 ];
 
 let fixtures = [...BASE_FIXTURES];
+/** Stream links the builder saved, by match, and every write it sent (the link is null when cleared). */
+let streamUrls: Record<string, string> = {};
+let streamUrlWrites: { matchId: string; streamUrl: string | null }[] = [];
 
 test('publishes an undecided eight-entrant final through the real API and retains it after reload', async ({
   page,
@@ -510,6 +513,8 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
   officials = [];
   published = [];
   fixtures = [...BASE_FIXTURES];
+  streamUrls = {};
+  streamUrlWrites = [];
   minimumRestMinutes = undefined;
   publishedBodies = [];
   nextVenueId = 1;
@@ -577,6 +582,21 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
         if (url === scheduleBase && method === 'GET') {
           return Response.json(
             await (window as unknown as { __schedule: () => Promise<unknown> }).__schedule(),
+          );
+        }
+        if (
+          method === 'PUT' &&
+          url.startsWith(`${scheduleBase}/matches/`) &&
+          url.endsWith('/stream-url')
+        ) {
+          const matchId = url.slice(`${scheduleBase}/matches/`.length, -'/stream-url'.length);
+          const body = JSON.parse(String(init?.body)) as { streamUrl: string | null };
+          return Response.json(
+            await (
+              window as unknown as {
+                __setStreamUrl: (matchId: string, streamUrl: string | null) => Promise<unknown>;
+              }
+            ).__setStreamUrl(matchId, body.streamUrl),
           );
         }
         if (url === `${scheduleBase}/preview` && method === 'POST') {
@@ -653,7 +673,23 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
     },
   );
   await page.exposeFunction('__schedules', () => SCHEDULES);
-  await page.exposeFunction('__fixtures', () => ({ stageId: STAGE_ID, fixtures }));
+  await page.exposeFunction('__fixtures', () => ({
+    stageId: STAGE_ID,
+    fixtures: fixtures.map((fixture) => ({
+      ...fixture,
+      matches: fixture.matches?.map((game) =>
+        streamUrls[game.matchId] === undefined
+          ? game
+          : { ...game, streamUrl: streamUrls[game.matchId] },
+      ),
+    })),
+  }));
+  await page.exposeFunction('__setStreamUrl', (matchId: string, streamUrl: string | null) => {
+    streamUrlWrites = [...streamUrlWrites, { matchId, streamUrl }];
+    if (streamUrl === null) delete streamUrls[matchId];
+    else streamUrls[matchId] = streamUrl;
+    return { matchId, streamUrl };
+  });
   await page.exposeFunction('__schedule', () => ({ assignments: published }));
   await page.exposeFunction('__preview', (body: BatchBody) => {
     const placements = body.assignments.filter(
@@ -715,6 +751,41 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
     };
   });
 }
+
+test('sets, refuses and clears a match stream link from the match row', async ({ page }) => {
+  await mockControlApi(page);
+
+  const scheduleTarget = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/stages/1/schedule`;
+  await seedLoginTransaction(page, scheduleTarget);
+  await page.goto(loginCallbackUrl()).catch((error: Error) => {
+    if (!error.message.includes('is interrupted by another navigation')) throw error;
+  });
+  await page.waitForURL(`**${scheduleTarget}`);
+  await expandAllAgendaDays(page);
+
+  const row = 'Club Alfa vs Club Bravo';
+  await page.getByRole('button', { name: `Editar transmisión — ${row}` }).click();
+  await page.getByLabel('Enlace de transmisión').fill('ftp://example.org/stream');
+  await page.getByRole('button', { name: 'Guardar enlace' }).click();
+  await expect(page.getByRole('alert')).toContainText(
+    'Ingresá un enlace completo, de hasta 2048 caracteres, que empiece con http:// o https://',
+  );
+  expect(streamUrlWrites).toEqual([]);
+
+  await page.getByLabel('Enlace de transmisión').fill('https://example.org/live/semifinal-1');
+  await page.getByRole('button', { name: 'Guardar enlace' }).click();
+  await expect(page.getByLabel('Enlace de transmisión')).toHaveCount(0);
+  expect(streamUrlWrites).toEqual([
+    { matchId: 'match-1', streamUrl: 'https://example.org/live/semifinal-1' },
+  ]);
+
+  await page.getByRole('button', { name: `Editar transmisión — ${row}` }).click();
+  await expect(page.getByLabel('Enlace de transmisión')).toHaveValue(
+    'https://example.org/live/semifinal-1',
+  );
+  await page.getByRole('button', { name: 'Quitar enlace' }).click();
+  expect(streamUrlWrites.at(-1)).toEqual({ matchId: 'match-1', streamUrl: null });
+});
 
 test('creates a venue and an official, assigns a fixture, previews, and publishes', async ({
   page,

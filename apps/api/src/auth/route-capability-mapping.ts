@@ -128,6 +128,7 @@ export const ROUTE_CAPABILITIES: Readonly<Record<string, OrganizationCapability>
   // org.manage-schedule
   'SchedulesController.preview': 'org.manage-schedule',
   'SchedulesController.publish': 'org.manage-schedule',
+  'SchedulesController.setStreamUrl': 'org.manage-schedule',
   'OrganizationScheduleController.read': 'org.manage-schedule',
   'OrganizationScheduleController.recentReasons': 'org.manage-schedule',
 

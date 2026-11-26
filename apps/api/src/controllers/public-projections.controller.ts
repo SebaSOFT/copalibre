@@ -78,7 +78,7 @@ import {
 import { segmentedTableResponse, tableResponse } from './table-projections.controller.js';
 import { evaluateStoredPromotion, promotionPlanFromStored } from './promotion-plans.js';
 import { eventLabelFields, rosterRolesOf } from './public-match-labels.js';
-import { segmentSummariesOf } from './public-segments.js';
+import { scoreAfterOf, segmentSummariesOf } from './public-segments.js';
 import { publicClockOf } from './segment-clock.js';
 import { publicRuleset } from './public-ruleset.js';
 import {
@@ -930,13 +930,26 @@ export class PublicProjectionsController {
 
   @Get('stages/:stageNumber/matches/:matchNumber')
   @SecurityPlaneTag('public-read')
-  @ApiOperation({ summary: 'Public report for one match' })
+  @ApiOperation({
+    summary: 'Public report for one match',
+    description:
+      'A series fixture has one stage number and one page; `game` selects one of its games (1-based, ' +
+      'play order), and the report then carries that game’s own status, roster and stream link. ' +
+      'Without it the report is the fixture’s first game.',
+  })
+  @ApiQuery({
+    name: 'game',
+    required: false,
+    type: Number,
+    description: 'Game number within the fixture',
+  })
   @ApiOkResponse({ type: PublicMatchReportResponse })
   async matchReport(
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageNumber') stageNumberValue: string,
     @Param('matchNumber') matchNumberValue: string,
+    @Query('game') gameValue?: string,
   ): Promise<PublicMatchReportResponse> {
     const { tournament, organizationName, organizationTimeZone } =
       await this.resolvePublishedTournament(organizationAlias, tournamentAlias);
@@ -973,6 +986,21 @@ export class PublicProjectionsController {
         errorCode: 'public-projection-not-found',
       });
 
+    // A series fixture carries several games: `game` picks one, and the default is the first.
+    const gameNumber = gameValue === undefined ? undefined : Number(gameValue);
+    if (gameNumber !== undefined && (!Number.isSafeInteger(gameNumber) || gameNumber < 1)) {
+      throw new NotFoundException({ errorCode: 'public-projection-not-found' });
+    }
+    const game =
+      gameNumber === undefined
+        ? targetRecord.games[0]
+        : targetRecord.games.find((candidate) => candidate.number === gameNumber);
+    if (gameNumber !== undefined && !game)
+      throw new NotFoundException(`No game ${gameValue} in match ${matchNumberValue}`, {
+        errorCode: 'public-projection-not-found',
+      });
+    const gameMatchId = game?.matchId ?? targetRecord.matchId;
+
     const fixtureSources = await readFixtureSources(this.db, stage.stageId);
 
     const match = await this.db
@@ -985,10 +1013,11 @@ export class PublicProjectionsController {
         'matches.result',
         'fixtures.fixture_id',
         'fixtures.round',
+        'matches.stream_url',
         'fixtures.home_entrant_id',
         'fixtures.away_entrant_id',
       ])
-      .where('fixtures.fixture_id', '=', targetRecord.fixtureId)
+      .where('matches.match_id', '=', gameMatchId)
       .executeTakeFirst();
     if (!match)
       throw new NotFoundException(`No match ${matchNumberValue} in stage ${stageNumberValue}`, {
@@ -1049,8 +1078,57 @@ export class PublicProjectionsController {
       entrantIds,
     );
     const entrantVisibility = await entrantVisibilityById(this.db, tournament, entrantIds);
+    // Before a side's match-day roster is recorded, a team side shows the players registered to the
+    // team. Only an upcoming match has that state: a finished or live match without a roster has no
+    // kickoff list still to come.
+    const entrantTeamRows =
+      entrantIds.length === 0
+        ? []
+        : await this.db
+            .selectFrom('entrants')
+            .select(['entrant_id', 'team_id'])
+            .where('entrant_id', 'in', entrantIds)
+            .execute();
+    const teamIdByEntrant = new Map(
+      entrantTeamRows.flatMap((row) =>
+        row.team_id === null ? [] : [[row.entrant_id, row.team_id] as const],
+      ),
+    );
+    const rosteredEntrantIds = new Set(rosterRows.map((roster) => roster.entrant_id));
+    const squadEntrantIds =
+      match.status === 'scheduled'
+        ? entrantIds.filter(
+            (entrantId) =>
+              !rosteredEntrantIds.has(entrantId) &&
+              entrantVisibility.get(entrantId)?.hiddenAtRequest !== true &&
+              teamIdByEntrant.has(entrantId),
+          )
+        : [];
+    const squadPlayersByTeam = await new EnrollmentRepository(this.db).playersByTeams(
+      squadEntrantIds.flatMap((entrantId) => {
+        const teamId = teamIdByEntrant.get(entrantId);
+        return teamId === undefined ? [] : [teamId];
+      }),
+    );
+    // A registered squad lists the team's players and substitutes only. Coaches and staff are
+    // registered to the team too, but they are not on the squad a spectator is shown.
+    const squadPlayers = new Map(
+      squadEntrantIds.flatMap((entrantId) => {
+        const teamId = teamIdByEntrant.get(entrantId);
+        const players = (teamId === undefined ? [] : (squadPlayersByTeam.get(teamId) ?? [])).filter(
+          (player) => player.role === 'player' || player.role === 'substitute',
+        );
+        return players.length === 0 ? [] : [[entrantId, players] as const];
+      }),
+    );
+    const squadPersons = await new PersonRepository(this.db).findPersons(
+      [...squadPlayers.values()].flat().map((player) => player.personId),
+    );
+    const personById = new Map(squadPersons.map((person) => [person.personId, person]));
+
     const personIds = [
       ...rosterRows.flatMap((roster) => roster.roster_members.map((member) => member.personId)),
+      ...[...squadPlayers.values()].flat().map((player) => player.personId),
       ...events.flatMap((event) => (event.personId === undefined ? [] : [event.personId])),
     ];
     const visibilityByPersonId = await personVisibilityById(this.db, tournament, personIds);
@@ -1070,6 +1148,39 @@ export class PublicProjectionsController {
         }),
       ]),
     );
+    const registeredSquadOf = (entrantId: string | null) => {
+      const players = entrantId === null ? undefined : squadPlayers.get(entrantId);
+      if (players === undefined) return undefined;
+      return players.map((player) => {
+        const visibility =
+          visibilityByPersonId.get(player.personId) ?? personVisibility(tournament);
+        const person = personById.get(player.personId);
+        return {
+          ...(visibility.hiddenAtRequest
+            ? { hiddenAtRequest: true }
+            : { personId: player.personId, ...(person ? { name: person.displayName } : {}) }),
+          publicProfileAvailable: visibility.publicProfileAvailable,
+          ...(visibility.nationalityVisible && person?.nationality !== undefined
+            ? { nationality: person.nationality }
+            : {}),
+        };
+      });
+    };
+    const homeSquad = registeredSquadOf(match.home_entrant_id);
+    const awaySquad = registeredSquadOf(match.away_entrant_id);
+    const registeredSquads =
+      homeSquad === undefined && awaySquad === undefined
+        ? undefined
+        : {
+            ...(homeSquad === undefined ? {} : { home: homeSquad }),
+            ...(awaySquad === undefined ? {} : { away: awaySquad }),
+          };
+    const scoreAfter =
+      match.home_entrant_id === null || match.away_entrant_id === null
+        ? new Map<string, readonly [number, number]>()
+        : scoreAfterOf(descriptor, events, [match.home_entrant_id, match.away_entrant_id]);
+    const homeCrest = publicCrestOf(match.home_entrant_id, entrantDetails, entrantVisibility);
+    const awayCrest = publicCrestOf(match.away_entrant_id, entrantDetails, entrantVisibility);
     const segmentNumberById = new Map(
       segments.map((segment) => [segment.segmentId, segment.number]),
     );
@@ -1135,6 +1246,15 @@ export class PublicProjectionsController {
       organizationTimeZone,
       tournamentAlias,
       tournamentName: tournament.name,
+      ...(targetRecord.games.length > 1 && game !== undefined
+        ? {
+            gameNumber: game.number,
+            games: targetRecord.games.map((candidate) => ({
+              number: candidate.number,
+              status: gameStatusOf(candidate.status),
+            })),
+          }
+        : {}),
       ...(descriptor.images === undefined
         ? {}
         : { disciplineImages: descriptor.images.map((reference) => ({ ...reference })) }),
@@ -1197,6 +1317,15 @@ export class PublicProjectionsController {
       !entrantDetails.get(match.away_entrant_id)?.clubAlias
         ? {}
         : { awayClubAlias: entrantDetails.get(match.away_entrant_id)?.clubAlias }),
+      ...(homeCrest.clubId === undefined ? {} : { homeClubId: homeCrest.clubId }),
+      ...(homeCrest.emblemObjectId === undefined
+        ? {}
+        : { homeEmblemObjectId: homeCrest.emblemObjectId }),
+      ...(awayCrest.clubId === undefined ? {} : { awayClubId: awayCrest.clubId }),
+      ...(awayCrest.emblemObjectId === undefined
+        ? {}
+        : { awayEmblemObjectId: awayCrest.emblemObjectId }),
+      ...(match.stream_url === null ? {} : { streamUrl: match.stream_url }),
       ...(scores?.[0] === undefined ? {} : { homeScore: scores[0] }),
       ...(scores?.[1] === undefined ? {} : { awayScore: scores[1] }),
       ...(schedule === undefined ? {} : { scheduledAt: scheduleStartsAt(schedule.starts_at) }),
@@ -1211,6 +1340,7 @@ export class PublicProjectionsController {
         roles: [...official.roles],
       })),
       ...(rosterRoles === undefined ? {} : { rosterRoles }),
+      ...(registeredSquads === undefined ? {} : { registeredSquads }),
       rosters: {
         home: match.home_entrant_id
           ? (rosterByEntrant.get(match.home_entrant_id) ?? []).map(({ roles, ...member }) => ({
@@ -1240,6 +1370,12 @@ export class PublicProjectionsController {
           ...(event.segmentId === undefined
             ? {}
             : { segmentNumber: segmentNumberById.get(event.segmentId) }),
+          ...(event.segmentElapsedSeconds === undefined
+            ? {}
+            : { segmentElapsedSeconds: event.segmentElapsedSeconds }),
+          ...(scoreAfter.get(event.eventId) === undefined
+            ? {}
+            : { scoreAfter: scoreAfter.get(event.eventId) as [number, number] }),
           ...(event.side === undefined ? {} : { side: event.side }),
           ...(event.personId === undefined ||
           visibilityByPersonId.get(event.personId)?.hiddenAtRequest === true
@@ -2640,6 +2776,20 @@ function publicMatchCountersOf(input: {
   }));
 }
 
+/** A side's crest: its club id and emblem, withheld when the side's public profile is unavailable. */
+function publicCrestOf(
+  entrantId: string | null,
+  details: ReadonlyMap<string, { readonly clubId?: string; readonly emblemObjectId?: string }>,
+  visibility: ReadonlyMap<string, { readonly publicProfileAvailable: boolean }>,
+): { readonly clubId?: string; readonly emblemObjectId?: string } {
+  if (entrantId === null || visibility.get(entrantId)?.publicProfileAvailable === false) return {};
+  const detail = details.get(entrantId);
+  return {
+    ...(detail?.clubId === undefined ? {} : { clubId: detail.clubId }),
+    ...(detail?.emblemObjectId === undefined ? {} : { emblemObjectId: detail.emblemObjectId }),
+  };
+}
+
 function publicScores(
   sides: readonly { readonly statistics?: Record<string, number> }[],
   descriptor?: DisciplineDescriptor,
@@ -2648,6 +2798,12 @@ function publicScores(
 }
 
 export { seriesResponseOf } from './stage-series.js';
+
+/** A game's status as the series switcher shows it: a game a decided series never plays is not required. */
+function gameStatusOf(status: string): 'upcoming' | 'live' | 'final' | 'not-required' {
+  if (status === 'not-required') return 'not-required';
+  return publicMatchStatus(status);
+}
 
 function publicMatchStatus(status: string): PublicMatchReportResponse['status'] {
   if (status === 'finalized') return 'final';
