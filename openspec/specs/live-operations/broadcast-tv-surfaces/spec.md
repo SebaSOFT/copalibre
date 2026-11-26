@@ -354,19 +354,27 @@ When rendered in overlay mode (`?mode=overlay-lower` or `?mode=overlay-full`), t
 - **THEN** event alert banners transition with simple opacity fading rather than sliding or bouncing keyframe animations
 
 ### Requirement: Multi-court TV kiosk presentation mode
-The system SHALL support a multi-court grid presentation mode (`?layout=multicourt` or `?grid=auto|2|4|6`) on tournament TV routes (`/tv/{organization}/tournaments/{tournament}`) to display multiple simultaneous matches on venue screens.
+The system SHALL support a multi-court grid mode (`?layout=multicourt` or `?grid=auto|2|4|6`) on tournament TV routes with one tile per court: its live match, else its earliest match whose kickoff is not in the past. A scheduled tile SHALL show the start time instead of a score. Live courts SHALL stay on screen and only other courts rotate. The grid SHALL carry the kiosk header and a page indicator when it rotates.
 
 #### Scenario: Displaying 4 simultaneous matches in a 2x2 grid
-- **WHEN** a TV route is loaded with `?layout=multicourt` and 4 matches are currently active
+- **WHEN** a TV route is loaded with `?layout=multicourt` and 4 matches are currently active on 4 courts
 - **THEN** the screen renders a balanced 2x2 grid where each quadrant represents one court with its assigned court/pitch name, team emblems, score line, and running match clock
 
 #### Scenario: Real-time score update on a specific court
 - **WHEN** a score change occurs on Court 2 via SSE event
 - **THEN** the Court 2 match card updates its score figures and pulses its indicator dot immediately without disrupting or re-rendering other court cards
 
+#### Scenario: One tile per court
+- **WHEN** six matches are scheduled today on court Aldo Cantoni and one on court Huarpes
+- **THEN** the grid shows one Aldo Cantoni tile with its next match and one Huarpes tile, never six Aldo Cantoni tiles
+
+#### Scenario: A scheduled tile shows its start time
+- **WHEN** a court's tile shows a match that has not started
+- **THEN** the tile shows the match's start time where the score would be, and no 0-0
+
 #### Scenario: Multi-page rotation for large venues
-- **WHEN** more active live matches exist than the selected grid display limit
-- **THEN** the multi-court presentation rotates through groups of matches on a 20-second interval, respecting `prefers-reduced-motion` settings
+- **WHEN** more courts exist than the grid holds and one court has a live match
+- **THEN** the live court stays on every page while the other slots rotate on a 20-second interval, respecting `prefers-reduced-motion` settings, and the page indicator shows the current page
 
 ### Requirement: Root TV kiosk launcher and display configuration
 
@@ -699,20 +707,23 @@ TV SHALL render dark and SHALL show no fabricated feed or telemetry chrome.
 
 ### Requirement: TV text stays legible at distance and never overlaps
 
-At 1920×1080, TV SHALL render the score at 12vmin or more, the clock at 6vmin, team names at 3.5vmin
-and table body text at 2.2vmin. A name that does not fit SHALL truncate with an ellipsis and keep its
-full text as an accessible name, never wrapping over neighbouring content.
+At 1920×1080, TV SHALL render the score at 12vmin or more, the clock at 6vmin, team names at 3.5vmin, table body text at 2.2vmin and secondary text (metadata, captions, tab labels, the next-match strip) at 1.8vmin. A name that does not fit SHALL truncate with an ellipsis and keep its full text as an accessible name, never wrapping over neighbouring content. Tab labels SHALL NOT truncate.
 
 #### Scenario: Distance legibility
 
 - **WHEN** the kiosk renders at 1920×1080
-- **THEN** the computed sizes of score, clock, team names and table text meet their minimums
+- **THEN** the computed sizes of score, clock, team names, table text and secondary text meet their minimums
 
 #### Scenario: Long names on the dashboard
 
 - **WHEN** two live matches with the longest demo club names render two-up at 1280px in German
 - **THEN** names truncate with an ellipsis, carry their full text as an accessible name, and do not
   overlap
+
+#### Scenario: Tab labels fit
+
+- **WHEN** the kiosk rail shows five tabs in German at 1920×1080
+- **THEN** every tab label is shown in full
 
 ### Requirement: TV dashboard fits without manual scrolling
 
@@ -859,3 +870,120 @@ A TV surface SHALL label a scheduled match as delayed once 15 minutes have passe
 
 - **WHEN** a match scheduled for 13:00 is still scheduled at 13:20
 - **THEN** TV lists show it as delayed and the next-match slot shows the following match instead
+
+### Requirement: TV pieces state the tournament's progress from one status
+
+Every TV route SHALL derive the tournament status from one function with four states: scheduled before any match is final, live while any match is live, in progress when at least one match is final and none is live, and finished when every match is final or forfeited. The header badge, the overlay badge and the facts tile SHALL use that status, and the in-progress badge SHALL read as the public site's in-progress wording.
+
+#### Scenario: A started tournament between matches
+
+- **WHEN** 48 of 72 matches are final and none is live
+- **THEN** the header badge reads "En progreso", not "Programado"
+
+#### Scenario: Before the first match
+
+- **WHEN** no match is final or live
+- **THEN** the header badge reads "Programado"
+
+#### Scenario: The facts tile agrees with the list
+
+- **WHEN** the kiosk shows a tournament with finished matches
+- **THEN** the facts tile reports played-match facts and never a scheduled-match count of zero beside scheduled matches in the list
+
+### Requirement: The featured match falls back to the next match, then the last result
+
+When a TV screen is neither pinned to a match nor following a court and no match is live, the featured panel SHALL show the earliest scheduled match that is not delayed, with its sides, date, time and court. When none remains, it SHALL show the most recently finished match with its score and date, and when no match is finished, the most recently delayed match with its delayed label. It SHALL NOT show the first match of the list by position.
+
+#### Scenario: Next match the evening before
+
+- **WHEN** no match is live and the next match is tomorrow at 10:45 on court Aldo Cantoni
+- **THEN** the featured panel shows that match's sides, its date and time, and Aldo Cantoni, with no score
+
+#### Scenario: A kickoff a few minutes late is still next
+
+- **WHEN** no match is live, the first match was scheduled for 10:00 and it is 10:03
+- **THEN** the featured panel shows that match, because a match becomes delayed only 15 minutes after its kickoff
+
+#### Scenario: No match remains to be played
+
+- **WHEN** no match is live or scheduled in the future and some matches are final
+- **THEN** the featured panel shows the latest finished match with its score and date
+
+#### Scenario: The next-match strip lists only future matches
+
+- **WHEN** the next-match strip is shown
+- **THEN** it lists at most four scheduled matches that are not delayed, earliest first
+
+### Requirement: Full-frame TV standings show every row and name their table
+
+The `standings` view and the kiosk's standings tab SHALL show every standings row, paging through them in stable pages with a page indicator when they exceed the frame. Each table SHALL be headed by its stage name and, when the stage has several tables, its group or zone name. The full-frame view SHALL show the standings projection's declared columns in declared order as far as they fit, always including rank, club and points.
+
+#### Scenario: Twenty-four teams on a venue screen
+
+- **WHEN** `view=standings` renders a table of 24 teams at 1920x1080
+- **THEN** every team appears on one of the pages, the page indicator reads "Página 1 de N", and no page leaves empty rows while later rows remain
+
+#### Scenario: The table is named
+
+- **WHEN** a stage has one table per group
+- **THEN** each table is headed with the stage and group name, for example "Fase 1 · Grupo A"
+
+### Requirement: The TV match list leads with what is next
+
+The TV match list SHALL order matches in three blocks: live matches, then scheduled matches by kickoff ascending, then finished matches by kickoff descending. Each non-empty block SHALL start with a heading naming its state. Paging and the page indicator SHALL apply to the ordered list.
+
+#### Scenario: The evening before the semi-finals
+
+- **WHEN** no match is live, twelve are scheduled for tomorrow and forty-eight are final
+- **THEN** the first page opens with the "Programado" heading and tomorrow's earliest matches, and the finished matches follow, latest first
+
+### Requirement: Featured performers rank players on every TV route
+
+Every TV route that offers the featured-performers tab SHALL rank players from the tournament's declared player-ranking layout. When the tournament declares none, the tab SHALL be labelled as a team ranking, and its rows SHALL use each club's full name or official abbreviation, never an ad hoc shortening.
+
+#### Scenario: The pinned match shows the same top scorers
+
+- **WHEN** a pinned-match screen and the tournament kiosk are open side by side
+- **THEN** both "Figuras destacadas" tabs list the same players in the same order
+
+#### Scenario: No player ranking declared
+
+- **WHEN** a tournament declares no player-ranking layout
+- **THEN** the tab reads "Mejores equipos" and lists clubs by points with full names
+
+### Requirement: TV names an entrant without relying on hover
+
+On TV surfaces an entrant abbreviation SHALL only render beside the club's crest or monogram, and a tooltip SHALL NOT count as showing the full name. Match-list metadata SHALL render on one line that truncates with an ellipsis and keeps its full text as the accessible name.
+
+#### Scenario: Codes in the match list
+
+- **WHEN** the TV match list shows Lomas de Rivadavia as "LOM"
+- **THEN** the code sits beside the Lomas de Rivadavia crest
+
+#### Scenario: Long metadata
+
+- **WHEN** a match's stage, group, round, date and court do not fit the card's metadata line
+- **THEN** the line ends with an ellipsis on one line and never wraps one word per line
+
+### Requirement: TV rotations keep panels in place
+
+Rotating TV content SHALL NOT move other panels: the ticker band and header SHALL keep a fixed block size, and the set of rail tabs SHALL be fixed at first render from the server-rendered data, so a later refresh never adds or removes a tab.
+
+#### Scenario: A rotation does not shift the header
+
+- **WHEN** the kiosk rail rotates from standings to performers
+- **THEN** the header and featured panel keep the same position to the pixel
+
+#### Scenario: A late tab does not reflow the rail
+
+- **WHEN** a pinned-match screen has rendered and a live refresh or a bracket refresh arrives
+- **THEN** the rail shows the same tabs, in the same order, before and after the refresh
+
+### Requirement: A pinned-match rail shows that match's context
+
+The pinned-match route SHALL offer, in order: the standings table of the match's group or zone when its stage has standings, its bracket path when it belongs to a bracket, featured performers, and each side's latest finished results in the tournament, at most three each. It SHALL NOT offer the tournament facts tile or the full match list.
+
+#### Scenario: A cup semi-final
+
+- **WHEN** a cup semi-final is pinned
+- **THEN** the rail offers its bracket path, featured performers and both sides' latest results, and no tournament facts tile
