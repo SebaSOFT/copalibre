@@ -3,7 +3,9 @@ import { sideMarkerOf } from './side-marker.js';
 
 describe('sideMarkerOf', () => {
   it('shows the crest with the abbreviation beside it when the side has a crest', () => {
-    expect(sideMarkerOf({ name: 'Club Andes', abbreviation: 'AND', crestSrc: '/crest.png' })).toEqual({
+    expect(
+      sideMarkerOf({ name: 'Club Andes', abbreviation: 'AND', crestSrc: '/crest.png' }),
+    ).toEqual({
       kind: 'crest',
       src: '/crest.png',
       text: 'AND',

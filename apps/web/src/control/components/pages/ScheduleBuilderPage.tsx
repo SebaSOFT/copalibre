@@ -136,6 +136,11 @@ export function ScheduleBuilderPage({
   }, [drafts]);
   const { stageId, fixtures = [], venues = [], officials = [], schedules = [] } = read.data ?? {};
   const reload = read.refresh;
+  // The realtime handler reads the latest reload without re-connecting when the read object changes.
+  const reloadRef = useRef(reload);
+  useEffect(() => {
+    reloadRef.current = reload;
+  });
   const conflictsRead = useResilientRead(
     `control-schedule-conflicts:${organizationAlias}:${tournamentAlias}:${stageId}`,
     () =>
@@ -210,7 +215,7 @@ export function ScheduleBuilderPage({
           )
             return;
           streamLinkVersions.current.set(linkedMatchId, event.projectionVersion);
-          void reload();
+          void reloadRef.current();
           return;
         }
         if (event.eventType !== 'match.rescheduled' || event.payload.stageId !== stageId) return;
