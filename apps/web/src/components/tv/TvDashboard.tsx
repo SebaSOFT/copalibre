@@ -18,6 +18,8 @@ import {
   type BroadcastAlertItem,
 } from './ui/organisms/BroadcastAlertBanner.js';
 import { resolveLiveTvMatchEvent } from '../../lib/tv-match-events.js';
+import { isCountedEvent } from '../../lib/match-counters.js';
+import { createCounterRefreshGate, type CounterRefreshGate } from '../../lib/counter-refresh.js';
 import { isDelayed } from '../../lib/match-state.js';
 import {
   presentDelayedState,
@@ -82,6 +84,7 @@ import type { BracketZone } from '../../lib/bracket-projection.js';
 import { bracketZonesOf } from '../../lib/bracket.js';
 import type { PublicBracketResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import { TvMatchIndicators } from './ui/organisms/TvMatchIndicators.js';
+import { TvMatchCounters } from './ui/organisms/TvMatchCounters.js';
 import { holdsBracketMatch, TvBracketView } from './ui/organisms/TvBracketView.js';
 import { TvMatchList } from './ui/organisms/TvMatchList.js';
 import { TvSeriesAndSets } from './ui/organisms/TvSeriesAndSets.js';
@@ -622,6 +625,22 @@ export function TvDashboard({
     return () => window.clearInterval(pollTimer);
   }, [pollIntervalMs, refreshProjection]);
 
+  // A recorded event that a match counter tallies refreshes that match's projection, at most once a
+  // second. The client never increments a counter itself: the server's tally is the one shown.
+  const liveMatchesRef = useRef<readonly LiveMatch[]>([]);
+  const counterRefresh = useRef<CounterRefreshGate | null>(null);
+  useEffect(() => {
+    liveMatchesRef.current = dashboard.matches;
+  }, [dashboard.matches]);
+  useEffect(() => {
+    const gate = createCounterRefreshGate(() => void refreshProjection());
+    counterRefresh.current = gate;
+    return () => {
+      gate.dispose();
+      counterRefresh.current = null;
+    };
+  }, [refreshProjection]);
+
   // 3. Realtime SSE Connection with Graceful Degradation
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -693,6 +712,18 @@ export function TvDashboard({
               entry.key === event.payload.matchId ? { ...entry, rescheduledFrom: null } : entry,
             ),
           );
+        }
+        const countedMatchId =
+          typeof event.payload.matchId === 'string' ? event.payload.matchId : undefined;
+        if (
+          countedMatchId !== undefined &&
+          isCountedEvent(
+            liveMatchesRef.current.find((match) => match.matchId === countedMatchId),
+            event.eventType,
+            event.payload.definitionCode,
+          )
+        ) {
+          counterRefresh.current?.request(countedMatchId);
         }
         setDashboard((current) => applyEvent(current, event));
         const eventMatchId =
@@ -1195,6 +1226,12 @@ export function TvDashboard({
           possessionLabel={dashboardLabels.possession}
           penaltyLabel={dashboardLabels.penalty}
         />
+        <TvMatchCounters
+          density="compact"
+          language={language}
+          match={spotlightMatch}
+          texts={dashboardLabels.counters}
+        />
         <TvStatusBadge label={statusBadge.label} tone={statusBadge.type} />
         {spotlightClock && (
           <LiveMatchClock
@@ -1317,6 +1354,12 @@ export function TvDashboard({
                   match={spotlightMatch}
                   possessionLabel={dashboardLabels.possession}
                   penaltyLabel={dashboardLabels.penalty}
+                />
+                <TvMatchCounters
+                  density="full"
+                  language={language}
+                  match={spotlightMatch}
+                  texts={dashboardLabels.counters}
                 />
                 {eventsForMatch(spotlightMatch.matchId).length > 0 && (
                   <TvEventTicker

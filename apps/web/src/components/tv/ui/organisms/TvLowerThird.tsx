@@ -1,3 +1,4 @@
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 import type { LiveMatch } from '../../../../lib/live-state.js';
 import type { TvMatchProgress } from '../../../../lib/tv-match-progress.js';
 import { EntrantEmblem } from '../../../ui/molecules/EntrantEmblem.js';
@@ -9,6 +10,7 @@ import type { TvClubItem, TvDashboardLabels } from '../../tv-types.js';
 import { TvStartTime } from '../atoms/TvStartTime.js';
 import { TvStatusBadge } from '../atoms/TvStatusBadge.js';
 import type { TvStatusTone } from '../atoms/tv-status-tone.js';
+import { TvMatchCounters } from './TvMatchCounters.js';
 import { TvMatchIndicators } from './TvMatchIndicators.js';
 import { TvSeriesAndSets } from './TvSeriesAndSets.js';
 
@@ -100,6 +102,7 @@ export function TvLowerThird({
   const [home, away] = match.sides;
   const upcoming = match.state === 'upcoming';
   const showsScore = stateHasScore(match.state);
+  const language: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
   const emblemOf = (side: LiveMatch['sides'][number] | undefined): string | undefined =>
     side?.clubId === undefined
       ? undefined
@@ -162,6 +165,7 @@ export function TvLowerThird({
           possessionLabel={labels.possession}
           penaltyLabel={labels.penalty}
         />
+        <TvMatchCounters density="compact" language={language} match={match} texts={labels.counters} />
       </div>
     </div>
   );

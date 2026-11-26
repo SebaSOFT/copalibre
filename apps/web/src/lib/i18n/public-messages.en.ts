@@ -1380,6 +1380,22 @@ export const messages = defineMessages({
     id: 'publicWeb.tvDashboard.penalty',
     defaultMessage: 'Penalty',
   },
+  matchCountersAccessibleValue: {
+    id: 'publicWeb.matchCounters.accessibleValue',
+    defaultMessage: '{label}: {value}',
+  },
+  matchCountersAccessibleAllowance: {
+    id: 'publicWeb.matchCounters.accessibleAllowance',
+    defaultMessage: '{label}: {value} of {allowance}',
+  },
+  matchCountersWarning: {
+    id: 'publicWeb.matchCounters.warning',
+    defaultMessage: 'warning',
+  },
+  matchCountersPenaltyRemaining: {
+    id: 'publicWeb.matchCounters.penaltyRemaining',
+    defaultMessage: '{side}: {time} suspension',
+  },
   tvDashboardClockLabel: {
     id: 'publicWeb.tvDashboard.clockLabel',
     defaultMessage: 'Local time',

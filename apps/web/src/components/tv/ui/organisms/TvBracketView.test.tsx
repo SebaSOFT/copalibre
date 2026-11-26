@@ -59,6 +59,11 @@ const labels: TvDashboardLabels = {
   bracketMatch: 'Partido',
   possession: 'Posesión',
   penalty: 'Sanción',
+  counters: {
+    accessibleValue: '{label}: {value}',
+    accessibleAllowance: '{label}: {value} de {allowance}',
+    warning: 'en advertencia',
+  },
   clockLabel: 'Hora local',
   clockStopped: 'Detenido',
   clockAriaLabel: '{segment}, {time}',

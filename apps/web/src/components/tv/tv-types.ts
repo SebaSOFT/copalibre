@@ -63,6 +63,12 @@ export interface TvDashboardLabels {
   readonly bracketMatch: string;
   readonly possession: string;
   readonly penalty: string;
+  /** Templates the match counters read through, filled by the organism per counter and side. */
+  readonly counters: {
+    readonly accessibleValue: string;
+    readonly accessibleAllowance: string;
+    readonly warning: string;
+  };
   /** Names the wall clock the header shows for a tournament still being played. */
   readonly clockLabel: string;
   readonly clockStopped: string;
