@@ -208,8 +208,9 @@ per request from current backend state so that it is reachable without a site re
 #### Scenario: Visiting an upcoming match's report
 - **WHEN** an anonymous visitor requests the report page for a scheduled match that has not started
 - **THEN** the page renders the header with scheduled date/time and venue and any assigned officials,
-  and shows the roster and event timeline sections as not yet available, rather than 404ing or omitting
-  them from the page entirely
+  lists each known team side's registered squad, labelled as such, where no match-day roster is
+  recorded yet, and shows the event timeline section as not yet available, rather than 404ing or
+  omitting the sections from the page entirely
 
 #### Scenario: An unknown stage or match number 404s
 - **WHEN** an anonymous visitor requests a stage number or stage-scoped match number that does not
@@ -232,9 +233,10 @@ per request from current backend state so that it is reachable without a site re
 #### Scenario: What the report shows
 
 - **WHEN** a spectator opens a match report
-- **THEN** it shows the match header (competition, stage and round identity, both entrants, current
-  score, status, and scheduled date, time and venue when scheduled), the assigned officials, each
-  side's roster as recorded, and the full event timeline in match order
+- **THEN** it shows the match header (competition, stage and round identity, both entrants with their
+  crests when their clubs have one, current score, status, and scheduled date, time and venue when
+  scheduled), the assigned officials, each side's roster as recorded or its registered squad before
+  one is recorded, and the full event timeline in match order
 
 ### Requirement: Officials assigned to a fixture are shown on its match report
 
