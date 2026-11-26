@@ -309,11 +309,7 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
             </label>
             <label>
               <span data-i18n="pinMatch">{t.pinMatch}</span>
-              <select
-                aria-label={t.match}
-                class="cl-chamfer cl-chamfer--control cl-select"
-                data-launcher-match
-              >
+              <select class="cl-chamfer cl-chamfer--control cl-select" data-launcher-match>
                 {isOverlayView(view) && (
                   <option value="" selected={initialMatch === undefined}>
                     {t.noMatch}

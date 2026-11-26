@@ -73,7 +73,6 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionCancelled: 'Cancelled',
     noMatch: 'None',
     copyUnavailable: 'Copying needs a secure connection: select the link and copy it by hand.',
-    match: 'Match',
   },
   es: {
     title: 'Lanzador de pantalla TV',
@@ -142,7 +141,6 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionCancelled: 'Cancelado',
     noMatch: 'Ninguno',
     copyUnavailable: 'Copiar necesita una conexión segura: seleccioná el enlace y copialo a mano.',
-    match: 'Partido',
   },
   fr: {
     title: 'Lanceur d’écran TV',
@@ -211,7 +209,6 @@ export const TV_LAUNCHER_LABELS: Readonly<
     noMatch: 'Aucun',
     copyUnavailable:
       'La copie demande une connexion sécurisée : sélectionnez le lien et copiez-le à la main.',
-    match: 'Match',
   },
   pt: {
     title: 'Lançador de tela TV',
@@ -280,7 +277,6 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionCancelled: 'Cancelado',
     noMatch: 'Nenhum',
     copyUnavailable: 'Copiar exige uma conexão segura: selecione o link e copie-o manualmente.',
-    match: 'Partida',
   },
   it: {
     title: 'Avvio schermo TV',
@@ -351,7 +347,6 @@ export const TV_LAUNCHER_LABELS: Readonly<
     noMatch: 'Nessuno',
     copyUnavailable:
       'La copia richiede una connessione sicura: seleziona il link e copialo a mano.',
-    match: 'Partita',
   },
   de: {
     title: 'TV-Bildschirm starten',
@@ -420,7 +415,6 @@ export const TV_LAUNCHER_LABELS: Readonly<
     noMatch: 'Keins',
     copyUnavailable:
       'Kopieren erfordert eine sichere Verbindung: Link markieren und von Hand kopieren.',
-    match: 'Spiel',
   },
   ru: {
     title: 'Запуск ТВ-экрана',
@@ -487,7 +481,6 @@ export const TV_LAUNCHER_LABELS: Readonly<
     noMatch: 'Нет',
     copyUnavailable:
       'Копирование требует защищённого соединения: выделите ссылку и скопируйте её вручную.',
-    match: 'Матч',
   },
   zh: {
     title: '电视屏幕启动器',
@@ -551,6 +544,5 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionCancelled: '已取消',
     noMatch: '无',
     copyUnavailable: '复制需要安全连接：请选中链接后手动复制。',
-    match: '比赛',
   },
 };
