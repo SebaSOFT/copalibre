@@ -26,7 +26,10 @@ test('TV launcher previews background changes and exposes pinned match controls'
   await expect(page.locator('html')).toHaveAttribute('data-tv-background', 'chroma');
 
   const match = page.getByRole('combobox', { name: 'Fijar un partido', exact: true });
-  if ((await match.locator('option').count()) > 0) {
+  // No match is named until the operator picks one: the first real match is picked here.
+  const firstMatch = match.locator('option[value]:not([value=""])').first();
+  if ((await firstMatch.count()) > 0) {
+    await match.selectOption((await firstMatch.getAttribute('value')) ?? '');
     const launch = page.getByRole('link', { name: 'Lanzar pantalla TV' });
     await expect(launch).toHaveAttribute(
       'href',
