@@ -182,6 +182,22 @@ const liveMatchSeed = liveMatch
     }
   : undefined;
 
+// A live match leads with what is happening: its timeline and rosters come before the bracket.
+const liveFirst = model.status === 'live';
+const bracketProps = {
+  currentMatchNumber: matchNumber,
+  intl,
+  localePrefix,
+  matches: bracketMatches,
+  matchesView: zoneMatchesView,
+  organizationAlias: organization!,
+  organizationTimeZone: response.organizationTimeZone,
+  stageNumber,
+  tournamentAlias: tournament!,
+  zoneName: ownZoneName ?? response.zoneName,
+  overallPlaceOffset: ownZoneOffset,
+};
+
 const formatOverallPlace = (place: number): string =>
   intl.formatMessage(messages.bracketOverallPlace, { place });
 const contextLabels = {
@@ -351,42 +367,56 @@ const structuredData = {
         stakeLines={stakeLines}
       />
 
-      {bracketMatches.length > 0 && (
-        <MatchBracketContext
-          currentMatchNumber={matchNumber}
-          intl={intl}
-          localePrefix={localePrefix}
-          matches={bracketMatches}
-          matchesView={zoneMatchesView}
-          organizationAlias={organization!}
-          organizationTimeZone={response.organizationTimeZone}
-          stageNumber={stageNumber}
-          tournamentAlias={tournament!}
-          zoneName={ownZoneName ?? response.zoneName}
-          overallPlaceOffset={ownZoneOffset}
-        />
-      )}
+      {!liveFirst && bracketMatches.length > 0 && <MatchBracketContext {...bracketProps} />}
 
       <div class="cl-match-details">
-        <div class="cl-match-details__rosters">
-          <MatchRosters
-            model={model}
-            intl={intl}
-            locale={locale}
-            organization={organization!}
-            tournament={tournament!}
-          />
-        </div>
+        {liveFirst ? (
+          <div class="cl-match-details__primary">
+            <MatchTimeline
+              model={model}
+              intl={intl}
+              organizationTimeZone={response.organizationTimeZone}
+              referenceDate={referenceDate}
+            />
+          </div>
+        ) : (
+          <div class="cl-match-details__primary">
+            <MatchRosters
+              model={model}
+              intl={intl}
+              locale={locale}
+              organization={organization!}
+              tournament={tournament!}
+            />
+          </div>
+        )}
         <div class="cl-match-details__side">
-          <MatchOfficials model={model} intl={intl} />
-          <MatchTimeline
-            model={model}
-            intl={intl}
-            organizationTimeZone={response.organizationTimeZone}
-            referenceDate={referenceDate}
-          />
+          {liveFirst ? (
+            <>
+              <MatchRosters
+                model={model}
+                intl={intl}
+                locale={locale}
+                organization={organization!}
+                tournament={tournament!}
+              />
+              <MatchOfficials model={model} intl={intl} />
+            </>
+          ) : (
+            <>
+              <MatchOfficials model={model} intl={intl} />
+              <MatchTimeline
+                model={model}
+                intl={intl}
+                organizationTimeZone={response.organizationTimeZone}
+                referenceDate={referenceDate}
+              />
+            </>
+          )}
         </div>
       </div>
+
+      {liveFirst && bracketMatches.length > 0 && <MatchBracketContext {...bracketProps} />}
     </article>
   </Container>
 </PublicLayout>
@@ -407,10 +437,12 @@ const structuredData = {
     margin-top: var(--cl-space-6);
   }
 
+  .cl-match-details__primary,
   .cl-match-details__side {
     display: flex;
     flex-direction: column;
     gap: var(--cl-space-6);
+    min-width: 0;
   }
 
   @media (min-width: 1024px) {

@@ -1508,6 +1508,38 @@ export const messages = defineMessages({
     id: 'publicWeb.matchOfficials.role.observer',
     defaultMessage: 'Observer',
   },
+  matchTimelineSegmentStart: {
+    id: 'publicWeb.matchTimeline.segmentStart',
+    defaultMessage: '{segment} {number}',
+  },
+  matchTimelineSegmentTime: {
+    id: 'publicWeb.matchTimeline.segmentTime',
+    defaultMessage: '{segment} {number} · {time}',
+  },
+  matchTimelineSegmentEnd: {
+    id: 'publicWeb.matchTimeline.segmentEnd',
+    defaultMessage: 'End of {segment} {number} · {score}',
+  },
+  matchTimelineScoreAfter: {
+    id: 'publicWeb.matchTimeline.scoreAfter',
+    defaultMessage: '{home}–{away}',
+  },
+  matchRostersRegisteredHeading: {
+    id: 'publicWeb.matchRosters.registeredHeading',
+    defaultMessage: 'Registered squad',
+  },
+  matchRostersRegisteredNote: {
+    id: 'publicWeb.matchRosters.registeredNote',
+    defaultMessage: 'The match-day list is confirmed at kickoff',
+  },
+  matchRostersViewFullSquad: {
+    id: 'publicWeb.matchRosters.viewFullSquad',
+    defaultMessage: 'View full squad',
+  },
+  matchReportWatchStream: {
+    id: 'publicWeb.matchReport.watchStream',
+    defaultMessage: 'Watch stream',
+  },
   matchRostersHeading: {
     id: 'publicWeb.matchRosters.heading',
     defaultMessage: 'Rosters',

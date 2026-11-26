@@ -2,7 +2,9 @@ import { describe, expect, it } from '@jest/globals';
 import type { PublicMatchReportResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import {
   buildMatchReport,
+  formatElapsed,
   matchStakeLines,
+  sortRosterMembers,
   type MatchReportModel,
   type MatchReportOptions,
 } from './match-report.js';
@@ -555,5 +557,242 @@ describe('matchStakeLines', () => {
     });
 
     expect(lines).toEqual([]);
+  });
+});
+
+describe('buildMatchReport timeline', () => {
+  const sided = (): PublicMatchReportResponse => ({
+    ...report(),
+    homeEntrantId: 'entrant-home',
+    awayEntrantId: 'entrant-away',
+    homeClubId: 'club-home',
+    homeEmblemObjectId: 'emblem-home',
+    streamUrl: 'https://example.org/live/semifinal-1',
+    segments: [
+      {
+        number: 1,
+        type: 'half',
+        label: { en: 'Half', es: 'Tiempo' },
+        timed: true,
+        state: 'completed',
+        scores: [1, 4],
+      },
+      {
+        number: 2,
+        type: 'half',
+        label: { en: 'Half', es: 'Tiempo' },
+        timed: true,
+        state: 'active',
+      },
+    ],
+    timeline: [
+      {
+        eventId: 'goal-away',
+        definitionCode: 'goal',
+        label: 'Goal',
+        occurredAt: '2026-08-19T12:01:00.000Z',
+        sequence: 1,
+        segmentNumber: 1,
+        segmentElapsedSeconds: 480,
+        side: 'entrant-away',
+        scoreAfter: [0, 1],
+        personId: 'person-1',
+        payload: {},
+      },
+      {
+        eventId: 'goal-home',
+        definitionCode: 'goal',
+        label: 'Goal',
+        occurredAt: '2026-08-19T12:03:00.000Z',
+        sequence: 2,
+        segmentNumber: 1,
+        side: 'entrant-home',
+        scoreAfter: [1, 1],
+        payload: {},
+      },
+      {
+        eventId: 'goal-second-half',
+        definitionCode: 'goal',
+        label: 'Goal',
+        occurredAt: '2026-08-19T12:20:00.000Z',
+        sequence: 3,
+        segmentNumber: 2,
+        side: 'entrant-away',
+        payload: {},
+      },
+    ],
+  });
+
+  it('maps each side by its entrant id, not by its position in the timeline', () => {
+    const model = build(sided());
+    const [awayGoal, homeGoal] = model.timeline.flatMap((group) => group.events);
+
+    expect(awayGoal?.side).toBe('away');
+    expect(homeGoal?.side).toBe('home');
+    expect(model.timeline.flatMap((group) => group.events).map((event) => event.side)).toEqual([
+      'away',
+      'home',
+      'away',
+    ]);
+  });
+
+  it('gives an event no side when its side matches neither entrant', () => {
+    const response = sided();
+    const model = build({
+      ...response,
+      timeline: response.timeline.slice(0, 1).map((event) => ({
+        ...event,
+        side: 'entrant-stranger',
+      })),
+    });
+    expect(model.timeline[1]?.events[0]?.side).toBeUndefined();
+  });
+
+  it('carries the game time, the segment name and the running score on each event', () => {
+    const model = build(sided());
+    const goal = model.timeline.find(
+      (group) => group.kind === 'single' && group.events[0]?.eventId === 'goal-away',
+    )?.events[0];
+
+    expect(goal).toMatchObject({
+      segmentLabel: 'Half',
+      segmentNumber: 1,
+      elapsedSeconds: 480,
+      scoreAfter: [0, 1],
+    });
+  });
+
+  it('keeps an event without recorded elapsed time, and one without a score, unannotated', () => {
+    const model = build(sided());
+    const second = model.timeline
+      .flatMap((group) => group.events)
+      .find((event) => event.eventId === 'goal-second-half');
+
+    expect(second?.elapsedSeconds).toBeUndefined();
+    expect(second?.scoreAfter).toBeUndefined();
+    expect(second?.segmentLabel).toBe('Half');
+  });
+
+  it('opens each segment with a marker and closes a completed one with its own score', () => {
+    const kinds = build(sided()).timeline.map((group) =>
+      group.kind === 'segment-start' || group.kind === 'segment-end'
+        ? `${group.kind}:${group.segment?.number}`
+        : group.kind,
+    );
+
+    expect(kinds).toEqual([
+      'segment-start:1',
+      'single',
+      'single',
+      'segment-end:1',
+      'segment-start:2',
+      'single',
+    ]);
+    const end = build(sided(), { locale: 'es' }).timeline.find(
+      (group) => group.kind === 'segment-end',
+    );
+    expect(end?.segment).toEqual({ number: 1, label: 'Tiempo', scores: [1, 4] });
+  });
+
+  it('shows no segment score for a segment still in play', () => {
+    const response = sided();
+    const model = build({ ...response, timeline: response.timeline.slice(2) });
+    expect(model.timeline.some((group) => group.kind === 'segment-end')).toBe(false);
+  });
+
+  it('adds no segment markers when the events name no segment', () => {
+    const model = build(report());
+    expect(
+      model.timeline.every((group) => group.kind === 'single' || group.kind === 'workflow'),
+    ).toBe(true);
+  });
+
+  it('reads the event time in its segment as mm:ss', () => {
+    expect(formatElapsed(480)).toBe('08:00');
+    expect(formatElapsed(4500)).toBe('75:00');
+    expect(formatElapsed(0)).toBe('00:00');
+  });
+});
+
+describe('buildMatchReport rosters and crests', () => {
+  it('orders roster members by shirt number, then by name for members without one', () => {
+    const response: PublicMatchReportResponse = {
+      ...report(),
+      rosters: {
+        home: [
+          { personId: 'p-10', number: 10, name: 'Zoe', onField: false },
+          { personId: 'p-noname-b', name: 'Bruno', onField: false },
+          { personId: 'p-9', number: 9, name: 'Ada', onField: false },
+          { personId: 'p-noname-a', name: 'Alma', onField: false },
+        ],
+        away: [],
+      },
+    };
+
+    const names = build(response).home.roster.map((member) => member.name);
+
+    expect(names).toEqual(['Ada', 'Zoe', 'Alma', 'Bruno']);
+  });
+
+  it('sorts numbers as numbers and keeps the registered squad in the same order', () => {
+    const ordered = sortRosterMembers(
+      [{ number: 12, name: 'Twelve' }, { number: 2, name: 'Two' }, { name: 'Nameless' }],
+      'en',
+    );
+    expect(ordered.map((member) => member.name)).toEqual(['Two', 'Twelve', 'Nameless']);
+  });
+
+  it('lists a registered squad for a side with no recorded roster, with the on-field state off', () => {
+    const response: PublicMatchReportResponse = {
+      ...report(),
+      status: 'upcoming',
+      rosters: { home: [], away: [] },
+      registeredSquads: {
+        home: [
+          { personId: 'p-1', name: 'Ada', publicProfileAvailable: true },
+          { hiddenAtRequest: true, publicProfileAvailable: false },
+        ],
+      },
+    };
+
+    const model = build(response);
+
+    expect(model.home.roster).toEqual([]);
+    expect(model.home.registeredSquad?.map((member) => member.name)).toEqual([
+      'Ada',
+      'Player hidden at their request',
+    ]);
+    expect(model.home.registeredSquad?.every((member) => member.onField === false)).toBe(true);
+    expect(model.away.registeredSquad).toBeUndefined();
+  });
+
+  it('does not show a registered squad once a roster is recorded for the side', () => {
+    const response: PublicMatchReportResponse = {
+      ...report(),
+      status: 'upcoming',
+      rosters: { home: [{ personId: 'p-1', name: 'Ada', onField: false }], away: [] },
+      registeredSquads: { home: [{ personId: 'p-2', name: 'Bea', publicProfileAvailable: true }] },
+    };
+
+    expect(build(response).home.registeredSquad).toBeUndefined();
+  });
+
+  it('shows a side crest only when its club and emblem are both known', () => {
+    const withCrest = build({
+      ...report(),
+      homeClubId: 'club-home',
+      homeEmblemObjectId: 'emblem-home',
+    });
+    const withoutCrest = build({ ...report(), homeClubId: 'club-home' });
+
+    expect(withCrest.home.crestSrc).toContain('/clubs/club-home/emblem');
+    expect(withoutCrest.home.crestSrc).toBeUndefined();
+  });
+
+  it('carries the stream link only when the match has one', () => {
+    expect(build({ ...report(), streamUrl: 'https://example.org/live' }).streamUrl).toBe(
+      'https://example.org/live',
+    );
+    expect(build(report()).streamUrl).toBeUndefined();
   });
 });

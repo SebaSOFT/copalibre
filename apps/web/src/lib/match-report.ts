@@ -1,9 +1,12 @@
 import type { PublicMatchReportResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import type { LocalizedLabel } from '@copalibre/domain';
 import { championshipMatch, type BracketMatch } from './bracket.ts';
 import { competitionContext, type CompetitionContextLabels } from './competition-context.ts';
 import { descriptorLabel, humanizeCode } from './descriptor-label.ts';
 import type { LiveMatchClock, LiveMatchCounter, LiveSegment } from './live-state.js';
 import { applyTemplate, type MatchCardData } from './matches-view.ts';
+import { localizedText } from './localized-label.ts';
+import { clubEmblemUrl } from './public-image-paths.ts';
 import {
   formatOverallPlaceFromTemplate,
   formatPlacement,
@@ -12,23 +15,45 @@ import {
   type SideSourceMessages,
 } from './side-source.ts';
 
+export type MatchReportSide = 'home' | 'away';
+
 export interface MatchReportTimelineEvent {
   readonly eventId: string;
   readonly label: string;
   readonly occurredAt: string;
   readonly segmentNumber?: number;
+  /** The segment's name in the page language, e.g. "Tiempo". */
+  readonly segmentLabel?: string;
+  /** Seconds into the segment when recorded; absent for an untimed segment or an older event. */
+  readonly elapsedSeconds?: number;
   readonly actor?: string;
+  /** The side the event belongs to, from the side's entrant id; absent when no side is recorded. */
+  readonly side?: MatchReportSide;
+  /** The score after this event, on every event that changes it. */
+  readonly scoreAfter?: readonly [number, number];
+}
+
+export interface MatchReportSegmentMarker {
+  readonly number: number;
+  readonly label: string;
+  /** Present on the end marker of a completed segment: the segment's own score, [home, away]. */
+  readonly scores?: readonly [number, number];
 }
 
 export interface MatchReportTimelineGroup {
-  readonly kind: 'single' | 'workflow';
+  readonly kind: 'single' | 'workflow' | 'segment-start' | 'segment-end';
   readonly events: readonly MatchReportTimelineEvent[];
+  /** Set only on `segment-start` and `segment-end` markers. */
+  readonly segment?: MatchReportSegmentMarker;
 }
 
 export type MatchReportRosterMember = PublicMatchReportResponse['rosters']['home'][number] & {
   /** The member's roles in the page language, parallel to `roles`; never a raw code. */
   readonly roleLabels: readonly string[];
 };
+
+/** A registered player before a match-day roster is recorded: no shirt number and no role yet. */
+export type MatchReportRegisteredSquad = readonly MatchReportRosterMember[];
 
 export interface MatchReportOfficial {
   readonly name: string;
@@ -50,6 +75,19 @@ export interface MatchReportOptions {
   readonly zoneNodeKeys?: readonly (string | undefined)[];
 }
 
+export interface MatchReportSideModel {
+  readonly entrantId?: string;
+  readonly name: string;
+  readonly abbreviation?: string;
+  readonly clubAlias?: string;
+  /** The club's crest, when the club has one. */
+  readonly crestSrc?: string;
+  readonly score?: number;
+  readonly roster: readonly MatchReportRosterMember[];
+  /** The registered players, shown in place of the roster until one is recorded. */
+  readonly registeredSquad?: MatchReportRegisteredSquad;
+}
+
 export interface MatchReportModel {
   readonly rescheduledFrom?: PublicMatchReportResponse['rescheduledFrom'];
   readonly organizationName: string;
@@ -64,22 +102,8 @@ export interface MatchReportModel {
   readonly round: number;
   readonly status: 'upcoming' | 'live' | 'final';
   readonly winnerEntrantId?: string;
-  readonly home: {
-    readonly entrantId?: string;
-    readonly name: string;
-    readonly abbreviation?: string;
-    readonly clubAlias?: string;
-    readonly score?: number;
-    readonly roster: readonly MatchReportRosterMember[];
-  };
-  readonly away: {
-    readonly entrantId?: string;
-    readonly name: string;
-    readonly abbreviation?: string;
-    readonly clubAlias?: string;
-    readonly score?: number;
-    readonly roster: readonly MatchReportRosterMember[];
-  };
+  readonly home: MatchReportSideModel;
+  readonly away: MatchReportSideModel;
   readonly scheduledAt?: string;
   readonly venueName?: string;
   readonly schedulePublished: boolean;
@@ -91,6 +115,8 @@ export interface MatchReportModel {
   readonly counters?: readonly LiveMatchCounter[];
   /** The match's id: its page follows the match stream. */
   readonly matchId?: string;
+  /** The link the match is watched through, when the organizer attached one. */
+  readonly streamUrl?: string;
   /** The page follows the match stream: a counter or a timed penalty is shown. */
   readonly tracksLiveIndicators?: boolean;
   /** Timed penalties in force while the match is live. */
@@ -110,6 +136,35 @@ const OPTIONAL_REPORT_FIELDS = [
   'winnerEntrantId',
 ] as const;
 
+/**
+ * Orders a roster or registered squad by shirt number, numbers compared as numbers ("9" before "10").
+ * A member without a number follows them, ordered by name. Both comparisons use the page locale's
+ * collation.
+ */
+export function sortRosterMembers<
+  T extends { readonly number?: number | string; readonly name?: string },
+>(members: readonly T[], locale: string): T[] {
+  const collator = new Intl.Collator(locale, { numeric: true, sensitivity: 'base' });
+  return [...members].sort((a, b) => {
+    if (a.number !== undefined && b.number !== undefined) {
+      const byNumber = collator.compare(String(a.number), String(b.number));
+      if (byNumber !== 0) return byNumber;
+      return collator.compare(a.name ?? '', b.name ?? '');
+    }
+    if (a.number !== undefined) return -1;
+    if (b.number !== undefined) return 1;
+    return collator.compare(a.name ?? '', b.name ?? '');
+  });
+}
+
+/** Minutes and seconds of an elapsed segment time: 480 becomes "08:00", 4500 becomes "75:00". */
+export function formatElapsed(totalSeconds: number): string {
+  const whole = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(whole / 60);
+  const seconds = whole % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
 function buildActorMap(rosters: PublicMatchReportResponse['rosters']): ReadonlyMap<string, string> {
   const actors = new Map<string, string>();
   for (const member of [...rosters.home, ...rosters.away]) {
@@ -128,28 +183,85 @@ function buildActorMap(rosters: PublicMatchReportResponse['rosters']): ReadonlyM
   return actors;
 }
 
+interface TimelineContext {
+  readonly actors: ReadonlyMap<string, string>;
+  readonly locale: string;
+  readonly hiddenPersonLabel: string;
+  readonly homeEntrantId: string | undefined;
+  readonly awayEntrantId: string | undefined;
+  readonly segments: ReadonlyMap<number, PublicSegmentSummary>;
+}
+
+type PublicSegmentSummary = NonNullable<PublicMatchReportResponse['segments']>[number];
+type RegisteredSquadMember = NonNullable<
+  NonNullable<PublicMatchReportResponse['registeredSquads']>['home']
+>[number];
+
+/**
+ * The timeline, in match order. Each segment opens with a marker, and a completed segment closes with
+ * a marker carrying its own score, so a half-time score reads where the half ends.
+ */
 function buildReportTimeline(
   rows: PublicMatchReportResponse['timeline'],
-  actors: ReadonlyMap<string, string>,
-  locale: string,
-  hiddenPersonLabel: string,
+  context: TimelineContext,
 ): readonly MatchReportTimelineGroup[] {
-  const timeline: MatchReportTimelineGroup[] = [];
+  const groups: {
+    readonly kind: MatchReportTimelineGroup['kind'];
+    readonly events: MatchReportTimelineEvent[];
+  }[] = [];
   for (let index = 0; index < rows.length; index += 1) {
     const event = rows[index];
     const next = rows[index + 1];
-    const eventView = timelineEvent(event, actors, locale, hiddenPersonLabel);
+    const eventView = timelineEvent(event, context);
     if (next && event.workflowOutcomeCodes?.includes(next.definitionCode)) {
-      timeline.push({
-        kind: 'workflow',
-        events: [eventView, timelineEvent(next, actors, locale, hiddenPersonLabel)],
-      });
+      groups.push({ kind: 'workflow', events: [eventView, timelineEvent(next, context)] });
       index += 1;
     } else {
-      timeline.push({ kind: 'single', events: [eventView] });
+      groups.push({ kind: 'single', events: [eventView] });
     }
   }
+
+  const timeline: MatchReportTimelineGroup[] = [];
+  let openSegment: number | undefined;
+  const closeSegment = (number: number) => {
+    const summary = context.segments.get(number);
+    if (summary === undefined || summary.state !== 'completed' || summary.scores === undefined) {
+      return;
+    }
+    const scores: readonly [number, number] = [summary.scores[0] ?? 0, summary.scores[1] ?? 0];
+    timeline.push({
+      kind: 'segment-end',
+      events: [],
+      segment: { number, label: segmentLabelOf(summary, context.locale), scores },
+    });
+  };
+  for (const group of groups) {
+    const segmentNumber = group.events[0]?.segmentNumber;
+    if (segmentNumber !== openSegment) {
+      if (openSegment !== undefined) closeSegment(openSegment);
+      if (segmentNumber !== undefined) {
+        const summary = context.segments.get(segmentNumber);
+        timeline.push({
+          kind: 'segment-start',
+          events: [],
+          segment: {
+            number: segmentNumber,
+            label: summary === undefined ? '' : segmentLabelOf(summary, context.locale),
+          },
+        });
+      }
+      openSegment = segmentNumber;
+    }
+    timeline.push({ kind: group.kind, events: group.events });
+  }
+  if (openSegment !== undefined) closeSegment(openSegment);
   return timeline;
+}
+
+function segmentLabelOf(summary: PublicSegmentSummary, locale: string): string {
+  return summary.label === undefined
+    ? summary.type
+    : localizedText(summary.label as string | LocalizedLabel, locale);
 }
 
 function buildReportSide(input: {
@@ -161,6 +273,8 @@ function buildReportSide(input: {
   readonly score: number | undefined;
   readonly source: PublicMatchReportResponse['homeSource'];
   readonly roster: PublicMatchReportResponse['rosters']['home'];
+  readonly registeredSquad: MatchReportRegisteredSquad | undefined;
+  readonly crestSrc: string | undefined;
   readonly options: MatchReportOptions;
   readonly hiddenPersonLabel: string;
   readonly withRoleLabels: (
@@ -187,7 +301,14 @@ function buildReportSide(input: {
       ? {}
       : { clubAlias: input.clubAlias }),
     score: input.score,
-    roster: input.roster.map(input.withRoleLabels),
+    ...(input.crestSrc === undefined ? {} : { crestSrc: input.crestSrc }),
+    roster: sortRosterMembers(input.roster.map(input.withRoleLabels), input.options.locale ?? 'en'),
+    // A recorded match-day roster replaces the registered squad, so the squad only shows while the side has none.
+    ...(input.registeredSquad === undefined || input.roster.length > 0
+      ? {}
+      : {
+          registeredSquad: sortRosterMembers(input.registeredSquad, input.options.locale ?? 'en'),
+        }),
   };
 }
 
@@ -217,7 +338,14 @@ export function buildMatchReport(
   });
 
   const actors = buildActorMap(response.rosters);
-  const timeline = buildReportTimeline(response.timeline, actors, locale, hiddenPersonLabel);
+  const timeline = buildReportTimeline(response.timeline, {
+    actors,
+    locale,
+    hiddenPersonLabel,
+    homeEntrantId: response.homeEntrantId,
+    awayEntrantId: response.awayEntrantId,
+    segments: new Map((response.segments ?? []).map((segment) => [segment.number, segment])),
+  });
   const optional: Record<string, unknown> = {};
   for (const field of OPTIONAL_REPORT_FIELDS) {
     if (response[field] !== undefined) optional[field] = response[field];
@@ -241,6 +369,12 @@ export function buildMatchReport(
       score: response.homeScore,
       source: response.homeSource,
       roster: response.rosters.home,
+      registeredSquad: registeredSquadOf(response.registeredSquads?.home, hiddenPersonLabel),
+      crestSrc: crestOf(
+        response.organizationAlias,
+        response.homeClubId,
+        response.homeEmblemObjectId,
+      ),
       options,
       hiddenPersonLabel,
       withRoleLabels,
@@ -254,6 +388,12 @@ export function buildMatchReport(
       score: response.awayScore,
       source: response.awaySource,
       roster: response.rosters.away,
+      registeredSquad: registeredSquadOf(response.registeredSquads?.away, hiddenPersonLabel),
+      crestSrc: crestOf(
+        response.organizationAlias,
+        response.awayClubId,
+        response.awayEmblemObjectId,
+      ),
       options,
       hiddenPersonLabel,
       withRoleLabels,
@@ -271,6 +411,7 @@ export function buildMatchReport(
       : { segments: response.segments as readonly LiveSegment[] }),
     ...(response.clock === undefined ? {} : { clock: response.clock }),
     ...(response.matchId === undefined ? {} : { matchId: response.matchId }),
+    ...(response.streamUrl === undefined ? {} : { streamUrl: response.streamUrl }),
     ...(response.tracksLiveIndicators === true ? { tracksLiveIndicators: true } : {}),
     ...(response.counters === undefined
       ? {}
@@ -283,21 +424,61 @@ export function buildMatchReport(
 
 function timelineEvent(
   event: PublicMatchReportResponse['timeline'][number],
-  actors: ReadonlyMap<string, string>,
-  locale: string,
-  hiddenPersonLabel: string,
+  context: TimelineContext,
 ): MatchReportTimelineEvent {
+  const { actors, locale, hiddenPersonLabel, homeEntrantId, awayEntrantId, segments } = context;
+  const segment = event.segmentNumber === undefined ? undefined : segments.get(event.segmentNumber);
+  const side: MatchReportSide | undefined =
+    event.side === undefined
+      ? undefined
+      : event.side === homeEntrantId
+        ? 'home'
+        : event.side === awayEntrantId
+          ? 'away'
+          : undefined;
   return {
     eventId: event.eventId,
     label: descriptorLabel(event.labels ?? event.label, locale, event.definitionCode),
     occurredAt: event.occurredAt,
     ...(event.segmentNumber === undefined ? {} : { segmentNumber: event.segmentNumber }),
+    ...(segment === undefined ? {} : { segmentLabel: segmentLabelOf(segment, locale) }),
+    ...(event.segmentElapsedSeconds === undefined
+      ? {}
+      : { elapsedSeconds: event.segmentElapsedSeconds }),
+    ...(side === undefined ? {} : { side }),
+    ...(event.scoreAfter === undefined
+      ? {}
+      : { scoreAfter: [event.scoreAfter[0], event.scoreAfter[1]] as const }),
     ...(event.hiddenAtRequest
       ? { actor: hiddenPersonLabel }
       : event.personId === undefined || !actors.has(event.personId)
         ? {}
         : { actor: actors.get(event.personId) }),
   };
+}
+
+/** A registered squad member, shaped as a roster member: no shirt number, no role, not on the field. */
+function registeredSquadOf(
+  members: readonly RegisteredSquadMember[] | undefined,
+  hiddenPersonLabel: string,
+): MatchReportRegisteredSquad | undefined {
+  if (members === undefined || members.length === 0) return undefined;
+  return members.map((member) => ({
+    ...member,
+    ...(member.hiddenAtRequest ? { name: hiddenPersonLabel } : {}),
+    roleLabels: [],
+    onField: false,
+  }));
+}
+
+function crestOf(
+  organizationAlias: string,
+  clubId: string | undefined,
+  emblemObjectId: string | undefined,
+): string | undefined {
+  return clubId === undefined || emblemObjectId === undefined
+    ? undefined
+    : clubEmblemUrl(organizationAlias, clubId);
 }
 
 export interface MatchStakeLabels {

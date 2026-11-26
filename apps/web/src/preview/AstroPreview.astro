@@ -98,8 +98,11 @@ import {
   referencePlacementBracket,
   referenceClubs,
   referenceGroupMatches,
+  referenceEmptyTimelineMatchReportModel,
   referenceMatchReportModel,
   referenceOverview,
+  referenceRegisteredSquadMatchReportModel,
+  referenceTimedMatchReportModel,
   referencePlayerProfile,
   referencePromotionTableProjection,
   referenceSeries,
@@ -186,6 +189,9 @@ const PREVIEWABLE = new Set([
   'match-day-list',
   'match-day-row',
   'match-timeline',
+  'match-timeline-timed',
+  'match-timeline-empty',
+  'match-rosters-registered',
   'modal',
   'organization-clubs',
   'organization-header',
@@ -268,6 +274,9 @@ const seriesBarProps = seriesStateBarLabels(intl, toSeriesInput(referenceSeries(
   awayName: 'Ironclad Five',
 });
 const matchReport = referenceMatchReportModel();
+const timedMatchReport = referenceTimedMatchReportModel();
+const emptyMatchReport = referenceEmptyTimelineMatchReportModel();
+const registeredMatchReport = referenceRegisteredSquadMatchReportModel();
 const standingsRows: readonly StandingsRowView[] = referenceStandings();
 const dataTableColumns = [
   {
@@ -917,6 +926,17 @@ const [compactSample] = referenceJourneyBracket(true);
       </ol>
     )}
     {component === 'match-timeline' && <MatchTimeline intl={intl} model={matchReport} />}
+    {component === 'match-timeline-timed' && <MatchTimeline intl={intl} model={timedMatchReport} />}
+    {component === 'match-timeline-empty' && <MatchTimeline intl={intl} model={emptyMatchReport} />}
+    {component === 'match-rosters-registered' && (
+      <MatchRosters
+        intl={intl}
+        locale={locale}
+        model={registeredMatchReport}
+        organization="reference-league"
+        tournament="reference-cup"
+      />
+    )}
     {component === 'modal' && (
       <Modal
         closeLabel="Close"
