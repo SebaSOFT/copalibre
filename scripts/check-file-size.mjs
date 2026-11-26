@@ -51,10 +51,6 @@ export const KNOWN_OVERSIZED_FILES = new Map([
   ['apps/web/src/lib/reference-fixtures.ts', { ceiling: 1220, reason: SPLIT }],
   ['apps/web/src/components/ui/organisms/StandingsTable.astro', { ceiling: 1638, reason: SPLIT }],
   [
-    'packages/persistence/src/repositories/enrollment-repository.ts',
-    { ceiling: 1427, reason: SPLIT },
-  ],
-  [
     'packages/persistence/src/repositories/tournament-repository.ts',
     { ceiling: 1173, reason: SPLIT },
   ],

@@ -152,6 +152,10 @@ export {
   type ParticipantReportedResult,
   type ParticipantTeamMembership,
 } from './repositories/enrollment-repository.js';
+export { ClubTeamRepository } from './repositories/enrollment/club-team-repository.js';
+export { EntrantRepository } from './repositories/enrollment/entrant-repository.js';
+export { ParticipantQueryRepository } from './repositories/enrollment/participant-queries.js';
+export { EntrantNameRepository } from './repositories/enrollment/entrant-names.js';
 export { CompetitionRepository } from './repositories/competition-repository.js';
 export { SeasonRepository } from './repositories/competition/season-repository.js';
 export { ZoneGroupRepository } from './repositories/competition/zone-group-repository.js';
