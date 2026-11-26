@@ -75,6 +75,55 @@ const { homeScore, awayScore, segmentsAriaLabel, segments, winner, outcomeText, 
 </div>
 
 <style>
+  /* One compact row: a mark per game, the games won, then the series state in words. A bracket node has a
+     fixed height, so the bar never grows into a list. Each mark carries its state as a shape, so colour
+     only reinforces it. */
+  .cl-series {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--cl-space-1) var(--cl-space-2);
+  }
+
+  .cl-series__segments {
+    display: flex;
+    gap: var(--cl-space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .cl-series__segment {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--cl-text-secondary);
+  }
+
+  .cl-series__segment--current {
+    color: var(--cl-state-live);
+  }
+
+  .cl-series__segment--upcoming,
+  .cl-series__segment--not-required {
+    color: var(--cl-text-muted);
+  }
+
+  .cl-series__score {
+    margin: 0;
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-sm);
+  }
+
+  .cl-series__pending,
+  .cl-series__decided,
+  .cl-series__aggregate {
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--cl-text-secondary);
+    font-size: var(--cl-font-size-xs);
+  }
+
   /* A played or in-progress game links to its page. Its target is the touch size the public site uses, and
      it sits above the card's own stretched link. */
   /* The hit area is the touch target, but the negative margin keeps the bar's own footprint at the icon's size,
