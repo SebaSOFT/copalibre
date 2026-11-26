@@ -6289,6 +6289,42 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        PublicMatchCounterValueResponse: {
+            /** Format: uuid */
+            entrantId: string;
+            /** @description The tally for this side. Never clamped to the allowance. */
+            value: number;
+        };
+        PublicMatchCounterResponse: {
+            /** @description The discipline's own counter code */
+            code: string;
+            /** @description The counter label in every language the discipline wrote it in. */
+            label: {
+                [key: string]: unknown;
+            };
+            /** @description The compact label, at most three characters per language. */
+            shortLabel: {
+                [key: string]: unknown;
+            };
+            /**
+             * @description Whether the tally covers the whole match or resets each segment.
+             * @enum {string}
+             */
+            scope: "match" | "segment";
+            /** @description Shown as "value / allowance" when present */
+            allowance?: number;
+            /** @description Highlighted at or above this value */
+            warnAt?: number;
+            values: components["schemas"]["PublicMatchCounterValueResponse"][];
+        };
+        PublicLivePenaltyResponse: {
+            /** Format: uuid */
+            timerId: string;
+            /** Format: uuid */
+            entrantId: string;
+            /** @description Seconds remaining at response time */
+            remainingSeconds: number;
+        };
         PublicMatchReportResponse: {
             nodeKey?: string;
             branch?: string;
@@ -6352,6 +6388,10 @@ export interface components {
             segments?: components["schemas"]["PublicSegmentSummaryResponse"][];
             /** @description Active timed segment clock snapshot, omitted when idle or untimed */
             clock?: components["schemas"]["PublicMatchClockResponse"];
+            /** @description Declared match counters, omitted when the discipline shows none */
+            counters?: components["schemas"]["PublicMatchCounterResponse"][];
+            /** @description Timed penalties in force, with the seconds left; present while the match is live */
+            activePenalties?: components["schemas"]["PublicLivePenaltyResponse"][];
         };
         PublicLiveMatchSideResponse: {
             /** Format: uuid */
@@ -6368,14 +6408,6 @@ export interface components {
             /** @description The club's emblem object id, when one is on record */
             emblemObjectId?: string;
             score: number;
-        };
-        PublicLivePenaltyResponse: {
-            /** Format: uuid */
-            timerId: string;
-            /** Format: uuid */
-            entrantId: string;
-            /** @description Seconds remaining at response time */
-            remainingSeconds: number;
         };
         PublicLiveMatchResponse: {
             nodeKey?: string;
@@ -6410,6 +6442,8 @@ export interface components {
              */
             possessionEntrantId?: string;
             activePenalties?: components["schemas"]["PublicLivePenaltyResponse"][];
+            /** @description Declared match counters, omitted when the discipline shows none */
+            counters?: components["schemas"]["PublicMatchCounterResponse"][];
         };
         PublicLiveResponse: {
             matches: components["schemas"]["PublicLiveMatchResponse"][];

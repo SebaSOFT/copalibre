@@ -387,6 +387,54 @@ export class PublicLivePenaltyResponse {
   remainingSeconds!: number;
 }
 
+/** One side's value for a match counter. */
+export class PublicMatchCounterValueResponse {
+  @ApiProperty({ format: 'uuid' })
+  entrantId!: string;
+
+  @ApiProperty({ description: 'The tally for this side. Never clamped to the allowance.' })
+  value!: number;
+}
+
+/**
+ * A display-only tally of recorded events for one match (team fouls, timeouts, cards). The
+ * allowance and warning value are the effective ones after the tournament ruleset. Nothing is
+ * refused at either. Values are per side, never per person.
+ */
+export class PublicMatchCounterResponse {
+  @ApiProperty({ description: "The discipline's own counter code" })
+  code!: string;
+
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: true,
+    description: 'The counter label in every language the discipline wrote it in.',
+  })
+  label!: string | LocalizedLabel;
+
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: true,
+    description: 'The compact label, at most three characters per language.',
+  })
+  shortLabel!: string | LocalizedLabel;
+
+  @ApiProperty({
+    enum: ['match', 'segment'],
+    description: 'Whether the tally covers the whole match or resets each segment.',
+  })
+  scope!: 'match' | 'segment';
+
+  @ApiPropertyOptional({ description: 'Shown as "value / allowance" when present' })
+  allowance?: number;
+
+  @ApiPropertyOptional({ description: 'Highlighted at or above this value' })
+  warnAt?: number;
+
+  @ApiProperty({ type: [PublicMatchCounterValueResponse] })
+  values!: PublicMatchCounterValueResponse[];
+}
+
 /**
  * One segment of a match (a half, a set, a frame), with what each side scored in it. `timed` tells a
  * segment played against a clock from one played to a target, which is what makes a set a set.
@@ -498,6 +546,12 @@ export class PublicLiveMatchResponse extends FixtureSourcesResponse {
 
   @ApiPropertyOptional({ type: [PublicLivePenaltyResponse] })
   activePenalties?: PublicLivePenaltyResponse[];
+
+  @ApiPropertyOptional({
+    type: () => [PublicMatchCounterResponse],
+    description: 'Declared match counters, omitted when the discipline shows none',
+  })
+  counters?: PublicMatchCounterResponse[];
 }
 
 export class PublicLiveResponse {
@@ -746,6 +800,18 @@ export class PublicMatchReportResponse extends FixtureSourcesResponse {
     description: 'Active timed segment clock snapshot, omitted when idle or untimed',
   })
   clock?: PublicMatchClockResponse;
+
+  @ApiPropertyOptional({
+    type: () => [PublicMatchCounterResponse],
+    description: 'Declared match counters, omitted when the discipline shows none',
+  })
+  counters?: PublicMatchCounterResponse[];
+
+  @ApiPropertyOptional({
+    type: () => [PublicLivePenaltyResponse],
+    description: 'Timed penalties in force, with the seconds left; present while the match is live',
+  })
+  activePenalties?: PublicLivePenaltyResponse[];
 }
 
 export class PublicBracketSlotResponse {
