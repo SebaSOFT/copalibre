@@ -270,15 +270,22 @@ function layoutRowOf(
       namesAgree(row.groupName, segment.groupName) && namesAgree(row.zoneName, segment.zoneName),
   );
   const [only] = agreeing.length === 1 ? agreeing : [];
-  // The rank names a row only when one row holds it, and only when that row is not another entrant's.
-  const atRank = (only?.rows ?? []).filter(
-    (candidate) =>
-      candidate.rank === row.position &&
-      (row.entrantId === undefined ||
-        candidate.entrantId === undefined ||
-        candidate.entrantId === row.entrantId),
-  );
-  return atRank.length === 1 ? atRank[0] : undefined;
+  if (only === undefined) return undefined;
+  // The entrant's own row in its segment comes first; the rank stands in only without one.
+  if (row.entrantId !== undefined) {
+    const own = only.rows.find((candidate) => candidate.entrantId === row.entrantId);
+    if (own) return own;
+  }
+  // The rank names a row only when exactly one row holds it, and only when that row is not another
+  // entrant's: a tied rank names no one.
+  const atRank = only.rows.filter((candidate) => candidate.rank === row.position);
+  const [holder] = atRank.length === 1 ? atRank : [];
+  if (holder === undefined) return undefined;
+  return row.entrantId !== undefined &&
+    holder.entrantId !== undefined &&
+    holder.entrantId !== row.entrantId
+    ? undefined
+    : holder;
 }
 
 /** Two names agree when they are the same, or when either one is unnamed. */

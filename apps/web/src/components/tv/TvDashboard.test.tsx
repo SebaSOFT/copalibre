@@ -2747,7 +2747,7 @@ describe('pinned standings and declared columns', () => {
           groupName: 'Grupo A',
           rows: [
             { rank: 1, entrantId: 'e1', cells: { goals: { raw: 3, formatted: '3' } } },
-            { rank: 2, cells: { goals: { raw: 5, formatted: '5' } } },
+            { rank: 2, entrantId: 'e3', cells: { goals: { raw: 5, formatted: '5' } } },
             { rank: 2, cells: { goals: { raw: 6, formatted: '6' } } },
           ],
         },
@@ -2769,8 +2769,20 @@ describe('pinned standings and declared columns', () => {
       position: 2,
     } as never;
 
+    // A named entrant at a tied rank: still a tie, still no figures.
+    const namedTied = {
+      ...standings[0],
+      entrantId: 'e9',
+      groupName: 'Grupo A',
+      position: 2,
+    } as never;
+    // The entrant's own row in the segment wins over the rows at its rank.
+    const own = { ...standings[0], entrantId: 'e1', groupName: 'Grupo A', position: 2 } as never;
+
     expect(goals?.valueOf(unlisted)).toBe('–');
     expect(goals?.valueOf(tied)).toBe('–');
+    expect(goals?.valueOf(namedTied)).toBe('–');
+    expect(goals?.valueOf(own)).toBe('3');
   });
 
   it('names the standings stage only from the stage number the overview gives', () => {
