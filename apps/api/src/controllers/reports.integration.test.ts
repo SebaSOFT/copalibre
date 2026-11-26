@@ -298,7 +298,7 @@ describe('report/dispute submission and review (integration)', () => {
   const disputesPath = () =>
     `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/disputes`;
 
-  it("persists a participant's own report, linked to the match, with no standings change (6.1)", async () => {
+  it("persists a participant's own report, linked to the match, with no standings change", async () => {
     const response = await inject({
       method: 'POST',
       url: reportsPath(),
@@ -382,7 +382,7 @@ describe('report/dispute submission and review (integration)', () => {
     expect(body.reason).toContain('recorded score');
   });
 
-  it('rejects a submission from a participant not entered in the match (6.2)', async () => {
+  it('rejects a submission from a participant not entered in the match', async () => {
     const response = await inject({
       method: 'POST',
       url: reportsPath(),

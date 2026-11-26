@@ -388,7 +388,7 @@ describe('match roster selection (integration)', () => {
     expect(home.members[0].personId).toBe(strikerHome);
   });
 
-  it('THE REGRESSION THIS CHANGE PREVENTS: a person-attributed event is refused for a person absent from the roster, and accepted once selected through the real write path', async () => {
+  it('refuses a person-attributed event for a player absent from the roster, and accepts it once selected', async () => {
     // Away side still has no roster row at all at this point in the suite.
     const refused = await request('POST', `${base()}/events`, 'referee', {
       definitionCode: 'goal',

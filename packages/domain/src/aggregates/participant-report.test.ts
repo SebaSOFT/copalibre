@@ -85,7 +85,7 @@ describe('validateReportSubmission', () => {
     expect(result.ok).toBe(false);
   });
 
-  it('never carries a field capable of directly setting authoritative state (1.2)', () => {
+  it('never carries a field capable of directly setting authoritative state', () => {
     // A client cannot smuggle a "finalized" or "standingsOverride" field
     // through to the persisted fact: the validator builds the result
     // field-by-field from named inputs, never by spreading the raw request.
