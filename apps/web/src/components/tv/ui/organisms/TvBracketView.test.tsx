@@ -5,7 +5,7 @@ import {
   sideSourceLabels,
   tvDashboardLabels,
 } from '../../../../lib/i18n/public-intl.js';
-import { TvBracketView } from './TvBracketView.js';
+import { holdsBracketMatch, TvBracketView } from './TvBracketView.js';
 import type { BracketZone } from '../../../../lib/bracket-projection.js';
 import type { TvDashboardLabels } from '../../tv-types.js';
 
@@ -87,12 +87,19 @@ function zones(): readonly BracketZone[] {
           state: 'final',
           scores: [2, 1],
           slots: [
-            { kind: 'entrant', name: 'Boca Juniors', abbreviation: 'BOC', entrantId: 'e1' },
+            {
+              kind: 'entrant',
+              name: 'Boca Juniors',
+              abbreviation: 'BOC',
+              entrantId: 'e1',
+              clubId: 'club-boca',
+            },
             { kind: 'entrant', name: 'River Plate', abbreviation: 'RIV', entrantId: 'e2' },
           ],
         },
         {
           matchId: 'm2',
+          nodeKey: 'SE-R2-M1',
           matchNumber: 2,
           roundNumber: 2,
           branch: 'winners',
@@ -198,12 +205,59 @@ describe('TvBracketView', () => {
     expect(container.textContent).not.toMatch(/\bplacement\b/i);
   });
 
-  it('shows resolved entrants and their published scores', () => {
+  it('names resolved entrants in full, with their published scores', () => {
     render(<TvBracketView labels={labels} zones={zones()} />);
-    expect(screen.getByText('BOC')).toBeDefined();
-    expect(screen.getByText('RIV')).toBeDefined();
+    expect(screen.getByText('Boca Juniors')).toBeDefined();
+    expect(screen.getByText('River Plate')).toBeDefined();
     expect(screen.getByText('2')).toBeDefined();
     expect(screen.getByText('1')).toBeDefined();
+  });
+
+  it("puts a club side's crest beside its name, so its abbreviation never stands alone", () => {
+    const { container } = render(
+      <TvBracketView
+        clubs={[{ clubId: 'club-boca', name: 'Boca Juniors' } as never]}
+        labels={labels}
+        zones={zones()}
+      />,
+    );
+    const sides = container.querySelectorAll('.tv-bracket-card__side');
+    // Boca has a club: its crest (a monogram without an emblem image) sits beside its name.
+    expect(sides[0]?.querySelector('.cl-entrant-emblem')).not.toBeNull();
+    expect(sides[0]?.textContent).toContain('Boca Juniors');
+    // River has no club: its name stands without a crest.
+    expect(sides[1]?.querySelector('.cl-entrant-emblem')).toBeNull();
+  });
+
+  it("marks the match the screen is about by its zone and node key, never another zone's same key", () => {
+    const { container } = render(
+      <TvBracketView
+        focus={{ nodeKey: 'SE-R2-M1', zoneName: 'Zona A' }}
+        labels={labels}
+        zones={zones()}
+      />,
+    );
+    const focused = container.querySelectorAll('.tv-bracket-card--focus');
+    expect(focused).toHaveLength(1);
+    expect(focused[0]?.getAttribute('aria-current')).toBe('true');
+    expect(focused[0]?.getAttribute('aria-label')).toContain('2');
+    // The same node key in another zone names another match.
+    const { container: other } = render(
+      <TvBracketView
+        focus={{ nodeKey: 'SE-R2-M1', zoneName: 'Zona B' }}
+        labels={labels}
+        zones={zones()}
+      />,
+    );
+    expect(other.querySelectorAll('.tv-bracket-card--focus')).toHaveLength(0);
+  });
+
+  it('finds the zone that holds a match by its zone and node key', () => {
+    const [zone] = zones();
+    expect(zone && holdsBracketMatch(zone, { nodeKey: 'SE-R2-M1', zoneName: 'Zona A' })).toBe(true);
+    expect(zone && holdsBracketMatch(zone, { nodeKey: 'SE-R2-M1', zoneName: 'Zona B' })).toBe(
+      false,
+    );
   });
 
   it('names an unresolved slot by its source match rather than leaving it blank', () => {
