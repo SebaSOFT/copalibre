@@ -370,19 +370,19 @@ const tickerChrome = tickerChromeLabels(intl);
 const tournamentDisplayName = tournamentName ?? intl.formatMessage(messages.pageHeaderLoading);
 const organizationDisplayName = organizationName ?? intl.formatMessage(messages.pageHeaderLoading);
 // The full frame carries the same ticker as the venue screen; the corner overlays carry none.
-const showsTicker = layoutVariant === 'kiosk' && (presentation === 'kiosk' || presentation === 'full');
-const tickerItems =
-  showsTicker
-    ? buildTickerItems({
-        matches: overviewMatches,
-        ...(performerProjection === undefined ? {} : { performers: performerProjection }),
-        ...(leaderProjection === undefined ? {} : { leaders: leaderProjection }),
-        labels: tickerLabels(intl),
-        language,
-        ...(organizationTimeZone === undefined ? {} : { timeZone: organizationTimeZone }),
-        referenceDate,
-      })
-    : [];
+const showsTicker =
+  layoutVariant === 'kiosk' && (presentation === 'kiosk' || presentation === 'full');
+const tickerItems = showsTicker
+  ? buildTickerItems({
+      matches: overviewMatches,
+      ...(performerProjection === undefined ? {} : { performers: performerProjection }),
+      ...(leaderProjection === undefined ? {} : { leaders: leaderProjection }),
+      labels: tickerLabels(intl),
+      language,
+      ...(organizationTimeZone === undefined ? {} : { timeZone: organizationTimeZone }),
+      referenceDate,
+    })
+  : [];
 ---
 
 <TvLayout

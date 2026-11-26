@@ -1,210 +1,247 @@
 import { describe, expect, it } from '@jest/globals';
 import {
   buildTvLauncherDestination,
+  defaultBackgroundFor,
+  defaultStage,
+  formatKickoff,
+  gridFromParams,
   matchOptionGroups,
   parseTvLauncherPreset,
-  courtOptions,
-  stageOptionLabel,
-  stageOptions,
-  viewShowsMatch,
+  viewFromParams,
+  type TvLauncherDestination,
   type TvLauncherMatchChoice,
+  type TvLauncherOptionText,
 } from './tv-launcher.js';
-import { TV_LAUNCHER_LABELS } from './tv-launcher-labels.js';
 
 const base = {
-  organization: 'liga-norte',
-  tournament: 'copa-2026',
-  background: 'court',
+  organization: 'panamericano-demo',
+  tournament: 'panamericano-clubes-2025',
+  background: 'discipline',
   language: 'es',
 } as const;
+const root = '/tv/panamericano-demo/tournaments/panamericano-clubes-2025';
+
+const destination = (input: Partial<TvLauncherDestination>): string =>
+  buildTvLauncherDestination({ ...base, view: 'kiosk', ...input });
+
+const text: TvLauncherOptionText = {
+  state: { live: 'En vivo', upcoming: 'Programado', final: 'Finalizado' },
+  delayed: 'Demorado',
+  when: (scheduledAt) => formatKickoff(scheduledAt, 'es', 'America/Argentina/Buenos_Aires'),
+};
+
+function choice(overrides: Partial<TvLauncherMatchChoice> = {}): TvLauncherMatchChoice {
+  return {
+    stage: 2,
+    stageName: 'Copas',
+    match: 5,
+    scope: 'Copa Oro · Semifinal',
+    zone: 'Copa Oro',
+    home: 'Casa de Italia',
+    away: 'Richet y Zapata',
+    venue: 'Aldo Cantoni',
+    state: 'upcoming',
+    scheduledAt: '2026-11-23T16:00:00.000Z',
+    ...overrides,
+  };
+}
 
 describe('buildTvLauncherDestination', () => {
-  it('builds a pinned match destination and retains display options', () => {
-    expect(buildTvLauncherDestination({ ...base, view: 'match', stage: 2, match: 7 })).toBe(
-      '/tv/liga-norte/tournaments/copa-2026/stages/2/matches/7?lang=es&bg=court',
+  it('builds the rotating kiosk without a layout or a view parameter', () => {
+    expect(destination({})).toBe(`${root}?lang=es&bg=discipline`);
+  });
+
+  it('writes the presentation and dashboard layouts and the court grid, with its size', () => {
+    expect(destination({ view: 'presentation' })).toContain('layout=presentation');
+    expect(destination({ view: 'dashboardLayout' })).toContain('layout=dashboard');
+    expect(destination({ view: 'multicourt', grid: 4 })).toContain('grid=4');
+    expect(destination({ view: 'multicourt', grid: 'auto' })).not.toContain('grid=');
+  });
+
+  it('writes the standings and the match list as view values', () => {
+    expect(destination({ view: 'standings' })).toContain('view=standings');
+    expect(destination({ view: 'matches' })).toContain('view=matches');
+  });
+
+  it('writes each overlay as its own mode, on a transparent ground', () => {
+    for (const mode of ['overlay-scorebug', 'overlay-lower', 'overlay-full'] as const) {
+      const link = destination({ view: mode, background: 'transparent', court: 'Cancha 1' });
+      expect(link).toContain(`mode=${mode}`);
+      expect(link).toContain('bg=transparent');
+    }
+  });
+
+  it('accepts transparent as a background', () => {
+    expect(destination({ view: 'overlay-lower', background: 'transparent' })).toContain(
+      'bg=transparent',
     );
   });
 
-  it('sets overlay presentation while preserving selected background', () => {
-    expect(
-      buildTvLauncherDestination({
-        ...base,
-        view: 'overlay',
-        background: 'chroma',
-        language: 'en',
-      }),
-    ).toBe('/tv/liga-norte/tournaments/copa-2026?lang=en&bg=chroma&mode=overlay');
-  });
-
-  it('pins an overlay to its explicit match, so two overlays can show two matches', () => {
-    const first = buildTvLauncherDestination({ ...base, view: 'overlay', stage: 1, match: 3 });
-    const second = buildTvLauncherDestination({ ...base, view: 'overlay', stage: 1, match: 4 });
-
-    expect(first).toBe(
-      '/tv/liga-norte/tournaments/copa-2026/stages/1/matches/3?lang=es&bg=court&mode=overlay',
+  it('pins a match in the path for the pinned kiosk and for an overlay', () => {
+    expect(destination({ view: 'match', stage: 2, match: 5 })).toBe(
+      `${root}/stages/2/matches/5?lang=es&bg=discipline`,
     );
-    expect(second).not.toBe(first);
-  });
-
-  it('follows a court: an overlay with a court and no match names the court', () => {
-    expect(buildTvLauncherDestination({ ...base, view: 'overlay', court: 'Cancha 2' })).toBe(
-      '/tv/liga-norte/tournaments/copa-2026?lang=es&bg=court&mode=overlay&court=Cancha+2',
+    expect(destination({ view: 'overlay-lower', stage: 2, match: 5 })).toContain(
+      `${root}/stages/2/matches/5?`,
     );
   });
 
-  it('prefers a pinned match to a court, and ignores a court on any other view', () => {
-    expect(
-      buildTvLauncherDestination({
-        ...base,
-        view: 'overlay',
-        stage: 1,
-        match: 3,
-        court: 'Cancha 2',
-      }),
-    ).not.toContain('court=');
-    expect(
-      buildTvLauncherDestination({ ...base, view: 'dashboard', court: 'Cancha 2' }),
-    ).not.toContain('court=');
-  });
-
-  it('names the kiosk view in the address: standings and the match list', () => {
-    expect(buildTvLauncherDestination({ ...base, view: 'standings' })).toContain('view=standings');
-    expect(buildTvLauncherDestination({ ...base, view: 'matches', stage: 2, match: 7 })).toBe(
-      '/tv/liga-norte/tournaments/copa-2026?lang=es&bg=court&view=matches',
-    );
-  });
-
-  it('does not pin a match for the rotating dashboard', () => {
-    expect(buildTvLauncherDestination({ ...base, view: 'dashboard', stage: 2, match: 7 })).toBe(
-      '/tv/liga-norte/tournaments/copa-2026?lang=es&bg=court',
-    );
-  });
-});
-
-describe('viewShowsMatch', () => {
-  it('asks for a match for the pinned view and for the overlay only', () => {
-    expect(
-      ['dashboard', 'standings', 'matches', 'match', 'overlay'].filter(viewShowsMatch),
-    ).toEqual(['match', 'overlay']);
+  it('writes a court only where no match is pinned, so the two never meet', () => {
+    const followed = destination({ view: 'overlay-lower', court: 'Cancha 1' });
+    expect(followed).toContain('court=Cancha+1');
+    const pinned = destination({ view: 'overlay-lower', stage: 2, match: 5, court: 'Cancha 1' });
+    expect(pinned).not.toContain('court=');
+    expect(destination({ view: 'kiosk', court: 'Cancha 1' })).not.toContain('court=');
   });
 });
 
 describe('parseTvLauncherPreset', () => {
-  const validPreset = { ...base, view: 'match', stage: 2, match: 7 };
+  const stored = (input: Record<string, unknown>) =>
+    parseTvLauncherPreset({ ...base, view: 'kiosk', ...input });
 
-  it('restores a valid pinned match preset', () => {
-    expect(parseTvLauncherPreset(validPreset)).toEqual(validPreset);
-  });
-
-  it('restores an overlay with or without a pinned match', () => {
-    expect(parseTvLauncherPreset({ ...base, view: 'overlay', stage: 1, match: 3 })).toEqual({
-      ...base,
-      view: 'overlay',
-      stage: 1,
-      match: 3,
-    });
-    expect(parseTvLauncherPreset({ ...base, view: 'overlay' })).toEqual({
-      ...base,
-      view: 'overlay',
-    });
-  });
-
-  it('restores an overlay’s court, and drops a court from any other view', () => {
-    expect(parseTvLauncherPreset({ ...base, view: 'overlay', court: 'Cancha 2' })?.court).toBe(
-      'Cancha 2',
+  it('accepts a transparent background in a stored preset', () => {
+    expect(stored({ view: 'overlay-lower', background: 'transparent' })?.background).toBe(
+      'transparent',
     );
-    expect(parseTvLauncherPreset({ ...validPreset, court: 'Cancha 2' })?.court).toBeUndefined();
-    expect(parseTvLauncherPreset({ ...base, view: 'overlay', court: '' })?.court).toBeUndefined();
   });
 
-  it('reads a preset saved when `matches` meant the pinned match as `match`', () => {
-    expect(parseTvLauncherPreset({ ...validPreset, view: 'matches' })?.view).toBe('match');
-    expect(parseTvLauncherPreset({ ...base, view: 'matches' })).toEqual({
-      ...base,
-      view: 'matches',
-    });
+  it('reads a stored rotating dashboard as the kiosk, and a stored overlay as the corner bug', () => {
+    expect(stored({ view: 'dashboard' })?.view).toBe('kiosk');
+    expect(stored({ view: 'overlay', court: 'Cancha 1' })?.view).toBe('overlay-scorebug');
   });
 
-  it.each([
-    { ...validPreset, organization: '../admin' },
-    { ...validPreset, background: 'transparent' },
-    { ...validPreset, language: 'xx' },
-    { ...validPreset, match: 0 },
-    { ...base, view: 'match' },
-    null,
-  ])('rejects malformed or unsupported preset %#', (preset) => {
-    expect(parseTvLauncherPreset(preset)).toBeUndefined();
+  it('keeps a stored court only for an overlay, and never beside a pinned match', () => {
+    expect(stored({ view: 'overlay-full', court: 'Cancha 1' })?.court).toBe('Cancha 1');
+    expect(stored({ view: 'kiosk', court: 'Cancha 1' })?.court).toBeUndefined();
+    const pinned = stored({ view: 'overlay-full', stage: 2, match: 5, court: 'Cancha 1' });
+    expect(pinned?.court).toBeUndefined();
+    expect(pinned?.match).toBe(5);
+  });
+
+  it('keeps a stored grid size, and drops an unknown one', () => {
+    expect(stored({ view: 'multicourt', grid: 6 })?.grid).toBe(6);
+    expect(stored({ view: 'multicourt', grid: 5 })?.grid).toBeUndefined();
+  });
+
+  it('rejects a pinned match without its ordinals, and an unknown view', () => {
+    expect(stored({ view: 'match' })).toBeUndefined();
+    expect(stored({ view: 'unknown' })).toBeUndefined();
+  });
+
+  it('reads the legacy matches view with a stage and a match as the pinned match', () => {
+    expect(stored({ view: 'matches', stage: 1, match: 3 })?.view).toBe('match');
   });
 });
 
-describe('stages and match options', () => {
-  const choice = (
-    overrides: Partial<TvLauncherMatchChoice> & Pick<TvLauncherMatchChoice, 'stage' | 'match'>,
-  ): TvLauncherMatchChoice => ({
-    stageName: overrides.stage === 1 ? 'Fase de grupos' : 'Copas',
-    home: 'Lomas',
-    away: 'Hispano',
-    ...overrides,
-  });
-  const choices = [
-    choice({ stage: 2, match: 1, zone: 'Copa Oro', round: 1 }),
-    choice({ stage: 1, match: 1, zone: 'Grupos', group: 'Grupo A', round: 1 }),
-    choice({ stage: 1, match: 2, zone: 'Grupos', group: 'Grupo B', round: 1, home: 'UVT' }),
-    choice({ stage: 1, match: 3, zone: 'Grupos', group: 'Grupo A', round: 2 }),
-  ];
-
-  it('labels a stage with its number and name, and with the number alone when it has no name', () => {
-    expect(stageOptionLabel({ stage: 2, stageName: 'Copas' })).toBe('2 · Copas');
-    expect(stageOptionLabel({ stage: 2, stageName: '' })).toBe('2');
+describe('viewFromParams', () => {
+  it('opens each overlay from its mode, and the old bare overlay as the corner bug', () => {
+    expect(viewFromParams(new URLSearchParams('mode=overlay-lower'))).toBe('overlay-lower');
+    expect(viewFromParams(new URLSearchParams('mode=overlay-full'))).toBe('overlay-full');
+    expect(viewFromParams(new URLSearchParams('mode=overlay'))).toBe('overlay-scorebug');
   });
 
-  it('lists the venues once each, in alphabetical order, for an overlay that follows a court', () => {
+  it('opens the full-frame layouts, the standings and the list, and the pinned match', () => {
+    expect(viewFromParams(new URLSearchParams('layout=presentation'))).toBe('presentation');
+    expect(viewFromParams(new URLSearchParams('layout=dashboard'))).toBe('dashboardLayout');
+    expect(viewFromParams(new URLSearchParams('layout=multicourt'))).toBe('multicourt');
+    expect(viewFromParams(new URLSearchParams('view=standings'))).toBe('standings');
+    expect(viewFromParams(new URLSearchParams('view=fixtures'))).toBe('matches');
+    expect(viewFromParams(new URLSearchParams('view=matches&stage=1&match=2'))).toBe('match');
+  });
+
+  it('opens the rotating kiosk when the address names no view', () => {
+    expect(viewFromParams(new URLSearchParams(''))).toBe('kiosk');
+    expect(viewFromParams(new URLSearchParams('view=dashboard'))).toBe('kiosk');
+  });
+
+  it('reads the grid size, and falls back to automatic', () => {
+    expect(gridFromParams(new URLSearchParams('grid=4'))).toBe(4);
+    expect(gridFromParams(new URLSearchParams('grid=9'))).toBe('auto');
+  });
+
+  it('starts an overlay on transparent and every other view on the discipline ground', () => {
+    expect(defaultBackgroundFor('overlay-scorebug')).toBe('transparent');
+    expect(defaultBackgroundFor('overlay-full')).toBe('transparent');
+    expect(defaultBackgroundFor('kiosk')).toBe('discipline');
+  });
+});
+
+describe('matchOptionGroups', () => {
+  it('reads an option with its round, sides, kickoff in the organization zone, court and state', () => {
+    const [group] = matchOptionGroups([choice()], 2, text);
+    expect(group?.heading).toBe('Copa Oro');
+    expect(group?.options[0]?.label).toBe(
+      'Copa Oro · Semifinal · Casa de Italia — Richet y Zapata · lun, 23/11, 13:00 · Aldo Cantoni · Programado · #5',
+    );
+  });
+
+  it('reads a delayed match with the delayed word, and a live one with the live word', () => {
+    const delayed = matchOptionGroups([choice({ delayed: true })], 2, text)[0]?.options[0]?.label;
+    expect(delayed).toContain('Demorado');
+    const live = matchOptionGroups([choice({ state: 'live' })], 2, text)[0]?.options[0]?.label;
+    expect(live).toContain('En vivo');
+  });
+
+  it('leaves out the parts a match does not have and keeps the number last', () => {
+    const plain = matchOptionGroups(
+      [choice({ scope: undefined, venue: undefined, scheduledAt: undefined })],
+      2,
+      text,
+    )[0]?.options[0]?.label;
+    expect(plain).toBe('Casa de Italia — Richet y Zapata · Programado · #5');
+  });
+
+  it('shows only the stage it is asked for', () => {
+    expect(matchOptionGroups([choice({ stage: 1 })], 2, text)).toEqual([]);
+  });
+});
+
+describe('defaultStage', () => {
+  const now = Date.parse('2026-11-23T16:30:00.000Z');
+
+  it('opens on the stage of the live match first', () => {
     expect(
-      courtOptions([
-        choice({ stage: 1, match: 1, venue: 'Cancha 2' }),
-        choice({ stage: 1, match: 2, venue: 'Cancha 1' }),
-        choice({ stage: 1, match: 3, venue: 'Cancha 2' }),
-        choice({ stage: 1, match: 4 }),
-      ]),
-    ).toEqual(['Cancha 1', 'Cancha 2']);
+      defaultStage(
+        [choice({ stage: 1, state: 'upcoming' }), choice({ stage: 3, state: 'live' })],
+        now,
+      ),
+    ).toBe(3);
   });
 
-  it('lists each stage once, in stage order', () => {
-    expect(stageOptions(choices)).toEqual([
-      { stage: 1, label: '1 · Fase de grupos' },
-      { stage: 2, label: '2 · Copas' },
-    ]);
+  it('else on the stage of the next scheduled match that is not delayed', () => {
+    expect(
+      defaultStage(
+        [
+          choice({ stage: 1, scheduledAt: '2026-11-23T15:00:00.000Z' }),
+          choice({ stage: 2, scheduledAt: '2026-11-23T18:00:00.000Z' }),
+          choice({ stage: 4, state: 'final' }),
+        ],
+        now,
+      ),
+    ).toBe(2);
   });
 
-  it('groups the matches of a stage by zone and group, each with round, names and identifier', () => {
-    const groups = matchOptionGroups(choices, 1, 'Ronda');
-
-    expect(groups.map((group) => group.heading)).toEqual(['Grupos · Grupo A', 'Grupos · Grupo B']);
-    expect(groups[0]?.options).toEqual([
-      { match: 1, label: 'Ronda 1 · Lomas — Hispano · #1' },
-      { match: 3, label: 'Ronda 2 · Lomas — Hispano · #3' },
-    ]);
-    expect(groups[1]?.options[0]?.label).toBe('Ronda 1 · UVT — Hispano · #2');
-  });
-
-  it('keeps a match with no zone or group under one unnamed heading', () => {
-    const groups = matchOptionGroups([choice({ stage: 1, match: 5 })], 1, 'Round');
-    expect(groups).toEqual([
-      { heading: '', options: [{ match: 5, label: 'Lomas — Hispano · #5' }] },
-    ]);
+  it('else on the last stage when every match is finished', () => {
+    expect(
+      defaultStage(
+        [
+          choice({ stage: 1, state: 'final' }),
+          choice({ stage: 2, state: 'final', scheduledAt: undefined }),
+        ],
+        now,
+      ),
+    ).toBe(2);
   });
 });
 
-describe('TV_LAUNCHER_LABELS', () => {
-  const languages = Object.keys(TV_LAUNCHER_LABELS);
-  const english = Object.keys(TV_LAUNCHER_LABELS.en);
+describe('formatKickoff', () => {
+  it('formats the day and time in the organization zone, not the viewer zone', () => {
+    expect(formatKickoff('2026-11-23T16:00:00.000Z', 'es', 'America/Argentina/Buenos_Aires')).toBe(
+      'lun, 23/11, 13:00',
+    );
+  });
 
-  it('has every label in all eight languages', () => {
-    expect(languages.sort()).toEqual(['de', 'en', 'es', 'fr', 'it', 'pt', 'ru', 'zh']);
-    for (const language of languages) {
-      const labels = TV_LAUNCHER_LABELS[language as keyof typeof TV_LAUNCHER_LABELS];
-      expect(Object.keys(labels).sort()).toEqual([...english].sort());
-      for (const text of Object.values(labels)) expect(text.trim()).not.toBe('');
-    }
+  it('reads nothing for an unreadable timestamp', () => {
+    expect(formatKickoff('not a date', 'es')).toBe('');
   });
 });

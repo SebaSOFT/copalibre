@@ -1118,7 +1118,9 @@ export function TvDashboard({
             statusLabel={statusBadge.label}
             statusTone={statusBadge.type}
             {...(spotlightEntry?.scope === undefined ? {} : { scope: spotlightEntry.scope })}
-            {...(venueOf(spotlightMatch) === undefined ? {} : { venueName: venueOf(spotlightMatch) })}
+            {...(venueOf(spotlightMatch) === undefined
+              ? {}
+              : { venueName: venueOf(spotlightMatch) })}
             {...(timeZone === undefined ? {} : { timeZone })}
             referenceDate={effectiveNow}
           />
@@ -1150,48 +1152,47 @@ export function TvDashboard({
       )}
       {broadcastAlertBanner}
       {/* 1. Persistent Score-Bug / Status Bar */}
-      
-        <TvScorebug
-          logoUrl={resolvedBranding.logoUrl}
-          organizationName={organizationName ?? 'CopaLibre Broadcast'}
-          tournamentName={tournamentName ?? 'Torneo Oficial'}
-        >
-          <TvMatchIndicators
-            match={spotlightMatch}
-            possessionLabel={dashboardLabels.possession}
-            penaltyLabel={dashboardLabels.penalty}
+
+      <TvScorebug
+        logoUrl={resolvedBranding.logoUrl}
+        organizationName={organizationName ?? 'CopaLibre Broadcast'}
+        tournamentName={tournamentName ?? 'Torneo Oficial'}
+      >
+        <TvMatchIndicators
+          match={spotlightMatch}
+          possessionLabel={dashboardLabels.possession}
+          penaltyLabel={dashboardLabels.penalty}
+        />
+        <TvStatusBadge label={statusBadge.label} tone={statusBadge.type} />
+        {spotlightClock && (
+          <LiveMatchClock
+            className="tv-scorebug__clock tv-scorebug__game-clock"
+            clock={spotlightClock}
+            labels={clockLabels}
+            segmentLabel={progress.segmentLabel}
+            variant="tv"
           />
-          <TvStatusBadge label={statusBadge.label} tone={statusBadge.type} />
-          {spotlightClock && (
-            <LiveMatchClock
-              className="tv-scorebug__clock tv-scorebug__game-clock"
-              clock={spotlightClock}
-              labels={clockLabels}
-              segmentLabel={progress.segmentLabel}
-              variant="tv"
-            />
-          )}
-          {showsWallClock && (
-            <span className="tv-scorebug__wall-clock-group">
-              <span className="tv-scorebug__clock-label">{dashboardLabels.clockLabel}</span>
-              <span
-                className="tv-scorebug__clock tv-scorebug__clock--wall"
-                data-time={currentTime}
-                role={spotlightClock ? undefined : 'timer'}
-                aria-label={`${dashboardLabels.clockLabel} ${currentTime}`}
-              />
-              {clockZoneLabel && <span className="tv-scorebug__clock-zone">{clockZoneLabel}</span>}
-            </span>
-          )}
-          {finishedText !== undefined && (
+        )}
+        {showsWallClock && (
+          <span className="tv-scorebug__wall-clock-group">
+            <span className="tv-scorebug__clock-label">{dashboardLabels.clockLabel}</span>
             <span
-              className="tv-scorebug__clock tv-scorebug__clock--finished"
-              data-time={finishedText}
-              aria-label={finishedText}
+              className="tv-scorebug__clock tv-scorebug__clock--wall"
+              data-time={currentTime}
+              role={spotlightClock ? undefined : 'timer'}
+              aria-label={`${dashboardLabels.clockLabel} ${currentTime}`}
             />
-          )}
-        </TvScorebug>
-      
+            {clockZoneLabel && <span className="tv-scorebug__clock-zone">{clockZoneLabel}</span>}
+          </span>
+        )}
+        {finishedText !== undefined && (
+          <span
+            className="tv-scorebug__clock tv-scorebug__clock--finished"
+            data-time={finishedText}
+            aria-label={finishedText}
+          />
+        )}
+      </TvScorebug>
 
       {layoutVariant === 'presentation' ? (
         <main className="tv-presentation-layout" data-testid="tv-presentation-layout">
@@ -1662,126 +1663,125 @@ export function TvDashboard({
           )}
 
           {/* SECONDARY ROTATING RAIL */}
-          
-            <aside aria-labelledby="tv-rail-panel-heading" className="tv-rail-panel cl-chamfer">
-              <h2 className="cl-visually-hidden" id="tv-rail-panel-heading">
-                {dashboardLabels.statsAndTablesLabel}
-              </h2>
-              {/* Navigation Tabs: a fixed view is that one section, so there is nothing to choose between. */}
-              {!fixedView && (
-                <nav aria-label={dashboardLabels.sidebarSectionsLabel} className="tv-rail-nav">
-                  {railTabs.includes('standings') && (
-                    <TvRailTab
-                      active={activeTab === 'standings'}
-                      label={dashboardLabels.standingsTab}
-                      onClick={() => setActiveTab('standings')}
-                    />
-                  )}
-                  {railTabs.includes('bracket') && (
-                    <TvRailTab
-                      active={activeTab === 'bracket'}
-                      label={dashboardLabels.bracketTab}
-                      onClick={() => setActiveTab('bracket')}
-                    />
-                  )}
+
+          <aside aria-labelledby="tv-rail-panel-heading" className="tv-rail-panel cl-chamfer">
+            <h2 className="cl-visually-hidden" id="tv-rail-panel-heading">
+              {dashboardLabels.statsAndTablesLabel}
+            </h2>
+            {/* Navigation Tabs: a fixed view is that one section, so there is nothing to choose between. */}
+            {!fixedView && (
+              <nav aria-label={dashboardLabels.sidebarSectionsLabel} className="tv-rail-nav">
+                {railTabs.includes('standings') && (
                   <TvRailTab
-                    active={activeTab === 'performers'}
-                    label={performersTabLabel}
-                    onClick={() => setActiveTab('performers')}
+                    active={activeTab === 'standings'}
+                    label={dashboardLabels.standingsTab}
+                    onClick={() => setActiveTab('standings')}
                   />
-                  {pinnedRef === undefined && (
-                    <TvRailTab
-                      active={activeTab === 'facts'}
-                      label={dashboardLabels.statisticsTab}
-                      onClick={() => setActiveTab('facts')}
-                    />
-                  )}
-                  {pinnedRef !== undefined && (
-                    <TvRailTab
-                      active={activeTab === 'recent'}
-                      label={dashboardLabels.recentFormTab}
-                      onClick={() => setActiveTab('recent')}
-                    />
-                  )}
-                  {railTabs.includes('fixtures') && (
-                    <TvRailTab
-                      active={activeTab === 'fixtures'}
-                      label={dashboardLabels.fixturesTab}
-                      onClick={() => setActiveTab('fixtures')}
-                    />
-                  )}
-                </nav>
+                )}
+                {railTabs.includes('bracket') && (
+                  <TvRailTab
+                    active={activeTab === 'bracket'}
+                    label={dashboardLabels.bracketTab}
+                    onClick={() => setActiveTab('bracket')}
+                  />
+                )}
+                <TvRailTab
+                  active={activeTab === 'performers'}
+                  label={performersTabLabel}
+                  onClick={() => setActiveTab('performers')}
+                />
+                {pinnedRef === undefined && (
+                  <TvRailTab
+                    active={activeTab === 'facts'}
+                    label={dashboardLabels.statisticsTab}
+                    onClick={() => setActiveTab('facts')}
+                  />
+                )}
+                {pinnedRef !== undefined && (
+                  <TvRailTab
+                    active={activeTab === 'recent'}
+                    label={dashboardLabels.recentFormTab}
+                    onClick={() => setActiveTab('recent')}
+                  />
+                )}
+                {railTabs.includes('fixtures') && (
+                  <TvRailTab
+                    active={activeTab === 'fixtures'}
+                    label={dashboardLabels.fixturesTab}
+                    onClick={() => setActiveTab('fixtures')}
+                  />
+                )}
+              </nav>
+            )}
+
+            {/* Tab Content */}
+            <div
+              className={
+                activeTab === 'standings' || activeTab === 'fixtures'
+                  ? 'tv-rail-content tv-rail-content--paged'
+                  : 'tv-rail-content'
+              }
+              data-testid="tv-rail-content"
+              ref={railStandingsRef}
+            >
+              {activeTab === 'standings' && (
+                <div className="tv-rail-standings">
+                  <TvStandingsTable
+                    clubs={clubs}
+                    columns={fullFrameColumns}
+                    dashboardLabels={dashboardLabels}
+                    pointsShortLabel={labels.pointsShort}
+                    scopesHeadings={scopeStandingsHeadings}
+                    showAllRows
+                    stageName={standingsStageName}
+                    standings={railPaging.pageRows}
+                  />
+                  <p className="tv-standings-pager">
+                    {railPaging.pageCount > 1
+                      ? applyTemplate(dashboardLabels.pageOf, {
+                          page: railPaging.pageIndex + 1,
+                          total: railPaging.pageCount,
+                        })
+                      : '\u00a0'}
+                  </p>
+                </div>
               )}
 
-              {/* Tab Content */}
-              <div
-                className={
-                  activeTab === 'standings' || activeTab === 'fixtures'
-                    ? 'tv-rail-content tv-rail-content--paged'
-                    : 'tv-rail-content'
-                }
-                data-testid="tv-rail-content"
-                ref={railStandingsRef}
-              >
-                {activeTab === 'standings' && (
-                  <div className="tv-rail-standings">
-                    <TvStandingsTable
-                      clubs={clubs}
-                      columns={fullFrameColumns}
-                      dashboardLabels={dashboardLabels}
-                      pointsShortLabel={labels.pointsShort}
-                      scopesHeadings={scopeStandingsHeadings}
-                      showAllRows
-                      stageName={standingsStageName}
-                      standings={railPaging.pageRows}
-                    />
-                    <p className="tv-standings-pager">
-                      {railPaging.pageCount > 1
-                        ? applyTemplate(dashboardLabels.pageOf, {
-                            page: railPaging.pageIndex + 1,
-                            total: railPaging.pageCount,
-                          })
-                        : '\u00a0'}
-                    </p>
-                  </div>
-                )}
+              {activeTab === 'performers' && (
+                <TvPerformersView
+                  noTopPerformersLabel={dashboardLabels.noTopPerformers}
+                  performers={performers}
+                />
+              )}
 
-                {activeTab === 'performers' && (
-                  <TvPerformersView
-                    noTopPerformersLabel={dashboardLabels.noTopPerformers}
-                    performers={performers}
-                  />
-                )}
+              {activeTab === 'facts' && <TvFactsView facts={facts} />}
 
-                {activeTab === 'facts' && <TvFactsView facts={facts} />}
-
-                {activeTab === 'recent' && pinnedMatch !== undefined && (
-                  <TvRecentResults
-                    emptyLabel={dashboardLabels.noMatchesScheduled}
-                    groups={pinnedMatch.sides.map((side) => ({
-                      name: side.name,
-                      matches: latestFinishedOf(matches, side.entrantId, 3),
-                    }))}
-                    locale={language}
-                    {...(timeZone === undefined ? {} : { timeZone })}
-                  />
-                )}
-                {activeTab === 'bracket' && visibleBracket && (
-                  <TvBracketView labels={dashboardLabels} zones={visibleBracket.zones} />
-                )}
-                {activeTab === 'fixtures' && matchPages.length > 0 && (
-                  <TvMatchList
-                    locale={language}
-                    labels={dashboardLabels}
-                    page={rail.page}
-                    pages={matchPages}
-                    referenceDate={effectiveNow}
-                    timeZone={timeZone}
-                  />
-                )}
-              </div>
-            </aside>
-          
+              {activeTab === 'recent' && pinnedMatch !== undefined && (
+                <TvRecentResults
+                  emptyLabel={dashboardLabels.noMatchesScheduled}
+                  groups={pinnedMatch.sides.map((side) => ({
+                    name: side.name,
+                    matches: latestFinishedOf(matches, side.entrantId, 3),
+                  }))}
+                  locale={language}
+                  {...(timeZone === undefined ? {} : { timeZone })}
+                />
+              )}
+              {activeTab === 'bracket' && visibleBracket && (
+                <TvBracketView labels={dashboardLabels} zones={visibleBracket.zones} />
+              )}
+              {activeTab === 'fixtures' && matchPages.length > 0 && (
+                <TvMatchList
+                  locale={language}
+                  labels={dashboardLabels}
+                  page={rail.page}
+                  pages={matchPages}
+                  referenceDate={effectiveNow}
+                  timeZone={timeZone}
+                />
+              )}
+            </div>
+          </aside>
         </main>
       )}
     </div>

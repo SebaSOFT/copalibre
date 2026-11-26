@@ -68,85 +68,85 @@ const rendered = !(omitWhenEmpty && items.length === 0);
 ---
 
 {rendered && (
-<div
-  class:list={['cl-ticker', `cl-ticker--${scale}`]}
-  data-ticker
-  data-stream={streamPath}
-  data-stale={stale ? 'true' : undefined}
-  data-label-live={liveBadgeLabels?.live}
-  data-label-upcoming={liveBadgeLabels?.upcoming}
-  data-label-final={liveBadgeLabels?.final}
-  aria-label={label}
-  role="region"
->
-  <Container
-    class={scale === 'tv' ? 'cl-ticker__content cl-ticker__content--tv' : 'cl-ticker__content'}
-    variant="public"
+  <div
+    class:list={['cl-ticker', `cl-ticker--${scale}`]}
+    data-ticker
+    data-stream={streamPath}
+    data-stale={stale ? 'true' : undefined}
+    data-label-live={liveBadgeLabels?.live}
+    data-label-upcoming={liveBadgeLabels?.upcoming}
+    data-label-final={liveBadgeLabels?.final}
+    aria-label={label}
+    role="region"
   >
-    {items.length === 0 ? (
-      <p class="cl-ticker__notice">{emptyLabel}</p>
-    ) : (
-      <>
-        {staleLabel && (
-          <p
-            class="cl-ticker__notice cl-ticker__notice--stale"
-            role="status"
-            data-ticker-connection-notice
-            hidden={!stale}
-          >
-            {staleLabel}
-          </p>
-        )}
-        <div class="cl-ticker__viewport">
-          <div class="cl-ticker__track" data-ticker-track>
-            {[0, 1].map((copy) =>
-              items.map((item) => (
-                <div
-                  class="cl-ticker__item"
-                  aria-hidden={copy === 1 ? 'true' : undefined}
-                  data-match-id={item.matchId}
-                  data-home-entrant-id={item.homeEntrantId}
-                  data-away-entrant-id={item.awayEntrantId}
-                  data-home-score={item.homeScore}
-                  data-away-score={item.awayScore}
-                  data-match-state={item.matchState}
-                >
-                  <Badge className={`cl-badge--${item.tone}`}>{item.badge}</Badge>
-                  <span class="cl-ticker__subject">{item.subject}</span>
-                  <span class="cl-ticker__figure">{item.figure}</span>
-                  {item.opponent && <span class="cl-ticker__subject">{item.opponent}</span>}
-                  {/* Only where the discipline declares one; nothing here derives it. */}
-                  {item.overtime && <span class="cl-ticker__overtime">{item.overtime}</span>}
-                  {item.meta && <span class="cl-ticker__meta">({item.meta})</span>}
-                  <span class="cl-ticker__sep" aria-hidden="true"></span>
-                </div>
-              )),
-            )}
+    <Container
+      class={scale === 'tv' ? 'cl-ticker__content cl-ticker__content--tv' : 'cl-ticker__content'}
+      variant="public"
+    >
+      {items.length === 0 ? (
+        <p class="cl-ticker__notice">{emptyLabel}</p>
+      ) : (
+        <>
+          {staleLabel && (
+            <p
+              class="cl-ticker__notice cl-ticker__notice--stale"
+              role="status"
+              data-ticker-connection-notice
+              hidden={!stale}
+            >
+              {staleLabel}
+            </p>
+          )}
+          <div class="cl-ticker__viewport">
+            <div class="cl-ticker__track" data-ticker-track>
+              {[0, 1].map((copy) =>
+                items.map((item) => (
+                  <div
+                    class="cl-ticker__item"
+                    aria-hidden={copy === 1 ? 'true' : undefined}
+                    data-match-id={item.matchId}
+                    data-home-entrant-id={item.homeEntrantId}
+                    data-away-entrant-id={item.awayEntrantId}
+                    data-home-score={item.homeScore}
+                    data-away-score={item.awayScore}
+                    data-match-state={item.matchState}
+                  >
+                    <Badge className={`cl-badge--${item.tone}`}>{item.badge}</Badge>
+                    <span class="cl-ticker__subject">{item.subject}</span>
+                    <span class="cl-ticker__figure">{item.figure}</span>
+                    {item.opponent && <span class="cl-ticker__subject">{item.opponent}</span>}
+                    {/* Only where the discipline declares one; nothing here derives it. */}
+                    {item.overtime && <span class="cl-ticker__overtime">{item.overtime}</span>}
+                    {item.meta && <span class="cl-ticker__meta">({item.meta})</span>}
+                    <span class="cl-ticker__sep" aria-hidden="true"></span>
+                  </div>
+                )),
+              )}
+            </div>
           </div>
-        </div>
-        {/*
+          {/*
             Hidden until the script that gives it meaning has run. A pause button
             that does nothing without JavaScript is a broken control on the one
             surface that has to keep working without it — so it arrives with the
             behaviour or it does not arrive.
           */}
-        <button
-          class="cl-ticker__pause cl-focusable"
-          type="button"
-          hidden
-          data-ticker-pause
-          data-pause-label={pauseLabel}
-          data-resume-label={resumeLabel}
-          aria-label={pauseLabel}
-          aria-pressed="false"
-        >
-          <Icon name="pause-clock" size={20} class="cl-ticker__pause-icon" />
-          <Icon name="play" size={20} class="cl-ticker__resume-icon" />
-        </button>
-      </>
-    )}
-  </Container>
-</div>
+          <button
+            class="cl-ticker__pause cl-focusable"
+            type="button"
+            hidden
+            data-ticker-pause
+            data-pause-label={pauseLabel}
+            data-resume-label={resumeLabel}
+            aria-label={pauseLabel}
+            aria-pressed="false"
+          >
+            <Icon name="pause-clock" size={20} class="cl-ticker__pause-icon" />
+            <Icon name="play" size={20} class="cl-ticker__resume-icon" />
+          </button>
+        </>
+      )}
+    </Container>
+  </div>
 )}
 
 <script>
