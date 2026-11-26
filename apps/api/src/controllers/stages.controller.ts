@@ -1080,6 +1080,10 @@ export class StagesController {
         return {
           fixtureId: fixture.fixtureId,
           matchId: own[0]?.matchId ?? fixture.fixtureId,
+          // Deprecated alias: the first game's link, so a client that reads the fixture level keeps working.
+          ...(streamUrlByMatch.get(own[0]?.matchId ?? '') === undefined
+            ? {}
+            : { streamUrl: streamUrlByMatch.get(own[0]?.matchId ?? '') }),
           ...fixtureSources.get(own[0]?.matchId ?? ''),
           round: fixture.round,
           ...(fixture.homeEntrantId === undefined ? {} : { homeEntrantId: fixture.homeEntrantId }),

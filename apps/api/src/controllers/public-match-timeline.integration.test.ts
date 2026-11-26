@@ -401,10 +401,10 @@ describe('public match report timeline', () => {
 
     const rows = await scratch.db
       .selectFrom('outbox_events')
-      .select(['event_type', 'entity_id', 'payload'])
+      .select(['event_type', 'entity_id', 'payload', 'projection_version'])
       .where('event_type', '=', 'match.stream-url-changed')
       .where('entity_id', '=', match.matchId)
-      .orderBy('created_at')
+      .orderBy('projection_version')
       .execute();
     expect(rows).toHaveLength(2);
     expect(rows.map((row) => row.payload)).toEqual([
@@ -484,7 +484,9 @@ describe('public match report timeline', () => {
           token: 'organizer-org1',
         })
       ).payload as string,
-    ) as { fixtures: { matches: { matchId: string; streamUrl?: string }[] }[] };
+    ) as { fixtures: { streamUrl?: string; matches: { matchId: string; streamUrl?: string }[] }[] };
+    // The deprecated fixture-level field carries the first game's link.
+    expect(fixtures.fixtures[0]?.streamUrl).toBe('https://example.org/live/game-1');
     expect(
       fixtures.fixtures.flatMap((fixture) => fixture.matches.map((game) => game.streamUrl)),
     ).toEqual([

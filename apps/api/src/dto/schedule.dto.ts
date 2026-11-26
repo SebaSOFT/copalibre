@@ -388,6 +388,17 @@ export class FixtureResponse extends FixtureSourcesResponse {
   @ApiProperty({ description: '1-based round within the stage', example: 1 })
   round!: number;
 
+  /**
+   * Deprecated alias for the first game's link, kept so a v1 client needs no change. Each game's own
+   * link is on `matches[].streamUrl`.
+   */
+  @ApiPropertyOptional({
+    deprecated: true,
+    description:
+      'Deprecated: the first game’s stream link. Read `matches[].streamUrl` for every game.',
+  })
+  streamUrl?: string;
+
   @ApiPropertyOptional({ format: 'uuid' })
   homeEntrantId?: string;
 
