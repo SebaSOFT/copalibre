@@ -19389,6 +19389,11 @@
             "description": "1-based round within the stage",
             "example": 1
           },
+          "streamUrl": {
+            "type": "string",
+            "deprecated": true,
+            "description": "Deprecated: the first game’s stream link. Read `matches[].streamUrl` for every game."
+          },
           "homeEntrantId": {
             "type": "string",
             "format": "uuid"
@@ -21202,6 +21207,28 @@
           }
         }
       },
+      "PublicMatchGameResponse": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "number",
+            "description": "The game’s number within its fixture, 1-based play order"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "upcoming",
+              "live",
+              "final",
+              "not-required"
+            ]
+          }
+        },
+        "required": [
+          "number",
+          "status"
+        ]
+      },
       "PublicRosterRoleResponse": {
         "type": "object",
         "properties": {
@@ -21643,6 +21670,17 @@
           "streamUrl": {
             "type": "string",
             "description": "The link the match is watched through, when the organizer attached one"
+          },
+          "gameNumber": {
+            "type": "number",
+            "description": "The game this report is for, when its fixture has more than one game (a series); absent otherwise"
+          },
+          "games": {
+            "description": "Every game of the fixture in play order, with its status, so a page can switch between them; present only for a series",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicMatchGameResponse"
+            }
           },
           "rosterRoles": {
             "description": "The discipline's declared roster roles, so a client can label each member's role codes.",

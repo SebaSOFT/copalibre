@@ -5684,6 +5684,11 @@ export interface components {
              * @example 1
              */
             round: number;
+            /**
+             * @deprecated
+             * @description Deprecated: the first game’s stream link. Read `matches[].streamUrl` for every game.
+             */
+            streamUrl?: string;
             /** Format: uuid */
             homeEntrantId?: string;
             /** Format: uuid */
@@ -6310,6 +6315,12 @@ export interface components {
             home?: components["schemas"]["PublicRegisteredSquadMemberResponse"][];
             away?: components["schemas"]["PublicRegisteredSquadMemberResponse"][];
         };
+        PublicMatchGameResponse: {
+            /** @description The game’s number within its fixture, 1-based play order */
+            number: number;
+            /** @enum {string} */
+            status: "upcoming" | "live" | "final" | "not-required";
+        };
         PublicRosterRoleResponse: {
             code: string;
             badge?: string;
@@ -6474,6 +6485,10 @@ export interface components {
             registeredSquads?: components["schemas"]["PublicRegisteredSquadsResponse"];
             /** @description The link the match is watched through, when the organizer attached one */
             streamUrl?: string;
+            /** @description The game this report is for, when its fixture has more than one game (a series); absent otherwise */
+            gameNumber?: number;
+            /** @description Every game of the fixture in play order, with its status, so a page can switch between them; present only for a series */
+            games?: components["schemas"]["PublicMatchGameResponse"][];
             /** @description The discipline's declared roster roles, so a client can label each member's role codes. */
             rosterRoles?: components["schemas"]["PublicRosterRoleResponse"][];
             timeline: components["schemas"]["PublicMatchEventResponse"][];
