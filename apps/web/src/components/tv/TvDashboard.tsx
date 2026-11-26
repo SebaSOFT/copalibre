@@ -231,8 +231,8 @@ const RANK_AND_CLUB_CODES: ReadonlySet<string> = new Set([
  * A row's figures come from the layout's own row for that entrant, matched by entrant id. Without one
  * (or when the layout does not list the entrant), they come from the one segment the row names: the
  * segment whose group and zone agree with the row's, an unnamed zone or group agreeing with any. When
- * several segments agree, the row gets no figures, and its cells show a dash. A club id never matches:
- * a club can field two teams.
+ * several segments agree, or when that segment's rank is tied or held by another entrant, the row gets
+ * no figures, and its cells show a dash. A club id never matches: a club can field two teams.
  */
 export function standingsColumnsOf(
   projection: TableProjectionResponse | undefined,
@@ -270,7 +270,15 @@ function layoutRowOf(
       namesAgree(row.groupName, segment.groupName) && namesAgree(row.zoneName, segment.zoneName),
   );
   const [only] = agreeing.length === 1 ? agreeing : [];
-  return only?.rows.find((candidate) => candidate.rank === row.position);
+  // The rank names a row only when one row holds it, and only when that row is not another entrant's.
+  const atRank = (only?.rows ?? []).filter(
+    (candidate) =>
+      candidate.rank === row.position &&
+      (row.entrantId === undefined ||
+        candidate.entrantId === undefined ||
+        candidate.entrantId === row.entrantId),
+  );
+  return atRank.length === 1 ? atRank[0] : undefined;
 }
 
 /** Two names agree when they are the same, or when either one is unnamed. */
