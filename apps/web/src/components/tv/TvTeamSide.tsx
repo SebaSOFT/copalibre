@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { EntrantName } from '../ui/atoms/EntrantName.js';
 import { EntrantEmblem } from '../ui/molecules/EntrantEmblem.js';
 import type { TvClubItem } from './tv-types.js';
@@ -13,6 +14,7 @@ export function TvTeamSide({
   roleLabel,
   leading = false,
   leadingLabel,
+  children,
 }: {
   readonly name: string;
   readonly abbreviation?: string;
@@ -21,6 +23,8 @@ export function TvTeamSide({
   readonly roleLabel: string;
   readonly leading?: boolean;
   readonly leadingLabel?: string;
+  /** Shown below the side's tag, such as the side's match counters. */
+  readonly children?: ReactNode;
 }): React.JSX.Element {
   const club = clubId === undefined ? undefined : clubs?.find((c) => c.clubId === clubId);
 
@@ -48,6 +52,7 @@ export function TvTeamSide({
         </span>
       )}
       <span className="tv-team-side__role cl-chamfer">{roleLabel}</span>
+      {children}
     </div>
   );
 }

@@ -151,6 +151,28 @@ export interface RosterRoleDeclaration {
   readonly badge?: string;
 }
 
+/**
+ * A display-only tally of recorded events for one match, shown beside the
+ * score (team fouls, timeouts, cards). Counters never refuse or warn when a
+ * recording passes their allowance: a tally that reaches `warnAt` is only
+ * highlighted.
+ */
+export interface MatchCounterDefinition {
+  /** Kebab-case, unique within the descriptor. */
+  readonly code: string;
+  readonly label: string | LocalizedLabel;
+  /** At most three characters per language, for compact graphics. */
+  readonly shortLabel: string | LocalizedLabel;
+  /** Declared event-definition codes this counter tallies. At least one. */
+  readonly events: readonly string[];
+  /** `segment` counts only the active (or last) segment's events. */
+  readonly scope: 'match' | 'segment';
+  /** Shown as "used / allowed". Positive integer. */
+  readonly allowance?: number;
+  /** Highlighted at or above this value. Positive integer. */
+  readonly warnAt?: number;
+}
+
 export interface DisciplineDescriptor {
   readonly descriptorId: string;
   /** Stable catalogue identity, unique with `version` within an installation. */
@@ -200,6 +222,12 @@ export interface DisciplineDescriptor {
    * declared statistics.
    */
   readonly tableLayouts?: readonly TableLayoutDefinition[];
+  /**
+   * Display-only tallies shown beside the score of a match in play. A
+   * tournament ruleset may tune or hide one (`overrides['matchCounters']`).
+   * Absent means the discipline shows none.
+   */
+  readonly matchCounters?: readonly MatchCounterDefinition[];
   readonly scoringInputs: readonly ScoringInputDefinition[];
   /**
    * Points awarded by finishing position in a placement match, and the code the

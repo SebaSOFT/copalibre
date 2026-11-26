@@ -8,6 +8,7 @@ import {
 } from './tv-match-events.js';
 
 const report = (): PublicMatchReportResponse => ({
+  matchId: 'match-1',
   organizationAlias: 'liga-orbital',
   organizationName: 'Liga Orbital',
   tournamentAlias: 'apertura',

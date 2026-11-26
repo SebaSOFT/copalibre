@@ -30,6 +30,8 @@ import {
   PublicOrganizationLiveMatchResponse,
   PublicTournamentListingItemResponse,
   PublicTournamentWinnerZoneResponse,
+  PublicLivePenaltyResponse,
+  PublicMatchCounterResponse,
 } from '../dto/public-tournament.dto.js';
 import { TableLayoutListResponse, TableProjectionResponse } from '../dto/table-projections.dto.js';
 import { Kysely } from 'kysely';
@@ -88,6 +90,11 @@ import { generateFixtures } from '@copalibre/tournament-engine';
 import {
   resolveLabel,
   resolveEffectiveTableLayouts,
+  resolveEffectiveMatchCounters,
+  countMatchCounters,
+  type CountableRoster,
+  type RecordedEvent,
+  type Segment,
   ageAt,
   primaryScoreOf,
   effectiveFormat,
@@ -1078,6 +1085,42 @@ export class PublicProjectionsController {
     const clock =
       match.status === 'in-progress' ? publicClockOf(segments, descriptor, Date.now()) : undefined;
     const status = publicMatchStatus(match.status);
+    const rulesetData = await new TournamentRepository(this.db).findLatestRuleset(
+      tournament.tournamentId,
+    );
+    // Counters are shown while a match is in progress or once it is finalized. A match that is
+    // scheduled, forfeited or not required has no counters to show, so the field is omitted.
+    const counters =
+      match.status === 'in-progress' || match.status === 'finalized'
+        ? publicMatchCountersOf({
+            descriptor,
+            overrides: rulesetData?.overrides,
+            finished: status === 'final',
+            segments,
+            events,
+            rosters: rosterRows.map((roster) => ({
+              entrantId: roster.entrant_id,
+              members: roster.roster_members,
+            })),
+            entrantIds: [match.home_entrant_id, match.away_entrant_id],
+          })
+        : undefined;
+    // A page follows its match's stream when the discipline shows a counter or declares a timed penalty.
+    const tracksLiveIndicators =
+      resolveEffectiveMatchCounters(descriptor, rulesetData?.overrides).length > 0 ||
+      descriptor.eventDefinitions.some((definition) =>
+        (definition.effects ?? []).some((effect) => effect.kind === 'timed-penalty'),
+      );
+    const activePenalties =
+      match.status === 'in-progress'
+        ? livePenaltiesOf(
+            descriptor,
+            events,
+            await competition.resolvedTimerIds(match.match_id),
+            [match.home_entrant_id, match.away_entrant_id],
+            Date.now(),
+          )
+        : [];
     const stageName = stage.name.trim();
     const winnerEntrantId =
       status === 'final' &&
@@ -1218,6 +1261,10 @@ export class PublicProjectionsController {
             ]),
           }),
       ...(clock === undefined ? {} : { clock }),
+      ...(counters === undefined ? {} : { counters }),
+      matchId: match.match_id,
+      ...(tracksLiveIndicators ? { tracksLiveIndicators: true as const } : {}),
+      ...(activePenalties.length === 0 ? {} : { activePenalties }),
     };
   }
 
@@ -1257,42 +1304,37 @@ export class PublicProjectionsController {
       tournament.disciplineRef.descriptorId,
       tournament.disciplineRef.version,
     );
-    const timerStarts = Object.fromEntries(
-      (descriptor?.eventDefinitions ?? []).flatMap((definition) =>
-        (definition.effects ?? [])
-          .filter((effect) => effect.kind === 'timed-penalty')
-          .map((effect) => [definition.code, effect.durationSeconds]),
-      ),
+    const rulesetData = await new TournamentRepository(this.db).findLatestRuleset(
+      tournament.tournamentId,
     );
     const competition = new CompetitionRepository(this.db);
     const now = Date.now();
     const detailByMatch = await Promise.all(
       liveMatches.map(async (match) => {
-        const [events, resolvedTimerIds, segments] = await Promise.all([
+        const [events, resolvedTimerIds, segments, rosters] = await Promise.all([
           competition.listEvents(match.matchId),
           competition.resolvedTimerIds(match.matchId),
           competition.listSegments(match.matchId),
+          competition.matchRoster(match.matchId),
         ]);
-        const participants = new Set(
-          [match.homeEntrantId, match.awayEntrantId].filter((id): id is string => !!id),
-        );
-        const penalties = runningTimers(
+        const penalties = livePenaltiesOf(
+          descriptor,
           events,
-          { starts: timerStarts, stops: [] },
-          now,
           resolvedTimerIds,
-        ).flatMap((timer) => {
-          if (timer.side === undefined || !participants.has(timer.side)) return [];
-          return [
-            {
-              timerId: timer.timerId,
-              entrantId: timer.side,
-              remainingSeconds: timer.remainingSeconds,
-            },
-          ];
-        });
+          [match.homeEntrantId, match.awayEntrantId],
+          now,
+        );
         return {
           penalties,
+          counters: publicMatchCountersOf({
+            descriptor,
+            overrides: rulesetData?.overrides,
+            finished: false,
+            segments,
+            events,
+            rosters,
+            entrantIds: [match.homeEntrantId, match.awayEntrantId],
+          }),
           clock: publicClockOf(segments, descriptor, now),
           segments:
             descriptor === null || descriptor === undefined || segments.length === 0
@@ -1382,6 +1424,9 @@ export class PublicProjectionsController {
         ...(detailByMatch[index]?.segments.length
           ? { segments: detailByMatch[index]?.segments }
           : {}),
+        ...(detailByMatch[index]?.counters === undefined
+          ? {}
+          : { counters: detailByMatch[index]?.counters }),
         ...(detailByMatch[index]?.clock === undefined
           ? {}
           : { clock: detailByMatch[index]?.clock }),
@@ -2525,6 +2570,74 @@ function playerStatisticsResponse(
       cells: row.cells,
     })),
   };
+}
+
+/**
+ * The seconds left on each timed penalty in force against a side playing the match.
+ */
+function livePenaltiesOf(
+  descriptor: DisciplineDescriptor | null | undefined,
+  events: readonly RecordedEvent[],
+  resolvedTimerIds: ReadonlySet<string>,
+  sides: readonly (string | null | undefined)[],
+  now: number,
+): PublicLivePenaltyResponse[] {
+  if (!descriptor) return [];
+  const playing = new Set(sides.filter((id): id is string => typeof id === 'string' && id !== ''));
+  const starts = Object.fromEntries(
+    descriptor.eventDefinitions.flatMap((definition) =>
+      (definition.effects ?? [])
+        .filter((effect) => effect.kind === 'timed-penalty')
+        .map((effect) => [definition.code, effect.durationSeconds]),
+    ),
+  );
+  return runningTimers(events, { starts, stops: [] }, now, resolvedTimerIds).flatMap((timer) =>
+    timer.side === undefined || !playing.has(timer.side)
+      ? []
+      : [
+          {
+            timerId: timer.timerId,
+            entrantId: timer.side,
+            remainingSeconds: timer.remainingSeconds,
+          },
+        ],
+  );
+}
+
+/**
+ * The declared match counters of one match, tallied per side from its events. Counters are display
+ * only: a tally past its allowance is reported as it is. A finished match keeps match-scope counters.
+ * Absent when the discipline declares none, or the ruleset hides them all.
+ */
+function publicMatchCountersOf(input: {
+  readonly descriptor: DisciplineDescriptor | null | undefined;
+  readonly overrides: Parameters<typeof resolveEffectiveMatchCounters>[1];
+  readonly finished: boolean;
+  readonly segments: readonly Segment[];
+  readonly events: readonly RecordedEvent[];
+  readonly rosters: readonly CountableRoster[];
+  readonly entrantIds: readonly (string | null | undefined)[];
+}): PublicMatchCounterResponse[] | undefined {
+  if (!input.descriptor) return undefined;
+  const effective = resolveEffectiveMatchCounters(input.descriptor, input.overrides).filter(
+    (counter) => !input.finished || counter.scope === 'match',
+  );
+  if (effective.length === 0) return undefined;
+  const sides = input.entrantIds.filter((id): id is string => typeof id === 'string' && id !== '');
+  const tallies = countMatchCounters(effective, input.events, input.segments, input.rosters, sides);
+  return effective.map((counter) => ({
+    code: counter.code,
+    label: counter.label,
+    shortLabel: counter.shortLabel,
+    scope: counter.scope,
+    events: [...counter.events],
+    ...(counter.allowance === undefined ? {} : { allowance: counter.allowance }),
+    ...(counter.warnAt === undefined ? {} : { warnAt: counter.warnAt }),
+    values: (tallies.find((tally) => tally.code === counter.code)?.values ?? []).map((value) => ({
+      entrantId: value.entrantId,
+      value: value.value,
+    })),
+  }));
 }
 
 function publicScores(

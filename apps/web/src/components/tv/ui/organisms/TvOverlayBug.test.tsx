@@ -28,6 +28,7 @@ function renderBug(state: LiveMatch['state'], statusLabel: string) {
   return render(
     <TvOverlayBug
       clockLabels={clockLabels}
+      language="en"
       labels={labels}
       match={live}
       progress={tvMatchProgress(live, undefined, 'en')}

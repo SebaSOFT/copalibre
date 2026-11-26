@@ -20,6 +20,9 @@ export interface LiveScoreboardMatchPatch {
   readonly awayScore?: number;
   readonly homeEntrantId?: string;
   readonly awayEntrantId?: string;
+  /** The definition code and projection version of the latest recorded event, so a listener can tell a new one. */
+  readonly recordedEventCode?: string;
+  readonly recordedEventVersion?: number;
 }
 
 export interface LiveStreamStatus {
@@ -124,6 +127,13 @@ function applyMatchUpdatePatch(
     ...(homeScore === undefined ? {} : { homeScore }),
     ...(awayScore === undefined ? {} : { awayScore }),
     ...(clearedClock ? { clock: undefined, clockReceivedAt: undefined } : {}),
+    ...(event.eventType === 'match.event-recorded' &&
+    typeof event.payload.definitionCode === 'string'
+      ? {
+          recordedEventCode: event.payload.definitionCode,
+          recordedEventVersion: event.projectionVersion,
+        }
+      : {}),
   });
   streamStatus = { ...streamStatus, lastUpdatedAt: event.createdAt };
   notifyMatch(matchId);
@@ -137,9 +147,35 @@ const MATCH_UPDATE_EVENTS = new Set([
   'result.superseded',
 ]);
 
+const eventListeners = new Map<string, Set<(event: EventEnvelope) => void>>();
+
+/**
+ * Every public event of one match, as the stream delivered it, before the store's patch guard. The
+ * guard orders patches by projection version, which is not one sequence across event types (a seed,
+ * a clock change and a recorded event each carry their own), so a listener that must see every event
+ * subscribes here rather than to the patch.
+ */
+export function subscribeLiveScoreboardEvents(
+  matchId: string,
+  onEvent: (event: EventEnvelope) => void,
+): () => void {
+  let set = eventListeners.get(matchId);
+  if (!set) {
+    set = new Set();
+    eventListeners.set(matchId, set);
+  }
+  const listeners = set;
+  listeners.add(onEvent);
+  return () => {
+    listeners.delete(onEvent);
+    if (listeners.size === 0) eventListeners.delete(matchId);
+  };
+}
+
 export function publishLiveScoreboardEvent(event: EventEnvelope): void {
   const matchId = typeof event.payload.matchId === 'string' ? event.payload.matchId : undefined;
   if (!matchId) return;
+  for (const listener of eventListeners.get(matchId) ?? []) listener(event);
   const current = matchPatches.get(matchId);
   if (event.projectionVersion <= (current?.projectionVersion ?? 0)) return;
 

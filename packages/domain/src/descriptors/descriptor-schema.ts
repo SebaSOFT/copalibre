@@ -367,6 +367,9 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
     // a collector or statistic this discipline actually declares is a
     // whole-document question and lives in `validateDisciplineDescriptorDocument`.
     tableLayouts: { type: 'array', items: { $ref: '#/definitions/tableLayout' } },
+    // Optional, so a descriptor written before match counters stays valid. Event codes and
+    // the three-character short-label limit are checked in `validateDisciplineDescriptorDocument`.
+    matchCounters: { type: 'array', items: { $ref: '#/definitions/matchCounter' } },
     notificationRuleCapabilities: { type: 'array', items: { type: 'string', minLength: 1 } },
     winCondition: { $ref: RULE_SCRIPT_SCHEMA_ID },
     series: { $ref: '#/definitions/series' },
@@ -375,6 +378,21 @@ export const DISCIPLINE_DESCRIPTOR_SCHEMA: JsonSchemaDocument = Object.freeze({
     fieldPolicies: { type: 'object' },
   },
   definitions: {
+    /** A display-only match counter. Its event codes are a whole-document question (see the validator). */
+    matchCounter: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['code', 'label', 'shortLabel', 'events', 'scope'],
+      properties: {
+        code: { type: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$', maxLength: 64 },
+        label: LOCALIZED_LABEL_SCHEMA,
+        shortLabel: LOCALIZED_LABEL_SCHEMA,
+        events: { type: 'array', minItems: 1, items: { type: 'string', minLength: 1 } },
+        scope: { enum: ['match', 'segment'] },
+        allowance: { type: 'integer', minimum: 1 },
+        warnAt: { type: 'integer', minimum: 1 },
+      },
+    },
     /**
      * A collector. The structure is checked here; whether it names an
      * event this discipline defines, or a collector it declares, is a question
@@ -882,6 +900,39 @@ export function validateDisciplineDescriptorDocument(
         new DescriptorValidationError(
           `Table "${table.code}" declares column "${duplicateColumn}" more than once`,
           { field: 'tableLayouts', table: table.code, code: duplicateColumn },
+        ),
+      );
+    }
+  }
+
+  const duplicateCounter = firstDuplicate((descriptor.matchCounters ?? []).map((c) => c.code));
+  if (duplicateCounter) {
+    return err(
+      new DescriptorValidationError(
+        `Discipline descriptor declares match counter "${duplicateCounter}" more than once`,
+        { field: 'matchCounters', code: duplicateCounter },
+      ),
+    );
+  }
+  for (const [index, counter] of (descriptor.matchCounters ?? []).entries()) {
+    const unknownEvent = counter.events.find((code) => !definitionCodes.has(code));
+    if (unknownEvent !== undefined) {
+      return err(
+        new DescriptorValidationError(
+          `Match counter "${counter.code}" counts unknown event "${unknownEvent}"`,
+          { field: `matchCounters[${index}].events`, code: counter.code, event: unknownEvent },
+        ),
+      );
+    }
+    const shortLabels =
+      typeof counter.shortLabel === 'string'
+        ? [counter.shortLabel]
+        : Object.values(counter.shortLabel);
+    if (shortLabels.some((text) => Array.from(text).length > 3)) {
+      return err(
+        new DescriptorValidationError(
+          `Match counter "${counter.code}" short label is longer than three characters`,
+          { field: `matchCounters[${index}].shortLabel`, code: counter.code },
         ),
       );
     }

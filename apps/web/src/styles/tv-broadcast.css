@@ -159,6 +159,54 @@
   text-transform: uppercase;
 }
 
+.tv-match-counters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cl-space-4);
+}
+
+/* One side's counters. The side label and its values sit closer together than two sides do. */
+.tv-match-counter-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cl-space-2);
+}
+
+.tv-match-counter-cluster__side {
+  color: var(--cl-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-xs), 1.5vmin, var(--cl-font-size-base));
+  font-weight: 700;
+  letter-spacing: var(--cl-tracking-wide);
+  text-transform: uppercase;
+}
+
+.tv-match-counter {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--cl-space-2) var(--cl-space-3);
+  background-color: var(--cl-color-ink-950);
+  border: 1px solid currentColor;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-xs), 1.5vmin, var(--cl-font-size-base));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tv-match-counters--full .tv-match-counter {
+  font-size: clamp(var(--cl-font-size-sm), 1.8vmin, var(--cl-font-size-lg));
+}
+
+.tv-match-counter--warning {
+  color: var(--cl-state-warning);
+}
+
+.tv-match-counter__cue {
+  font-weight: 900;
+}
+
 .tv-scorebug__badge {
   display: inline-flex;
   align-items: center;
@@ -816,6 +864,26 @@
   align-items: center;
   gap: 1.5vmin;
   text-align: center;
+  min-width: 0;
+}
+
+/* A side's counters sit under its name and wrap inside the side's column, never widening it. */
+.tv-team-side .tv-match-counters {
+  justify-content: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.tv-team-side .tv-match-counter-cluster {
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.tv-team-side .tv-match-counter {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .tv-team-side__emblem-wrap {
@@ -2405,4 +2473,17 @@ html[data-tv-background='chroma'] .cl-ticker {
   .tv-progress__pip--current {
     animation: none;
   }
+}
+
+/* A side's name and its counters, stacked under the crest and aligned with the score row. */
+.tv-lower-third__side-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--cl-space-1);
+  min-width: 0;
+}
+
+.tv-lower-third__side--away .tv-lower-third__side-body {
+  align-items: flex-end;
 }

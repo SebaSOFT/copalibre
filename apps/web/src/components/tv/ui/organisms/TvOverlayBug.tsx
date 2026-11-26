@@ -1,3 +1,4 @@
+import type { SupportedLanguage } from '@copalibre/domain';
 import type { LiveMatch } from '../../../../lib/live-state.js';
 import type { TvMatchProgress } from '../../../../lib/tv-match-progress.js';
 import { LiveMatchClock, type LiveMatchClockLabels } from '../../../ui/atoms/LiveMatchClock.js';
@@ -6,6 +7,7 @@ import { stateHasScore } from '../../../../lib/result-state.js';
 import type { TvDashboardLabels } from '../../tv-types.js';
 import { TvStatusBadge } from '../atoms/TvStatusBadge.js';
 import type { TvStatusTone } from '../atoms/tv-status-tone.js';
+import { TvMatchCounters } from './TvMatchCounters.js';
 import { TvMatchIndicators } from './TvMatchIndicators.js';
 import { TvSeriesAndSets } from './TvSeriesAndSets.js';
 
@@ -17,6 +19,7 @@ export interface TvOverlayBugProps {
   readonly progress: TvMatchProgress;
   readonly clock?: LiveMatch['clock'];
   readonly clockLabels: LiveMatchClockLabels;
+  readonly language: SupportedLanguage;
 }
 
 /**
@@ -34,6 +37,7 @@ export function TvOverlayBug({
   progress,
   clock,
   clockLabels,
+  language,
 }: TvOverlayBugProps): React.JSX.Element {
   const [home, away] = match.sides;
   const showsScore = stateHasScore(match.state);
@@ -74,6 +78,12 @@ export function TvOverlayBug({
         match={match}
         possessionLabel={labels.possession}
         penaltyLabel={labels.penalty}
+      />
+      <TvMatchCounters
+        density="compact"
+        language={language}
+        match={match}
+        texts={labels.counters}
       />
     </div>
   );

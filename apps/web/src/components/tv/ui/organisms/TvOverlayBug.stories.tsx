@@ -32,6 +32,7 @@ const meta = {
     progress: tvMatchProgress(live, undefined, 'es'),
     clock: live.clock,
     clockLabels,
+    language: 'en',
   },
   parameters: { layout: 'fullscreen' },
   decorators: [

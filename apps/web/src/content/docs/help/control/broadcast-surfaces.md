@@ -59,6 +59,10 @@ An overlay shows only the match it was given: the one named in its address (`/tv
 
 `/tv` is a launcher that builds the address of a venue screen or an overlay: pick the organization, tournament and view (the rotating panel, the presentation or dashboard layout, the court grid, standings, the match list, a pinned match, or one of the three overlays), the background and the language. Overlays start on a transparent background, and each view shows a one-line description. The language changes the launcher's own labels immediately, without reloading. Stages are listed with their number and name, and matches are grouped by zone and group; each option reads its competition and round, the two entrants, the kickoff in the organization's time zone, the court, the state and its number (`#34`). The stage opens on the live match, else the next scheduled one, else the last. Following a court and pinning a match are two separate choices. The final address is shown with a copy button and previewed in a 16:9 frame, so it can be pasted into OBS.
 
+### Match counters
+
+A discipline may declare match counters: tallies of recorded events per side, such as team fouls, timeouts or cards. Each overlay shows the counters beside the score: in short form on the scorebug and the lower third (`F 4`, or `TM 1/1` when the discipline sets an allowance), and in full on a pinned match. A counter at its warning value takes the warning tone and a `!`, so it never depends on colour alone. A counter only highlights: a recording past its allowance is accepted, and the console never refuses or warns about it. The public match page shows the same tallies per side and, while the match is live, each timed penalty with the time left. A finished match keeps the counters that count the whole match and omits those that reset each segment.
+
 ## What a spectator sees on the public site
 
 The public site (no login) shows a tournament's standings, bracket, and match reports as they are

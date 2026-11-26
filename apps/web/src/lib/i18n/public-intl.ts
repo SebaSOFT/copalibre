@@ -272,6 +272,7 @@ export function tvDashboardLabels(intl: IntlShape) {
     bracketMatch: intl.formatMessage(messages.tvDashboardBracketMatch),
     possession: intl.formatMessage(messages.tvDashboardPossession),
     penalty: intl.formatMessage(messages.tvDashboardPenalty),
+    counters: matchCounterTexts(intl),
     clockLabel: intl.formatMessage(messages.tvDashboardClockLabel),
     clockStopped: intl.formatMessage(messages.tvDashboardClockStopped),
     clockAriaLabel: intl.formatMessage(messages.liveClockAriaLabel, {
@@ -995,4 +996,28 @@ export function formatClubStatus(
   return zone
     ? intl.formatMessage(messages.clubPageStatusEliminated, { zone, round })
     : intl.formatMessage(messages.clubPageStatusEliminatedRoundOnly, { round });
+}
+
+/** The match counter templates, raw for the island to fill: a function would not survive its JSON props. */
+export function matchCounterTexts(intl: IntlShape) {
+  return {
+    accessibleValue: intl.formatMessage(messages.matchCountersAccessibleValue, {
+      label: '{label}',
+      value: '{value}',
+    }),
+    accessibleAllowance: intl.formatMessage(messages.matchCountersAccessibleAllowance, {
+      label: '{label}',
+      value: '{value}',
+      allowance: '{allowance}',
+    }),
+    warning: intl.formatMessage(messages.matchCountersWarning),
+  };
+}
+
+/** The penalty template for a match page, with "{side}" and "{time}" left for the island to fill. */
+export function matchPenaltyTemplate(intl: IntlShape): string {
+  return intl.formatMessage(messages.matchCountersPenaltyRemaining, {
+    side: '{side}',
+    time: '{time}',
+  });
 }

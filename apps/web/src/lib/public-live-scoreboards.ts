@@ -40,6 +40,15 @@ function patchDomMatchScores(root: ParentNode, event: EventEnvelope): void {
 }
 
 /**
+ * Whether a projection-required signal reloads the page. A page that only waits for its match to start
+ * (`data-live-awaiting`) has no live projection to rebuild, so it is not reloaded; its islands refresh on
+ * their own.
+ */
+export function reloadsOnProjectionRequired(streamEl: HTMLElement | null | undefined): boolean {
+  return streamEl?.dataset.liveAwaiting === undefined;
+}
+
+/**
  * Page-tier live scoreboard subscriber.
  *
  * Connects to the tournament's public SSE stream and routes `match.clock-changed`,
@@ -68,7 +77,9 @@ export function mountPublicLiveScoreboards(root: ParentNode = document): () => v
       publishLiveScoreboardEvent(event);
       patchDomMatchScores(root, event);
     },
-    onProjectionRequired: () => globalThis.location?.reload(),
+    onProjectionRequired: () => {
+      if (reloadsOnProjectionRequired(streamEl)) globalThis.location?.reload();
+    },
   });
 
   const close = (): void => client.close();

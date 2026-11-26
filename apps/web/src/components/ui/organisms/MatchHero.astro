@@ -10,9 +10,15 @@ import Icon from '../atoms/Icon.astro';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
 import { formatTimeZoneParts } from '../../../lib/format-timestamp.ts';
 import { LiveMatchScoreboard } from '../molecules/LiveMatchScoreboard.tsx';
+import { LiveMatchCounters } from './LiveMatchCounters.tsx';
 import type { LiveMatchClock, LiveSegment } from '../../../lib/live-state.ts';
 import type { MatchReportModel } from '../../../lib/match-report.ts';
-import { formatEntrant, liveClockLabels } from '../../../lib/i18n/public-intl.ts';
+import {
+  formatEntrant,
+  liveClockLabels,
+  matchCounterTexts,
+  matchPenaltyTemplate,
+} from '../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { displayedScore } from '../../../lib/matches-view.ts';
 import { activeSegmentLabel } from '../../../lib/segment-label.ts';
@@ -32,6 +38,8 @@ export interface Props {
   readonly statusLabel: string;
   readonly rescheduledLabel?: string;
   readonly liveMatchId?: string;
+  /** The match's 1-based position in its stage, as the page's route addresses it. */
+  readonly matchOrdinal?: number;
   readonly homeEntrantId?: string;
   readonly awayEntrantId?: string;
   readonly liveClock?: LiveMatchClock;
@@ -52,6 +60,7 @@ const {
   statusLabel,
   rescheduledLabel,
   liveMatchId,
+  matchOrdinal,
   homeEntrantId,
   awayEntrantId,
   liveClock,
@@ -103,6 +112,10 @@ const awayAdvances =
 const homeEliminated = awayAdvances && !homeAdvances;
 const awayEliminated = homeAdvances && !awayAdvances;
 const advancesLabel = intl.formatMessage(messages.bracketAdvances);
+const counterSides = [
+  { entrantId: resolvedHomeEntrantId ?? '', name: home.fullName, place: 'home' as const },
+  { entrantId: resolvedAwayEntrantId ?? '', name: away.fullName, place: 'away' as const },
+];
 ---
 
 <header class="cl-match-hero">
@@ -188,6 +201,30 @@ const advancesLabel = intl.formatMessage(messages.bracketAdvances);
       </span>
     </div>
   </div>
+
+  {model.tracksLiveIndicators === true &&
+    (model.status !== 'final' || model.counters !== undefined) &&
+    organizationAlias &&
+    tournamentAlias &&
+    (model.matchId ?? liveMatchId) !== undefined &&
+    matchOrdinal !== undefined && (
+      <LiveMatchCounters
+        client:load
+        finished={model.status === 'final'}
+        initialCounters={model.counters ?? []}
+        initialPenalties={model.activePenalties ?? []}
+        language={resolvedLanguage}
+        live={model.status === 'live'}
+        matchId={model.matchId ?? liveMatchId ?? ''}
+        matchOrdinal={matchOrdinal}
+        organizationAlias={organizationAlias}
+        penaltyTemplate={matchPenaltyTemplate(intl)}
+        sides={counterSides}
+        stageNumber={model.stageNumber}
+        texts={matchCounterTexts(intl)}
+        tournamentAlias={tournamentAlias}
+      />
+    )}
 
   {model.scheduledAt ? (
     <p class="cl-match-venue">

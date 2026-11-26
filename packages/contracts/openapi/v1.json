@@ -21104,6 +21104,115 @@
           "payload"
         ]
       },
+      "PublicMatchCounterValueResponse": {
+        "type": "object",
+        "properties": {
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "value": {
+            "type": "number",
+            "description": "The tally for this side. Never clamped to the allowance."
+          }
+        },
+        "required": [
+          "entrantId",
+          "value"
+        ]
+      },
+      "PublicMatchCounterResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The discipline's own counter code"
+          },
+          "label": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "additionalProperties": true
+              }
+            ],
+            "description": "The counter label in every language the discipline wrote it in."
+          },
+          "shortLabel": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "additionalProperties": true
+              }
+            ],
+            "description": "The compact label, at most three characters per language."
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "match",
+              "segment"
+            ],
+            "description": "Whether the tally covers the whole match or resets each segment."
+          },
+          "allowance": {
+            "type": "number",
+            "description": "Shown as \"value / allowance\" when present"
+          },
+          "warnAt": {
+            "type": "number",
+            "description": "Highlighted at or above this value"
+          },
+          "events": {
+            "description": "The declared event codes this counter tallies, so a live client knows when to refresh.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicMatchCounterValueResponse"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "label",
+          "shortLabel",
+          "scope",
+          "events",
+          "values"
+        ]
+      },
+      "PublicLivePenaltyResponse": {
+        "type": "object",
+        "properties": {
+          "timerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "entrantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "remainingSeconds": {
+            "type": "number",
+            "description": "Seconds remaining at response time"
+          }
+        },
+        "required": [
+          "timerId",
+          "entrantId",
+          "remainingSeconds"
+        ]
+      },
       "PublicMatchReportResponse": {
         "type": "object",
         "properties": {
@@ -21165,6 +21274,18 @@
                 "qualifier": "#/components/schemas/QualifierFixtureSideSourceDto"
               }
             }
+          },
+          "matchId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The match id, so a page can follow its live stream before the match starts"
+          },
+          "tracksLiveIndicators": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Present for every status when the discipline shows a counter or declares a timed penalty: the page then follows the match stream"
           },
           "scheduleVersion": {
             "type": "number",
@@ -21325,9 +21446,24 @@
                 "$ref": "#/components/schemas/PublicMatchClockResponse"
               }
             ]
+          },
+          "counters": {
+            "description": "Declared match counters, omitted when the discipline shows none and for a match that is neither in progress nor finalized",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicMatchCounterResponse"
+            }
+          },
+          "activePenalties": {
+            "description": "Timed penalties in force, with the seconds left; present while the match is live",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicLivePenaltyResponse"
+            }
           }
         },
         "required": [
+          "matchId",
           "organizationAlias",
           "organizationName",
           "tournamentAlias",
@@ -21378,28 +21514,6 @@
         "required": [
           "entrantId",
           "score"
-        ]
-      },
-      "PublicLivePenaltyResponse": {
-        "type": "object",
-        "properties": {
-          "timerId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "entrantId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "remainingSeconds": {
-            "type": "number",
-            "description": "Seconds remaining at response time"
-          }
-        },
-        "required": [
-          "timerId",
-          "entrantId",
-          "remainingSeconds"
         ]
       },
       "PublicLiveMatchResponse": {
@@ -21538,6 +21652,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PublicLivePenaltyResponse"
+            }
+          },
+          "counters": {
+            "description": "Declared match counters, omitted when the discipline shows none and for a match that is neither in progress nor finalized",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicMatchCounterResponse"
             }
           }
         },

@@ -267,6 +267,8 @@ describe('public live projection timed penalties (integration)', () => {
     expect(match).toBeDefined();
     expect(match).not.toHaveProperty('activePenalties');
     expect(match).not.toHaveProperty('possessionEntrantId');
+    // The football descriptor declares no match counters, so the field is absent.
+    expect(match).not.toHaveProperty('counters');
   });
 
   it('reflects an authorized timed penalty on the public live projection, with audit and outbox side effects', async () => {

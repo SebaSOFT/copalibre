@@ -1,5 +1,6 @@
 import type { PreviousPlacement } from './reschedule.js';
 import type { EventEnvelope } from '@copalibre/realtime';
+import type { LocalizedLabel } from '@copalibre/domain';
 import { decide, type ResultState } from './result-state.js';
 
 /**
@@ -41,6 +42,19 @@ export interface LiveMatchClock {
   readonly asOf: string;
 }
 
+/** A declared match counter as a public projection carries it: one tally per side. */
+export interface LiveMatchCounter {
+  readonly code: string;
+  readonly label: string | LocalizedLabel;
+  readonly shortLabel: string | LocalizedLabel;
+  readonly scope: 'match' | 'segment';
+  /** The declared event codes this counter tallies. */
+  readonly events: readonly string[];
+  readonly allowance?: number;
+  readonly warnAt?: number;
+  readonly values: readonly { readonly entrantId: string; readonly value: number }[];
+}
+
 export interface LiveMatch {
   readonly matchId: string;
   readonly scheduleVersion?: number;
@@ -75,6 +89,8 @@ export interface LiveMatch {
     readonly entrantId: string;
     readonly remainingSeconds: number;
   }[];
+  /** Absent when the discipline declares no match counters. */
+  readonly counters?: readonly LiveMatchCounter[];
 }
 
 export interface LiveDashboard {

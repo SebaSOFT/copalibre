@@ -109,6 +109,8 @@ export const DESCRIPTOR_FIELD_EXPLANATIONS: Readonly<Record<string, string>> = {
     'Short console badge text (e.g. "GK", "C"). Falls back to `code` when absent.',
   tableLayouts:
     'The standard tables and rankings this discipline declares — group standings, top scorers, and the like. A tournament ruleset may replace this set entirely via `fieldPolicies["tableLayouts"]`.',
+  matchCounters:
+    'Display-only tallies of recorded events per side, shown beside the score of a match in play, such as team fouls or timeouts. Each counter names the events it tallies, a scope of match or segment, and an optional allowance and warning value. A counter never blocks a recording. A tournament ruleset may tune or hide a counter under `overrides.matchCounters`.',
   notificationRuleCapabilities:
     'Stable identifiers naming which notification-rule capabilities (from the core-owned registry) this discipline permits a tournament to configure custom scripts against.',
   winCondition:

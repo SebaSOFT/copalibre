@@ -127,9 +127,12 @@ export interface SnapshotScore {
 }
 
 /**
- * A match that was live and is no longer in the live projection (it finished, or the projection
- * dropped it) takes its state and score from the matches view. A match the live projection still
- * lists, or one with no snapshot entry, is returned as it is.
+ * A match that was live and is no longer in the live projection (it finished, or the projection dropped
+ * it) takes its state and score from the matches view, and with them it has left play: its penalties go,
+ * and so do its segment counters, which have no segment in play. Its match-scope counters stay as the
+ * final totals. A match with no entry in the matches view is returned as it is, since nothing is known
+ * about it. A match the live projection still lists, one the matches view reports live, or one that was
+ * never live is returned as it is too.
  */
 export function settleLeftLive(
   matches: readonly LiveMatch[],
@@ -139,6 +142,9 @@ export function settleLeftLive(
   return matches.map((match) => {
     if (match.state !== 'live' || liveIds.has(match.matchId)) return match;
     const settled = snapshot.get(match.matchId);
+    // The matches view still reports it live: it is playing, so its telemetry stays.
+    if (settled?.state === 'live') return match;
+    // No entry in the matches view (its fetch failed, or it does not list the match): nothing is known.
     if (settled === undefined) return match;
     const updated: { -readonly [K in keyof LiveMatch]: LiveMatch[K] } = {
       ...match,
@@ -149,12 +155,17 @@ export function settleLeftLive(
         score: (index === 0 ? settled.homeScore : settled.awayScore) ?? side.score,
       })),
     };
-    if (settled.state !== 'live') {
+    if (updated.state !== 'live') {
       delete updated.clock;
       delete updated.clockReceivedAt;
       delete updated.clockSeconds;
       delete updated.possessionEntrantId;
-      delete updated.activePenalties;
+    }
+    delete updated.activePenalties;
+    if (match.counters !== undefined) {
+      const finalTotals = match.counters.filter((counter) => counter.scope === 'match');
+      if (finalTotals.length > 0) updated.counters = finalTotals;
+      else delete updated.counters;
     }
     return updated;
   });

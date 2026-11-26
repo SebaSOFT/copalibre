@@ -59,6 +59,10 @@ Uma sobreposição mostra só o jogo que lhe foi dado: o nomeado em seu endereç
 
 `/tv` é um lançador que monta o endereço de uma tela do local ou de uma sobreposição: escolha a organização, o torneio e a visão (o painel rotativo, o layout de apresentação ou de painel, a grade de quadras, a classificação, a lista de jogos, um jogo fixado ou uma das três sobreposições), o fundo e o idioma. As sobreposições começam com fundo transparente, e cada visão mostra uma descrição de uma linha. O idioma muda os rótulos do lançador na hora, sem recarregar. As fases aparecem com número e nome, e os jogos são agrupados por zona e grupo; cada opção mostra a competição e a rodada, as duas equipes, o horário de início no fuso da organização, a quadra, o estado e o número (`#34`). A fase abre no jogo ao vivo, senão no próximo programado, senão na última. Seguir uma quadra e fixar um jogo são duas escolhas separadas. O endereço final é mostrado com um botão de copiar e uma prévia em quadro 16:9, para colar no OBS.
 
+### Contadores da partida
+
+Uma modalidade pode declarar contadores da partida: totais de eventos registrados por lado, como faltas de equipe, tempos técnicos ou cartões. Cada overlay mostra os contadores ao lado do placar: em forma curta no scorebug e no lower third (`F 4`, ou `TM 1/1` quando a modalidade define um limite), e em forma completa em uma partida fixada. Um contador no valor de alerta assume o tom de alerta e um `!`, de modo que nunca depende só da cor. O contador apenas destaca: um registro acima do limite é aceito, e o console nunca o recusa nem avisa. A página pública da partida mostra os mesmos totais por lado e, enquanto a partida estiver ao vivo, cada penalização temporária com o tempo restante. Uma partida encerrada mantém os contadores que valem para a partida inteira e omite os que reiniciam a cada segmento.
+
 ## O que um espectador vê no site público
 
 O site público (sem login) mostra a classificação, a chave e os relatórios de partida de um torneio

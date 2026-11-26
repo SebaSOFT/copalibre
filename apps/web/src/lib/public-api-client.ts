@@ -474,6 +474,7 @@ export function mapLiveResponse(response: PublicLiveResponse): LiveDashboard {
         ? {}
         : { possessionEntrantId: m.possessionEntrantId }),
       ...(m.activePenalties === undefined ? {} : { activePenalties: m.activePenalties }),
+      ...(m.counters === undefined ? {} : { counters: m.counters }),
       sides: m.sides.map((s) => ({
         entrantId: s.entrantId,
         name: s.name,

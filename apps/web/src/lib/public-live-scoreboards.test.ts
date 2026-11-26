@@ -2,7 +2,10 @@ import { jest } from '@jest/globals';
 import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
 import { resetLiveScoreboardStore } from './live-scoreboard-store.js';
 import { useLiveScoreboardPatch, useLiveStreamStatus } from './live-scoreboard-hooks.js';
-import { mountPublicLiveScoreboards } from './public-live-scoreboards.js';
+import {
+  mountPublicLiveScoreboards,
+  reloadsOnProjectionRequired,
+} from './public-live-scoreboards.js';
 import { act, renderHook } from '@testing-library/react';
 
 describe('mountPublicLiveScoreboards', () => {
@@ -151,5 +154,11 @@ describe('mountPublicLiveScoreboards', () => {
 
     stop();
     expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+  it('reloads on a projection-required signal only a page that does not just await its match', () => {
+    const awaiting = document.createElement('div');
+    awaiting.dataset.liveAwaiting = '';
+    expect(reloadsOnProjectionRequired(awaiting)).toBe(false);
+    expect(reloadsOnProjectionRequired(document.createElement('div'))).toBe(true);
   });
 });

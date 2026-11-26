@@ -60,6 +60,10 @@ Ein Overlay zeigt nur das Spiel, das ihm genannt wurde: das in seiner Adresse (`
 
 `/tv` ist ein Starter, der die Adresse einer Hallenanzeige oder eines Overlays zusammenstellt: Organisation, Turnier und Ansicht wählen (das rotierende Panel, das Präsentations- oder Dashboard-Layout, das Feldraster, die Tabelle, die Spielliste, ein angeheftetes Spiel oder eines der drei Overlays), dazu Hintergrund und Sprache. Overlays starten mit transparentem Hintergrund, und jede Ansicht zeigt eine kurze Beschreibung. Die Sprache ändert die Beschriftungen des Starters sofort, ohne Neuladen. Phasen werden mit Nummer und Name aufgeführt, Spiele nach Zone und Gruppe gruppiert; jede Option nennt Wettbewerb und Runde, die beiden Teams, den Anstoß in der Zeitzone der Organisation, den Platz, den Status und die Nummer (`#34`). Die Phase öffnet sich auf dem Live-Spiel, sonst auf dem nächsten angesetzten, sonst auf der letzten. Einen Platz verfolgen und ein Spiel anheften sind zwei getrennte Auswahlen. Die fertige Adresse wird mit einer Kopierschaltfläche angezeigt und in einem 16:9-Rahmen als Vorschau gezeigt, damit sie in OBS eingefügt werden kann.
 
+### Zähler des Spiels
+
+Eine Disziplin kann Spielzähler deklarieren: Summen der erfassten Ereignisse je Seite, etwa Mannschaftsfouls, Auszeiten oder Karten. Jedes Overlay zeigt die Zähler neben dem Ergebnis: kurz auf dem Scorebug und dem Lower Third (`F 4`, oder `TM 1/1`, wenn die Disziplin ein Limit festlegt), ausführlich bei einem angehefteten Spiel. Ein Zähler auf seinem Warnwert erhält den Warnton und ein `!`, sodass nie allein die Farbe die Information trägt. Ein Zähler hebt nur hervor: Eine Erfassung über dem Limit wird angenommen, und die Konsole verweigert oder warnt nie. Die öffentliche Spielseite zeigt dieselben Summen je Seite und, während das Spiel läuft, jede zeitliche Strafe mit der verbleibenden Zeit. Ein beendetes Spiel behält die Zähler, die für das ganze Spiel gelten, und lässt jene aus, die je Segment zurückgesetzt werden.
+
 ## Was ein Zuschauer auf der öffentlichen Website sieht
 
 Die öffentliche Website (ohne Anmeldung) zeigt Tabellen, Turnierbaum und Spielberichte eines Turniers so,
