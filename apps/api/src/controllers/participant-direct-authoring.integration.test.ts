@@ -9,11 +9,9 @@ import {
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { buildTestApp } from './test-support/integration-harness.js';
-import {
-  DisciplinesController,
-  EntrantsController,
-  RegistrationsController,
-} from './registrations.controller.js';
+import { DisciplinesController } from './disciplines.controller.js';
+import { EntrantsController } from './entrants.controller.js';
+import { RegistrationsController } from './registrations.controller.js';
 
 /**
  * Direct participant authoring: a person or team registered

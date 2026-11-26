@@ -1,9 +1,7 @@
 import { Module } from '@nestjs/common';
-import {
-  DisciplinesController,
-  EntrantsController,
-  RegistrationsController,
-} from '../controllers/registrations.controller.js';
+import { DisciplinesController } from '../controllers/disciplines.controller.js';
+import { EntrantsController } from '../controllers/entrants.controller.js';
+import { RegistrationsController } from '../controllers/registrations.controller.js';
 import {
   ParticipantIdentityLinksController,
   ParticipantsController,
