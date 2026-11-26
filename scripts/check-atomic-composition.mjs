@@ -199,9 +199,7 @@ function isLayoutPrimitive(path) {
  *
  * The two remaining public/broadcast entries above
  * `MatchCard.tsx` were surveyed and neither occurrence is primitive-convertible, for
- * reasons specific to each: `TvDashboard.tsx`'s three (two of
- * them were split out into `TvPerformersView.tsx` and `TvStandingsTable.tsx` alongside
- * the components carrying them) are `vmin`-scaled padding for
+ * reasons specific to each: `TvFocalPanel.tsx`'s one (moved from `TvDashboard.tsx`) is `vmin`-scaled padding for
  * broadcast-continuous sizing, which the fixed token scale `Box`'s
  * `padding` resolves to cannot express without changing how the overlay
  * actually scales; `AstroPreview.tsx`'s one styles an `<iframe>`, an element
@@ -227,7 +225,7 @@ function isLayoutPrimitive(path) {
  * own styling once, not once per render.
  */
 export const KNOWN_INLINE_LAYOUT = new Map([
-  ['components/tv/TvDashboard.tsx', 1],
+  ['components/tv/TvFocalPanel.tsx', 1],
   ['components/tv/TvPerformersView.tsx', 1],
   ['components/tv/ui/organisms/TvStandingsTable.tsx', 1],
   ['components/ui/AstroPreview.tsx', 1],
@@ -296,7 +294,7 @@ function withoutVarCalls(text) {
 
 /**
  * Debt recorded 2026-09-11: inline style objects with a raw value outside
- * `var()`, per file. `TvDashboard.tsx`'s `vmin` value is deliberate
+ * `var()`, per file. `TvFocalPanel.tsx`'s `vmin` value is deliberate
  * broadcast-continuous scaling, no token expresses it; `AstroPreview.tsx`
  * styles a raw `<iframe>` — neither is this rule's concern to convert.
  *
@@ -316,7 +314,7 @@ function withoutVarCalls(text) {
  * its `KNOWN_INLINE_LAYOUT` paydown above.
  */
 export const KNOWN_RAW_STYLE_VALUES = new Map([
-  ['components/tv/TvDashboard.tsx', 1],
+  ['components/tv/TvFocalPanel.tsx', 1],
   ['components/ui/AstroPreview.tsx', 1],
   ['control/components/ControlApp.tsx', 8],
   ['control/components/NativeAuthRoutes.tsx', 7],
