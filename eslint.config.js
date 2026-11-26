@@ -20,6 +20,7 @@ export default tseslint.config(
       // for code this repository neither writes nor ships.
       '.claude/skills/**',
       '.tmp/**',
+      '.artifacts/**',
       'playwright-report/**',
       'test-results/**',
       // Build artifacts copied into place at build time (the OpenAPI
