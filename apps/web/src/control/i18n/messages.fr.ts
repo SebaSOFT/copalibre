@@ -1254,7 +1254,7 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.publish': 'Publier le calendrier',
   'control.scheduleBuilder.streamUrl': 'Lien de diffusion',
   'control.scheduleBuilder.streamUrlInvalid':
-    'Saisissez un lien complet commençant par http:// ou https://',
+    'Saisissez un lien complet, de 2048 caractères maximum, commençant par http:// ou https://',
   'control.scheduleBuilder.streamUrlEdit': 'Modifier la diffusion',
   'control.scheduleBuilder.streamUrlSave': 'Enregistrer le lien',
   'control.scheduleBuilder.streamUrlClear': 'Retirer le lien',

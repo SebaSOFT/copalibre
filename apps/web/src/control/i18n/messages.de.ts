@@ -1255,7 +1255,7 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.publish': 'Spielplan veröffentlichen',
   'control.scheduleBuilder.streamUrl': 'Übertragungslink',
   'control.scheduleBuilder.streamUrlInvalid':
-    'Gib einen vollständigen Link ein, der mit http:// oder https:// beginnt',
+    'Gib einen vollständigen Link mit höchstens 2048 Zeichen ein, der mit http:// oder https:// beginnt',
   'control.scheduleBuilder.streamUrlEdit': 'Übertragung bearbeiten',
   'control.scheduleBuilder.streamUrlSave': 'Link speichern',
   'control.scheduleBuilder.streamUrlClear': 'Link entfernen',
