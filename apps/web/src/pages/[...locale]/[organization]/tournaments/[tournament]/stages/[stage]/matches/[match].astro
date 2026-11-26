@@ -275,7 +275,10 @@ const stakeLines =
 // as the page's own game labels, and link to the same page with `?game=N`.
 const gameSwitcherItems = (response.games ?? []).map((game) => ({
   stageNumber: game.number,
-  label: intl.formatMessage(messages.matchReportGameNumber, { number: game.number }),
+  label: intl.formatMessage(messages.matchReportGameNumber, {
+    number: game.number,
+    total: (response.games ?? []).length,
+  }),
   href: `${Astro.url.pathname}?game=${game.number}`,
 }));
 const trailBase = trailBaseOf({

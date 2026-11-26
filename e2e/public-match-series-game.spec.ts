@@ -128,17 +128,17 @@ test.describe('series games on the match page', () => {
   }) => {
     await page.goto(`${PAGE}?game=2`);
 
-    const switcher = page.getByRole('navigation', { name: 'Juegos de la serie' });
+    const switcher = page.getByRole('navigation', { name: 'Partidos de la serie' });
     await expect(switcher.getByRole('link')).toHaveCount(3);
-    await expect(switcher.getByRole('link', { name: 'Juego 2' })).toHaveAttribute(
+    await expect(switcher.getByRole('link', { name: 'Partido 2 de 3' })).toHaveAttribute(
       'aria-current',
       'page',
     );
-    await expect(switcher.getByRole('link', { name: 'Juego 1' })).not.toHaveAttribute(
+    await expect(switcher.getByRole('link', { name: 'Partido 1 de 3' })).not.toHaveAttribute(
       'aria-current',
       'page',
     );
-    await expect(switcher.getByRole('link', { name: 'Juego 2' })).toHaveAttribute(
+    await expect(switcher.getByRole('link', { name: 'Partido 2 de 3' })).toHaveAttribute(
       'href',
       `${PAGE}?game=2`,
     );
@@ -154,15 +154,15 @@ test.describe('series games on the match page', () => {
   }) => {
     await page.goto(PAGE);
 
-    const gameTwo = page.getByRole('link', { name: /^Juego 2:/ });
+    const gameTwo = page.getByRole('link', { name: /^Partido 2 de 3:/ });
     await expect(gameTwo).toHaveAttribute('href', `${PAGE}?game=2`);
     // Game 3 is still to be scheduled, so its segment is not a link.
-    await expect(page.getByRole('link', { name: /^Juego 3:/ })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: /^Partido 3 de 3:/ })).toHaveCount(0);
     await gameTwo.click();
 
     await expect(page).toHaveURL(/\?game=2$/);
-    const switcher = page.getByRole('navigation', { name: 'Juegos de la serie' });
-    await expect(switcher.getByRole('link', { name: 'Juego 2' })).toHaveAttribute(
+    const switcher = page.getByRole('navigation', { name: 'Partidos de la serie' });
+    await expect(switcher.getByRole('link', { name: 'Partido 2 de 3' })).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -177,8 +177,8 @@ test.describe('series games on the match page', () => {
   }) => {
     for (const path of [PAGE, `${PAGE}?game=abc`, `${PAGE}?game=0`]) {
       await page.goto(path);
-      const switcher = page.getByRole('navigation', { name: 'Juegos de la serie' });
-      await expect(switcher.getByRole('link', { name: 'Juego 1' })).toHaveAttribute(
+      const switcher = page.getByRole('navigation', { name: 'Partidos de la serie' });
+      await expect(switcher.getByRole('link', { name: 'Partido 1 de 3' })).toHaveAttribute(
         'aria-current',
         'page',
       );

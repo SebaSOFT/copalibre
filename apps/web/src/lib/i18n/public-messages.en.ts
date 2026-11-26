@@ -630,7 +630,7 @@ export const messages = defineMessages({
   },
   matchReportGameNumber: {
     id: 'publicWeb.matchReport.gameNumber',
-    defaultMessage: 'Game {number}',
+    defaultMessage: 'Game {number} of {total}',
   },
   matchReportGamesLabel: {
     id: 'publicWeb.matchReport.gamesLabel',
