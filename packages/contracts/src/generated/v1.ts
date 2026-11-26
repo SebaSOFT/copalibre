@@ -796,6 +796,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/organizations/{organizationAlias}/tournaments/{tournamentAlias}/stages/{stageId}/schedule/matches/{matchId}/stream-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set or clear a match's stream link
+         * @description The link must be an absolute http or https URL of at most 2048 characters, or null to clear it. The change is audited. No result, standing or schedule rule reads the link.
+         */
+        put: operations["SchedulesController_setStreamUrl"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/organizations/{organizationAlias}/schedule": {
         parameters: {
             query?: never;
@@ -4495,6 +4515,22 @@ export interface components {
             /** @description Slots those withdrawals free */
             freedSlotIds: string[];
         };
+        MatchStreamUrlRequest: {
+            /**
+             * @description Absolute http or https link to the broadcast, or null to clear it
+             * @example https://example.org/live/semifinal-1
+             */
+            streamUrl: string | null;
+        };
+        MatchStreamUrlResponse: {
+            /**
+             * Format: uuid
+             * @description The match whose link changed
+             */
+            matchId: string;
+            /** @description The stored link, or null when cleared */
+            streamUrl: string | null;
+        };
         OrganizationScheduleEntryResponse: {
             /** Format: uuid */
             matchId: string;
@@ -5638,6 +5674,8 @@ export interface components {
              * @description First match of this fixture — the only one unless it declares a series
              */
             matchId: string;
+            /** @description The first match’s stream link, when the organizer attached one */
+            streamUrl?: string;
             /**
              * @description 1-based round within the stage
              * @example 1
@@ -6257,6 +6295,18 @@ export interface components {
             home: components["schemas"]["PublicMatchRosterMemberResponse"][];
             away: components["schemas"]["PublicMatchRosterMemberResponse"][];
         };
+        PublicRegisteredSquadMemberResponse: {
+            /** Format: uuid */
+            personId?: string;
+            name?: string;
+            hiddenAtRequest?: boolean;
+            publicProfileAvailable: boolean;
+            nationality?: string;
+        };
+        PublicRegisteredSquadsResponse: {
+            home?: components["schemas"]["PublicRegisteredSquadMemberResponse"][];
+            away?: components["schemas"]["PublicRegisteredSquadMemberResponse"][];
+        };
         PublicRosterRoleResponse: {
             code: string;
             badge?: string;
@@ -6280,6 +6330,10 @@ export interface components {
             occurredAt: string;
             sequence: number;
             segmentNumber?: number;
+            /** @description Seconds into its segment when recorded; absent for an untimed segment and for events recorded before it was stored */
+            segmentElapsedSeconds?: number;
+            /** @description The score [home, away] after this event, on every event that changes the score: the last one equals the final score */
+            scoreAfter?: number[];
             /** Format: uuid */
             side?: string;
             /** Format: uuid */
@@ -6385,6 +6439,26 @@ export interface components {
             awayAbbreviation?: string;
             /** @description Away club's alias, when present */
             awayClubAlias?: string;
+            /**
+             * Format: uuid
+             * @description Home club's id, for its crest
+             */
+            homeClubId?: string;
+            /**
+             * Format: uuid
+             * @description Home club's emblem object, for its crest
+             */
+            homeEmblemObjectId?: string;
+            /**
+             * Format: uuid
+             * @description Away club's id, for its crest
+             */
+            awayClubId?: string;
+            /**
+             * Format: uuid
+             * @description Away club's emblem object, for its crest
+             */
+            awayEmblemObjectId?: string;
             homeScore?: number;
             awayScore?: number;
             /** Format: date-time */
@@ -6393,6 +6467,10 @@ export interface components {
             schedulePublished: boolean;
             officials: components["schemas"]["PublicMatchOfficialResponse"][];
             rosters: components["schemas"]["PublicMatchRostersResponse"];
+            /** @description Each team side’s registered players, present only for a scheduled match whose side has no match-day roster recorded yet */
+            registeredSquads?: components["schemas"]["PublicRegisteredSquadsResponse"];
+            /** @description The link the match is watched through, when the organizer attached one */
+            streamUrl?: string;
             /** @description The discipline's declared roster roles, so a client can label each member's role codes. */
             rosterRoles?: components["schemas"]["PublicRosterRoleResponse"][];
             timeline: components["schemas"]["PublicMatchEventResponse"][];
@@ -9436,6 +9514,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SchedulePreviewResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemResponse"];
+                };
+            };
+        };
+    };
+    SchedulesController_setStreamUrl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                organizationAlias: string;
+                tournamentAlias: string;
+                stageId: string;
+                matchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchStreamUrlRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchStreamUrlResponse"];
                 };
             };
             401: {
