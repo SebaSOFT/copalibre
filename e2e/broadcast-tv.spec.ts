@@ -462,9 +462,7 @@ async function mockOpenStream(page: Page): Promise<void> {
   });
 }
 
-test('recovers silently from a mid-session drop, with no error UI ever shown (8.1)', async ({
-  page,
-}) => {
+test('recovers silently from a mid-session drop, with no error UI ever shown', async ({ page }) => {
   await mockDroppedThenRecoveredStream(page);
   await gotoTv(page, `${TV_PATH}?token=kiosk-token`);
 
@@ -480,9 +478,7 @@ test('recovers silently from a mid-session drop, with no error UI ever shown (8.
   ).toHaveCount(0);
 });
 
-test('renders a transparent, chrome-free background under ?mode=overlay (8.2)', async ({
-  page,
-}) => {
+test('renders a transparent, chrome-free background under ?mode=overlay', async ({ page }) => {
   await mockOpenStream(page);
   await gotoTv(page, `${TV_PATH}?mode=overlay&token=kiosk-token`);
 
@@ -505,9 +501,7 @@ test('renders a transparent, chrome-free background under ?mode=overlay (8.2)', 
   await expect(page.getByRole('link')).toHaveCount(0);
 });
 
-test('resumes rendering after a simulated power cycle, with no login prompt (8.3)', async ({
-  page,
-}) => {
+test('resumes rendering after a simulated power cycle, with no login prompt', async ({ page }) => {
   await mockOpenStream(page);
   await gotoTv(page, `${TV_PATH}?token=kiosk-token`);
   await expect(page.getByText('Talleres de Mendoza')).toBeVisible();
@@ -800,7 +794,7 @@ test('the pinned route keeps the court names of the presentation layout next mat
   await expect(nextMatches.first().locator('small').last()).toHaveText(/Cancha/);
 });
 
-test('the pinned match and the kiosk list the same featured player first, and the header holds still across a rail rotation (8.9)', async ({
+test('the pinned match and the kiosk list the same featured player first, and the header holds still across a rail rotation', async ({
   page,
 }) => {
   clockFixtureMode = 'timed';

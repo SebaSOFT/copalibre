@@ -67,7 +67,7 @@ describe('object processing through the relay, against real clamd (integration)'
     expect(pass.failed).toBe(0);
   }
 
-  it('stores an object with a correctly-linked, organization-scoped metadata row (6.1)', async () => {
+  it('stores an object with a correctly-linked, organization-scoped metadata row', async () => {
     const storage = createObjectStorageAdapter({
       profile: 'filesystem',
       rootDirectory: storageRoot,
@@ -104,7 +104,7 @@ describe('object processing through the relay, against real clamd (integration)'
     expect(events[0]?.payload).toEqual({ objectId: saved.objectId });
   });
 
-  it('marks a clean object passed after a real relay pass through real clamd (6.2)', async () => {
+  it('marks a clean object passed after a real relay pass through real clamd', async () => {
     const storage = createObjectStorageAdapter({
       profile: 'filesystem',
       rootDirectory: storageRoot,
@@ -168,7 +168,7 @@ describe('object processing through the relay, against real clamd (integration)'
     await expect(storage.get({ key: `${reference.key}.thumbnail` })).rejects.toThrow();
   });
 
-  it('marks an EICAR-flagged object failed and audited, never passed, after a real relay pass through real clamd (6.3)', async () => {
+  it('marks an EICAR-flagged object failed and audited, never passed, after a real relay pass through real clamd', async () => {
     const storage = createObjectStorageAdapter({
       profile: 'filesystem',
       rootDirectory: storageRoot,

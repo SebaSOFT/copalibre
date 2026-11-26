@@ -5109,7 +5109,7 @@ describe('localized deciding factor, event kinds, and listing discipline name', 
 });
 
 describe('overview table-projection preview, listing progress/schedule/venueCount, and banded bracket offsets', () => {
-  it('serves overview standingsPreview from group-phase table projection with groupName, group-relative ranks, stages[], and banded bracket overallPlaceOffset', async () => {
+  it('serves the overview standings preview from the group-phase table projection', async () => {
     const tournaments = new TournamentRepository(scratch.db);
     const competition = new CompetitionRepository(scratch.db);
     const enrollments = new EnrollmentRepository(scratch.db);

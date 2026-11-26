@@ -192,7 +192,7 @@ describe('series accounting grain (integration)', () => {
     await scratch.db.destroy();
   });
 
-  it('6.1: accounts a decided series as one result per side, with a counted total of one', async () => {
+  it('accounts a decided series as one result per side, with a counted total of one', async () => {
     const seeded = await seedTournament(scratch.db, {
       seriesOverrides: {
         'series.span': 3,
@@ -241,7 +241,7 @@ describe('series accounting grain (integration)', () => {
     expect(bravo?.statistics.played).toBe(1);
   });
 
-  it('6.2: accounts every played match under match grain, with the unplayed game contributing nothing', async () => {
+  it('accounts every played match under match grain, with the unplayed game contributing nothing', async () => {
     const seeded = await seedTournament(scratch.db, {
       seriesOverrides: {
         'series.span': 3,
@@ -286,7 +286,7 @@ describe('series accounting grain (integration)', () => {
     expect(alfa?.statistics.played).toBe(2);
   });
 
-  it('6.3: a stage declaring no series reports no grain and is unchanged from before this change', async () => {
+  it('a stage declaring no series reports no grain and keeps per-match accounting', async () => {
     const seeded = await seedTournament(scratch.db, { seriesOverrides: {} });
 
     await playGame(scratch.db, {
@@ -315,7 +315,7 @@ describe('series accounting grain (integration)', () => {
     expect(alfa?.statistics.played).toBe(1);
   });
 
-  it('6.4: returns a stored snapshot verbatim, reported as match grain rather than recomputed', async () => {
+  it('returns a stored snapshot verbatim, reported as match grain rather than recomputed', async () => {
     const seeded = await seedTournament(scratch.db, {
       seriesOverrides: {
         'series.span': 3,

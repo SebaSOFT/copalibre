@@ -642,7 +642,7 @@ test.describe('tournament overview progress and rules', () => {
     await expect(resultsSection).toContainText('Valenciano');
   });
 
-  test('4.1: on the 72-match demo scale, kickoff is in the first viewport and the page stays below 2,650px', async ({
+  test('on the 72-match demo scale, kickoff is in the first viewport and the page stays below 2,650px', async ({
     page,
   }) => {
     demoScaleOverview = true;
@@ -708,7 +708,7 @@ test.describe('tournament overview progress and rules', () => {
     ).toBe(true);
   });
 
-  test('overview keeps finals out of now strip, groups upcoming and results by day with day-or-date compact times, renders time-zone note once, and orders ticker by state and time', async ({
+  test('overview groups upcoming matches and results by day, with one time-zone note and a state-ordered ticker', async ({
     page,
   }) => {
     scheduleDaysOverview = true;

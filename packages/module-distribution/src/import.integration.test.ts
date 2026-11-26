@@ -109,7 +109,7 @@ describe('importValidatedModule (integration)', () => {
     return { report, directory };
   }
 
-  it('imports a valid discipline end to end: row persisted, module recorded under its real source (7.1)', async () => {
+  it('imports a valid discipline end to end: row persisted, module recorded under its real source', async () => {
     const alias = `orbital-frisbee-${newId()}`;
     const { report } = await importFixture(
       validManifest({ alias }),
@@ -134,7 +134,7 @@ describe('importValidatedModule (integration)', () => {
     expect(descriptor?.alias).toBe(alias);
   });
 
-  it('imports a valid discipline with an asset, persisting an object-storage reference (7.1)', async () => {
+  it('imports a valid discipline with an asset, persisting an object-storage reference', async () => {
     const alias = `orbital-frisbee-${newId()}`;
     const directory = await makeModuleDirectory(
       validManifest({ alias, assets: [{ path: 'logo.png', kind: 'logo' }] }),
@@ -205,7 +205,7 @@ describe('importValidatedModule (integration)', () => {
     },
   );
 
-  it('leaves no row or asset behind when the object-storage upload fails (7.2)', async () => {
+  it('leaves no row or asset behind when the object-storage upload fails', async () => {
     const alias = `orbital-frisbee-${newId()}`;
     class FailingStorage extends FakeObjectStorage {
       override async put(): Promise<{ bucket: string; key: string }> {
@@ -235,7 +235,7 @@ describe('importValidatedModule (integration)', () => {
     expect(descriptorVersions).toHaveLength(0);
   });
 
-  it('leaves no row or asset behind when the DB transaction fails after assets already uploaded (7.2)', async () => {
+  it('leaves no row or asset behind when the DB transaction fails after assets already uploaded', async () => {
     const alias = `orbital-frisbee-${newId()}`;
     // Install once for real, then attempt a second import of the SAME
     // alias/version under different attribution — ModuleAliasConflictError
@@ -284,7 +284,7 @@ describe('importValidatedModule (integration)', () => {
     expect(deletedKeys).toEqual([]);
   });
 
-  it('refuses removing a module referenced by a started tournament (7.3)', async () => {
+  it('refuses removing a module referenced by a started tournament', async () => {
     const alias = `orbital-frisbee-${newId()}`;
     await importFixture(validManifest({ alias }), validDisciplineDocument({ alias }));
     const [installed] = await new InstalledModuleRepository(db).findByAlias(alias);
@@ -340,7 +340,7 @@ describe('importValidatedModule (integration)', () => {
     expect(stillInstalled).toHaveLength(1);
   });
 
-  it('reports unsatisfied required capabilities and installs only with an explicit override (7.4)', async () => {
+  it('reports unsatisfied required capabilities and installs only with an explicit override', async () => {
     const profileAlias = `weekend-cup-${newId()}`;
     const directory = await makeModuleDirectory(
       validManifest({ kind: 'tournament-profile', alias: profileAlias }),
@@ -375,7 +375,7 @@ describe('importValidatedModule (integration)', () => {
     expect(await new InstalledModuleRepository(db).findByAlias(profileAlias)).toHaveLength(1);
   });
 
-  it('installs a profile immediately, no override needed, when an installed discipline already satisfies it (7.4)', async () => {
+  it('installs a profile immediately, no override needed, when an installed discipline already satisfies it', async () => {
     const disciplineAlias = `orbital-frisbee-${newId()}`;
     await importFixture(
       validManifest({ alias: disciplineAlias }),
@@ -390,7 +390,7 @@ describe('importValidatedModule (integration)', () => {
     expect(report.unsatisfiedRequiredCapabilities).toEqual([]);
   });
 
-  it('module verify detects an installed discipline referencing a retired registry identifier (7.5)', async () => {
+  it('module verify detects an installed discipline referencing a retired registry identifier', async () => {
     const alias = `orbital-frisbee-${newId()}`;
     await importFixture(validManifest({ alias }), validDisciplineDocument({ alias }));
     const [installed] = await new InstalledModuleRepository(db).findByAlias(alias);
@@ -462,7 +462,7 @@ describe('importValidatedModule (integration)', () => {
     expect(failures).toEqual([]);
   });
 
-  it('module verify names both profiles for a module imported under the filesystem profile and verified under S3 (7.6)', async () => {
+  it('module verify names both profiles for a module imported under the filesystem profile and verified under S3', async () => {
     const alias = `orbital-frisbee-${newId()}`;
     const directory = await makeModuleDirectory(
       validManifest({ alias, assets: [{ path: 'logo.png', kind: 'logo' }] }),
@@ -504,7 +504,7 @@ describe('importValidatedModule (integration)', () => {
     expect(failures[0]?.message).toContain('"s3"');
   });
 
-  it('refuses installing over an alias held under different attribution, leaving the holder untouched (7.7)', async () => {
+  it('refuses installing over an alias held under different attribution, leaving the holder untouched', async () => {
     const alias = `orbital-frisbee-${newId()}`;
     await importFixture(validManifest({ alias }), validDisciplineDocument({ alias }));
 

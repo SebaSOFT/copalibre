@@ -286,7 +286,7 @@ describe('series operations (integration)', () => {
     await scratch?.drop();
   });
 
-  it('6.1: materializes a best-of-five, decides it in three, and reinstates a game holding no slot', async () => {
+  it('materializes a best-of-five, decides it in three, and reinstates a game holding no slot', async () => {
     const before = await gamesOfTheSeries();
     expect(before.games).toHaveLength(5);
     expect(before.games.map((game) => game.number)).toEqual([1, 2, 3, 4, 5]);
@@ -391,7 +391,7 @@ describe('series operations (integration)', () => {
     expect(String(audit?.reason)).toContain('Scoresheet transposed the sides');
   });
 
-  it('6.2: refuses a command replayed against a game the series anulled, naming the series', async () => {
+  it('refuses a command replayed against a game the series anulled, naming the series', async () => {
     // Play the reinstated series out to a decision again: Alfa takes games four and five is
     // never needed. Game four is already scheduled from the correction above.
     const current = await gamesOfTheSeries();
@@ -428,7 +428,7 @@ describe('series operations (integration)', () => {
     expect(stored?.result).toBeUndefined();
   });
 
-  it('6.3: reports series state in play order on the public projection', async () => {
+  it('reports series state in play order on the public projection', async () => {
     const bracket = await request({
       method: 'GET',
       url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/1/bracket`,

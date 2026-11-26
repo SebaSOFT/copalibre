@@ -98,7 +98,7 @@ async function mockAuditTrailApi(page: Page, role: string): Promise<void> {
   );
 }
 
-test('an administrator opens the audit surface and sees applied and refused actions (7.1) @visible-identifier-lint', async ({
+test('an administrator opens the audit surface and sees applied and refused actions @visible-identifier-lint', async ({
   page,
 }) => {
   await mockAuditTrailApi(page, 'admin');
@@ -124,9 +124,7 @@ test('an administrator opens the audit surface and sees applied and refused acti
   ).toBeVisible();
 });
 
-test('a role without the audit capability does not see the navigation entry (7.2)', async ({
-  page,
-}) => {
+test('a role without the audit capability does not see the navigation entry', async ({ page }) => {
   await mockAuditTrailApi(page, 'referee');
   const target = '/control/liga-mendocina';
   await seedLoginTransaction(page, target);
@@ -138,9 +136,7 @@ test('a role without the audit capability does not see the navigation entry (7.2
   );
 });
 
-test('a role without the audit capability is refused the surface directly (7.2)', async ({
-  page,
-}) => {
+test('a role without the audit capability is refused the surface directly', async ({ page }) => {
   await mockAuditTrailApi(page, 'referee');
   await seedLoginTransaction(page, controlAuditTrailPath);
   await page.goto(loginCallbackUrl());

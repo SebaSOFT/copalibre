@@ -305,7 +305,7 @@ describe('a requiresTag collector against real PostgreSQL (integration)', () => 
     });
   }
 
-  it('an untagged collector counts both goals, unaffected by requiresTag on a different collector (6.2)', async () => {
+  it('an untagged collector counts both goals, unaffected by requiresTag on a different collector', async () => {
     await project();
     const statistics = new StatisticRepository(scratch.db);
     const goals = await statistics.readTotals(
@@ -321,7 +321,7 @@ describe('a requiresTag collector against real PostgreSQL (integration)', () => 
     expect(goals).toHaveLength(2);
   });
 
-  it('a requiresTag collector excludes a fact recorded after the tag was lifted (6.3)', async () => {
+  it('a requiresTag collector excludes a fact recorded after the tag was lifted', async () => {
     const statistics = new StatisticRepository(scratch.db);
     const captainGoals = await statistics.readTotals(
       {
@@ -395,7 +395,7 @@ describe('a requiresTag collector against real PostgreSQL (integration)', () => 
     ]);
   });
 
-  it("a corrected result rewrites a tag-filtered collector's total, leaving no stale value (6.4)", async () => {
+  it("a corrected result rewrites a tag-filtered collector's total, leaving no stale value", async () => {
     // The previous test left Boca's captain-goal total at 1. A protest
     // upheld disallows it — the same audited-adjustment + supersede path
     // `refold.integration.test.ts`'s own correction test uses, now exercised

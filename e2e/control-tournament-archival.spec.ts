@@ -59,7 +59,7 @@ async function mockArchiveApi(page: Page): Promise<void> {
   );
 }
 
-test('archives a finished tournament and it disappears from the active dashboard (6.1)', async ({
+test('archives a finished tournament and it disappears from the active dashboard', async ({
   page,
 }) => {
   await mockArchiveApi(page);

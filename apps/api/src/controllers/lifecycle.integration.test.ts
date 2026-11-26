@@ -137,7 +137,7 @@ describe('tournament archival (integration)', () => {
     return tournament.tournamentId;
   }
 
-  it('rejects an illegal transition against a real database, leaving state unchanged (5.2)', async () => {
+  it('rejects an illegal transition against a real database, leaving state unchanged', async () => {
     const tournament = await withTransaction(db, (uow) =>
       new TournamentRepository(db).create(uow, {
         organizationId,
@@ -162,7 +162,7 @@ describe('tournament archival (integration)', () => {
     expect(stored?.status).toBe('draft');
   });
 
-  it('archives a finished tournament, removing it from the active listing while its detail and export endpoints keep working (5.1)', async () => {
+  it('archives a finished tournament, removing it from the active listing while its detail and export endpoints keep working', async () => {
     await finishedTournament('copa-finished');
 
     const archiveResponse = await inject({

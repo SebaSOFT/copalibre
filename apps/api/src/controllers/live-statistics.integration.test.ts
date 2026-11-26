@@ -233,7 +233,7 @@ describe('live-cadence statistics inside the event-recording transaction (integr
     await scratch?.drop();
   });
 
-  it("updates a live collector's total inside the recording transaction, before the match ends, and leaves a default-cadence collector's total absent until finalize", async () => {
+  it("updates a live collector's total as events are recorded, and a default collector's only at finalize", async () => {
     const response = await (app as NestFastifyApplication).inject({
       method: 'POST',
       url: `/api/organizations/liga-live/tournaments/apertura-live/matches/${matchId}/events`,
