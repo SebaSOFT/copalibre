@@ -249,7 +249,7 @@ async function setupMockApi(page: Page): Promise<void> {
 }
 
 test.describe('Control Panel Activity Feed and Theme Polish', () => {
-  test('5.1: populated dashboard renders "Actividad reciente" event cards with relative timestamps', async ({
+  test('populated dashboard renders "Actividad reciente" event cards with relative timestamps', async ({
     page,
   }) => {
     await setupMockApi(page);
@@ -274,7 +274,7 @@ test.describe('Control Panel Activity Feed and Theme Polish', () => {
     await expect(page.getByText('No hay actividad reciente registrada.')).toBeHidden();
   });
 
-  test('5.2: team roster role editor changes member role to Coach and renders persisted badge', async ({
+  test('team roster role editor changes member role to Coach and renders persisted badge', async ({
     page,
   }) => {
     await setupMockApi(page);
@@ -320,7 +320,7 @@ test.describe('Control Panel Activity Feed and Theme Polish', () => {
     await expect(carlosRow.getByText('Coach')).toBeVisible();
   });
 
-  test('5.3: form controls on Clubs and Venues views do not render white browser defaults', async ({
+  test('form controls on Clubs and Venues views do not render white browser defaults', async ({
     page,
   }) => {
     await page.emulateMedia({ colorScheme: 'dark' });

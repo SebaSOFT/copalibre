@@ -140,7 +140,7 @@ function roundOne(page: import('@playwright/test').Page) {
   return page.getByRole('region', { name: 'Main bracket · Semi-finals' });
 }
 
-test('7.3: shows the series bar, the running score, a pending cross and an aggregate tie', async ({
+test('shows the series bar, the running score, a pending cross and an aggregate tie', async ({
   page,
 }) => {
   await page.goto(bracketPath);
@@ -173,7 +173,7 @@ test('7.3: shows the series bar, the running score, a pending cross and an aggre
   await expect(downstream.getByText('Talleres')).toHaveCount(0);
 });
 
-test('7.4: series state is legible with color disabled and carries a text equivalent', async ({
+test('series state is legible with color disabled and carries a text equivalent', async ({
   page,
 }) => {
   await page.emulateMedia({ forcedColors: 'active' });
@@ -196,7 +196,7 @@ test('7.4: series state is legible with color disabled and carries a text equiva
   await expect(bestOfFive.getByLabel('Best of 5 series: 2 to 1')).toBeAttached();
 });
 
-test('7.4: a game that will not be played is distinguishable from one merely upcoming', async ({
+test('a game that will not be played is distinguishable from one merely upcoming', async ({
   page,
 }) => {
   bracketFixture = {

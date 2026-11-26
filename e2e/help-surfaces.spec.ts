@@ -23,7 +23,7 @@ const CONTROL_HELP_PATHS = [
   'platform-administration',
 ];
 
-test.describe('every control-panel help link resolves to a real, current page (6.1)', () => {
+test.describe('every control-panel help link resolves to a real, current page', () => {
   for (const helpPath of CONTROL_HELP_PATHS) {
     test(`/help/control/${helpPath}/ renders`, async ({ page }) => {
       const pageErrors: string[] = [];
@@ -37,7 +37,7 @@ test.describe('every control-panel help link resolves to a real, current page (6
   }
 });
 
-test('a help page renders its declared roles visibly, not only in frontmatter (6.2)', async ({
+test('a help page renders its declared roles visibly, not only in frontmatter', async ({
   page,
 }) => {
   await page.goto('/help/control/platform-administration/');
@@ -62,7 +62,7 @@ test('a page whose declared roles do not include broadcaster does not claim one 
   await expect(main.getByText('Broadcaster', { exact: true })).toHaveCount(0);
 });
 
-test('the series and schedule pages are reachable and render in a non-English locale (6.3)', async ({
+test('the series and schedule pages are reachable and render in a non-English locale', async ({
   page,
 }) => {
   const seriesResponse = await page.goto('/es/help/control/series/');

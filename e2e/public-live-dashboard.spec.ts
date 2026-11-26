@@ -303,7 +303,7 @@ test('each active match renders once in the live hero without JavaScript', async
   await expect(page.getByText('No live matches in progress')).toHaveCount(0);
 });
 
-test('marks an unstarted match 20 minutes past kickoff as Demorado after live matches, excludes it from the 5 upcoming and next kickoff, and renders the time-zone note above Upcoming', async ({
+test('marks a match 20 minutes past kickoff as delayed and keeps it out of the upcoming list', async ({
   page,
 }) => {
   overviewMode = 'delayed-queue';

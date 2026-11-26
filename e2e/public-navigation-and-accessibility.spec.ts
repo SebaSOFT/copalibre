@@ -378,7 +378,7 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     );
   });
 
-  test('8.1: from a /es/ tournament page, brand link navigates to /es/ root', async ({ page }) => {
+  test('from a /es/ tournament page, brand link navigates to /es/ root', async ({ page }) => {
     await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
     await expect(page.locator('a.cl-logo')).toHaveAttribute('href', '/es/');
 
@@ -387,7 +387,7 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     expect(page.url()).toMatch(/\/es\/?$/);
   });
 
-  test('8.1 (baseline): from an unprefixed tournament page, brand link navigates to / root', async ({
+  test('from an unprefixed tournament page, brand link navigates to / root, as the baseline', async ({
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
@@ -420,7 +420,7 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     await expect(cta).toHaveCSS('text-decoration-line', 'none');
   });
 
-  test('8.2: 404 page resolves requested Spanish locale and renders Spanish copy with link', async ({
+  test('404 page resolves requested Spanish locale and renders Spanish copy with link', async ({
     page,
   }) => {
     const response = await page.goto('/es/some-missing-page');
@@ -466,7 +466,7 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     await expect(page.locator('#static-not-found')).toHaveCount(0);
   });
 
-  test('8.2 (baseline): 404 page for unprefixed missing route renders English copy with link', async ({
+  test('404 page for unprefixed missing route renders English copy with link, as the baseline', async ({
     page,
   }) => {
     const response = await page.goto('/some-missing-page');
@@ -478,7 +478,7 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     await expect(brandLink).toHaveAttribute('href', '/');
   });
 
-  test('8.2 (fallback): static 404 template renders not-found markup with return home link', async ({
+  test('static 404 template renders not-found markup with return home link, as the fallback', async ({
     page,
   }) => {
     await page.goto('/404');

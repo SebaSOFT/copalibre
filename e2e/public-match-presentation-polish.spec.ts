@@ -115,7 +115,7 @@ test.afterAll(async () => {
 });
 
 test.describe('Public Match Presentation and Badge Polish', () => {
-  test('4.1 finalized match detail page does not show scheduling placeholder banners', async ({
+  test('finalized match detail page does not show scheduling placeholder banners', async ({
     page,
   }) => {
     await page.goto(
@@ -142,7 +142,7 @@ test.describe('Public Match Presentation and Badge Polish', () => {
     );
   });
 
-  test('4.2 rank badge in matches-view card uses monospace font and is spaced >= 6px from score', async ({
+  test('rank badge in matches-view card uses monospace font and is spaced >= 6px from score', async ({
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches?view=cards`);
