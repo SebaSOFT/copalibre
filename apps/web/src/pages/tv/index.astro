@@ -656,6 +656,8 @@ const timeZoneAttr = organizationTimeZone ?? '';
       readPreset();
     });
     view?.addEventListener('change', () => {
+      // An overlay starts with nothing pinned and no court: it shows nothing until the operator chooses.
+      if (match && isOverlayView(view.value)) match.value = '';
       if (!backgroundPicked && background) background.value = defaultBackgroundFor(view.value);
       showFields();
       showDescription();

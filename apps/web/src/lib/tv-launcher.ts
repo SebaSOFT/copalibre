@@ -284,6 +284,9 @@ export function viewFromParams(params: URLSearchParams): TvLauncherView {
   if (layout === 'dashboard') return 'dashboardLayout';
   if (layout === 'multicourt') return 'multicourt';
   const view = params.get('view');
+  // `view=match` and `view=overlay` are the names addresses used before the launcher named each view.
+  if (view === 'match') return 'match';
+  if (view === 'overlay') return 'overlay-scorebug';
   if (view === 'standings') return 'standings';
   if (view === 'matches' || view === 'fixtures') {
     return params.has('stage') && params.has('match') ? 'match' : 'matches';
