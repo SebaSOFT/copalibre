@@ -325,7 +325,10 @@ describe('public match counters (integration)', () => {
         `/api/organizations/liga-prueba/tournaments/apertura/stages/1/matches/${ordinal}`,
       );
       expect(response.statusCode).toBe(200);
-      expect(response.json()).not.toHaveProperty('counters');
+      const body = response.json() as Record<string, unknown>;
+      expect(body).not.toHaveProperty('counters');
+      // The page of a match not yet in play still follows the stream, for any status.
+      expect(body).toMatchObject({ tracksLiveIndicators: true, matchId: expect.any(String) });
     }
   });
 

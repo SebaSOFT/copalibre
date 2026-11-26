@@ -21275,6 +21275,18 @@
               }
             }
           },
+          "matchId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The match id, so a page can follow its live stream before the match starts"
+          },
+          "tracksLiveIndicators": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Present for every status when the discipline shows a counter or declares a timed penalty: the page then follows the match stream"
+          },
           "scheduleVersion": {
             "type": "number",
             "description": "Independent published schedule replay version"
@@ -21436,7 +21448,7 @@
             ]
           },
           "counters": {
-            "description": "Declared match counters, omitted when the discipline shows none",
+            "description": "Declared match counters, omitted when the discipline shows none and for a match that is neither in progress nor finalized",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PublicMatchCounterResponse"
@@ -21451,6 +21463,7 @@
           }
         },
         "required": [
+          "matchId",
           "organizationAlias",
           "organizationName",
           "tournamentAlias",
@@ -21642,7 +21655,7 @@
             }
           },
           "counters": {
-            "description": "Declared match counters, omitted when the discipline shows none",
+            "description": "Declared match counters, omitted when the discipline shows none and for a match that is neither in progress nor finalized",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PublicMatchCounterResponse"

@@ -1105,6 +1105,12 @@ export class PublicProjectionsController {
             entrantIds: [match.home_entrant_id, match.away_entrant_id],
           })
         : undefined;
+    // A page follows its match's stream when the discipline shows a counter or declares a timed penalty.
+    const tracksLiveIndicators =
+      resolveEffectiveMatchCounters(descriptor, rulesetData?.overrides).length > 0 ||
+      descriptor.eventDefinitions.some((definition) =>
+        (definition.effects ?? []).some((effect) => effect.kind === 'timed-penalty'),
+      );
     const activePenalties =
       match.status === 'in-progress'
         ? livePenaltiesOf(
@@ -1256,6 +1262,8 @@ export class PublicProjectionsController {
           }),
       ...(clock === undefined ? {} : { clock }),
       ...(counters === undefined ? {} : { counters }),
+      matchId: match.match_id,
+      ...(tracksLiveIndicators ? { tracksLiveIndicators: true as const } : {}),
       ...(activePenalties.length === 0 ? {} : { activePenalties }),
     };
   }

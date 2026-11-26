@@ -554,7 +554,8 @@ export class PublicLiveMatchResponse extends FixtureSourcesResponse {
 
   @ApiPropertyOptional({
     type: () => [PublicMatchCounterResponse],
-    description: 'Declared match counters, omitted when the discipline shows none',
+    description:
+      'Declared match counters, omitted when the discipline shows none and for a match that is neither in progress nor finalized',
   })
   counters?: PublicMatchCounterResponse[];
 }
@@ -668,6 +669,19 @@ export class PublicMatchEventResponse {
 }
 
 export class PublicMatchReportResponse extends FixtureSourcesResponse {
+  @ApiProperty({
+    format: 'uuid',
+    description: 'The match id, so a page can follow its live stream before the match starts',
+  })
+  matchId!: string;
+
+  @ApiPropertyOptional({
+    enum: [true],
+    description:
+      'Present for every status when the discipline shows a counter or declares a timed penalty: the page then follows the match stream',
+  })
+  tracksLiveIndicators?: true;
+
   @ApiPropertyOptional({ description: 'Independent published schedule replay version' })
   scheduleVersion?: number;
 
@@ -808,7 +822,8 @@ export class PublicMatchReportResponse extends FixtureSourcesResponse {
 
   @ApiPropertyOptional({
     type: () => [PublicMatchCounterResponse],
-    description: 'Declared match counters, omitted when the discipline shows none',
+    description:
+      'Declared match counters, omitted when the discipline shows none and for a match that is neither in progress nor finalized',
   })
   counters?: PublicMatchCounterResponse[];
 

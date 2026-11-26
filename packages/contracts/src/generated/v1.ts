@@ -6333,6 +6333,16 @@ export interface components {
             label?: string;
             homeSource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
             awaySource?: components["schemas"]["EntrantFixtureSideSourceDto"] | components["schemas"]["WinnerFixtureSideSourceDto"] | components["schemas"]["LoserFixtureSideSourceDto"] | components["schemas"]["QualifierFixtureSideSourceDto"];
+            /**
+             * Format: uuid
+             * @description The match id, so a page can follow its live stream before the match starts
+             */
+            matchId: string;
+            /**
+             * @description Present for every status when the discipline shows a counter or declares a timed penalty: the page then follows the match stream
+             * @enum {boolean}
+             */
+            tracksLiveIndicators?: true;
             /** @description Independent published schedule replay version */
             scheduleVersion?: number;
             rescheduledFrom?: components["schemas"]["PublicPreviousPlacementResponse"] | null;
@@ -6390,7 +6400,7 @@ export interface components {
             segments?: components["schemas"]["PublicSegmentSummaryResponse"][];
             /** @description Active timed segment clock snapshot, omitted when idle or untimed */
             clock?: components["schemas"]["PublicMatchClockResponse"];
-            /** @description Declared match counters, omitted when the discipline shows none */
+            /** @description Declared match counters, omitted when the discipline shows none and for a match that is neither in progress nor finalized */
             counters?: components["schemas"]["PublicMatchCounterResponse"][];
             /** @description Timed penalties in force, with the seconds left; present while the match is live */
             activePenalties?: components["schemas"]["PublicLivePenaltyResponse"][];
@@ -6444,7 +6454,7 @@ export interface components {
              */
             possessionEntrantId?: string;
             activePenalties?: components["schemas"]["PublicLivePenaltyResponse"][];
-            /** @description Declared match counters, omitted when the discipline shows none */
+            /** @description Declared match counters, omitted when the discipline shows none and for a match that is neither in progress nor finalized */
             counters?: components["schemas"]["PublicMatchCounterResponse"][];
         };
         PublicLiveResponse: {
