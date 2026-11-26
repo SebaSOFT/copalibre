@@ -318,3 +318,17 @@ export function formatKickoff(scheduledAt: string, locale: string, timeZone?: st
     hour12: false,
   }).format(at);
 }
+
+/** The label key each view's option reads, in the launcher's catalogue. */
+export const TV_LAUNCHER_VIEW_LABEL: Readonly<Record<TvLauncherView, string>> = {
+  kiosk: 'kiosk',
+  presentation: 'presentation',
+  dashboardLayout: 'dashboardLayout',
+  multicourt: 'multicourt',
+  standings: 'standings',
+  matches: 'matchList',
+  match: 'pinnedMatch',
+  'overlay-scorebug': 'overlayScorebug',
+  'overlay-lower': 'overlayLower',
+  'overlay-full': 'overlayFull',
+};

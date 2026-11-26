@@ -1079,6 +1079,15 @@ export function TvDashboard({
 
   if (isCornerOverlay) {
     const overlayRootClass = `tv-root-container tv-overlay-root tv-overlay-root--${presentation}`;
+    // An overlay names the state of the match it shows, not the tournament's: a delayed match is not live.
+    const matchStatus = (match: LiveMatch): { tone: TvStatusTone; label: string } => {
+      if (match.state === 'live') return { tone: 'live', label: dashboardLabels.resultState.live };
+      if (match.state === 'final')
+        return { tone: 'final', label: dashboardLabels.resultState.final };
+      if (isMatchDelayed(match) && dashboardLabels.delayed !== undefined)
+        return { tone: 'delayed', label: dashboardLabels.delayed };
+      return { tone: 'upcoming', label: dashboardLabels.resultState.upcoming };
+    };
     if (spotlightMatch === undefined) {
       // Nothing to show paints nothing on air. The state reaches assistive tech and tests through one line.
       return (
@@ -1115,8 +1124,8 @@ export function TvDashboard({
             locale={language}
             match={spotlightMatch}
             progress={progress}
-            statusLabel={statusBadge.label}
-            statusTone={statusBadge.type}
+            statusLabel={matchStatus(spotlightMatch).label}
+            statusTone={matchStatus(spotlightMatch).tone}
             {...(spotlightEntry?.scope === undefined ? {} : { scope: spotlightEntry.scope })}
             {...(venueOf(spotlightMatch) === undefined
               ? {}
@@ -1131,8 +1140,8 @@ export function TvDashboard({
             labels={dashboardLabels}
             match={spotlightMatch}
             progress={progress}
-            statusLabel={statusBadge.label}
-            statusTone={statusBadge.type}
+            statusLabel={matchStatus(spotlightMatch).label}
+            statusTone={matchStatus(spotlightMatch).tone}
           />
         )}
       </div>

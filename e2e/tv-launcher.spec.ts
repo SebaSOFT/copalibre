@@ -240,15 +240,15 @@ test('the final link is copied to the clipboard and announced, and the preview f
   await page.goto(`${LAUNCHER}&mode=overlay-lower&lang=en`);
 
   const field = page.locator('[data-launcher-url]');
-  await expect(field).toHaveValue(
+  await expect(field).toHaveText(
     /\/tv\/liga-mendocina\/tournaments\/apertura-2026\?.*mode=overlay-lower/,
   );
   const preview = page.locator('[data-launcher-preview]');
-  expect(await preview.getAttribute('src')).toBe(await field.inputValue());
+  expect(await preview.getAttribute('src')).toBe(await field.textContent());
 
   await page.getByRole('button', { name: 'Copy link' }).click();
   await expect(page.getByText('Link copied')).toBeVisible();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(await field.inputValue());
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(await field.textContent());
 });
 
 test('the match list view and the standings view name themselves in the address', async ({

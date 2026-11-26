@@ -1,5 +1,7 @@
 ---
 import TvLayout from '../../layouts/TvLayout.astro';
+import Button from '../../components/ui/atoms/Button.astro';
+import Select from '../../components/ui/atoms/Select.astro';
 import {
   fetchCompletion,
   fetchOrganizations,
@@ -25,28 +27,15 @@ import {
   isOverlayView,
   matchOptionGroups,
   stageOptions,
+  TV_LAUNCHER_VIEW_LABEL,
   TV_LAUNCHER_VIEWS,
   viewFromParams,
   viewShowsMatch,
   type TvLauncherMatchChoice,
-  type TvLauncherView,
 } from '../../lib/tv-launcher.ts';
 
 export const prerender = false;
 
-/** The launcher's views in the order the view select lists them. */
-const VIEW_LABEL: Record<TvLauncherView, string> = {
-  kiosk: 'kiosk',
-  presentation: 'presentation',
-  dashboardLayout: 'dashboardLayout',
-  multicourt: 'multicourt',
-  standings: 'standings',
-  matches: 'matchList',
-  match: 'pinnedMatch',
-  'overlay-scorebug': 'overlayScorebug',
-  'overlay-lower': 'overlayLower',
-  'overlay-full': 'overlayFull',
-};
 const BACKGROUNDS = TV_BACKGROUNDS;
 
 const params = Astro.url.searchParams;
@@ -168,6 +157,45 @@ const noMatchesShown = matchFieldsShown && matchChoices.length === 0;
 const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'football';
 const choicesJson = encodeURIComponent(JSON.stringify(matchChoices));
 const timeZoneAttr = organizationTimeZone ?? '';
+const organizationOptions = organizations.map((org) => ({
+  value: org.alias,
+  label: org.name,
+  selected: org.alias === selectedOrganization?.alias,
+}));
+const tournamentOptions = tournaments.map((tournament) => ({
+  value: tournament.alias,
+  label: tournament.name,
+  selected: tournament.alias === selectedTournament?.alias,
+}));
+const viewOptions = TV_LAUNCHER_VIEWS.map((item) => ({
+  value: item,
+  label: t[TV_LAUNCHER_VIEW_LABEL[item]] ?? '',
+  selected: item === view,
+}));
+const gridOptions = (['auto', '2', '4', '6'] as const).map((item) => ({
+  value: item,
+  label: item === 'auto' ? (t.gridAuto ?? '') : item,
+  selected: item === String(grid),
+}));
+const stageSelectOptions = stages.map((item) => ({
+  value: String(item.stage),
+  label: item.label,
+  selected: item.stage === initialStage,
+}));
+const courtSelectOptions = [
+  { value: '', label: t.noCourt ?? '', selected: initialCourt === undefined },
+  ...courts.map((venue) => ({ value: venue, label: venue, selected: venue === initialCourt })),
+];
+const backgroundOptions = BACKGROUNDS.map((item) => ({
+  value: item,
+  label: t[item] ?? '',
+  selected: item === background,
+}));
+const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const).map((item) => ({
+  value: item,
+  label: item.toUpperCase(),
+  selected: item === language,
+}));
 ---
 
 <TvLayout language={language} title={t.title} background={background}>
@@ -209,87 +237,65 @@ const timeZoneAttr = organizationTimeZone ?? '';
         >
           <label>
             <span data-i18n="organization">{t.organization}</span>
-            <select
-              class="cl-chamfer cl-chamfer--control"
+            <Select
               name="organization"
-              data-launcher-organization
-            >
-              {organizations.map((org) => (
-                <option value={org.alias} selected={org.alias === selectedOrganization?.alias}>
-                  {org.name}
-                </option>
-              ))}
-            </select>
+              dataAttr="data-launcher-organization"
+              class="cl-chamfer cl-chamfer--control"
+              options={organizationOptions}
+            />
           </label>
           <label>
             <span data-i18n="tournament">{t.tournament}</span>
-            <select
-              class="cl-chamfer cl-chamfer--control"
+            <Select
               name="tournament"
-              data-launcher-tournament
-            >
-              {tournaments.map((tournament) => (
-                <option
-                  value={tournament.alias}
-                  selected={tournament.alias === selectedTournament?.alias}
-                >
-                  {tournament.name}
-                </option>
-              ))}
-            </select>
+              dataAttr="data-launcher-tournament"
+              class="cl-chamfer cl-chamfer--control"
+              options={tournamentOptions}
+            />
           </label>
           <label class="tv-launcher__wide">
             <span data-i18n="view">{t.view}</span>
-            <select class="cl-chamfer cl-chamfer--control" name="view" data-launcher-view>
-              {TV_LAUNCHER_VIEWS.map((item) => (
-                <option value={item} selected={item === view} data-i18n={VIEW_LABEL[item]}>
-                  {t[VIEW_LABEL[item]]}
-                </option>
-              ))}
-            </select>
+            <Select
+              name="view"
+              dataAttr="data-launcher-view"
+              class="cl-chamfer cl-chamfer--control"
+              options={viewOptions}
+            />
             <span
               class="tv-launcher__hint"
               data-view-description
-              data-i18n={`${VIEW_LABEL[view]}Description`}
+              data-i18n={`${TV_LAUNCHER_VIEW_LABEL[view]}Description`}
             >
-              {t[`${VIEW_LABEL[view]}Description`]}
+              {t[`${TV_LAUNCHER_VIEW_LABEL[view]}Description`]}
             </span>
           </label>
           <label data-grid-field hidden={!gridShown}>
             <span data-i18n="grid">{t.grid}</span>
-            <select class="cl-chamfer cl-chamfer--control" name="grid" data-launcher-grid>
-              {(['auto', '2', '4', '6'] as const).map((item) => (
-                <option
-                  value={item}
-                  selected={item === String(grid)}
-                  data-i18n={item === 'auto' ? 'gridAuto' : undefined}
-                >
-                  {item === 'auto' ? t.gridAuto : item}
-                </option>
-              ))}
-            </select>
+            <Select
+              name="grid"
+              dataAttr="data-launcher-grid"
+              class="cl-chamfer cl-chamfer--control"
+              options={gridOptions}
+            />
           </label>
           <div class="tv-launcher__match-fields" data-match-fields hidden={!matchFieldsShown}>
             <label>
               <span data-i18n="stage">{t.stage}</span>
-              <select class="cl-chamfer cl-chamfer--control" data-launcher-stage>
-                {stages.map((item) => (
-                  <option value={item.stage} selected={item.stage === initialStage}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
+              <Select
+                name="stage"
+                dataAttr="data-launcher-stage"
+                class="cl-chamfer cl-chamfer--control"
+                options={stageSelectOptions}
+              />
             </label>
             <label>
               <span data-i18n="pinMatch">{t.pinMatch}</span>
-              <select class="cl-chamfer cl-chamfer--control" data-launcher-match>
-                {view === 'overlay-scorebug' ||
-                view === 'overlay-lower' ||
-                view === 'overlay-full' ? (
+              <select class="cl-chamfer cl-chamfer--control cl-select" data-launcher-match>
+                {isOverlayView(view) && (
                   <option value="" selected={initialMatch === undefined}>
                     {t.noCourt}
                   </option>
-                ) : null}
+                )}
                 {matchGroups.map((group) => (
                   <optgroup label={group.heading}>
                     {group.options.map((item) => (
@@ -304,16 +310,12 @@ const timeZoneAttr = organizationTimeZone ?? '';
           </div>
           <label data-court-field hidden={!courtFieldShown}>
             <span data-i18n="followCourt">{t.followCourt}</span>
-            <select class="cl-chamfer cl-chamfer--control" name="court" data-launcher-court>
-              <option value="" selected={initialCourt === undefined}>
-                {t.noCourt}
-              </option>
-              {courts.map((venue) => (
-                <option value={venue} selected={venue === initialCourt}>
-                  {venue}
-                </option>
-              ))}
-            </select>
+            <Select
+              name="court"
+              dataAttr="data-launcher-court"
+              class="cl-chamfer cl-chamfer--control"
+              options={courtSelectOptions}
+            />
           </label>
           <p
             role="status"
@@ -326,23 +328,21 @@ const timeZoneAttr = organizationTimeZone ?? '';
           </p>
           <label>
             <span data-i18n="background">{t.background}</span>
-            <select class="cl-chamfer cl-chamfer--control" name="bg" data-launcher-background>
-              {BACKGROUNDS.map((item) => (
-                <option value={item} selected={item === background} data-i18n={item}>
-                  {t[item]}
-                </option>
-              ))}
-            </select>
+            <Select
+              name="bg"
+              dataAttr="data-launcher-background"
+              class="cl-chamfer cl-chamfer--control"
+              options={backgroundOptions}
+            />
           </label>
           <label>
             <span data-i18n="language">{t.language}</span>
-            <select class="cl-chamfer cl-chamfer--control" name="lang" data-launcher-language>
-              {(['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const).map((item) => (
-                <option value={item} selected={item === language}>
-                  {item.toUpperCase()}
-                </option>
-              ))}
-            </select>
+            <Select
+              name="lang"
+              dataAttr="data-launcher-language"
+              class="cl-chamfer cl-chamfer--control"
+              options={languageOptions}
+            />
           </label>
           {loadFailed && (
             <p role="status" class="tv-launcher__notice" data-i18n="loadError">
@@ -368,22 +368,19 @@ const timeZoneAttr = organizationTimeZone ?? '';
           <div class="tv-launcher__link tv-launcher__wide" data-link-block>
             <label>
               <span data-i18n="finalLink">{t.finalLink}</span>
-              <input
-                class="cl-chamfer cl-chamfer--control"
-                type="text"
-                readonly
+              <output
+                class="cl-chamfer cl-chamfer--control tv-launcher__url"
                 data-launcher-url
-                value=""
-              />
+              ></output>
             </label>
-            <button
-              type="button"
-              class="tv-launcher__copy cl-chamfer cl-chamfer--control"
+            <Button
+              variant="secondary"
+              class="tv-launcher__copy"
               data-launcher-copy
               data-i18n="copyLink"
             >
               {t.copyLink}
-            </button>
+            </Button>
             <p role="status" class="tv-launcher__copied" data-copy-status></p>
           </div>
           <figure class="tv-launcher__preview tv-launcher__wide" data-preview-frame>
@@ -425,6 +422,7 @@ const timeZoneAttr = organizationTimeZone ?? '';
     isOverlayView,
     matchOptionGroups,
     parseTvLauncherPreset,
+    TV_LAUNCHER_VIEW_LABEL,
     viewShowsMatch,
     type TvLauncherDestination,
     type TvLauncherGrid,
@@ -458,7 +456,7 @@ const timeZoneAttr = organizationTimeZone ?? '';
     const noMatches = form.querySelector<HTMLElement>('[data-no-matches]');
     const nothing = form.querySelector<HTMLElement>('[data-nothing-to-show]');
     const launch = form.querySelector<HTMLAnchorElement>('[data-launcher-link]');
-    const urlField = form.querySelector<HTMLInputElement>('[data-launcher-url]');
+    const urlField = form.querySelector<HTMLOutputElement>('[data-launcher-url]');
     const copy = form.querySelector<HTMLButtonElement>('[data-launcher-copy]');
     const copied = form.querySelector<HTMLElement>('[data-copy-status]');
     const preview = form.querySelector<HTMLIFrameElement>('[data-launcher-preview]');
@@ -515,10 +513,22 @@ const timeZoneAttr = organizationTimeZone ?? '';
 
     const showDescription = (): void => {
       if (!view || !description) return;
-      const key = view.selectedOptions[0]?.dataset.i18n;
+      const key = TV_LAUNCHER_VIEW_LABEL[view.value as TvLauncherView];
       if (key === undefined) return;
       description.dataset.i18n = `${key}Description`;
       description.textContent = labelsFor()[`${key}Description`] ?? '';
+    };
+
+    // The owned select options carry no label keys of their own: each one re-reads its label here.
+    const relabelOptions = (
+      select: HTMLSelectElement | null,
+      labelOf: (value: string) => string | undefined,
+    ): void => {
+      if (!select) return;
+      for (const option of select.options) {
+        const text = labelOf(option.value);
+        if (text !== undefined) option.textContent = text;
+      }
     };
 
     const showFields = (): void => {
@@ -538,6 +548,10 @@ const timeZoneAttr = organizationTimeZone ?? '';
         if (element instanceof HTMLOptGroupElement) element.label = text;
         else element.textContent = text;
       }
+      relabelOptions(view, (value) => labels[TV_LAUNCHER_VIEW_LABEL[value as TvLauncherView]]);
+      relabelOptions(background, (value) => labels[value]);
+      relabelOptions(grid, (value) => (value === 'auto' ? labels.gridAuto : value));
+      relabelOptions(court, (value) => (value === '' ? labels.noCourt : undefined));
       document.documentElement.lang = language?.value ?? 'en';
       if (labels.title) document.title = labels.title;
       renderMatches();
@@ -1007,6 +1021,19 @@ const timeZoneAttr = organizationTimeZone ?? '';
     transform-origin: 0 0;
     transform: scale(var(--scale, 0.25));
     pointer-events: none;
+  }
+  /* The address is shown as it is copied: no label capitals, and long addresses wrap inside the panel. */
+  .tv-launcher__url {
+    display: block;
+    padding: 0.55rem 0.7rem;
+    color: var(--cl-text-secondary);
+    background: var(--cl-surface-base);
+    border: 1px solid var(--cl-border-muted);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-sm);
+    letter-spacing: normal;
+    text-transform: none;
+    overflow-wrap: anywhere;
   }
   .tv-launcher__nothing {
     color: var(--cl-text-secondary);

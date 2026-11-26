@@ -97,11 +97,12 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   ['components/ui/organisms/StandingsTable.astro', 9],
   ['components/ui/organisms/MatchRosters.astro', 13],
   // Public broadcast pages render on the server through Astro and have no
-  // public-surface Form/Field/Select primitives yet. Importing the operator
-  // React controls here would add hydration and cross-surface coupling to a
-  // kiosk setup page, so retain these 15 native SSR form elements until the
-  // public Astro library provides matching atoms and a Field molecule.
-  ['pages/tv/index.astro', 15],
+  // public-surface Label/Field primitive yet, and the grouped match select
+  // needs optgroups the owned Select atom does not render. The launcher's
+  // selects and copy control use the owned Select and Button atoms; the
+  // remaining 12 native elements (ten labels, the grouped select, the form)
+  // stay until the public Astro library provides a Field molecule.
+  ['pages/tv/index.astro', 12],
   // `TvDashboard.tsx`'s entry is gone: its four
   // private sub-components and its table/button ownership moved into their
   // own files, `TvStandingsTable.tsx` and `TvRailTab.tsx`, both named in
