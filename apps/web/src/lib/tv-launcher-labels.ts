@@ -73,6 +73,7 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionCancelled: 'Cancelled',
     noMatch: 'None',
     copyUnavailable: 'Copying needs a secure connection: select the link and copy it by hand.',
+    copySelect: 'Select the address and copy it by hand.',
   },
   es: {
     title: 'Lanzador de pantalla TV',
@@ -141,6 +142,7 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionCancelled: 'Cancelado',
     noMatch: 'Ninguno',
     copyUnavailable: 'Copiar necesita una conexión segura: seleccioná el enlace y copialo a mano.',
+    copySelect: 'Seleccioná la dirección y copiala a mano.',
   },
   fr: {
     title: 'Lanceur d’écran TV',
@@ -209,6 +211,7 @@ export const TV_LAUNCHER_LABELS: Readonly<
     noMatch: 'Aucun',
     copyUnavailable:
       'La copie demande une connexion sécurisée : sélectionnez le lien et copiez-le à la main.',
+    copySelect: 'Sélectionnez l’adresse et copiez-la à la main.',
   },
   pt: {
     title: 'Lançador de tela TV',
@@ -277,6 +280,7 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionCancelled: 'Cancelado',
     noMatch: 'Nenhum',
     copyUnavailable: 'Copiar exige uma conexão segura: selecione o link e copie-o manualmente.',
+    copySelect: 'Selecione o endereço e copie-o manualmente.',
   },
   it: {
     title: 'Avvio schermo TV',
@@ -347,6 +351,7 @@ export const TV_LAUNCHER_LABELS: Readonly<
     noMatch: 'Nessuno',
     copyUnavailable:
       'La copia richiede una connessione sicura: seleziona il link e copialo a mano.',
+    copySelect: 'Seleziona l’indirizzo e copialo a mano.',
   },
   de: {
     title: 'TV-Bildschirm starten',
@@ -415,6 +420,7 @@ export const TV_LAUNCHER_LABELS: Readonly<
     noMatch: 'Keins',
     copyUnavailable:
       'Kopieren erfordert eine sichere Verbindung: Link markieren und von Hand kopieren.',
+    copySelect: 'Adresse markieren und von Hand kopieren.',
   },
   ru: {
     title: 'Запуск ТВ-экрана',
@@ -481,6 +487,7 @@ export const TV_LAUNCHER_LABELS: Readonly<
     noMatch: 'Нет',
     copyUnavailable:
       'Копирование требует защищённого соединения: выделите ссылку и скопируйте её вручную.',
+    copySelect: 'Выделите адрес и скопируйте его вручную.',
   },
   zh: {
     title: '电视屏幕启动器',
@@ -544,5 +551,6 @@ export const TV_LAUNCHER_LABELS: Readonly<
     optionCancelled: '已取消',
     noMatch: '无',
     copyUnavailable: '复制需要安全连接：请选中链接后手动复制。',
+    copySelect: '请选中地址后手动复制。',
   },
 };

@@ -25,9 +25,11 @@ import {
   formatKickoff,
   gridFromParams,
   isOverlayView,
+  knownCourt,
   launcherStateLabels,
   matchOptionGroups,
   openingStage,
+  pinnedMatchOf,
   stageOptions,
   TV_LAUNCHER_VIEW_LABEL,
   TV_LAUNCHER_VIEWS,
@@ -139,9 +141,16 @@ const stages = stageOptions(matchChoices);
 // The stage an address names is kept only when this tournament has it; otherwise the default stage opens.
 const initialStage =
   openingStage(matchChoices, Number(params.get('stage')) || undefined) ?? stages[0]?.stage;
-const initialMatch = Number(params.get('match')) || undefined;
 const courts = courtOptions(matchChoices);
-const initialCourt = params.get('court') ?? undefined;
+// A match or a court is kept only when the opening stage and this tournament have it; a number or a name
+// left over from another tournament pins or follows nothing.
+const initialMatch = pinnedMatchOf(
+  matchChoices,
+  Number(params.get('stage')) || undefined,
+  initialStage,
+  Number(params.get('match')) || undefined,
+);
+const initialCourt = knownCourt(courts, params.get('court') ?? undefined);
 const matchGroups =
   initialStage === undefined
     ? []
@@ -156,8 +165,8 @@ const gridShown = view === 'multicourt';
 const noMatchesShown = matchFieldsShown && matchChoices.length === 0;
 const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'football';
 const choicesJson = encodeURIComponent(JSON.stringify(matchChoices));
-// The address the form names, in the first response, as a same-origin path: the script makes it absolute once
-// it runs, from the origin the viewer actually has. An overlay with no match and no court names no page.
+// The address the form names, as a same-origin path. The script makes it absolute once it runs, from the origin
+// the viewer has, and only then loads the preview. A pinned view with no match names no page, so it gets none.
 const launchAddress =
   selectedOrganization && selectedTournament && !(view === 'match' && initialMatch === undefined)
     ? buildTvLauncherDestination({
@@ -310,11 +319,10 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
             <label>
               <span data-i18n="pinMatch">{t.pinMatch}</span>
               <select class="cl-chamfer cl-chamfer--control cl-select" data-launcher-match>
-                {isOverlayView(view) && (
-                  <option value="" selected={initialMatch === undefined}>
-                    {t.noMatch}
-                  </option>
-                )}
+                {/* No match is named until the operator chooses one, in every view: a stage's first match is never pinned for them. */}
+                <option value="" selected={initialMatch === undefined}>
+                  {t.noMatch}
+                </option>
                 {matchGroups.map((group) => (
                   <optgroup label={group.heading}>
                     {group.options.map((item) => (
@@ -497,11 +505,9 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
       const none = document.createElement('option');
       none.value = '';
       none.textContent = labels.noMatch ?? '';
-      match.replaceChildren(...(isOverlayView(view.value) ? [none] : []), ...groups);
-      const usable = [...match.options].filter((option) => !option.disabled);
-      match.value = usable.some((option) => option.value === previous)
-        ? previous
-        : (usable[0]?.value ?? '');
+      match.replaceChildren(none, ...groups);
+      // A choice that the new stage does not have is dropped: nothing is pinned until the operator picks one.
+      match.value = [...match.options].some((option) => option.value === previous) ? previous : '';
     };
 
     const showDescription = (): void => {
@@ -703,20 +709,20 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
       if (launch.getAttribute('aria-disabled') === 'true') event.preventDefault();
     });
     // Without a secure context there is no clipboard: the address is selected for a manual copy instead.
-    const selectAddress = (): void => {
+    const selectAddress = (message: string): void => {
       if (!urlField) return;
       const range = document.createRange();
       range.selectNodeContents(urlField);
       const selection = window.getSelection();
       selection?.removeAllRanges();
       selection?.addRange(range);
-      if (copied) copied.textContent = labelsFor().copyUnavailable ?? '';
+      if (copied) copied.textContent = message;
     };
     copy?.addEventListener('click', () => {
       const shown = urlField?.value ?? '';
       if (shown === '') return;
       if (!navigator.clipboard?.writeText) {
-        selectAddress();
+        selectAddress(labelsFor().copyUnavailable ?? '');
         return;
       }
       void navigator.clipboard
@@ -726,7 +732,8 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
           if (copied && urlField?.value === shown)
             copied.textContent = labelsFor().linkCopied ?? '';
         })
-        .catch(selectAddress);
+        // Permission denied or no focus: the address is selected for a manual copy instead.
+        .catch(() => selectAddress(labelsFor().copySelect ?? ''));
     });
     // The preview is a 1920x1080 frame, scaled to the width the panel gives it.
     if (previewStage && preview) {
@@ -740,6 +747,8 @@ const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as con
       scale();
     }
     restore();
+    // The restore changed the view select without an event: the next change is compared against what is shown.
+    previousView = view?.value ?? '';
     showFields();
     showDescription();
     readPreset();

@@ -35,6 +35,7 @@ import RulesetBriefing from '../components/ui/molecules/RulesetBriefing.astro';
 import SeriesStateBar from '../components/ui/molecules/SeriesStateBar.astro';
 import TimeZoneNote from '../components/ui/molecules/TimeZoneNote.astro';
 import TvLauncherLinkPreview from '../components/ui/molecules/TvLauncherLinkPreview.astro';
+import { TV_LAUNCHER_LABELS } from '../lib/tv-launcher-labels.js';
 import TournamentHero from '../components/ui/molecules/TournamentHero.astro';
 import TournamentOverviewHero from '../components/ui/organisms/TournamentOverviewHero.astro';
 import BracketView from '../components/ui/organisms/BracketView.astro';
@@ -106,6 +107,7 @@ import {
   referenceTableLayouts,
   referenceTableProjection,
   referenceTournamentListing,
+  referenceTvLauncherAddress,
   referenceWinnerZones,
 } from '../lib/reference-fixtures.ts';
 import { displayName, type StandingsRowView } from '../lib/overview.ts';
@@ -325,11 +327,11 @@ const [compactSample] = referenceJourneyBracket(true);
     )}
     {component === 'tv-launcher-link-preview' && (
       <TvLauncherLinkPreview
-        url="http://localhost:4321/tv/panamericano-demo/tournaments/panamericano-clubes-2025?lang=es&bg=transparent&mode=overlay-lower"
+        url={referenceTvLauncherAddress(locale)}
         transparent
-        finalLinkLabel="Enlace final"
-        copyLabel="Copiar enlace"
-        previewLabel="Vista previa"
+        finalLinkLabel={TV_LAUNCHER_LABELS[locale].finalLink ?? ''}
+        copyLabel={TV_LAUNCHER_LABELS[locale].copyLink ?? ''}
+        previewLabel={TV_LAUNCHER_LABELS[locale].preview ?? ''}
       />
     )}
     {component === 'result-legend' && (

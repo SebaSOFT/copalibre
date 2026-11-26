@@ -55,13 +55,8 @@ const captionId = 'tv-launcher-link-caption';
       data-preview-stage
       data-transparent={transparent ? '' : undefined}
     >
-      <iframe
-        data-launcher-preview
-        title={previewLabel}
-        tabindex="-1"
-        loading="lazy"
-        src={url === '' ? 'about:blank' : url}
-      ></iframe>
+      <!-- No src until the launcher script sets the absolute address: the frame loads once, not twice. -->
+      <iframe data-launcher-preview title={previewLabel} tabindex="-1" loading="lazy"></iframe>
     </div>
   </figure>
 </div>

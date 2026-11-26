@@ -99,9 +99,9 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // Public broadcast pages render on the server through Astro and have no
   // public-surface Label/Field primitive yet, and the grouped match select
   // needs optgroups the owned Select atom does not render. The launcher's
-  // selects and copy control use the owned Select and Button atoms; the
-  // remaining 12 native elements (ten labels, the grouped select, the form)
-  // stay until the public Astro library provides a Field molecule.
+  // selects and copy control use the owned Select and Button atoms. The 11
+  // recorded native elements are nine labels, the grouped select and the form;
+  // they stay until the public Astro library provides a Field molecule.
   ['pages/tv/index.astro', 11],
   // `TvDashboard.tsx`'s entry is gone: its four
   // private sub-components and its table/button ownership moved into their
