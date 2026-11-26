@@ -344,7 +344,7 @@ describe('useTablePaging', () => {
     expect(rowsOnScreen()).toHaveLength(6);
   });
 
-  it('does not grow back to a size that overflowed within the same key', async () => {
+  it('grows into the room shorter rows free, though the frame and the data are the same', async () => {
     mockResizeObserver();
     frame = frameHolding(20);
     restore = frameOf(frame);
@@ -353,13 +353,13 @@ describe('useTablePaging', () => {
     await reportFrame();
     expect(rowsOnScreen()).toHaveLength(20);
 
-    // The rows shrink in the same frame and the next page renders, which measures it: room appears, but
-    // this frame and this data never grow past the 20 rows the overflowing first render showed to fit.
+    // The rows shrink in the same frame: the ceiling the 50px rows set does not hold back the 30px ones,
+    // which fit 34 to a page.
     frame.rowPx = 30;
-    view.rerender(<Harness rows={range(1, 40)} page={1} />);
+    view.rerender(<Harness rows={range(1, 40)} page={0} />);
     await settle();
     await settle();
-    expect(rowsOnScreen()).toEqual(range(21, 40));
+    expect(rowsOnScreen()).toHaveLength(34);
   });
 
   it('starts a fresh ceiling when the data changes shape, so a list can grow into new room', async () => {
@@ -384,10 +384,32 @@ describe('useTablePaging', () => {
     frame = frameHolding(20);
     restore = frameOf(frame);
     render(<Harness rows={range(1, 25)} page={2} initialSize={12} />);
+    // The last page of 12-row pages shows one row; the room under it holds 19 more, so the page size
+    // becomes 20 at once (never 12 + 19, which would paint all 25 and overflow).
+    const sizes: number[] = [];
+    for (let step = 0; step < 4; step += 1) {
+      await reportFrame();
+      sizes.push(Number(/of (\d+)$/.exec(screen.getByText(/of \d+$/).textContent ?? '')?.[1]));
+    }
+    expect(sizes.every((pages) => pages === 2)).toBe(true);
+  });
+
+  it('never paints a longer list whole after a first list that fitted', async () => {
+    mockResizeObserver();
+    frame = frameHolding(20);
+    restore = frameOf(frame);
+    const view = render(<Harness rows={range(1, 6)} page={0} />);
     await reportFrame();
+    await reportFrame();
+    expect(rowsOnScreen()).toHaveLength(6);
+
+    // The standings refresh to 40 rows: the first render after it keeps the measured size, it does not
+    // paint all 40.
+    view.rerender(<Harness rows={range(1, 40)} page={0} />);
     expect(rowsOnScreen().length).toBeLessThanOrEqual(20);
     await settle();
-    expect(screen.getByText(/of 2$/)).toBeTruthy();
+    await settle();
+    expect(rowsOnScreen()).toHaveLength(20);
   });
 
   it("counts a line of entries as one row with countBy 'line'", async () => {
@@ -427,6 +449,11 @@ describe('useTablePaging', () => {
       return rule.slice(0, rule.indexOf('}'));
     };
     expect(ruleOf('.tv-rail-content--paged')).toContain('overflow: hidden');
+    // The dashboard's standings panel is paged too: some rule of its own clips it.
+    const dashboardRules = css
+      .split('}')
+      .filter((block) => /(^|[\s,])\.tv-dashboard-standings\s*(,|\{)/.test(block));
+    expect(dashboardRules.some((block) => block.includes('overflow: hidden'))).toBe(true);
     // The rail's unpaged tabs (bracket, performers, facts) keep their scroll.
     expect(ruleOf('.tv-rail-content')).toContain('overflow-y: auto');
   });

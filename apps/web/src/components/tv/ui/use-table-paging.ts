@@ -140,12 +140,14 @@ export function useTablePaging<T>(
   // The last measured size; undefined until the first measurement.
   const [measuredSize, setMeasuredSize] = useState<number | undefined>(undefined);
   // The most rows known to fit this frame and this shape of data: an overflowing page's fit.
-  const ceiling = useRef<{ readonly key: string; readonly value: number } | undefined>(undefined);
+  // It also remembers the line height it was measured at: rows that grow shorter free room it must not
+  // hold back.
+  const ceiling = useRef<
+    { readonly key: string; readonly value: number; readonly lineHeight: number } | undefined
+  >(undefined);
   const measureKey = `${box?.width ?? ''}x${box?.height ?? ''}|${fontsReady}|${total}|${
     segments === undefined ? '' : segments.join(',')
   }`;
-  const ceilingValue =
-    ceiling.current?.key === measureKey ? ceiling.current.value : Number.POSITIVE_INFINITY;
   // Before a measurement the page holds the initial size, or the whole list; a later key keeps the last size.
   const size = Math.max(1, Math.min(measuredSize ?? initialSize ?? total, total || 1));
   const bounds = useMemo(
@@ -204,6 +206,13 @@ export function useTablePaging<T>(
       if (unitHeights.some((height) => height <= 0)) return;
       const minUnit = Math.min(...unitHeights);
       if (panel.clientHeight < minUnit * MIN_FRAME_ROWS) return;
+      // The average line, not the shortest: a short heading line would promise room a full line lacks.
+      const lineHeight = unitHeights.reduce((sum, height) => sum + height, 0) / unitHeights.length;
+      const held = ceiling.current;
+      const ceilingValue =
+        held !== undefined && held.key === measureKey && Math.abs(held.lineHeight - lineHeight) < 1
+          ? held.value
+          : Number.POSITIVE_INFINITY;
       // The content ends above the panel's own bottom padding and border.
       const edges = getComputedStyle(panel);
       const frameBottom =
@@ -228,7 +237,7 @@ export function useTablePaging<T>(
       if (fit < rendered) {
         // The page overflows: it holds the data rows that fit, and this key never grows past them.
         const next = Math.max(1, fit);
-        ceiling.current = { key: measureKey, value: next };
+        ceiling.current = { key: measureKey, value: next, lineHeight };
         setMeasuredSize(next);
         return;
       }
@@ -236,9 +245,11 @@ export function useTablePaging<T>(
       // to the ceiling. A short page (the last one, or one cut at a group) grows from what it shows, not
       // from the size, and growth never shrinks the page.
       const rowsPerUnit = Math.max(1, Math.round(rendered / units.length));
-      const spare = Math.floor((frameBottom - reserved - lastUnit.bottom) / minUnit) * rowsPerUnit;
+      const spare =
+        Math.floor((frameBottom - reserved - lastUnit.bottom) / lineHeight) * rowsPerUnit;
       const grown = Math.max(size, Math.min(total, rendered + Math.max(0, spare), ceilingValue));
-      if (grown !== size) setMeasuredSize(grown);
+      // A page that fits is a measurement too: storing it keeps a later, longer list from painting whole.
+      if (grown !== size || measuredSize === undefined) setMeasuredSize(grown);
     });
     return () => window.cancelAnimationFrame(frame);
     // Every rendered page is measured: the page's rows are the trigger, and the key and the size are its inputs.
@@ -248,7 +259,7 @@ export function useTablePaging<T>(
     measureKey,
     pageRows,
     size,
-    ceilingValue,
+    measuredSize,
     rowSelector,
     pagerSelector,
     total,
