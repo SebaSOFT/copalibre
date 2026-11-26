@@ -116,3 +116,15 @@ The public match page scoreboard SHALL show each effective match counter per sid
 #### Scenario: A finished match keeps its totals
 - **WHEN** the match has finished
 - **THEN** match-scope counters show their final values and segment-scope counters are not shown
+
+### Requirement: The match page scoreboard keeps both sides on one row at every width
+
+The public match page scoreboard SHALL keep the home side, the divider and the away side on one row at every viewport width, with the two scores facing each other across the divider. A long team name SHALL wrap inside its own side and SHALL NOT move the other side to another line or cause horizontal scrolling.
+
+#### Scenario: Long names on a phone
+- **WHEN** a match between "Club Andes" and "Deportivo Sur" is opened at 390x844
+- **THEN** both scores are on the same line, the home score left of the divider and the away score right of it, and the page has no horizontal scroll
+
+#### Scenario: Desktop keeps the side-by-side scoreboard
+- **WHEN** the same match is opened at 1440x900
+- **THEN** each team name sits beside its score, and the scoreboard reads home name, home score, divider, away score, away name on one line
