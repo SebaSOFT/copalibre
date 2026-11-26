@@ -764,7 +764,9 @@ test('sets, refuses and clears a match stream link from the match row', async ({
   await page.getByRole('button', { name: `Editar transmisión — ${row}` }).click();
   await page.getByLabel('Enlace de transmisión').fill('ftp://example.org/stream');
   await page.getByRole('button', { name: 'Guardar enlace' }).click();
-  await expect(page.getByRole('alert')).toContainText('Ingresá un enlace que empiece con https://');
+  await expect(page.getByRole('alert')).toContainText(
+    'Ingresá un enlace completo que empiece con http:// o https://',
+  );
   expect(streamUrlWrites).toEqual([]);
 
   await page.getByLabel('Enlace de transmisión').fill('https://example.org/live/semifinal-1');

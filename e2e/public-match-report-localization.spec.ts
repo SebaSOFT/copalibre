@@ -170,7 +170,7 @@ test.describe('Match report timeline in game time', () => {
     await expect(timeline.locator('.cl-timeline-score').nth(1)).toHaveText('1–1');
     await expect(timeline.locator('[data-segment-marker="segment-start"]')).toHaveText('Tiempo 1');
     await expect(timeline.locator('[data-segment-marker="segment-end"]')).toHaveText(
-      'Fin del Tiempo 1 · 1–1',
+      'Fin · Tiempo 1 · 1–1',
     );
     // A finished match has no on-field column.
     await expect(page.getByRole('columnheader', { name: 'En cancha' })).toHaveCount(0);

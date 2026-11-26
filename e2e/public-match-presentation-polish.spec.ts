@@ -246,7 +246,8 @@ test.describe('match page identity, registered squads and stream link', () => {
     await page.waitForSelector('meta[name="copalibre:deferred-stylesheet"]', { state: 'attached' });
 
     await expect(page.locator('.cl-team-crest')).toHaveCount(2);
-    await expect(page.getByText('Plantel inscripto')).toHaveCount(2);
+    // The squad note is written once for the match, not once per team.
+    await expect(page.getByText('Plantel inscripto')).toHaveCount(1);
     await expect(page.getByText('Ada Lovelace')).toBeVisible();
     await expect(page.getByText('Grace Hopper')).toBeVisible();
 
