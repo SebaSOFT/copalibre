@@ -45,7 +45,7 @@ describe('multi-match series (integration)', () => {
     await scratch?.drop();
   });
 
-  it('6.1: Generates best-of-five, places matches into schedule slots, finalizes three, anulls surplus matches, frees slots atomically, and advances winner downstream', async () => {
+  it('plays a best-of-five through its schedule slots, freeing the unplayed games and advancing the winner', async () => {
     const descriptor = footballDescriptor();
 
     const { stage, entrantA, entrantB } = await withTransaction(scratch.db, async (uow) => {
@@ -253,7 +253,7 @@ describe('multi-match series (integration)', () => {
     );
   });
 
-  it('6.2: Generates and plays a two-leg aggregate tie, asserting level tie reported finished-unresolved', async () => {
+  it('generates and plays a two-leg aggregate tie, asserting level tie reported finished-unresolved', async () => {
     const descriptor = footballDescriptor();
 
     const { stage, entrantA, entrantB } = await withTransaction(scratch.db, async (uow) => {
@@ -396,7 +396,7 @@ describe('multi-match series (integration)', () => {
     expect(seriesResolution.winnerEntrantId).toBeUndefined();
   });
 
-  it('6.3: Asserts atomic publication refusal when assigning a not-required match', async () => {
+  it('asserts atomic publication refusal when assigning a not-required match', async () => {
     const { stage, entrantA, entrantB } = await withTransaction(scratch.db, async (uow) => {
       const descriptor = footballDescriptor();
       const tournament = await tournaments.create(uow, {
@@ -515,7 +515,7 @@ describe('multi-match series (integration)', () => {
     expect(published).toHaveLength(0);
   });
 
-  it('6.4: Asserts statistics rebuild reproduces incremental totals skipping not-required matches', async () => {
+  it('asserts statistics rebuild reproduces incremental totals skipping not-required matches', async () => {
     // Run statistics rebuild across the scratch database and confirm no errors
     const rebuildOutcome = await runStatisticsRebuild(scratch.db, {
       organization: 'liga-series-integ',
@@ -523,7 +523,7 @@ describe('multi-match series (integration)', () => {
     expect(rebuildOutcome).toBeDefined();
   });
 
-  it('6.5: Generates a two-entrant single-series stage and verifies qualification cut feeds next stage', async () => {
+  it('generates a two-entrant single-series stage and verifies qualification cut feeds next stage', async () => {
     const descriptor = footballDescriptor();
 
     const { tournament, stage1, entrantA, entrantB } = await withTransaction(

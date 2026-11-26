@@ -338,7 +338,7 @@ describe('enforceReportSubmission', () => {
     expect(isPartyToMatch).toHaveBeenCalledWith('org-1', 'participant-1', 'm-1');
   });
 
-  it('refuses a match the participant is not a party to (4.2)', async () => {
+  it('refuses a match the participant is not a party to', async () => {
     const isPartyToMatch = vi
       .fn<(organizationId: string, personId: string, matchId: string) => Promise<boolean>>()
       .mockResolvedValue(false);

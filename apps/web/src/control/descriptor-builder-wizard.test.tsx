@@ -97,7 +97,7 @@ describe('the discipline builder wizard', () => {
     );
   });
 
-  it('walks every step — translations, both participant types, statistics, an event that awards one of them, formats, scoring inputs, and a segmented win condition — and submits the composed document', () => {
+  it('walks every step and submits the composed document', () => {
     const submitted: unknown[] = [];
     render(withIntl(<DescriptorBuilderWizard onSubmit={(request) => submitted.push(request)} />));
 

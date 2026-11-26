@@ -202,9 +202,7 @@ test.describe('Public Web & Broadcast Polish', () => {
     );
   });
 
-  test('5.1 organization home features finished tournaments without a LIVE badge', async ({
-    page,
-  }) => {
+  test('organization home features finished tournaments without a LIVE badge', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}`);
 
     const featured = page.getByRole('region', { name: 'Featured' });
@@ -219,7 +217,7 @@ test.describe('Public Web & Broadcast Polish', () => {
     await expect(card.getByText(/live/i)).toHaveCount(0);
   });
 
-  test('5.2 a finished round-robin tournament stage page renders the compact grid, not an elimination bracket tree', async ({
+  test('a finished round-robin tournament stage page renders the compact grid, not an elimination bracket tree', async ({
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`);
@@ -235,7 +233,7 @@ test.describe('Public Web & Broadcast Polish', () => {
     await expect(page.locator('.cl-bracket')).toHaveCount(0);
   });
 
-  test('5.3 organization home presents its champion while single-zone overview omits the podium', async ({
+  test('organization home presents its champion while single-zone overview omits the podium', async ({
     page,
   }) => {
     // 1. Check organization home presents champion
@@ -259,7 +257,7 @@ test.describe('Public Web & Broadcast Polish', () => {
     ).toBeVisible();
   });
 
-  test('5.4 player profile page shows non-empty career statistics and uses design token palette', async ({
+  test('player profile page shows non-empty career statistics and uses design token palette', async ({
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/${PERSON_ID}`);

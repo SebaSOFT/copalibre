@@ -371,7 +371,7 @@ describe('drainQueue sequential semantics', () => {
     expect(pending[0]?.action).toEqual(FINALIZE_ACTION);
   });
 
-  it('a refusal on one anulled match does not stop the rest of the queue (3.5)', async () => {
+  it('a refusal on one anulled match does not stop the rest of the queue', async () => {
     const client = stubClient({
       finalizeMatch: jest
         .fn<MatchConsoleApiClient['finalizeMatch']>()

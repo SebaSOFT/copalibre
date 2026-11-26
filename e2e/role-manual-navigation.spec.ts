@@ -33,7 +33,7 @@ async function mockOrganizationRole(page: Page, role: string): Promise<void> {
   );
 }
 
-test.describe('control-panel navigation follows the declared capability mapping (7.1)', () => {
+test.describe('control-panel navigation follows the declared capability mapping', () => {
   for (const [role, seesRoles] of [
     ['admin', true],
     ['club-admin', false],
@@ -62,7 +62,7 @@ test.describe('control-panel navigation follows the declared capability mapping 
   }
 });
 
-test.describe('role manual pages are reachable from the help index (7.2)', () => {
+test.describe('role manual pages are reachable from the help index', () => {
   for (const [name, path, mustContain] of [
     ['Admin', 'admin', ['What it cannot do']],
     ['Club admin', 'club-admin', ['What it inherits', 'What it cannot do']],
@@ -84,9 +84,7 @@ test.describe('role manual pages are reachable from the help index (7.2)', () =>
   }
 });
 
-test('a club-admin is refused a control outside their club, naming ownership (7.3)', async ({
-  page,
-}) => {
+test('a club-admin is refused a control outside their club, naming ownership', async ({ page }) => {
   await page.addInitScript(
     ({ tokenEndpoint }) => {
       window.fetch = async (input, init) => {
@@ -139,7 +137,7 @@ test('a club-admin is refused a control outside their club, naming ownership (7.
   await expect(page.getByRole('alert')).toContainText('not scoped to administer this club');
 });
 
-test('inviting a tournament-admin requires selecting a tournament (7.4)', async ({ page }) => {
+test('inviting a tournament-admin requires selecting a tournament', async ({ page }) => {
   await page.addInitScript(
     ({ tokenEndpoint }) => {
       window.fetch = async (input, init) => {

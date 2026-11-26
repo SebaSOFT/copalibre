@@ -336,7 +336,7 @@ async function mockStreamDeliveringOneScoreEvent(page: Page): Promise<void> {
   );
 }
 
-test('renders the multi-court grid, with the live match on its own court card (9.1)', async ({
+test('renders the multi-court grid, with the live match on its own court card', async ({
   page,
 }) => {
   useClockFixtures = true;
@@ -355,9 +355,7 @@ test('renders the multi-court grid, with the live match on its own court card (9
   await expect(page.locator('.tv-multicourt').getByRole('button')).toHaveCount(0);
 });
 
-test('a live SSE event updates its own court card without navigating away (9.2)', async ({
-  page,
-}) => {
+test('a live SSE event updates its own court card without navigating away', async ({ page }) => {
   useClockFixtures = true;
   await recordFlashes(page, COURT_CARD_VALUE);
   await mockStreamDeliveringOneScoreEvent(page);
@@ -392,7 +390,7 @@ test('holds a static flash under reduced motion', async ({ page }) => {
   expect(style?.backgroundColor).toBe(style?.expectedFlashColor);
 });
 
-test('the default single-spotlight kiosk view is unaffected when no layout param is present (9.3)', async ({
+test('the default single-spotlight kiosk view is unaffected when no layout param is present', async ({
   page,
 }) => {
   useClockFixtures = true;
@@ -429,7 +427,7 @@ test('each live court tile shows its advancing game clock when timed and never p
   await expect(untimedCard).not.toContainText(/\d{2}:\d{2}/);
 });
 
-test('one tile per court, a scheduled tile shows its start time, and the live court stays on every page (9.4)', async ({
+test('one tile per court, a scheduled tile shows its start time, and the live court stays on every page', async ({
   page,
 }) => {
   useClockFixtures = true;

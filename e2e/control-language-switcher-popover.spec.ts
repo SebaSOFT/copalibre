@@ -45,7 +45,7 @@ async function setupMockApi(page: Page): Promise<void> {
   );
 }
 
-test('3.1: clicking the trigger opens the styled popover and switches the shell language', async ({
+test('clicking the trigger opens the styled popover and switches the shell language', async ({
   page,
 }) => {
   await setupMockApi(page);

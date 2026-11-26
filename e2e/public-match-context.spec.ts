@@ -987,7 +987,7 @@ test.describe('public competition context labels', () => {
     await expect(stakes.nth(1)).toContainText('14:00');
   });
 
-  test('bracket headings name each cup zone, upcoming nodes show schedule/venue, decided slots keep qualifier origin, and placement lists share one deterministic order', async ({
+  test('names each cup zone in the bracket, with schedule, venue and qualifier origin on its nodes', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 900 });

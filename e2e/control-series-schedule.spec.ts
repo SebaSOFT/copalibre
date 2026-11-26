@@ -197,7 +197,7 @@ test.beforeEach(() => {
   assignments = [];
 });
 
-test('7.1: places each game of a best-of-five in its own slot, marking four and five contingent', async ({
+test('places each game of a best-of-five in its own slot, marking four and five contingent', async ({
   page,
 }) => {
   await mockControlApi(page);
@@ -232,7 +232,7 @@ test('7.1: places each game of a best-of-five in its own slot, marking four and 
   await expect(page.getByText('Horario publicado.')).toBeVisible();
 });
 
-test('7.2: a decided series shows its surplus games as no longer required, naming their slots', async ({
+test('a decided series shows its surplus games as no longer required, naming their slots', async ({
   page,
 }) => {
   await mockControlApi(page);

@@ -862,7 +862,7 @@ describe('table projections (integration)', () => {
       expect(nonMatching.json().rows).toHaveLength(0);
     });
 
-    it('includes clubAlias for aliased clubs, omits it without alias, filters by ?club= across JSON and CSV with club winning over clubId, and isolates aliases per organization', async () => {
+    it('filters table projections by club alias in JSON and CSV, scoped to one organization', async () => {
       const otherOrgClubAlias = 'club-otra-liga';
       await withTransaction(scratch.db, async (uow) => {
         const otherOrg = await new OrganizationRepository(scratch.db).create(uow, {

@@ -383,7 +383,7 @@ describe('ScheduleBuilderPage', () => {
     }
   });
 
-  it('states each game’s contingency in words, so the distinction survives without color (2.3)', async () => {
+  it('states each game’s contingency in words, so the distinction survives without color', async () => {
     const { container } = render(
       withIntl(
         <ScheduleBuilderPage
@@ -405,7 +405,7 @@ describe('ScheduleBuilderPage', () => {
     expect(container.textContent).toContain('Played only if the series is still undecided');
   });
 
-  it('keeps an anulled game in the view, naming the slot it had held (2.4)', async () => {
+  it('keeps an anulled game in the view, naming the slot it had held', async () => {
     render(
       withIntl(
         <ScheduleBuilderPage
@@ -426,7 +426,7 @@ describe('ScheduleBuilderPage', () => {
     expect(screen.queryByLabelText(/Game 4 of 5/i)).toBeNull();
   });
 
-  it('lists the slots a pending series decision would free, before it is committed (2.5)', async () => {
+  it('lists the slots a pending series decision would free, before it is committed', async () => {
     render(
       withIntl(
         <ScheduleBuilderPage

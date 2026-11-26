@@ -145,7 +145,7 @@ describe('the /tv/** stream is gated by a device-scoped display token (integrati
     expect(response.statusCode).toBe(401);
   });
 
-  it('answers with a live display token, then rejects it on the very next request once revoked (7.1)', async () => {
+  it('answers with a live display token, then rejects it on the very next request once revoked', async () => {
     const raw = 'kiosk-token-to-revoke';
     const org = await new OrganizationRepository(db).findByAlias(organizationAlias);
     if (!org) throw new Error('Expected organization fixture');

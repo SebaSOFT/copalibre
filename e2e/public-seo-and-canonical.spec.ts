@@ -125,9 +125,7 @@ test.afterAll(async () => {
 });
 
 test.describe('SEO & Public Discoverability Hardening', () => {
-  test('8.1: homepage renders real organization content instead of placeholder', async ({
-    page,
-  }) => {
+  test('homepage renders real organization content instead of placeholder', async ({ page }) => {
     await page.goto('/');
 
     // Check header and content
@@ -137,7 +135,7 @@ test.describe('SEO & Public Discoverability Hardening', () => {
     await expect(page.getByRole('link', { name: /Liga Mendocina/ })).toBeVisible();
   });
 
-  test('8.2: tournament live page under non-primary locale carries self-referential canonical URL', async ({
+  test('tournament live page under non-primary locale carries self-referential canonical URL', async ({
     page,
   }) => {
     await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/live`);
@@ -149,7 +147,7 @@ test.describe('SEO & Public Discoverability Hardening', () => {
     );
   });
 
-  test('8.3: sitemap.xml dynamically enumerates published organizations and tournaments with locale variants', async ({
+  test('sitemap.xml dynamically enumerates published organizations and tournaments with locale variants', async ({
     request,
   }) => {
     const response = await request.get('/sitemap.xml');
@@ -167,7 +165,7 @@ test.describe('SEO & Public Discoverability Hardening', () => {
     expect(body).toContain(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}</loc>`);
   });
 
-  test('8.4: tournament overview page carries Open Graph, Twitter cards, hreflang, and JSON-LD SportsEvent', async ({
+  test('tournament overview page carries Open Graph, Twitter cards, hreflang, and JSON-LD SportsEvent', async ({
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);

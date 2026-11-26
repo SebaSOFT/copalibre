@@ -128,7 +128,7 @@ test.beforeEach(() => {
   projection = DEFAULT_PROJECTION;
 });
 
-test('7.3: the public standings preview names the grain, with JavaScript disabled', async ({
+test('the public standings preview names the grain, with JavaScript disabled', async ({
   browser,
 }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
@@ -214,9 +214,7 @@ test('a broken public emblem URL reveals stored abbreviation fallback', async ({
   await expect(frame.locator('.cl-entrant-emblem__monogram')).toHaveText('TLL');
 });
 
-test('7.3: a single-match tournament’s preview carries no such statement, unchanged from before this change', async ({
-  page,
-}) => {
+test('a single-match tournament’s preview carries no grain statement', async ({ page }) => {
   const withoutGrain: Record<string, unknown> = { ...DEFAULT_PROJECTION };
   delete withoutGrain.grain;
   delete withoutGrain.countColumnCode;
@@ -229,7 +227,7 @@ test('7.3: a single-match tournament’s preview carries no such statement, unch
   await expect(page.getByRole('columnheader', { name: 'PJ' })).toBeVisible();
 });
 
-test('7.3: the live page’s leaders table names the grain, with JavaScript disabled', async ({
+test('the live page’s leaders table names the grain, with JavaScript disabled', async ({
   browser,
 }) => {
   overview = { ...DEFAULT_OVERVIEW, standingsGrain: 'match' };
@@ -242,7 +240,7 @@ test('7.3: the live page’s leaders table names the grain, with JavaScript disa
   await context.close();
 });
 
-test('7.4: the grain statement is legible with color disabled', async ({ page }) => {
+test('the grain statement is legible with color disabled', async ({ page }) => {
   await page.emulateMedia({ forcedColors: 'active' });
   await page.goto(overviewPath);
 
