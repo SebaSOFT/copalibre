@@ -3791,7 +3791,7 @@ export const messages = defineMessages({
   },
   scheduleBuilderStreamUrlInvalid: {
     id: 'control.scheduleBuilder.streamUrlInvalid',
-    defaultMessage: 'Enter a link that starts with https://',
+    defaultMessage: 'Enter a full link that starts with http:// or https://',
   },
   scheduleBuilderStreamUrlEdit: {
     id: 'control.scheduleBuilder.streamUrlEdit',

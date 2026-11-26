@@ -1236,7 +1236,8 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.preview': 'Pré-visualizar',
   'control.scheduleBuilder.publish': 'Publicar o horário',
   'control.scheduleBuilder.streamUrl': 'Link da transmissão',
-  'control.scheduleBuilder.streamUrlInvalid': 'Informe um link que comece com https://',
+  'control.scheduleBuilder.streamUrlInvalid':
+    'Informe um link completo que comece com http:// ou https://',
   'control.scheduleBuilder.streamUrlEdit': 'Editar transmissão',
   'control.scheduleBuilder.streamUrlSave': 'Salvar link',
   'control.scheduleBuilder.streamUrlClear': 'Remover link',

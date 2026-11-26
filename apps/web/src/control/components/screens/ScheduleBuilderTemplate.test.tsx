@@ -3,6 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { withIntl } from '../../i18n/test-support.js';
 import { ScheduleBuilderTemplate } from './ScheduleBuilderTemplate.js';
+import type { FixtureResponse } from '../../lib/api-client.js';
 
 const scheduleId = '019927d0-0000-7000-8000-000000000010';
 const organizationId = '019927d0-0000-7000-8000-000000000011';
@@ -196,7 +197,9 @@ describe('ScheduleBuilderTemplate', () => {
       });
       fireEvent.click(screen.getByRole('button', { name: 'Save link' }));
 
-      expect(screen.getByRole('alert').textContent).toBe('Enter a link that starts with https://');
+      expect(screen.getByRole('alert').textContent).toBe(
+        'Enter a full link that starts with http:// or https://',
+      );
       expect(streamProps0.onSetStreamUrl).not.toHaveBeenCalled();
 
       fireEvent.change(screen.getByLabelText('Stream link'), {
@@ -215,7 +218,17 @@ describe('ScheduleBuilderTemplate', () => {
       const withSaved = streamProps({
         fixtures: props.fixtures.map((fixture) =>
           fixture.matchId === 'match-1'
-            ? { ...fixture, streamUrl: 'https://example.org/live/saved' }
+            ? {
+                ...fixture,
+                matches: [
+                  {
+                    matchId: 'match-1',
+                    number: 1,
+                    status: 'scheduled',
+                    streamUrl: 'https://example.org/live/saved',
+                  },
+                ],
+              }
             : fixture,
         ),
       });
@@ -228,6 +241,61 @@ describe('ScheduleBuilderTemplate', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Remove link' }));
 
       expect(withSaved.onSetStreamUrl).toHaveBeenCalledWith('match-1', null);
+    });
+
+    it('shows and edits each game of a best-of-three on its own link, never the first game’s', () => {
+      const series = {
+        span: 3,
+        guaranteedMatches: 2,
+        matchesPlayed: 0,
+        anulledMatchNumbers: [],
+      };
+      const bestOfThree: FixtureResponse = {
+        fixtureId: 'fixture-series',
+        matchId: 'game-1',
+        round: 1,
+        homeEntrantId: 'club-a',
+        homeName: 'Club A',
+        awayEntrantId: 'club-d',
+        awayName: 'Club D',
+        series,
+        matches: [
+          { matchId: 'game-1', number: 1, status: 'scheduled' },
+          {
+            matchId: 'game-2',
+            number: 2,
+            status: 'scheduled',
+            streamUrl: 'https://example.org/live/game-2',
+          },
+          { matchId: 'game-3', number: 3, status: 'scheduled' },
+        ],
+      };
+      const series3 = streamProps({ fixtures: [bestOfThree] });
+      render(withIntl(<ScheduleBuilderTemplate {...series3} />));
+
+      // Game 1 has no link, so its row shows none and its editor opens empty.
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Edit stream — Club A vs Club D — Game 1 of 3' }),
+      );
+      expect((screen.getByLabelText('Stream link') as HTMLInputElement).value).toBe('');
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Edit stream — Club A vs Club D — Game 1 of 3' }),
+      );
+
+      // Game 2's own link shows on its row and opens in its editor; saving the editor as shown keeps it.
+      expect(screen.getByText('https://example.org/live/game-2')).toBeDefined();
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Edit stream — Club A vs Club D — Game 2 of 3' }),
+      );
+      expect((screen.getByLabelText('Stream link') as HTMLInputElement).value).toBe(
+        'https://example.org/live/game-2',
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Save link' }));
+      expect(series3.onSetStreamUrl).toHaveBeenCalledWith(
+        'game-2',
+        'https://example.org/live/game-2',
+      );
+      expect(series3.onSetStreamUrl).not.toHaveBeenCalledWith('game-2', null);
     });
 
     it('closes the editor when its disclosure is pressed again, without saving', () => {

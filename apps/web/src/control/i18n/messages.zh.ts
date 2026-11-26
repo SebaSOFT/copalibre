@@ -1189,7 +1189,7 @@ export const messages: Record<string, string> = {
   'control.scheduleBuilder.preview': '预览',
   'control.scheduleBuilder.publish': '发布赛程',
   'control.scheduleBuilder.streamUrl': '直播链接',
-  'control.scheduleBuilder.streamUrlInvalid': '请输入以 https:// 开头的链接',
+  'control.scheduleBuilder.streamUrlInvalid': '请输入以 http:// 或 https:// 开头的完整链接',
   'control.scheduleBuilder.streamUrlEdit': '编辑直播',
   'control.scheduleBuilder.streamUrlSave': '保存链接',
   'control.scheduleBuilder.streamUrlClear': '移除链接',

@@ -194,6 +194,19 @@ export function ScheduleBuilderTemplate({
 
   const groups = useMemo(() => builderGroups(fixtures), [fixtures]);
 
+  // Every game of a series carries its own link, so each row is looked up by its own match id.
+  const streamUrls = useMemo(
+    () =>
+      new Map(
+        fixtures.flatMap((fixture) =>
+          (fixture.matches ?? []).flatMap((game) =>
+            game.streamUrl === undefined ? [] : [[game.matchId, game.streamUrl] as const],
+          ),
+        ),
+      ),
+    [fixtures],
+  );
+
   const entrantNames = useMemo(() => {
     const names = new Map<string, { fullName: string; abbreviation?: string }>();
     for (const fixture of fixtures) {
@@ -559,7 +572,7 @@ export function ScheduleBuilderTemplate({
       draft.officialIds.includes(official.officialId),
     );
     const editingOfficials = editingOfficialsFor === row.matchId;
-    const savedStreamUrl = fixtures.find((fixture) => fixture.matchId === row.matchId)?.streamUrl;
+    const savedStreamUrl = streamUrls.get(row.matchId);
     const editingStream = editingStreamFor === row.matchId;
 
     const openStreamEditor = () => {
@@ -680,11 +693,21 @@ export function ScheduleBuilderTemplate({
             >
               <FormattedMessage {...messages.scheduleBuilderStreamUrlEdit} />
             </Button>
+            {!editingStream && savedStreamUrl !== undefined && (
+              <span className="cl-schedule-builder__stream-current" title={savedStreamUrl}>
+                {savedStreamUrl}
+              </span>
+            )}
             {editingStream && (
               <div className="cl-schedule-builder__stream-editor">
                 <Field
                   id={`stream-${row.matchId}`}
                   label={intl.formatMessage(messages.scheduleBuilderStreamUrl)}
+                  errorText={
+                    streamRefused
+                      ? intl.formatMessage(messages.scheduleBuilderStreamUrlInvalid)
+                      : undefined
+                  }
                 >
                   <Input
                     id={`stream-${row.matchId}`}
@@ -697,13 +720,8 @@ export function ScheduleBuilderTemplate({
                     value={streamDraft}
                   />
                 </Field>
-                {streamRefused && (
-                  <p className="cl-card__description" role="alert">
-                    <FormattedMessage {...messages.scheduleBuilderStreamUrlInvalid} />
-                  </p>
-                )}
                 <div className="cl-schedule-builder__stream-actions">
-                  <Button onClick={() => saveStream(streamDraft)} type="button" variant="primary">
+                  <Button onClick={() => saveStream(streamDraft)} type="button" variant="secondary">
                     <FormattedMessage {...messages.scheduleBuilderStreamUrlSave} />
                   </Button>
                   {savedStreamUrl !== undefined && (

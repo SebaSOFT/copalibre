@@ -1076,6 +1076,8 @@ export interface FixtureMatchResponse {
   readonly status: 'scheduled' | 'in-progress' | 'finalized' | 'not-required';
   /** The slot this match had occupied before a decided series freed it. */
   readonly releasedSlotId?: string;
+  /** This game's stream link, when one is attached to it. */
+  readonly streamUrl?: string;
 }
 
 export interface FixtureSeriesResponse {
@@ -1093,8 +1095,6 @@ export interface FixtureSeriesResponse {
 export interface FixtureResponse {
   readonly fixtureId: string;
   readonly matchId: string;
-  /** The first match's stream link, when one is attached. */
-  readonly streamUrl?: string;
   readonly round: number;
   readonly homeEntrantId?: string;
   readonly awayEntrantId?: string;
