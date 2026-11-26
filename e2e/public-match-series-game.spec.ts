@@ -22,7 +22,7 @@ const seriesReport = (gameNumber: number) => ({
   stageFormat: 'single-elimination',
   matchNumber: 1,
   round: 1,
-  status: gameNumber === 2 ? 'upcoming' : 'final',
+  status: gameNumber === 1 ? 'final' : 'upcoming',
   matchId: `00000000-0000-7000-8000-00000000090${gameNumber}`,
   gameNumber,
   games: [
@@ -32,10 +32,10 @@ const seriesReport = (gameNumber: number) => ({
   ],
   homeName: 'Talleres',
   homeAbbreviation: 'TAL',
-  homeScore: gameNumber === 1 ? 2 : 0,
   awayName: 'Independiente',
   awayAbbreviation: 'IND',
-  awayScore: gameNumber === 1 ? 1 : 0,
+  // Like the API, a game without a result carries no score.
+  ...(gameNumber === 1 ? { homeScore: 2, awayScore: 1 } : {}),
   scheduledAt: '2099-11-09T14:00:00.000Z',
   schedulePublished: true,
   streamUrl: `https://example.org/live/game-${gameNumber}`,
@@ -143,6 +143,8 @@ test.describe('series games on the match page', () => {
       `${PAGE}?game=2`,
     );
     await expect(page.locator('.cl-badge--upcoming')).toHaveCount(1);
+    // A game not played yet shows no score, not 0–0.
+    await expect(page.locator('.cl-scoreboard .cl-team-score')).toHaveText(['—', '—']);
     await expect(page.getByRole('link', { name: 'Ver transmisión' })).toHaveAttribute(
       'href',
       'https://example.org/live/game-2',
