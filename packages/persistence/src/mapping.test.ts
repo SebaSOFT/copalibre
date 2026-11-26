@@ -311,6 +311,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       number: 1,
       status: 'scheduled',
       result: null,
+      stream_url: null,
       created_at: CREATED,
     };
     expect(toMatch(scheduled).result).toBeUndefined();

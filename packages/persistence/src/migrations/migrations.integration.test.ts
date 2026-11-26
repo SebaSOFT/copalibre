@@ -13,6 +13,7 @@ import { resultReasonBackfill } from './0016-result-reason-backfill.js';
 import { fixtureGraphSources } from './0042-fixture-graph-sources.js';
 import { idempotencyClaim } from './0047-idempotency-claim.js';
 import { requiredClubAlias } from './0048-required-club-alias.js';
+import { matchStreamUrl } from './0049-match-stream-url.js';
 
 interface LegacyRosterSchema {
   match_lineups: {
@@ -288,6 +289,10 @@ describe('migrations (integration)', () => {
         expect.arrayContaining([expect.objectContaining({ name: 'deleted_at' })]),
       );
     }
+
+    const matchStreamUrlDown = await migrateDownOneStep(scratch.db);
+    expect(matchStreamUrlDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0048-required-club-alias');
 
     const requiredClubAliasDown = await migrateDownOneStep(scratch.db);
     expect(requiredClubAliasDown.error).toBeUndefined();
@@ -1348,6 +1353,21 @@ describe('migrations (integration)', () => {
       { club_id: '01900000-0000-7000-8000-0000000004b1', alias: 'talleres' },
       { club_id: '01900000-0000-7000-8000-0000000004b2', alias: 'club-2' },
     ]);
+  });
+
+  it('0049 adds a nullable stream_url to matches and removes it on down', async () => {
+    await createMigrator(scratch.db).migrateTo('0048-required-club-alias');
+    const streamUrlColumn = async () =>
+      (await scratch.db.introspection.getTables())
+        .find((table) => table.name === 'matches')
+        ?.columns.find((column) => column.name === 'stream_url');
+
+    expect(await streamUrlColumn()).toBeUndefined();
+    await matchStreamUrl.up(scratch.db);
+    expect(await streamUrlColumn()).toEqual(expect.objectContaining({ isNullable: true }));
+
+    await matchStreamUrl.down?.(scratch.db);
+    expect(await streamUrlColumn()).toBeUndefined();
   });
 
   it('0047 applies cleanly after a rollback and the full chain reaches the expected version', async () => {

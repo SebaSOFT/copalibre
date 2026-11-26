@@ -56,6 +56,7 @@ import { personalDataPublication } from './0045-personal-data-publication.js';
 import { reversibleRemovals } from './0046-reversible-removals.js';
 import { idempotencyClaim } from './0047-idempotency-claim.js';
 import { requiredClubAlias } from './0048-required-club-alias.js';
+import { matchStreamUrl } from './0049-match-stream-url.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -112,6 +113,7 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0046-reversible-removals': reversibleRemovals,
   '0047-idempotency-claim': idempotencyClaim,
   '0048-required-club-alias': requiredClubAlias,
+  '0049-match-stream-url': matchStreamUrl,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

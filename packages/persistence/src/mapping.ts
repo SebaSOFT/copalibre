@@ -324,7 +324,7 @@ export function toFixture(row: FixtureRow): Fixture {
   };
 }
 
-export function toMatch(row: MatchRow): Match {
+export function toMatch(row: Omit<MatchRow, 'stream_url'>): Match {
   return {
     matchId: row.match_id,
     fixtureId: row.fixture_id,
