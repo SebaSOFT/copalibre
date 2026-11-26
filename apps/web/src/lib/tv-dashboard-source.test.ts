@@ -203,6 +203,65 @@ describe('settleLeftLive', () => {
     ]);
   });
 
+  it('drops the segment counters and the penalties of a match that left live, keeping the match-scope totals', () => {
+    const withFacts: LiveMatch = {
+      ...liveMatch('m1', 'live'),
+      activePenalties: [{ timerId: 't1', entrantId: 'm1-a', remainingSeconds: 90 }],
+      counters: [
+        {
+          code: 'team-fouls',
+          label: 'Team fouls',
+          shortLabel: 'F',
+          scope: 'match',
+          events: ['team-foul'],
+          values: [{ entrantId: 'm1-h', value: 4 }],
+        },
+        {
+          code: 'timeouts',
+          label: 'Timeouts',
+          shortLabel: 'TM',
+          scope: 'segment',
+          events: ['timeout'],
+          values: [{ entrantId: 'm1-h', value: 1 }],
+        },
+      ],
+    };
+    const [settled] = settleLeftLive(
+      [withFacts],
+      new Set(),
+      new Map([['m1', { state: 'final', homeScore: 3, awayScore: 2 }]]),
+    );
+
+    expect(settled?.activePenalties).toBeUndefined();
+    expect(settled?.counters?.map((counter) => counter.code)).toEqual(['team-fouls']);
+  });
+
+  it('drops the penalties and segment counters even when no snapshot settles the match', () => {
+    const [settled] = settleLeftLive(
+      [
+        {
+          ...liveMatch('m1', 'live'),
+          activePenalties: [{ timerId: 't1', entrantId: 'm1-a', remainingSeconds: 90 }],
+          counters: [
+            {
+              code: 'timeouts',
+              label: 'Timeouts',
+              shortLabel: 'TM',
+              scope: 'segment',
+              events: ['timeout'],
+              values: [],
+            },
+          ],
+        },
+      ],
+      new Set(),
+      new Map(),
+    );
+
+    expect(settled?.activePenalties).toBeUndefined();
+    expect(settled?.counters).toBeUndefined();
+  });
+
   it('keeps a match the live projection still lists', () => {
     const current = liveMatch('m1', 'live');
     const settled = settleLeftLive(
