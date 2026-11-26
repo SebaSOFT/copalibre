@@ -31,7 +31,6 @@ const SPLIT = 'Split in progress';
  */
 export const KNOWN_OVERSIZED_FILES = new Map([
   // Production files of 2000 lines or more, split by the modularization plan.
-  ['apps/api/src/controllers/public-projections.controller.ts', { ceiling: 3045, reason: SPLIT }],
   [
     'packages/persistence/src/repositories/schedule-repository.ts',
     { ceiling: 2067, reason: SPLIT },

@@ -41,10 +41,8 @@ import {
   ParticipantReportsController,
   ReportReviewController,
 } from '../controllers/reports.controller.js';
-import {
-  PublicProjectionsController,
-  PublicTournamentListingController,
-} from '../controllers/public-projections.controller.js';
+import { PublicProjectionsController } from '../controllers/public-projections.controller.js';
+import { PublicTournamentListingController } from '../controllers/public-tournament-listing.controller.js';
 import { PublicOrganizationClubController } from '../controllers/public-organization-club.controller.js';
 import {
   NativeAuthController,
