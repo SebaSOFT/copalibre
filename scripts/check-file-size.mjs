@@ -32,10 +32,6 @@ const SPLIT = 'Split in progress';
 export const KNOWN_OVERSIZED_FILES = new Map([
   // Production files of 2000 lines or more, split by the modularization plan.
   // Production files of 1000 to 1999 lines, split by the modularization plan.
-  [
-    'apps/web/src/control/components/screens/PreferencesTemplate.tsx',
-    { ceiling: 1021, reason: SPLIT },
-  ],
   ['apps/web/src/control/lib/activity-formatting.ts', { ceiling: 1007, reason: SPLIT }],
   ['apps/web/src/lib/reference-fixtures.ts', { ceiling: 1220, reason: SPLIT }],
   ['apps/web/src/components/ui/organisms/StandingsTable.astro', { ceiling: 1638, reason: SPLIT }],
