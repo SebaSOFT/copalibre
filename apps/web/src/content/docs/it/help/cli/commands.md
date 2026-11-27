@@ -80,6 +80,8 @@ oppure `copalibre doctor --configure <email|bootstrap-token|public-url> [opzioni
 
 Valida configurazione e dipendenze prima di avviare e propone di completare le impostazioni che mancano all'installazione.
 
+Doctor avvisa anche di ogni organizzazione il cui fuso orario il runtime non riconosce, e la nomina; l’avviso non blocca l’avvio.
+
 - `--check-proxy`: verifica anche la configurazione del proxy inverso
 - `--proxy-url <url>`: URL pubblico da testare quando si usa `--check-proxy`
 - `--smoke`: verifica da capo a capo il gateway, il JWKS di autenticazione, le organizzazioni e il flusso SSE

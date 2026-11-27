@@ -87,7 +87,7 @@ or `copalibre doctor --configure <email|bootstrap-token|public-url> [setting fla
 Validates configuration and dependencies before starting. Performs host preflight checks (Docker
 daemon connectivity and socket permissions). When `DATABASE_URL` is configured, it also reports
 tournaments holding a non-canonical status (for example, one left over from an old import script) as
-an informational finding — never as a reason to fail the check or block startup.
+an informational finding — never as a reason to fail the check or block startup. It also warns about each organization whose time zone the runtime does not know, and names it; that warning does not block startup.
 
 - `--check-proxy`: also verifies the reverse-proxy configuration
 - `--proxy-url <url>`: public URL to test when `--check-proxy` is used

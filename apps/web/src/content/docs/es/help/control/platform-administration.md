@@ -16,7 +16,7 @@ a toda la instalación.
 
 ## Organizaciones
 
-Acá se crea una organización nueva — su alias, nombre visible, idioma principal y zona horaria — y se
+Acá se crea una organización nueva — su alias, nombre visible, idioma principal y zona horaria (un nombre IANA, como `America/Argentina/Buenos_Aires`; uno desconocido se rechaza) — y se
 invita a su primer administrador por email en el mismo paso. Una organización creada sin invitar a un
 administrador queda sin nadie que pueda iniciar sesión y gestionarla, por eso se hacen juntos.
 
