@@ -26,6 +26,8 @@ do torneio — o espectador alterna entre as tabelas declaradas (por exemplo, "a
   partida, e identificam a partida pelo seu número público de fase/partida, nunca por um
   identificador interno.
 
+- Cada linha de partida também indica o adversário, o lado em que o jogador atuou, o horário de início e os dois placares.
+
 ## Quando um Jogador Não Tem Estatísticas Registradas
 
 Um jogador sem participação no elenco das partidas finalizadas do torneio vê um estado vazio

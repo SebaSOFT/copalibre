@@ -42,19 +42,12 @@ Existem duas versões desta tela, que compartilham o mesmo cartão:
     fase declara mais de um grupo padrão) e a posição atual de cada participante na classificação.
   - Um confronto resolvido por uma série mostra seu andamento e, uma vez resolvido, seu estado agregado
     — a mesma representação de série que a [chave pública](/help/control/series) já usa.
-- **Fator decisivo**: numa partida finalizada cujo resultado exigiu um comparador de desempate para
-  separar duas linhas da classificação, uma linha nomeando o que decidiu (por exemplo, "decidido pelo
-  saldo de gols no confronto direto").
+- **Fator decisivo**: não aparece no cartão. A classificação indica o critério de desempate abaixo das linhas que ele separou.
+- **Página da partida**: ao abrir um cartão, chega-se à página da partida, com oficiais, escalações e a linha do tempo dos eventos. A linha do tempo mostra o tempo de jogo de cada evento e o placar após cada gol; cada tempo jogado abre e fecha com o seu placar. As escalações mostram quem está inscrito antes do início. Cada jogo de uma série tem a sua própria página, `?game=N`, acessível a partir da chave.
 
-## A linha de fator decisivo versus o rastro completo
+## O rastro completo no cartão de controle
 
-A linha de fator decisivo do cartão público é deliberadamente um resumo, não o raciocínio completo —
-ela nunca carrega as demais etapas nem os valores intermediários do comparador interno. Um organizador
-com autoridade sobre a classificação interna deste torneio (um admin, ou um tournament-admin com
-escopo nele) vê em vez disso o rastro completo do comparador, na versão deste mesmo cartão no painel
-de controle, exatamente como o expansor de rastro da tela de classificação interna já mostra. Ninguém
-vê uma versão intermediária: um espectador vê o resumo de uma linha ou o rastro completo, nunca uma
-versão parcialmente ocultada.
+O cartão público não traz linha de desempate. Um organizador com autoridade sobre a classificação interna deste torneio (um admin, ou um tournament-admin com autoridade sobre ele) vê o rastro completo do comparador na versão deste mesmo cartão no painel de controle, como já mostra o expansor de rastro da tela de classificação interna. Um espectador nunca vê um rastro parcial.
 
 ## O que esta tela NÃO faz
 

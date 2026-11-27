@@ -39,13 +39,13 @@ vivo mostra un avviso animato con il nome della squadra e del giocatore, per poi
 
 ## Cosa mostra lo schermo della sede
 
-Lo schermo a rotazione completa scorre la classifica, i migliori giocatori, le statistiche del torneo e, quando la fase in evidenza lo ha, il tabellone, poi l’elenco delle partite. Un indirizzo con `?view=standings` o `?view=matches` blocca quell’unica sezione a schermo intero invece di ruotare (`?view=fixtures` continua a funzionare come vecchio nome di `matches`). Il riepilogo del campione di un torneo concluso appartiene solo allo schermo a rotazione. L’intestazione indica lo stato del torneo: uno in corso mostra un orologio con etichetta, al minuto, nel fuso orario dell’organizzazione; uno concluso mostra il giorno dell’ultima partita, senza orologio che scorre.
+Lo schermo a rotazione completa scorre la classifica, i migliori giocatori, le statistiche del torneo e, quando la fase in evidenza lo ha, il tabellone, poi l’elenco delle partite. Un indirizzo con `?view=standings` o `?view=matches` blocca quell’unica sezione a schermo intero invece di ruotare (`?view=fixtures` continua a funzionare come vecchio nome di `matches`). Il riepilogo del campione di un torneo concluso appartiene solo allo schermo a rotazione. L’intestazione indica lo stato del torneo (programmato, in diretta, in corso o concluso) e mostra l’orologio nel fuso orario dell’organizzazione.
 
 Una partita fissata — `/tv/<organizzazione>/tournaments/<torneo>/stages/<fase>/matches/<numero>` — è indicata come nella pagina pubblica della partita, dal suo numero nella fase, e mostra sempre punteggio, lati ed eventi registrati, conclusa o no. Un numero che la fase non ha è segnalato come partita inesistente.
 
 Una fase può mescolare i formati, quindi lo schermo presenta ogni zona secondo il formato che gioca:
 
-- **Classifica**: Ogni zona che ordina i partecipanti in una tabella ha la sua tabella, intestata col nome della zona. Le righe di zone diverse non si mescolano mai in un'unica classifica, e ogni tabella mostra fino a otto righe. Una fase le cui zone giocano tutte il formato della fase mantiene una sola tabella senza intestazione.
+- **Classifica**: Ogni zona che ordina i partecipanti in una tabella ha la sua tabella, intestata col nome della zona. Le righe di zone diverse non si mescolano mai in un'unica classifica, e nella rotazione completa come in una vista fissa della classifica ogni tabella scorre su tutte le sue righe; il layout di presentazione ne mostra fino a otto alla volta. Una fase le cui zone giocano tutte il formato della fase mantiene una sola tabella senza intestazione.
 - **Tabellone**: Le zone che giocano un formato a eliminazione sono disegnate come tabellone.
 - **Partite**: Elenca tutte le partite del torneo in una tabella compatta, due per riga con sigle e punteggio, una pagina alla volta; le pagine avanzano con la rotazione e una vista `matches` fissa continua a scorrere.
 
@@ -57,7 +57,7 @@ Una sovrimpressione mostra solo la partita che le è stata data: quella indicata
 
 ### Il lanciatore dello schermo
 
-`/tv` è un lanciatore che compone l’indirizzo di uno schermo del locale o di una sovrimpressione: scegli organizzazione, torneo e vista (il pannello a rotazione, il layout di presentazione o dashboard, la griglia dei campi, la classifica, l’elenco delle partite, una partita fissata o una delle tre sovrimpressioni), lo sfondo e la lingua. Le sovrimpressioni partono con sfondo trasparente, e ogni vista mostra una descrizione su una riga. La lingua cambia subito le etichette del lanciatore, senza ricaricare. Le fasi sono elencate con numero e nome, e le partite raggruppate per zona e girone; ogni opzione riporta competizione e turno, le due squadre, l’orario di inizio nel fuso dell’organizzazione, il campo, lo stato e il numero (`#34`). La fase si apre sulla partita in corso, altrimenti sulla prossima programmata, altrimenti sull’ultima. Seguire un campo e fissare una partita sono due scelte separate. L’indirizzo finale è mostrato con un pulsante di copia e un’anteprima in un riquadro 16:9, da incollare in OBS.
+`/tv` è un lanciatore che compone l’indirizzo di uno schermo del locale o di una sovrimpressione: scegli organizzazione, torneo e vista (il pannello a rotazione, il layout di presentazione o dashboard, la griglia dei campi, la classifica, l’elenco delle partite, una partita fissata o una delle tre sovrimpressioni), lo sfondo e la lingua. Il punteggio d’angolo e la fascia inferiore partono con sfondo trasparente, la scena a tutto schermo con lo sfondo della sua disciplina, e ogni vista mostra una descrizione su una riga. La lingua cambia subito le etichette del lanciatore, senza ricaricare. Le fasi sono elencate con numero e nome, e le partite raggruppate per zona e girone; ogni opzione riporta competizione e turno, le due squadre, l’orario di inizio nel fuso dell’organizzazione, il campo, lo stato e il numero (`#34`). La fase si apre sulla partita in corso, altrimenti sulla prossima programmata, altrimenti sull’ultima. Seguire un campo e fissare una partita sono due scelte separate. L’indirizzo finale è mostrato con un pulsante di copia e un’anteprima in un riquadro 16:9, da incollare in OBS.
 
 ### Contatori della partita
 
@@ -72,6 +72,8 @@ punteggio dal vivo e quale parte sta vincendo sul tabellone pubblico nello stess
 controllo, e una partita non ancora programmata è mostrata come tale, mai indovinata.
 
 Sullo schermo TV, il riepilogo di un torneo concluso deciso zona per zona elenca il campione o i campioni a pari merito di ogni zona dell’ultima fase sotto il nome della zona, gli stessi vincitori mostrati dalla panoramica pubblica. Un torneo con un solo campione mantiene la presentazione del campione unico, e il leader della classifica di una fase precedente non viene mai presentato come campione.
+
+Sul sito pubblico ogni partita indica la sua fase e, quando la fase li ha, la zona e il girone. Una fase con più gironi mostra una classifica per girone; uno spareggio che ha separato squadre a pari punti compare sotto la tabella, accanto alla colonna che lo ha deciso. Una partita a eliminazione diretta finita in parità indica la squadra che passa. Le schede del torneo (riepilogo, partite, in diretta, classifica e il tabellone quando una fase lo disegna) aprono ciascuna la propria pagina. Gli orari sono mostrati nel fuso orario dell’organizzazione, con una nota che lo indica; una partita non iniziata 15 minuti dopo il calcio d’inizio risulta in ritardo. La panoramica mostra l’avanzamento del torneo, e il calendario ha un filtro per giorno su desktop.
 
 ## Cosa non puoi fare qui
 

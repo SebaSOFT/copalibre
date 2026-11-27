@@ -39,13 +39,13 @@ local o acione ou feche.
 
 ## O que a tela do local mostra
 
-A tela em rotação completa percorre a classificação, os destaques, as estatísticas do torneio e, quando a fase em destaque a tem, a chave e depois a lista de jogos. Um endereço com `?view=standings` ou `?view=matches` fixa essa única seção em tela cheia em vez de girar (`?view=fixtures` continua funcionando como o nome antigo de `matches`). O resumo do campeão de um torneio encerrado pertence somente à tela em rotação. O cabeçalho nomeia o estado do torneio: um em andamento mostra um relógio rotulado, ao minuto, no fuso horário da organização; um encerrado mostra o dia do seu último jogo, sem relógio correndo.
+A tela em rotação completa percorre a classificação, os destaques, as estatísticas do torneio e, quando a fase em destaque a tem, a chave e depois a lista de jogos. Um endereço com `?view=standings` ou `?view=matches` fixa essa única seção em tela cheia em vez de girar (`?view=fixtures` continua funcionando como o nome antigo de `matches`). O resumo do campeão de um torneio encerrado pertence somente à tela em rotação. O cabeçalho nomeia o estado do torneio (agendado, ao vivo, em andamento ou encerrado) e mostra o relógio no fuso horário da organização.
 
 Um jogo fixado — `/tv/<organização>/tournaments/<torneio>/stages/<fase>/matches/<número>` — é identificado como na página pública do jogo, pelo seu número dentro da fase, e sempre mostra placar, lados e eventos registrados, encerrado ou não. Um número que a fase não tem é informado como um jogo que não existe.
 
 Uma fase pode misturar formatos, então a tela apresenta cada zona pelo formato que ela joga:
 
-- **Classificação**: Cada zona que ordena participantes em uma tabela tem a sua própria tabela, com o nome da zona no cabeçalho. As linhas de zonas diferentes nunca se misturam em uma mesma classificação, e cada tabela mostra até oito linhas. Uma fase cujas zonas jogam todas o formato da fase mantém uma única tabela sem cabeçalho.
+- **Classificação**: Cada zona que ordena participantes em uma tabela tem a sua própria tabela, com o nome da zona no cabeçalho. As linhas de zonas diferentes nunca se misturam em uma mesma classificação, e, na rotação completa e em uma visão fixa de classificação, cada tabela percorre todas as suas linhas; o layout de apresentação mostra até oito de uma vez. Uma fase cujas zonas jogam todas o formato da fase mantém uma única tabela sem cabeçalho.
 - **Chave**: As zonas que jogam um formato eliminatório são desenhadas como chave.
 - **Jogos**: Lista todos os jogos do torneio em uma tabela compacta, dois por linha com abreviações e placar, uma página por vez; as páginas avançam com a rotação e uma visão `matches` fixa continua paginando.
 
@@ -57,7 +57,7 @@ Uma sobreposição mostra só o jogo que lhe foi dado: o nomeado em seu endereç
 
 ### O lançador de tela
 
-`/tv` é um lançador que monta o endereço de uma tela do local ou de uma sobreposição: escolha a organização, o torneio e a visão (o painel rotativo, o layout de apresentação ou de painel, a grade de quadras, a classificação, a lista de jogos, um jogo fixado ou uma das três sobreposições), o fundo e o idioma. As sobreposições começam com fundo transparente, e cada visão mostra uma descrição de uma linha. O idioma muda os rótulos do lançador na hora, sem recarregar. As fases aparecem com número e nome, e os jogos são agrupados por zona e grupo; cada opção mostra a competição e a rodada, as duas equipes, o horário de início no fuso da organização, a quadra, o estado e o número (`#34`). A fase abre no jogo ao vivo, senão no próximo programado, senão na última. Seguir uma quadra e fixar um jogo são duas escolhas separadas. O endereço final é mostrado com um botão de copiar e uma prévia em quadro 16:9, para colar no OBS.
+`/tv` é um lançador que monta o endereço de uma tela do local ou de uma sobreposição: escolha a organização, o torneio e a visão (o painel rotativo, o layout de apresentação ou de painel, a grade de quadras, a classificação, a lista de jogos, um jogo fixado ou uma das três sobreposições), o fundo e o idioma. O placar de canto e a faixa inferior começam com fundo transparente, a cena em tela cheia com o fundo da sua disciplina, e cada visão mostra uma descrição de uma linha. O idioma muda os rótulos do lançador na hora, sem recarregar. As fases aparecem com número e nome, e os jogos são agrupados por zona e grupo; cada opção mostra a competição e a rodada, as duas equipes, o horário de início no fuso da organização, a quadra, o estado e o número (`#34`). A fase abre no jogo ao vivo, senão no próximo programado, senão na última. Seguir uma quadra e fixar um jogo são duas escolhas separadas. O endereço final é mostrado com um botão de copiar e uma prévia em quadro 16:9, para colar no OBS.
 
 ### Contadores da partida
 
@@ -72,6 +72,8 @@ lado está vencendo na chave pública da mesma forma que no painel de controle, 
 agendada é mostrada como tal, nunca é adivinhada.
 
 No ecrã de TV, o resumo de um torneio terminado decidido zona a zona lista o campeão ou os campeões partilhados de cada zona da última fase sob o nome da zona, os mesmos vencedores que a visão geral pública mostra. Um torneio com um único campeão mantém a apresentação de campeão único, e o líder da tabela de uma fase anterior nunca é apresentado como campeão.
+
+No site público, cada jogo indica a sua fase e, quando a fase os tem, a zona e o grupo. Uma fase com vários grupos mostra uma tabela de classificação por grupo; um desempate que separou equipes empatadas aparece abaixo da tabela, junto da coluna que decidiu. Um jogo eliminatório empatado indica qual lado avança. As abas do torneio (resumo, jogos, ao vivo, classificação e a chave quando uma fase a desenha) abrem cada uma a sua própria página. Os horários são mostrados no fuso horário da organização, com uma nota que o nomeia, e um jogo que não começou 15 minutos após o seu início aparece como atrasado. A visão geral mostra o andamento do torneio, e a agenda tem um filtro por dia no computador.
 
 ## O que você não pode fazer aqui
 

@@ -25,6 +25,8 @@ Tabellen (z. B. "Torschützen" und "Vorlagen" einer Disziplin), ohne das Profil 
   nie in einer Spielzeile. Spielzeilen sind chronologisch nach Phase und Spielnummer geordnet und
   identifizieren das Spiel über seine öffentliche Phasen-/Spielnummer, niemals über eine interne ID.
 
+- Jede Spielzeile nennt außerdem den Gegner, die Seite des Spielenden, den Anstoß und beide Ergebnisse.
+
 ## Wenn ein Spieler keine erfassten Statistiken hat
 
 Ein Spieler ohne Kaderauftritt in den abgeschlossenen Spielen des Turniers sieht einen expliziten

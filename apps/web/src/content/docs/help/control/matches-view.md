@@ -44,22 +44,18 @@ There are two versions of this screen, sharing the same card:
     declares more than the default single one) and each entrant's current standings position.
   - A cross settled by a series shows its progress and, once resolved, its aggregate state instead —
     the same series rendering the [bracket page](/help/control/series) already uses.
-- **Deciding factor**: on a finalized match whose result required a tiebreak comparator to separate
-  two standings rows, one line naming what decided it (for example, "decided by head-to-head goal
-  difference").
+- **Deciding factor**: not shown on the card. The standings table names the tiebreak criterion under the rows it separated.
 
-## The deciding-factor line vs. the full trace
+## The full trace on the control card
 
-The public card's deciding-factor line is deliberately a summary, not the full reasoning — it never
-carries the internal comparator trace's other steps or intermediate values. An organizer with
-authority over this tournament's internal standings (an admin, or a tournament-admin scoped to it)
-sees the **full** comparator trace instead, on the control-panel version of this same card, exactly as
-the internal standings screen's own trace expander shows it. Nobody sees a version in between: a
-viewer either sees the one-line summary or the complete trace, never a partially redacted one.
+The public card carries no tiebreak line. An organizer with authority over this tournament's internal
+standings (an admin, or a tournament-admin scoped to it) sees the **full** comparator trace on the
+control-panel version of this same card, exactly as the internal standings screen's own trace expander
+shows it. A viewer never sees a partial trace.
 
 ## The match report page
 
-Opening a card leads to that match's own report page — officials, rosters, and the event timeline.
+Opening a card leads to that match's own report page — officials, rosters, and the event timeline. The timeline gives each event's game time and the running score after each goal, and every played segment opens and closes with its score. Lineups list who is registered before kickoff. Each game of a series has its own page, `?game=N`, reached from the bracket.
 Every heading and empty-state message on it renders in the spectator's active language, the same as
 this screen, and every timestamp it shows (a recorded event's time, a scheduled kickoff) renders
 humanized and localized, never as a raw machine timestamp.

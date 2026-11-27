@@ -15,7 +15,7 @@ organização. Nada aqui é restrito a uma única organização: toda ação aqu
 
 ## Organizações
 
-Uma nova organização é criada aqui — seu alias, nome de exibição, idioma principal e fuso horário — e
+Uma nova organização é criada aqui — seu alias, nome de exibição, idioma principal e fuso horário (um nome IANA, como `America/Argentina/Buenos_Aires`; um desconhecido é recusado) — e
 seu primeiro administrador é convidado por email na mesma etapa. Uma organização criada sem um
 administrador convidado fica sem ninguém que possa entrar e gerenciá-la, por isso as duas coisas são
 feitas juntas.

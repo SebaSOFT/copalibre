@@ -71,6 +71,8 @@ file:///var/lib/copalibre/modules-dev/<alias>` 搭配使用，可在无需源代
 
 在启动前验证配置和依赖项，并提议补全安装缺少的设置。
 
+Doctor 还会对运行时无法识别时区的每个组织发出警告并列出它；该警告不会阻止启动。
+
 - `--check-proxy`：同时验证反向代理配置
 - `--proxy-url <url>`：使用 `--check-proxy` 时用于测试的公开 URL
 - `--smoke`：端到端测试网关、认证 JWKS、组织和 SSE 流

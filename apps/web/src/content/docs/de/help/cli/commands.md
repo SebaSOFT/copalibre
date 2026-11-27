@@ -80,6 +80,8 @@ oder `copalibre doctor --configure <email|bootstrap-token|public-url> [Optionen 
 
 Validiert Konfiguration und Abhängigkeiten vor dem Start und bietet an, fehlende Einstellungen der Installation zu ergänzen.
 
+Doctor warnt außerdem vor jeder Organisation, deren Zeitzone die Laufzeitumgebung nicht kennt, und nennt sie; diese Warnung blockiert den Start nicht.
+
 - `--check-proxy`: prüft zusätzlich die Reverse-Proxy-Konfiguration
 - `--proxy-url <url>`: öffentliche URL zum Testen, wenn `--check-proxy` verwendet wird
 - `--smoke`: testet Gateway, Authentifizierungs-JWKS, Organisationen und den SSE-Stream durchgehend

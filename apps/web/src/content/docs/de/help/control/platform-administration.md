@@ -16,7 +16,7 @@ gesamte Installation.
 
 ## Organisationen
 
-Eine neue Organisation wird hier erstellt — ihr Alias, Anzeigename, Hauptsprache und Zeitzone — und ihr
+Eine neue Organisation wird hier erstellt — ihr Alias, Anzeigename, Hauptsprache und Zeitzone (ein IANA-Name wie `America/Argentina/Buenos_Aires`; ein unbekannter wird abgelehnt) — und ihr
 erster Administrator wird im selben Schritt per E-Mail eingeladen. Eine Organisation, die ohne
 eingeladenen Administrator erstellt wird, hat niemanden, der sich anmelden und sie verwalten kann,
 deshalb geschieht beides zusammen.

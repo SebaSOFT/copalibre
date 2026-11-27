@@ -45,20 +45,12 @@ Cet écran existe en deux versions, qui partagent la même carte :
     au classement.
   - Un croisement réglé par une série montre sa progression et, une fois réglée, son état cumulé —
     la même représentation de série que le [tableau public](/help/control/series) utilise déjà.
-- **Facteur décisif** : sur un match terminé dont le résultat a nécessité un comparateur de départage
-  pour séparer deux lignes du classement, une ligne nommant ce qui l'a décidé (par exemple, « décidé
-  par la différence de buts particulière »).
+- **Facteur décisif** : non affiché sur la carte. Le classement indique le critère de départage sous les lignes qu’il a séparées.
+- **Page du match** : ouvrir une carte mène à la page du match, avec les officiels, les compositions et la chronologie des événements. La chronologie indique le temps de jeu de chaque événement et le score après chaque but ; chaque segment joué s’ouvre et se ferme avec son score. Les compositions indiquent qui est inscrit avant le coup d’envoi. Chaque match d’une série a sa propre page, `?game=N`, accessible depuis le tableau.
 
-## La ligne de facteur décisif face à la trace complète
+## La trace complète sur la carte de contrôle
 
-La ligne de facteur décisif de la carte publique est délibérément un résumé, pas le raisonnement
-complet — elle ne porte jamais les autres étapes ni les valeurs intermédiaires du comparateur interne.
-Un organisateur ayant autorité sur le classement interne de ce tournoi (un admin, ou un
-tournament-admin ayant autorité sur lui) voit à la place la trace complète du comparateur, sur la
-version de cette même carte dans le panneau de contrôle, exactement comme la montre déjà le
-sélecteur de trace de l'écran de classement interne. Personne ne voit une version intermédiaire : un
-spectateur voit soit le résumé d'une ligne, soit la trace complète, jamais une version partiellement
-occultée.
+La carte publique ne porte aucune ligne de départage. Un organisateur ayant autorité sur le classement interne de ce tournoi (un admin, ou un tournament-admin ayant autorité sur lui) voit la trace complète du comparateur sur la version de cette même carte dans le panneau de contrôle, comme la montre le sélecteur de trace de l’écran de classement interne. Un spectateur ne voit jamais une trace partielle.
 
 ## Ce que cet écran NE fait PAS
 

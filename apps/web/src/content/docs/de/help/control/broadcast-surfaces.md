@@ -40,13 +40,13 @@ schließen.
 
 ## Was die Anzeige in der Halle zeigt
 
-Die Anzeige mit vollständiger Rotation zeigt nacheinander die Tabelle, die besten Spielenden, die Turnierstatistik und – wenn die hervorgehobene Phase ihn hat – den Turnierbaum, danach die Spielliste. Eine Adresse mit `?view=standings` oder `?view=matches` hält diesen einen Bereich im Vollbild fest, statt zu rotieren (`?view=fixtures` funktioniert weiter als alter Name von `matches`). Die Meister-Zusammenfassung eines beendeten Turniers gehört allein zur rotierenden Anzeige. Die Kopfzeile nennt den Turnierstatus: Ein laufendes Turnier zeigt eine beschriftete Uhr auf die Minute in der Zeitzone der Organisation, ein beendetes den Tag seines letzten Spiels, ohne laufende Uhr.
+Die Anzeige mit vollständiger Rotation zeigt nacheinander die Tabelle, die besten Spielenden, die Turnierstatistik und – wenn die hervorgehobene Phase ihn hat – den Turnierbaum, danach die Spielliste. Eine Adresse mit `?view=standings` oder `?view=matches` hält diesen einen Bereich im Vollbild fest, statt zu rotieren (`?view=fixtures` funktioniert weiter als alter Name von `matches`). Die Meister-Zusammenfassung eines beendeten Turniers gehört allein zur rotierenden Anzeige. Die Kopfzeile nennt den Turnierstatus (geplant, live, im Gange oder beendet) und zeigt die Uhr in der Zeitzone der Organisation.
 
 Ein angeheftetes Spiel – `/tv/<Organisation>/tournaments/<Turnier>/stages/<Phase>/matches/<Nummer>` – wird wie auf der öffentlichen Spielseite über seine Nummer innerhalb der Phase angesprochen und zeigt immer Ergebnis, Seiten und erfasste Ereignisse, beendet oder nicht. Eine Nummer, die die Phase nicht hat, wird als nicht existierendes Spiel gemeldet.
 
 Eine Phase kann Formate mischen, daher stellt die Anzeige jede Zone nach dem Format dar, das sie spielt:
 
-- **Tabelle**: Jede Zone, die Teilnehmende in einer Tabelle rangiert, erhält eine eigene Tabelle mit dem Zonennamen als Überschrift. Zeilen verschiedener Zonen werden nie in einer Rangliste vermischt, und jede Tabelle zeigt bis zu acht Zeilen. Eine Phase, deren Zonen alle das Format der Phase spielen, behält eine einzelne Tabelle ohne Überschrift.
+- **Tabelle**: Jede Zone, die Teilnehmende in einer Tabelle rangiert, erhält eine eigene Tabelle mit dem Zonennamen als Überschrift. Zeilen verschiedener Zonen werden nie in einer Rangliste vermischt, und im Vollbild-Umlauf sowie in einer festen Tabellenansicht blättert jede Tabelle durch alle Zeilen; das Präsentationslayout zeigt auf einmal bis zu acht Zeilen. Eine Phase, deren Zonen alle das Format der Phase spielen, behält eine einzelne Tabelle ohne Überschrift.
 - **Turnierbaum**: Zonen mit einem K.-o.-Format werden als Turnierbaum gezeichnet.
 - **Spiele**: Listet alle Spiele des Turniers in einer kompakten Tabelle, zwei pro Zeile mit Kürzeln und Ergebnis, Seite für Seite; die Seiten wechseln mit der Rotation, eine feste `matches`-Ansicht blättert weiter.
 
@@ -58,7 +58,7 @@ Ein Overlay zeigt nur das Spiel, das ihm genannt wurde: das in seiner Adresse (`
 
 ### Der Anzeige-Starter
 
-`/tv` ist ein Starter, der die Adresse einer Hallenanzeige oder eines Overlays zusammenstellt: Organisation, Turnier und Ansicht wählen (das rotierende Panel, das Präsentations- oder Dashboard-Layout, das Feldraster, die Tabelle, die Spielliste, ein angeheftetes Spiel oder eines der drei Overlays), dazu Hintergrund und Sprache. Overlays starten mit transparentem Hintergrund, und jede Ansicht zeigt eine kurze Beschreibung. Die Sprache ändert die Beschriftungen des Starters sofort, ohne Neuladen. Phasen werden mit Nummer und Name aufgeführt, Spiele nach Zone und Gruppe gruppiert; jede Option nennt Wettbewerb und Runde, die beiden Teams, den Anstoß in der Zeitzone der Organisation, den Platz, den Status und die Nummer (`#34`). Die Phase öffnet sich auf dem Live-Spiel, sonst auf dem nächsten angesetzten, sonst auf der letzten. Einen Platz verfolgen und ein Spiel anheften sind zwei getrennte Auswahlen. Die fertige Adresse wird mit einer Kopierschaltfläche angezeigt und in einem 16:9-Rahmen als Vorschau gezeigt, damit sie in OBS eingefügt werden kann.
+`/tv` ist ein Starter, der die Adresse einer Hallenanzeige oder eines Overlays zusammenstellt: Organisation, Turnier und Ansicht wählen (das rotierende Panel, das Präsentations- oder Dashboard-Layout, das Feldraster, die Tabelle, die Spielliste, ein angeheftetes Spiel oder eines der drei Overlays), dazu Hintergrund und Sprache. Die Ecken-Markierung und das untere Drittel starten mit transparentem Hintergrund, die Vollbildszene mit dem Hintergrund ihrer Disziplin, und jede Ansicht zeigt eine kurze Beschreibung. Die Sprache ändert die Beschriftungen des Starters sofort, ohne Neuladen. Phasen werden mit Nummer und Name aufgeführt, Spiele nach Zone und Gruppe gruppiert; jede Option nennt Wettbewerb und Runde, die beiden Teams, den Anstoß in der Zeitzone der Organisation, den Platz, den Status und die Nummer (`#34`). Die Phase öffnet sich auf dem Live-Spiel, sonst auf dem nächsten angesetzten, sonst auf der letzten. Einen Platz verfolgen und ein Spiel anheften sind zwei getrennte Auswahlen. Die fertige Adresse wird mit einer Kopierschaltfläche angezeigt und in einem 16:9-Rahmen als Vorschau gezeigt, damit sie in OBS eingefügt werden kann.
 
 ### Zähler des Spiels
 
@@ -73,6 +73,8 @@ zeigt ihren Live-Spielstand und welche Seite im öffentlichen Turnierbaum führt
 Kontrollzentrum, und eine noch nicht geplante Begegnung wird als solche angezeigt, nie geraten.
 
 Auf dem TV-Bildschirm listet die Zusammenfassung eines beendeten Turniers, das zonenweise entschieden wurde, den Sieger oder die gemeinsamen Sieger jeder Zone der letzten Phase unter dem Namen der Zone auf, dieselben Sieger wie die öffentliche Übersicht. Ein Turnier mit einem einzigen Sieger behält die Einzelsieger-Darstellung, und der Tabellenführer einer früheren Phase wird nie als Sieger gezeigt.
+
+Auf der öffentlichen Website nennt jedes Spiel seine Phase und, wo die Phase sie hat, Zone und Gruppe. Eine Phase mit mehreren Gruppen zeigt eine Tabelle je Gruppe; ein Stichentscheid, der gleichstehende Teams trennte, steht unter der Tabelle mit der Spalte, die entschied. Ein entschiedenes K.-o.-Spiel mit Unentschieden nennt die weiterkommende Seite. Die Turnier-Reiter (Übersicht, Spiele, live, Tabelle und der Turnierbaum, sofern eine Phase ihn zeichnet) öffnen jeweils eine eigene Seite. Zeiten werden in der Zeitzone der Organisation angezeigt, mit einem Hinweis, der sie nennt; ein Spiel, das 15 Minuten nach seinem Anstoß noch nicht begonnen hat, gilt als verzögert. Die Übersicht zeigt den Fortschritt des Turniers, und der Spielplan hat am Desktop einen Tagesfilter.
 
 ## Was Sie hier nicht tun können
 

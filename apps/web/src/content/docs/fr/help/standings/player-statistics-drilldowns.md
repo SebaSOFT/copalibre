@@ -25,6 +25,8 @@ un spectateur bascule entre les tableaux déclarés (par exemple « meilleurs bu
   de match. Les lignes de match sont ordonnées chronologiquement par phase puis numéro de match, et
   identifient le match par son numéro public de phase/match, jamais par un identifiant interne.
 
+- Chaque ligne de match indique aussi l’adversaire, le côté joué par le joueur, l’heure du coup d’envoi et les deux scores.
+
 ## Quand un Joueur n'a Aucune Statistique Enregistrée
 
 Un joueur sans apparition dans l'effectif des matchs terminés du tournoi voit un état vide explicite

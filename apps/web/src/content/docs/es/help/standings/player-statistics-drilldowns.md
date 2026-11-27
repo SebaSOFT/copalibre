@@ -25,6 +25,8 @@ disciplina) mediante un selector, sin salir del perfil.
   de partido. Las filas de partido se ordenan cronológicamente por etapa y número de partido, e
   identifican el partido por su número público de etapa/partido, nunca por un identificador interno.
 
+- Cada fila de partido también indica el rival, el lado en que jugó el jugador, la hora de inicio y ambos marcadores.
+
 ## Cuando un Jugador No Tiene Estadísticas Registradas
 
 Un jugador sin participación en el plantel de los partidos finalizados del torneo ve un estado

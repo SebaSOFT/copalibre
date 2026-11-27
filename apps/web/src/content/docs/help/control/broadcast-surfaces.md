@@ -39,13 +39,13 @@ itself automatically; it never needs anyone at the venue to trigger or clear it.
 
 ## What the venue display shows
 
-The full-rotation display cycles through the standings, the top performers, the tournament statistics and, when the featured stage has it, the bracket, then the match list. A `?view=standings` or `?view=matches` address pins that one section full-frame instead of rotating (`?view=fixtures` still works as the old name of `matches`). The champion recap of a finished tournament belongs to the rotating display alone. The header names the tournament's status: a tournament still being played shows a labelled clock to the minute in the organization's time zone, and a finished one shows the day its last match was played, with no running clock.
+The full-rotation display cycles through the standings, the top performers, the tournament statistics and, when the featured stage has it, the bracket, then the match list. A `?view=standings` or `?view=matches` address pins that one section full-frame instead of rotating (`?view=fixtures` still works as the old name of `matches`). The champion recap of a finished tournament belongs to the rotating display alone. The header names the tournament's status (scheduled, live, in progress or finished) and shows the clock in the organization's time zone.
 
 A pinned match — `/tv/<organization>/tournaments/<tournament>/stages/<stage>/matches/<number>` — is addressed the way the public match page is, by the match's number within its stage, and always shows that match's score, sides and recorded events, finished or not. A number the stage does not have is reported as a match that does not exist.
 
 A stage can mix formats, so the display presents each zone by the format it plays:
 
-- **Standings**: Every zone that ranks entrants in a table gets its own table, headed by the zone's name. Rows of different zones are never mixed in one ranking, and each table shows up to eight rows. A stage whose zones all play the stage's own format keeps a single table without a heading.
+- **Standings**: Every zone that ranks entrants in a table gets its own table, headed by the zone's name. Rows of different zones are never mixed in one ranking. On the full-rotation display and on a fixed standings view, a table pages through every row; the presentation layout shows up to eight rows at once. A stage whose zones all play the stage's own format keeps a single table without a heading.
 - **Bracket**: Zones that play an elimination format are drawn as a bracket.
 - **Matches**: Lists every match of the tournament in a compact table, two to a row with abbreviations and score, one page at a time; the pages advance with the rotation, and a fixed `matches` view keeps paging.
 
@@ -57,7 +57,7 @@ An overlay shows only the match it was given: the one named in its address (`/tv
 
 ### The display launcher
 
-`/tv` is a launcher that builds the address of a venue screen or an overlay: pick the organization, tournament and view (the rotating panel, the presentation or dashboard layout, the court grid, standings, the match list, a pinned match, or one of the three overlays), the background and the language. Overlays start on a transparent background, and each view shows a one-line description. The language changes the launcher's own labels immediately, without reloading. Stages are listed with their number and name, and matches are grouped by zone and group; each option reads its competition and round, the two entrants, the kickoff in the organization's time zone, the court, the state and its number (`#34`). The stage opens on the live match, else the next scheduled one, else the last. Following a court and pinning a match are two separate choices. The final address is shown with a copy button and previewed in a 16:9 frame, so it can be pasted into OBS.
+`/tv` is a launcher that builds the address of a venue screen or an overlay: pick the organization, tournament and view (the rotating panel, the presentation or dashboard layout, the court grid, standings, the match list, a pinned match, or one of the three overlays), the background and the language. The corner bug and the lower third start on a transparent background, the full-frame scene on its discipline background, and each view shows a one-line description. The language changes the launcher's own labels immediately, without reloading. Stages are listed with their number and name, and matches are grouped by zone and group; each option reads its competition and round, the two entrants, the kickoff in the organization's time zone, the court, the state and its number (`#34`). The stage opens on the live match, else the next scheduled one, else the last. Following a court and pinning a match are two separate choices. The final address is shown with a copy button and previewed in a 16:9 frame, so it can be pasted into OBS.
 
 ### Match counters
 
@@ -79,6 +79,8 @@ invents a rank a zone did not explicitly resolve, and shows no podium at all for
 tournament or one that has not finished yet.
 
 On the TV kiosk, the recap of a finished tournament that was decided zone by zone lists the champion or co-champions of each zone of the last stage under the zone's name, the same winners the public overview shows. A tournament with one champion keeps the single-champion presentation, and a standings leader of an earlier stage is never presented as the champion.
+
+On the public site, each match names its stage, and its zone and group where the stage has them. A stage with several groups shows one standings table per group, and a tiebreak that separated level teams is listed under the table with the column that decided it. A drawn knockout match names the side that advances. The tournament tabs (overview, schedule, live, standings, and the bracket when a stage draws one) each open their own page. Times show in the organization's time zone, with a note naming it, and a match still not started 15 minutes after its kickoff shows as delayed. The overview shows the tournament's progress, and the schedule has a day filter on desktop.
 
 ## What you cannot do here
 
