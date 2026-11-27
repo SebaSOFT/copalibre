@@ -8,6 +8,7 @@
 - **PostgreSQL 18.** The Compose stack runs `postgres:18` on a new volume, `postgresql-data`, mounted at `/var/lib/postgresql`. `copalibre upgrade` moves the 17 data across, checks every table's row count, and removes the 17 volume only after doctor passes ([#427](https://github.com/SebaSOFT/copalibre/pull/427), [#557](https://github.com/SebaSOFT/copalibre/pull/557)).
 - **Separate database roles.** The runtime roles connect as `copalibre_app` (rows only) and migrations as `copalibre_owner`; a new `database-setup` role creates both on every Compose start. An external or Kubernetes database must run `deploy/postgres/roles.sql` once before upgrading ([#518](https://github.com/SebaSOFT/copalibre/pull/518)).
 - **A strict Content Security Policy on every page**, with no report-only stage. An identity provider on another origin must be declared in `COPALIBRE_CSP_IDENTITY_ORIGIN` ([#511](https://github.com/SebaSOFT/copalibre/pull/511)).
+- **`matchNumber` in a player's statistics rows means the match's stage ordinal**, the number the match page shows, instead of its index within a series, and the rows sort by stage and ordinal. A client that joined these rows to a series by `matchNumber` must read the stage ordinal instead.
 
 ### Upgrading from 1.x
 
@@ -38,7 +39,6 @@
 - Name a match segment by one word per language across Control, public and TV text, and show the segment in play by its ordinal, with the label in lower case after the ordinal where the language writes it so ([#567](https://github.com/SebaSOFT/copalibre/pull/567), [#568](https://github.com/SebaSOFT/copalibre/pull/568), [#569](https://github.com/SebaSOFT/copalibre/pull/569), [#570](https://github.com/SebaSOFT/copalibre/pull/570)).
 - Broadcast screen layouts, TV in the organization's language by default, reduced-motion-safe live cues, and stable hydration ([#466](https://github.com/SebaSOFT/copalibre/pull/466), [#499](https://github.com/SebaSOFT/copalibre/pull/499), [#453](https://github.com/SebaSOFT/copalibre/pull/453), [#517](https://github.com/SebaSOFT/copalibre/pull/517)).
 - Keep a pinned or featured scheduled match on screen through the TV's periodic refresh, and show a match that finishes with the score the matches view reports.
-- Invitees land on the root landing page, and an invitation submitted before the page hydrates keeps its token ([#516](https://github.com/SebaSOFT/copalibre/pull/516), [#495](https://github.com/SebaSOFT/copalibre/pull/495)).
 - The player dialog shows stored text as text ([#501](https://github.com/SebaSOFT/copalibre/pull/501)).
 - Adopt the public tournament layouts, shared page widths and gutters, and the organization screen composed by role ([#476](https://github.com/SebaSOFT/copalibre/pull/476), [#473](https://github.com/SebaSOFT/copalibre/pull/473), [#555](https://github.com/SebaSOFT/copalibre/pull/555)).
 - The overview shows the discipline, venues, entrant count and tiebreakers; match cards name their group or round and show a live 0–0; long match lists are grouped by day on phones ([#537](https://github.com/SebaSOFT/copalibre/pull/537), [#532](https://github.com/SebaSOFT/copalibre/pull/532), [#534](https://github.com/SebaSOFT/copalibre/pull/534)).
@@ -57,6 +57,7 @@
 - **Club aliases.** Every club carries an alias. The name suggests one when a club is created, and an alias another club holds is refused. Renaming a club's alias keeps its former links working ([#589](https://github.com/SebaSOFT/copalibre/pull/589), [#592](https://github.com/SebaSOFT/copalibre/pull/592)).
 - **Stream link.** Each game can carry a stream link, set in the schedule builder.
 - Organization aliases that collide with routes are reserved.
+- Invitees land on the root landing page, and an invitation submitted before the page hydrates keeps its token ([#516](https://github.com/SebaSOFT/copalibre/pull/516), [#495](https://github.com/SebaSOFT/copalibre/pull/495)).
 - Plan a match's segments when it starts, add segments while it is in progress, and offer one clear clock action per segment state; refuse start and resume without a segment, and keep the running clock on Apply clock ([#542](https://github.com/SebaSOFT/copalibre/pull/542), [#561](https://github.com/SebaSOFT/copalibre/pull/561), [#562](https://github.com/SebaSOFT/copalibre/pull/562), [#564](https://github.com/SebaSOFT/copalibre/pull/564)).
 - Resolve persisted fixture graphs, placement play and elimination brackets, and name an undecided side by its source on every surface ([#430](https://github.com/SebaSOFT/copalibre/pull/430), [#431](https://github.com/SebaSOFT/copalibre/pull/431), [#434](https://github.com/SebaSOFT/copalibre/pull/434), [#435](https://github.com/SebaSOFT/copalibre/pull/435)).
 - Generate a next stage ahead and confirm its qualification ([#436](https://github.com/SebaSOFT/copalibre/pull/436)).
@@ -95,7 +96,7 @@
 - Match and bracket responses name the stage, zone and group of a match, and a finalized match names its `winnerEntrantId`.
 - Finalized matches separated by a tiebreak carry `decidingFactorCode` and `decidingFactorRule`, and match events carry `definitionCode` and localized `labels`.
 - The overview's standings preview uses the public table's ranking, with group-relative ranks and group names.
-- **Changed meaning.** `matchNumber` in a player's statistics rows is now the match's stage ordinal, the number the match page uses, instead of its series index, and the rows sort by stage and ordinal. Person responses carry `shirtNumber` and `clubAlias`.
+- Person responses carry `shirtNumber` and `clubAlias`.
 - Club responses require `alias`, and the tournament overview lists `formerAliases`. A club create or update that reuses another club's alias answers `409 club-conflict`, where it answered 500. `GET /api/organizations/{organizationAlias}/public/clubs/{clubAlias}` returns an organization club page.
 - An organization's time zone must be one the runtime knows; the API answers 400 for any other.
 - Modules declare `matchCounters`: a code, a label, a short label of up to three characters, the events they count, a scope of `match` or `segment`, and an optional allowance and warning threshold. Existing modules validate unchanged.
@@ -120,6 +121,7 @@
 ### Deprecations
 
 - The `decidingFactor` field on match responses is deprecated. Read `decidingFactorCode` and `decidingFactorRule` instead.
+- `streamUrl` on a fixture is deprecated: it repeats the first game's link. Read `matches[].streamUrl` for every game.
 
 ## [1.2.6](https://github.com/SebaSOFT/copalibre/compare/v1.2.5...v1.2.6) (2026-10-09)
 
