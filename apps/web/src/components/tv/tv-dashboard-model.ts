@@ -23,9 +23,16 @@ export type TournamentState = ReturnType<typeof tvTournamentState>;
 
 /** The zone's short name (`ART`, `GMT-3`) as the viewer's language writes it at `at`. */
 export function timeZoneLabel(at: Date, language: string, timeZone: string): string | undefined {
-  return new Intl.DateTimeFormat(language, { timeZone, timeZoneName: 'short' })
-    .formatToParts(at)
-    .find((part) => part.type === 'timeZoneName')?.value;
+  try {
+    return new Intl.DateTimeFormat(language, { timeZone, timeZoneName: 'short' })
+      .formatToParts(at)
+      .find((part) => part.type === 'timeZoneName')?.value;
+  } catch (error) {
+    // A zone the runtime does not know gets no label instead of breaking the dashboard. The API
+    // rejects such zones on write; this covers one stored before it did.
+    if (error instanceof RangeError) return undefined;
+    throw error;
+  }
 }
 
 /** The codes a layout gives its rank and its club: the table shows both already. */

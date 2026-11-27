@@ -73,6 +73,11 @@ describe('timeZoneLabel', () => {
     const at = new Date('2026-11-18T12:00:00Z');
     expect(timeZoneLabel(at, 'en', 'UTC')).toBe('UTC');
   });
+
+  it('has no label for a zone the runtime does not know, instead of throwing', () => {
+    const at = new Date('2026-11-18T12:00:00Z');
+    expect(timeZoneLabel(at, 'en', 'America/Not_A_Zone')).toBeUndefined();
+  });
 });
 
 describe('statusToneOf', () => {
