@@ -180,7 +180,7 @@ function toTraceNode(node: SeriesTraceNode): TraceNode {
  * `computeAccounting` thread it out: the accounting fold and this trace are
  * both deterministic functions of the same outcomes and declaration, so
  * re-deriving cannot disagree with the fold, and a caller that only wants
- * accounting numbers (`zones-groups.controller.ts`'s promotion preview) pays
+ * accounting numbers (the promotion preview in `zones-groups/promotion-plans.ts`) pays
  * nothing for a trace it never asked for.
  */
 function seriesAccountingTrace(

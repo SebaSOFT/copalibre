@@ -133,8 +133,8 @@ function initTableSearch(root: ParentNode = document) {
             initTableSorting(section);
             initPlayerDialog(section);
           }
-        } catch (error) {
-          if ((error as { name?: string }).name === 'AbortError') return;
+        } catch {
+          // A superseded search (aborted) or a failed one keeps the table as it is.
           return;
         }
       }

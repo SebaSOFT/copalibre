@@ -648,3 +648,80 @@ The workflow SHALL assign each integration suite to a group whose services that 
 
 - **WHEN** a suite is assigned to a group that does not provide one of its required services
 - **THEN** the suite fails in that group instead of skipping
+
+### Requirement: Source files stay within a line limit
+
+The repository SHALL fail the `enterprise-readiness-doc-lint` CI job when a tracked production source
+file exceeds 800 lines or a tracked test file exceeds 2000 lines, unless that file is registered as an
+oversized file. A line is a newline-terminated physical line, counted as `wc -l` counts it.
+
+#### Scenario: A new oversized source file fails CI
+- **WHEN** a pull request adds `apps/api/src/controllers/example.controller.ts` with 801 lines
+- **AND** that path is not in the oversized-file register
+- **THEN** the job fails, naming the path, its line count and the 800-line limit
+
+#### Scenario: A file at the limit passes
+- **WHEN** a pull request leaves a production source file at exactly 800 lines
+- **THEN** the job does not fail for that file
+
+#### Scenario: Test files have their own limit
+- **WHEN** a pull request adds `apps/web/src/control/example.test.tsx` with 1900 lines
+- **THEN** the job does not fail for that file
+- **WHEN** the same file grows to 2001 lines and is not registered
+- **THEN** the job fails, naming the 2000-line test limit
+
+#### Scenario: The same check runs locally
+- **WHEN** a developer runs `node scripts/check-file-size.mjs` from the repository root
+- **THEN** it applies the same limits, register and scope as CI and exits non-zero on any finding
+
+### Requirement: Oversized files carry a ceiling and a reason
+
+Each oversized-file register entry SHALL record a path, a ceiling in lines and a non-empty reason. A
+registered file SHALL fail the check when it exceeds its ceiling. An entry SHALL fail the check when
+its file no longer exists, has dropped to or below its limit, or its reason is empty.
+
+#### Scenario: A registered file grows past its ceiling
+- **WHEN** a registered file with a ceiling of 984 lines grows to 990 lines
+- **THEN** the job fails, reporting the ceiling, the new count, and that the file needs an extraction
+  or a raised ceiling with an updated reason
+
+#### Scenario: A registered file shrinks but stays oversized
+- **WHEN** a registered file with a ceiling of 984 lines shrinks to 950 lines
+- **THEN** the job does not fail for that file
+
+#### Scenario: A file falls under the limit
+- **WHEN** a registered production source file shrinks to 790 lines
+- **THEN** the job fails, asking for its register entry to be deleted
+
+#### Scenario: A registered file is removed or renamed
+- **WHEN** a registered path no longer exists in the working tree
+- **THEN** the job fails, naming the stale entry
+
+#### Scenario: An entry without a reason
+- **WHEN** an entry's reason is empty or only whitespace
+- **THEN** the job fails, naming the entry
+
+### Requirement: The file-size check covers hand-written code only
+
+The check SHALL cover tracked `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.mjs`, `.cjs`, `.astro` and `.css`
+files under `apps/`, `packages/`, `scripts/` and `e2e/`. It SHALL exclude the generated OpenAPI
+contract and its generated types, and the per-language translation catalogues. Test files are
+`*.test.*`, `*.spec.*` and `*.stories.*` files, and every file under `e2e/`.
+
+#### Scenario: Generated contracts are not measured
+- **WHEN** `packages/contracts/openapi/v1.json` or `packages/contracts/src/generated/v1.ts` exceeds
+  any limit
+- **THEN** the check reports nothing for them
+
+#### Scenario: Translation catalogues are not measured
+- **WHEN** `apps/web/src/control/i18n/messages.en.ts` or
+  `apps/web/src/lib/i18n/public-messages.es.ts` exceeds 800 lines
+- **THEN** the check reports nothing for them
+
+#### Scenario: Data and documentation are out of scope
+- **WHEN** a JSON dataset, a Markdown document or a YAML workflow exceeds 800 lines
+- **THEN** the check reports nothing for it
+
+#### Scenario: Untracked files are not measured
+- **WHEN** an ignored build output under `dist/` exceeds 800 lines
+- **THEN** the check reports nothing for it

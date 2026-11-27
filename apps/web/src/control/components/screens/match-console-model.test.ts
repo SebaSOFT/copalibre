@@ -226,7 +226,7 @@ describe('secondaryActorFieldsOf', () => {
     } as ConsoleEventDefinition;
   }
 
-  it('keeps one entry per field name, and the last declared label wins', () => {
+  it('keeps one entry per field name, labelled by its first declaration', () => {
     const result = secondaryActorFieldsOf([
       definition('goal', [{ field: 'assistedBy', label: 'Assist' }]),
       definition('foul', [
@@ -235,7 +235,7 @@ describe('secondaryActorFieldsOf', () => {
       ]),
     ]);
     expect(result.map((entry) => entry.field)).toEqual(['assistedBy', 'fouledBy']);
-    expect(result[0]?.label).toEqual(expect.objectContaining({ en: 'Other label' }));
+    expect(result[0]?.label).toEqual(expect.objectContaining({ en: 'Assist' }));
   });
 
   it('returns nothing when no permitted event declares a secondary field', () => {

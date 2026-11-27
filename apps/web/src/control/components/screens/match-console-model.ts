@@ -18,13 +18,14 @@ export function secondaryActorFieldsOf(permittedEvents: readonly ConsoleEventDef
   // Deduplicated by field name, keeping the first declaration's label: two
   // event definitions may prompt for the same field, and the chip row shows it
   // once.
-  return [
-    ...new Map(
-      permittedEvents
-        .flatMap((definition) => definition.secondaryActorFields)
-        .map((entry) => [entry.field, entry] as const),
-    ).values(),
-  ];
+  const byField = new Map<
+    string,
+    (typeof permittedEvents)[number]['secondaryActorFields'][number]
+  >();
+  for (const entry of permittedEvents.flatMap((definition) => definition.secondaryActorFields)) {
+    if (!byField.has(entry.field)) byField.set(entry.field, entry);
+  }
+  return [...byField.values()];
 }
 
 /** The load-data action's href: shown only while a scheduled match has no segments and no events. */

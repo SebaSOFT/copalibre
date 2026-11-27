@@ -25,15 +25,39 @@ export interface ReservedAliasOrganization {
   readonly name: string;
 }
 
+/** An organization whose stored time zone the runtime does not know. */
+export interface UnknownTimeZoneOrganization {
+  readonly organizationId: string;
+  readonly alias: string;
+  readonly name: string;
+  readonly timezone: string;
+}
+
 export interface DataIntegritySnapshot {
   readonly invalidStatusTournaments: readonly InvalidStatusTournament[];
   readonly reservedAliasOrganizations: readonly ReservedAliasOrganization[];
+  readonly unknownTimeZoneOrganizations: readonly UnknownTimeZoneOrganization[];
+}
+
+/**
+ * Whether `Intl` accepts `timeZone` as an IANA zone. The API refuses an unknown zone on write; an
+ * organization stored before it did can still hold one, and every page that formats its times in
+ * that zone throws.
+ */
+export function isKnownTimeZone(timeZone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en', { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Every check `evaluateDataIntegrity` reports, so a failed probe can skip each by name. */
 export const DATA_INTEGRITY_CHECKS = [
   'data:tournament-status',
   'data:reserved-organization-alias',
+  'data:organization-time-zone',
 ] as const;
 
 /**
@@ -75,11 +99,40 @@ export const DATA_INTEGRITY_CHECKS = [
  */
 export function evaluateDataIntegrity(
   snapshot: DataIntegritySnapshot,
-): readonly [DoctorCheck, DoctorCheck] {
+): readonly [DoctorCheck, DoctorCheck, DoctorCheck] {
   return [
     tournamentStatusCheck(snapshot.invalidStatusTournaments),
     reservedAliasCheck(snapshot.reservedAliasOrganizations),
+    timeZoneCheck(snapshot.unknownTimeZoneOrganizations),
   ];
+}
+
+/**
+ * An organization whose time zone the runtime does not know breaks the public, TV and Control
+ * pages that show its schedule times. The operator hears about it with the fix; nothing is changed
+ * and startup is not blocked.
+ */
+function timeZoneCheck(organizations: readonly UnknownTimeZoneOrganization[]): DoctorCheck {
+  if (organizations.length === 0) {
+    return {
+      name: 'data:organization-time-zone',
+      status: 'pass',
+      message: 'Every organization holds a known time zone',
+    };
+  }
+  const names = organizations
+    .map(
+      (organization) =>
+        `${organization.name} ('${organization.alias}'): '${organization.timezone}'`,
+    )
+    .join(', ');
+  return {
+    name: 'data:organization-time-zone',
+    status: 'warn',
+    message:
+      `${organizations.length} organization(s) hold a time zone this runtime does not know — ${names}. ` +
+      'Pages that show their times fail until an administrator picks a zone in the organization settings.',
+  };
 }
 
 /**

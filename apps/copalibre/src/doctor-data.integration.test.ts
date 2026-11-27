@@ -94,4 +94,25 @@ describe('probeDataIntegrity (integration)', () => {
     const loaded = await new OrganizationRepository(scratch.db).findByAlias('platform');
     expect(loaded?.organizationId).toBe(reservedId);
   });
+
+  it('finds an organization whose stored time zone the runtime does not know', async () => {
+    // The API refuses an unknown zone now, so this row stands for one stored before it did.
+    const organizationId = newId();
+    await scratch.db
+      .insertInto('organizations')
+      .values({
+        organization_id: organizationId,
+        alias: 'zona-rota',
+        name: 'Zona Rota',
+        primary_language: 'es',
+        timezone: 'Not/A_Zone',
+        emblem_object_id: null,
+        created_at: new Date(),
+      })
+      .execute();
+    const snapshot = await probeDataIntegrity(scratch.db);
+    expect(snapshot.unknownTimeZoneOrganizations).toEqual([
+      { organizationId, alias: 'zona-rota', name: 'Zona Rota', timezone: 'Not/A_Zone' },
+    ]);
+  });
 });

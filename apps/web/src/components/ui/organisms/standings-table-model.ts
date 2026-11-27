@@ -154,7 +154,6 @@ export function deriveStandingsView(input: StandingsTableProps) {
     : activeClubId
       ? `clubId=${encodeURIComponent(activeClubId)}`
       : undefined;
-  // A row names its team's club by alias when the team has one; a team with no club has no club link.
   // A row names its team's club by alias when the row carries a usable one; a team with no club has no club link.
   const resolveRowClubAlias = (row: DisplayRow): string | undefined =>
     isValidClubAlias(row.clubAlias)

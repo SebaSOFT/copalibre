@@ -6,7 +6,6 @@
 [![CI](https://github.com/SebaSOFT/copalibre/actions/workflows/ci.yml/badge.svg)](https://github.com/SebaSOFT/copalibre/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/SebaSOFT/copalibre)](https://github.com/SebaSOFT/copalibre/releases)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
-[![Discussions](https://img.shields.io/github/discussions/SebaSOFT/copalibre)](https://github.com/SebaSOFT/copalibre/discussions)
 [![Glama](https://glama.ai/mcp/servers/SebaSOFT/copalibre/badges/score.svg)](https://glama.ai/mcp/servers/SebaSOFT/copalibre)
 [![Smithery](https://smithery.ai/badge/@SebaSOFT/copalibre)](https://smithery.ai/server/@SebaSOFT/copalibre)
 
@@ -253,7 +252,7 @@ _is_ committed and is the durable record of what has shipped.
 
 ## Contributing
 
-Issues and discussions are open for questions, bug reports, and proposals. Read
+[Issues](https://github.com/SebaSOFT/copalibre/issues) are open for questions, bug reports, and proposals. Read
 [`AGENTS.md`](AGENTS.md) first — it covers the monorepo conventions, the OpenSpec workflow, and
 what a pull request needs (tests, contract regeneration, coverage) before review.
 
