@@ -1,16 +1,56 @@
 import { fileURLToPath } from 'node:url';
-import { join, relative } from 'node:path';
+import { join } from 'node:path';
 import { readFileSync } from 'node:fs';
-import ts from 'typescript';
-import { buildGraph, collectSourceFiles } from './lib/component-graph.mjs';
+import { buildGraph } from './lib/component-graph.mjs';
 import { ratchet, unreachableRegisterEntries } from './lib/rule-register.mjs';
+import { KNOWN_RAW_ELEMENTS, KNOWN_HANDWRITTEN_CLASSES } from './check-ui-ownership.mjs';
 import {
-  GOVERNED_ELEMENTS,
-  KNOWN_RAW_ELEMENTS,
-  KNOWN_HANDWRITTEN_CLASSES,
-  withoutComments,
-} from './check-ui-ownership.mjs';
-import { isExempt } from './check-ui-text-catalogue-coverage.mjs';
+  checkImportDirection,
+  checkPageTemplateHierarchy,
+  checkTierMembership,
+} from './lib/atomic-composition/tiers.mjs';
+import {
+  checkBannedOrnament,
+  checkInlineLayout,
+  checkPageWidthLiterals,
+  checkRawStyleValues,
+} from './lib/atomic-composition/styling.mjs';
+import {
+  checkCatalogueResolution,
+  checkDataAccess,
+  checkI18nPlacement,
+  checkLiteralTextNodes,
+} from './lib/atomic-composition/data-and-text.mjs';
+import {
+  checkCasing,
+  checkDuplicateNames,
+  checkOrphans,
+  checkSingleAtomOwnership,
+} from './lib/atomic-composition/naming.mjs';
+export {
+  checkImportDirection,
+  checkPageTemplateHierarchy,
+  checkTierMembership,
+} from './lib/atomic-composition/tiers.mjs';
+export {
+  checkBannedOrnament,
+  checkInlineLayout,
+  checkPageWidthLiterals,
+  checkRawStyleValues,
+} from './lib/atomic-composition/styling.mjs';
+export {
+  checkCatalogueResolution,
+  checkDataAccess,
+  checkI18nPlacement,
+  checkLiteralTextNodes,
+  extractCatalogueIds,
+} from './lib/atomic-composition/data-and-text.mjs';
+export {
+  checkCasing,
+  checkDuplicateNames,
+  checkOrphans,
+  checkSingleAtomOwnership,
+} from './lib/atomic-composition/naming.mjs';
 
 /**
  * Enforces the atomic-composition tier contract over the
@@ -24,13 +64,6 @@ import { isExempt } from './check-ui-text-catalogue-coverage.mjs';
  * script counts *contract violations*. The two keep separate registers so a
  * lowered count in one never hides a regression in the other.
  */
-
-// ---------------------------------------------------------------------------
-// R1 — tier membership: every file under a `ui/` directory declares its tier
-// by living directly inside one of the four library-tier subdirectories.
-// ---------------------------------------------------------------------------
-
-const DECLARED_UI_TIERS = new Set(['atoms', 'molecules', 'organisms', 'layouts']);
 
 /**
  * Components directly inside a `ui/` directory, not in a declared tier
@@ -55,141 +88,12 @@ export const KNOWN_UNDECLARED_TIER = new Map([
   ['control/components/ui/story-matrix.tsx', 1],
 ]);
 
-export function checkTierMembership(nodes) {
-  const violations = [];
-  for (const node of nodes.values()) {
-    if (!node.isComponent) continue; // not a component — outside the tier system
-    const segments = node.path.split('/');
-    const uiIndex = segments.indexOf('ui');
-    if (uiIndex === -1) continue; // not a library file at all — not this rule's concern
-    const tierSegment = segments[uiIndex + 1];
-    if (segments.length > uiIndex + 1 && DECLARED_UI_TIERS.has(tierSegment)) continue;
-
-    violations.push({
-      path: node.path,
-      line: 1,
-      message:
-        `${node.path} sits directly inside a ui/ directory without a declared tier ` +
-        `(one of ${[...DECLARED_UI_TIERS].join(', ')}). Move it into a tier subdirectory or ` +
-        'record it in KNOWN_UNDECLARED_TIER with a stated reason.',
-    });
-  }
-  return violations;
-}
-
-// ---------------------------------------------------------------------------
-// R2 — import direction: imports point downward only. No library tier may
-// import a screen component, and no tier may import a higher-ranked tier.
-// ---------------------------------------------------------------------------
-
-/**
- * Ascending rank — a file may import its own rank or lower, never higher.
- * `screen` covers every file outside a `ui/` library directory: today's
- * `*Page.tsx` (screen template role) and `*Route.tsx` (page-controller role)
- * sit in the same flat directory pending the tier rename, so
- * they share one rank until that split exists on disk to check against.
- */
-const TIER_RANK = { atoms: 0, molecules: 1, organisms: 2, layouts: 3, screen: 4 };
-
 /**
  * Upward imports recorded as of this change, keyed by the importing file —
  * the R2 register. Empty: the graph has no case of a library tier importing
  * a screen component or a lower tier importing a higher one.
  */
 export const KNOWN_UPWARD_IMPORTS = new Map();
-
-export function checkImportDirection(nodes, edges) {
-  const violations = [];
-  for (const edge of edges) {
-    const fromNode = nodes.get(edge.from);
-    const toNode = nodes.get(edge.to);
-    if (!fromNode || !toNode) continue;
-    // A plain data/utility module (a catalogue, a formatting helper, an API
-    // client) is not a tier member; importing one is never a direction
-    // violation regardless of which tier does the importing.
-    if (!toNode.isComponent) continue;
-    const fromRank = TIER_RANK[fromNode.tier] ?? TIER_RANK.screen;
-    const toRank = TIER_RANK[toNode.tier] ?? TIER_RANK.screen;
-    if (toRank <= fromRank) continue;
-
-    violations.push({
-      path: edge.from,
-      line: edge.line ?? 1,
-      message:
-        `${edge.from} (tier: ${fromNode.tier}) imports ${edge.to} (tier: ${toNode.tier}), ` +
-        'which ranks above it. Imports point downward only — a tier may import its own tier ' +
-        'or lower, never a tier above it.',
-    });
-  }
-  return violations;
-}
-
-// ---------------------------------------------------------------------------
-// R3 — no inline style carries a layout property outside ui/atoms/layout/,
-// the directory the layout primitives land in.
-// ---------------------------------------------------------------------------
-
-const LAYOUT_PROPERTIES = new Set([
-  'display',
-  'flex',
-  'flexDirection',
-  'flexWrap',
-  'flexGrow',
-  'flexShrink',
-  'flexBasis',
-  'justifyContent',
-  'alignItems',
-  'alignContent',
-  'alignSelf',
-  'placeItems',
-  'placeContent',
-  'gap',
-  'rowGap',
-  'columnGap',
-  'gridTemplateColumns',
-  'gridTemplateRows',
-  'gridTemplateAreas',
-  'gridColumn',
-  'gridRow',
-  'gridArea',
-  'gridAutoFlow',
-  'margin',
-  'marginTop',
-  'marginRight',
-  'marginBottom',
-  'marginLeft',
-  'marginBlock',
-  'marginInline',
-  'padding',
-  'paddingTop',
-  'paddingRight',
-  'paddingBottom',
-  'paddingLeft',
-  'paddingBlock',
-  'paddingInline',
-  'width',
-  'height',
-  'minWidth',
-  'minHeight',
-  'maxWidth',
-  'maxHeight',
-  'position',
-  'top',
-  'right',
-  'bottom',
-  'left',
-  'inset',
-  'float',
-  'clear',
-  'order',
-]);
-
-const LAYOUT_PRIMITIVE_ROOT = 'ui/atoms/layout/';
-
-/** True for a path under either surface's `ui/atoms/layout/` directory. */
-function isLayoutPrimitive(path) {
-  return path.includes(LAYOUT_PRIMITIVE_ROOT);
-}
 
 /**
  * Debt recorded 2026-09-11, the day this gate first ran: every file with an
@@ -199,9 +103,7 @@ function isLayoutPrimitive(path) {
  *
  * The two remaining public/broadcast entries above
  * `MatchCard.tsx` were surveyed and neither occurrence is primitive-convertible, for
- * reasons specific to each: `TvDashboard.tsx`'s three (two of
- * them were split out into `TvPerformersView.tsx` and `TvStandingsTable.tsx` alongside
- * the components carrying them) are `vmin`-scaled padding for
+ * reasons specific to each: `TvFocalPanel.tsx`'s one (moved from `TvDashboard.tsx`) is `vmin`-scaled padding for
  * broadcast-continuous sizing, which the fixed token scale `Box`'s
  * `padding` resolves to cannot express without changing how the overlay
  * actually scales; `AstroPreview.tsx`'s one styles an `<iframe>`, an element
@@ -227,14 +129,16 @@ function isLayoutPrimitive(path) {
  * own styling once, not once per render.
  */
 export const KNOWN_INLINE_LAYOUT = new Map([
-  ['components/tv/TvDashboard.tsx', 1],
+  ['components/tv/TvFocalPanel.tsx', 1],
   ['components/tv/TvPerformersView.tsx', 1],
   ['components/tv/ui/organisms/TvStandingsTable.tsx', 1],
   ['components/ui/AstroPreview.tsx', 1],
   ['components/ui/organisms/MatchCard.tsx', 1],
   ['control/components/BracketCanvas.tsx', 1],
   ['control/components/ControlApp.tsx', 8],
-  ['control/components/DescriptorBuilderWizard.tsx', 9],
+  ['control/components/DescriptorBuilderWizard.tsx', 7],
+  // Historical debt from before the rule existed, moved with the lists.
+  ['control/components/DescriptorBuilderLists.tsx', 2],
   ['control/components/screens/LiveConsoleTemplate.tsx', 2],
   ['control/components/NativeAuthRoutes.tsx', 7],
   ['control/components/screens/PlatformAdministrationTemplate.tsx', 1],
@@ -244,8 +148,10 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   // Remaining inline layout is the distribution-bar chart pending its own
   // presentation primitive; one tiebreak disclosure's inline layout was removed.
   ['control/components/screens/StandingsTemplate.tsx', 3],
+  // Historical debt from before the rule existed, moved with the wizard steps.
+  ['control/components/tournament-setup/TournamentSetupFormatSteps.tsx', 5],
   // The GIVEN/WHEN/THEN rule composition was extracted into its own organism.
-  ['control/components/TournamentSetupWizard.tsx', 9],
+  ['control/components/tournament-setup/TournamentSetupRulesStep.tsx', 4],
   // A stage is genuinely an ordered list; the layout primitives (Stack/
   // Inline/Grid) only ever render a <div> and cannot become an <ol>, the
   // same class of exception as AstroPreview.tsx's <iframe> above.
@@ -260,43 +166,9 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['control/components/ui/organisms/wizard-shell.tsx', 1],
 ]);
 
-export function checkInlineLayout(nodes) {
-  const violations = [];
-  for (const node of nodes.values()) {
-    if (isLayoutPrimitive(node.path)) continue;
-    for (const style of node.inlineStyles) {
-      const hasLayoutProp = style.properties.some((p) => LAYOUT_PROPERTIES.has(p));
-      if (!hasLayoutProp) continue;
-      violations.push({
-        path: node.path,
-        line: style.line,
-        message: `${node.path}:${style.line}: inline style carries a layout property. Layout belongs to a Stack/Inline/Grid/Box primitive, not an inline object.`,
-      });
-    }
-  }
-  return violations;
-}
-
-// ---------------------------------------------------------------------------
-// R4 — no style value is a raw length or colour outside var().
-// ---------------------------------------------------------------------------
-
-const RAW_VALUE = /\b\d+(?:\.\d+)?(?:px|rem|em|vh|vw|%)\b|#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/;
-
-/** Strips `var(...)` calls (repeatedly, so nested fallbacks are also removed). */
-function withoutVarCalls(text) {
-  let previous;
-  let result = text;
-  do {
-    previous = result;
-    result = result.replace(/var\([^()]*\)/g, '');
-  } while (result !== previous);
-  return result;
-}
-
 /**
  * Debt recorded 2026-09-11: inline style objects with a raw value outside
- * `var()`, per file. `TvDashboard.tsx`'s `vmin` value is deliberate
+ * `var()`, per file. `TvFocalPanel.tsx`'s `vmin` value is deliberate
  * broadcast-continuous scaling, no token expresses it; `AstroPreview.tsx`
  * styles a raw `<iframe>` — neither is this rule's concern to convert.
  *
@@ -316,13 +188,13 @@ function withoutVarCalls(text) {
  * its `KNOWN_INLINE_LAYOUT` paydown above.
  */
 export const KNOWN_RAW_STYLE_VALUES = new Map([
-  ['components/tv/TvDashboard.tsx', 1],
+  ['components/tv/TvFocalPanel.tsx', 1],
   ['components/ui/AstroPreview.tsx', 1],
   ['control/components/ControlApp.tsx', 8],
   ['control/components/NativeAuthRoutes.tsx', 7],
   ['control/components/RosterRoleSelector.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 1],
-  ['control/components/TournamentSetupWizard.tsx', 1],
+  ['control/components/tournament-setup/TournamentSetupRulesStep.tsx', 1],
   ['control/components/ui/molecules/callout-banner.tsx', 2],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 2],
   // The step-indicator grid's `minmax(8rem, 1fr)`/`minmax(min(100%, 6rem), 1fr)`
@@ -330,21 +202,6 @@ export const KNOWN_RAW_STYLE_VALUES = new Map([
   // rather than newly added.
   ['control/components/ui/organisms/wizard-shell.tsx', 1],
 ]);
-
-export function checkRawStyleValues(nodes) {
-  const violations = [];
-  for (const node of nodes.values()) {
-    for (const style of node.inlineStyles) {
-      if (!RAW_VALUE.test(withoutVarCalls(style.raw))) continue;
-      violations.push({
-        path: node.path,
-        line: style.line,
-        message: `${node.path}:${style.line}: inline style value is a raw length or colour, not a var() reference.`,
-      });
-    }
-  }
-  return violations;
-}
 
 // ---------------------------------------------------------------------------
 // R5 — no API client, fetch, or realtime subscription below the page tier.
@@ -360,37 +217,16 @@ export function checkRawStyleValues(nodes) {
  */
 export const KNOWN_DATA_BELOW_PAGE = new Map([
   ['components/ui/organisms/LiveMatchHero.tsx', 1],
-  ['components/ui/organisms/StandingsTable.astro', 2],
+  ['components/ui/organisms/StandingsTable.astro', 1],
+  // Re-keyed when the script moved to standings-table-client.ts: its fetch calls are the
+  // same debt, recorded against the module that now holds them.
+  ['components/ui/organisms/standings-table-client.ts', 1],
   ['components/ui/molecules/TournamentHero.astro', 1],
   ['components/ui/organisms/PlayerProfileView.astro', 1],
   // Bracket entrant slots gain a club emblem, the same
   // clubEmblemUrl()-in-the-template pattern StandingsTable.astro already uses above.
   ['components/ui/organisms/MatchNode.astro', 1],
 ]);
-
-export function checkDataAccess(nodes) {
-  const violations = [];
-  for (const node of nodes.values()) {
-    if (!DECLARED_UI_TIERS.has(node.tier)) continue;
-    if (node.dataSignals > 0) {
-      violations.push({
-        path: node.path,
-        line: 1,
-        message: `${node.path} (tier: ${node.tier}) contains a fetch/RealtimeClient/EventSource call. Data access belongs to the page tier only.`,
-      });
-    }
-    for (const imp of node.imports) {
-      if (imp.resolved && /(?:^|\/)(?:public-api-client|api-client)\.ts$/.test(imp.resolved)) {
-        violations.push({
-          path: node.path,
-          line: imp.line,
-          message: `${node.path}:${imp.line}: imports an API client (${imp.resolved}). Data access belongs to the page tier only.`,
-        });
-      }
-    }
-  }
-  return violations;
-}
 
 // ---------------------------------------------------------------------------
 // R6 — no react-intl formatting call in an atom or molecule.
@@ -408,20 +244,6 @@ export function checkDataAccess(nodes) {
  * crosses a `client:load` serialization boundary.
  */
 export const KNOWN_I18N_BELOW_ORGANISM = new Map();
-
-export function checkI18nPlacement(nodes) {
-  const violations = [];
-  for (const node of nodes.values()) {
-    if (node.tier !== 'atoms' && node.tier !== 'molecules') continue;
-    if (node.i18nSignals === 0) continue;
-    violations.push({
-      path: node.path,
-      line: 1,
-      message: `${node.path} (tier: ${node.tier}) formats its own message via react-intl. i18n sits at organism and above; an atom or molecule takes rendered strings as props.`,
-    });
-  }
-  return violations;
-}
 
 // ---------------------------------------------------------------------------
 // R7 — every library component has ≥1 production consumer or a
@@ -499,55 +321,6 @@ export const KNOWN_ORPHANS = new Map([
   // check-ui-ownership.mjs — remains separate, unstarted work.
 ]);
 
-/**
- * Case- and separator-insensitive: a story title names a component the way
- * Storybook titles do ("Astro preview", a human phrase) while a file
- * basename names it the way the filesystem does ("AstroPreview" or, since the kebab-case rename,
- * "astro-preview") — never the same string, even
- * when they mean the same component. `checkOrphans` normalizes both sides
- * before comparing rather than requiring the two conventions to coincide.
- */
-function normalizeComponentName(name) {
-  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-/** The last `/`-segment of a storyId's title, before the ` — scenario` suffix. */
-function referenceIndexComponentNames(referenceIndex) {
-  const names = new Set();
-  for (const entry of referenceIndex) {
-    if (entry.consumers.length > 0) continue; // has a real consumer; not what exempts an orphan
-    const title = entry.storyId.split(' — ')[0] ?? entry.storyId;
-    const segment = title.split('/').pop();
-    if (segment) names.add(normalizeComponentName(segment));
-  }
-  return names;
-}
-
-export function checkOrphans(nodes, edges, referenceIndex) {
-  const consumedTargets = new Set(edges.filter((e) => e.rendered).map((e) => e.to));
-  const exemptNames = referenceIndexComponentNames(referenceIndex);
-  const violations = [];
-
-  for (const node of nodes.values()) {
-    if (!node.isComponent) continue;
-    if (!node.path.split('/').includes('ui')) continue; // library-adjacent files only
-    if (consumedTargets.has(node.path)) continue;
-
-    const baseName = node.path
-      .split('/')
-      .pop()
-      .replace(/\.(tsx|astro|ts)$/, '');
-    if (exemptNames.has(normalizeComponentName(baseName))) continue;
-
-    violations.push({
-      path: node.path,
-      line: 1,
-      message: `${node.path} has no production consumer and no reference-index row explaining why. Adopt it, delete it, merge it, or record it in reference-index.ts with a reason.`,
-    });
-  }
-  return violations;
-}
-
 // ---------------------------------------------------------------------------
 // R9 — naming: casing matches the tier directory's rule; no two components
 // share a base name.
@@ -574,62 +347,6 @@ export const KNOWN_DUPLICATE_NAMES = new Map([
   ['components/ui/AstroPreview.tsx', 1],
   ['preview/AstroPreview.astro', 1],
 ]);
-
-const KEBAB_CASE = /^[a-z][a-z0-9-]*\.(tsx|ts)$/;
-const PASCAL_CASE = /^[A-Z][A-Za-z0-9]*\.astro$/;
-
-export function checkCasing(nodes) {
-  const violations = [];
-  for (const node of nodes.values()) {
-    const segments = node.path.split('/');
-    if (!segments.includes('ui')) continue;
-    const fileName = segments[segments.length - 1];
-    const isControl = node.path.startsWith('control/');
-
-    if (isControl && !KEBAB_CASE.test(fileName)) {
-      violations.push({
-        path: node.path,
-        line: 1,
-        message: `${node.path}: control library files are kebab-case; ${fileName} is not.`,
-      });
-    } else if (!isControl && node.path.endsWith('.astro') && !PASCAL_CASE.test(fileName)) {
-      violations.push({
-        path: node.path,
-        line: 1,
-        message: `${node.path}: public library .astro files are PascalCase; ${fileName} is not.`,
-      });
-    }
-  }
-  return violations;
-}
-
-/** Route files under `pages/` legitimately repeat a name across route trees (Astro file routing). */
-export function checkDuplicateNames(nodes) {
-  const byBaseName = new Map();
-  for (const node of nodes.values()) {
-    if (!node.isComponent) continue;
-    if (node.path.startsWith('pages/')) continue;
-    const baseName = node.path
-      .split('/')
-      .pop()
-      .replace(/\.(tsx|astro)$/, '');
-    if (!byBaseName.has(baseName)) byBaseName.set(baseName, []);
-    byBaseName.get(baseName).push(node.path);
-  }
-
-  const violations = [];
-  for (const [baseName, paths] of byBaseName) {
-    if (paths.length < 2) continue;
-    for (const path of paths) {
-      violations.push({
-        path,
-        line: 1,
-        message: `${path}: base name "${baseName}" is shared with ${paths.filter((p) => p !== path).join(', ')}. No two components may share a base name.`,
-      });
-    }
-  }
-  return violations;
-}
 
 // ---------------------------------------------------------------------------
 // R13 — at most one atom per surface renders a given governed element from
@@ -671,35 +388,6 @@ export const KNOWN_MULTI_ATOM_OWNERSHIP = new Map([
   ['components/ui/atoms/Button.astro', 1],
   ['components/ui/atoms/ColumnHeaderTooltip.tsx', 1],
 ]);
-
-export function checkSingleAtomOwnership(nodes) {
-  const bySurfaceElement = new Map();
-  for (const node of nodes.values()) {
-    if (node.tier !== 'atoms') continue;
-    const governedTags = new Set(
-      node.nativeElements.map((e) => e.tag).filter((tag) => GOVERNED_ELEMENTS.includes(tag)),
-    );
-    for (const tag of governedTags) {
-      const key = `${node.surface}::${tag}`;
-      if (!bySurfaceElement.has(key)) bySurfaceElement.set(key, []);
-      bySurfaceElement.get(key).push(node.path);
-    }
-  }
-
-  const violations = [];
-  for (const [key, paths] of bySurfaceElement) {
-    if (paths.length < 2) continue;
-    const [, tag] = key.split('::');
-    for (const path of paths) {
-      violations.push({
-        path,
-        line: 1,
-        message: `${path}: renders a raw <${tag}> from scratch, and so does ${paths.filter((p) => p !== path).join(', ')}, within the same surface. At most one atom may own a governed element.`,
-      });
-    }
-  }
-  return violations;
-}
 
 // ---------------------------------------------------------------------------
 // R10 — no rendered text node is a literal; every descriptor resolves in
@@ -759,44 +447,6 @@ export const KNOWN_LITERAL_TEXT = new Map([
   // zero violations, entry removed per the ratchet rule.
 ]);
 
-export function checkLiteralTextNodes(nodes) {
-  const violations = [];
-  for (const node of nodes.values()) {
-    for (const textNode of node.textNodes) {
-      if (isExempt(textNode.text)) continue;
-      violations.push({
-        path: node.path,
-        line: textNode.line,
-        message: `${node.path}:${textNode.line}: rendered text "${textNode.text.trim().slice(0, 60)}" is a literal, not a catalogue descriptor.`,
-      });
-    }
-  }
-  return violations;
-}
-
-const MESSAGE_ID_IN_DEFINE = /id:\s*'([^']+)'/g;
-// A locale value is double-quoted instead of single-quoted precisely when
-// it contains an apostrophe (e.g. French/Italian "l'organisation") — both
-// are valid, equally common in these catalogues, and the key itself is
-// always single-quoted either way.
-const MESSAGE_ID_IN_RECORD = /^\s*'([a-zA-Z][\w.]*)':\s*['"]/gm;
-
-/** Extracts every message id a catalogue file defines, in either its `defineMessages` or plain-Record shape. */
-export function extractCatalogueIds(path) {
-  const source = readFileSync(path, 'utf8');
-  const ids = new Set();
-  for (const match of source.matchAll(MESSAGE_ID_IN_DEFINE)) ids.add(match[1]);
-  for (const match of source.matchAll(MESSAGE_ID_IN_RECORD)) ids.add(match[1]);
-  return ids;
-}
-
-/** A catalogue family: a source (English) file and its locale siblings, all in one directory. */
-const CATALOGUE_FAMILIES = [
-  { dir: 'control/i18n', prefix: 'messages.' },
-  { dir: 'lib/i18n', prefix: 'public-messages.' },
-];
-const CATALOGUE_LOCALES = ['de', 'en', 'es', 'fr', 'it', 'pt', 'ru', 'zh'];
-
 /**
  * Message ids present in the English (source) catalogue and absent from a
  * locale sibling, counted per locale file. Empty: the three entries this
@@ -810,49 +460,6 @@ const CATALOGUE_LOCALES = ['de', 'en', 'es', 'fr', 'it', 'pt', 'ru', 'zh'];
  * while adding new ids to these same files.
  */
 export const KNOWN_CATALOGUE_GAPS = new Map();
-
-export function checkCatalogueResolution(webSrcDir) {
-  const violations = [];
-  for (const family of CATALOGUE_FAMILIES) {
-    const sourcePath = join(webSrcDir, family.dir, `${family.prefix}en.ts`);
-    const sourceIds = extractCatalogueIds(sourcePath);
-
-    for (const locale of CATALOGUE_LOCALES) {
-      if (locale === 'en') continue;
-      const localeRelPath = `${family.dir}/${family.prefix}${locale}.ts`;
-      const localePath = join(webSrcDir, localeRelPath);
-      const localeIds = extractCatalogueIds(localePath);
-
-      for (const id of sourceIds) {
-        if (localeIds.has(id)) continue;
-        violations.push({
-          path: localeRelPath,
-          line: 1,
-          message: `${localeRelPath}: missing message id "${id}", present in ${family.prefix}en.ts. Every descriptor must resolve in all eight catalogues.`,
-        });
-      }
-    }
-  }
-  return violations;
-}
-
-// ---------------------------------------------------------------------------
-// R11 — no banned ornament (resting glow, resting shadow, second accent) and
-// no recurring treatment declared inline rather than as a named class.
-// ---------------------------------------------------------------------------
-
-/**
- * Tokens DESIGN.md's anti-glow/anti-shadow rules ban as a *resting* state
- * cue — a glow or shadow with no corresponding interaction (hover, focus,
- * an active/live state already named elsewhere). Detected as a raw property
- * naming them inline, which is the only way an inline style can apply one at
- * all (a class-based ban is the generated-CSS detector's job on generated CSS; this
- * rule is about the inline escape hatch instead).
- */
-const BANNED_ORNAMENT_TOKENS = [
-  /--cl-glow-\w+/,
-  /box-shadow['"]?\s*:\s*['"]?[^,}]*\d+px[^,}]*\d+px/, // a hand-written multi-value shadow, not a token
-];
 
 /**
  * Debt recorded 2026-09-11: `tiebreaker-sequence.tsx:86` used `--cl-glow-cyan`
@@ -869,140 +476,11 @@ const BANNED_ORNAMENT_TOKENS = [
  */
 export const KNOWN_BANNED_ORNAMENT = new Map();
 
-export function checkBannedOrnament(nodes) {
-  const violations = [];
-  for (const node of nodes.values()) {
-    for (const style of node.inlineStyles) {
-      if (!BANNED_ORNAMENT_TOKENS.some((pattern) => pattern.test(style.raw))) continue;
-      violations.push({
-        path: node.path,
-        line: style.line,
-        message: `${node.path}:${style.line}: inline style declares a banned resting ornament (glow/shadow). Use the token that carries the state without it.`,
-      });
-    }
-  }
-  return violations;
-}
-
 // ---------------------------------------------------------------------------
 // R14 — page components place their template before any sibling content.
 // ---------------------------------------------------------------------------
 
 export const KNOWN_PAGE_TEMPLATE_HIERARCHY = new Map();
-
-/**
- * A page may return a template directly or place it first in a Fragment when
- * it owns overlays such as dialogs. Content before the template moves the
- * template's breadcrumb and title below auxiliary screen content.
- *
- * @param {Map<string, { path: string }>} nodes
- * @param {string} webSrcDir
- * @returns {readonly { path: string, line: number, message: string }[]}
- */
-export function checkPageTemplateHierarchy(nodes, webSrcDir) {
-  const violations = [];
-
-  for (const node of nodes.values()) {
-    if (!node.path.startsWith('control/components/pages/') || !node.path.endsWith('.tsx')) {
-      continue;
-    }
-
-    const source = readFileSync(join(webSrcDir, node.path), 'utf8');
-    const sourceFile = ts.createSourceFile(
-      node.path,
-      source,
-      ts.ScriptTarget.Latest,
-      true,
-      ts.ScriptKind.TSX,
-    );
-
-    function visit(current) {
-      if (ts.isReturnStatement(current) && current.expression !== undefined) {
-        let expression = current.expression;
-        while (ts.isParenthesizedExpression(expression)) expression = expression.expression;
-
-        if (ts.isJsxFragment(expression)) {
-          const children = expression.children;
-          const templateIndex = children.findIndex((child) => {
-            const tag = ts.isJsxElement(child)
-              ? child.openingElement.tagName
-              : ts.isJsxSelfClosingElement(child)
-                ? child.tagName
-                : undefined;
-            const tagName = tag?.getText(sourceFile).split('.').at(-1);
-            return tagName?.endsWith('Template') ?? false;
-          });
-
-          if (templateIndex > 0) {
-            const leading = children
-              .slice(0, templateIndex)
-              .find((child) =>
-                ts.isJsxText(child)
-                  ? child.text.trim().length > 0
-                  : ts.isJsxExpression(child)
-                    ? child.expression !== undefined
-                    : true,
-              );
-
-            if (leading !== undefined) {
-              const line =
-                sourceFile.getLineAndCharacterOfPosition(leading.getStart(sourceFile)).line + 1;
-              violations.push({
-                path: node.path,
-                line,
-                message: `${node.path}:${line}: page renders content before its template; put the template first so its breadcrumb and title remain the primary header.`,
-              });
-            }
-          }
-        }
-      }
-
-      ts.forEachChild(current, visit);
-    }
-
-    visit(sourceFile);
-  }
-
-  return violations;
-}
-
-// ---------------------------------------------------------------------------
-// R15 — page and screen templates use named container widths, not local caps.
-// ---------------------------------------------------------------------------
-
-const PAGE_LAYOUT_PATH = /^(?:pages|layouts|control\/components\/(?:pages|screens))\//;
-const RAW_PAGE_MAX_WIDTH =
-  /\bmax-width\s*:\s*(['"]?)(\d+(?:\.\d+)?(?:px|rem|em|vw|vh|ch)?)\1\s*(?=;|})|\bmaxWidth\s*:\s*(['"]?)(\d+(?:\.\d+)?(?:px|rem|em|vw|vh|ch)?)\3/g;
-
-/**
- * Page and screen templates choose a named Container variant. A raw max-width
- * there creates another layout system beside the shared public/control tokens.
- * Percentages remain valid for overflow; readable line lengths use the named
- * reading container. Viewport breakpoint expressions are not declarations.
- *
- * @param {string} webSrcDir
- * @returns {readonly { path: string, line: number, message: string }[]}
- */
-export function checkPageWidthLiterals(webSrcDir) {
-  const violations = [];
-
-  for (const file of collectSourceFiles(webSrcDir)) {
-    const path = relative(webSrcDir, file).replaceAll('\\', '/');
-    if (!PAGE_LAYOUT_PATH.test(path)) continue;
-
-    const source = withoutComments(readFileSync(file, 'utf8'));
-    for (const match of source.matchAll(RAW_PAGE_MAX_WIDTH)) {
-      const line = source.slice(0, match.index).split('\n').length;
-      violations.push({
-        path,
-        line,
-        message: `${path}:${line}: page or screen declares a raw max-width. Use a named Container variant or design token.`,
-      });
-    }
-  }
-
-  return violations;
-}
 
 // ---------------------------------------------------------------------------
 // Runner

@@ -11,9 +11,9 @@ const writers = new Set([
   'reinstateAnulledMatches',
 ]);
 const routed = new Map([
-  ['command', ['assertSidesDecided', 'afterOutcomeChange']],
-  ['bulkLoad', ['assertSidesDecided', 'afterOutcomeChange']],
-  ['correct', ['afterOutcomeChange']],
+  ['handleCommand', ['assertSidesDecided', 'afterOutcomeChange']],
+  ['handleBulkLoad', ['assertSidesDecided', 'afterOutcomeChange']],
+  ['handleCorrect', ['afterOutcomeChange']],
   ['anullSurplusOf', []],
 ]);
 
@@ -48,8 +48,7 @@ describe('outcome writer routing', () => {
           const name = owner?.name?.getText(source) ?? '(anonymous)';
           const file = relative(root, path);
           found.push(`${file}:${name}:${node.expression.name.text}`);
-          const required =
-            file === 'controllers/match-control.controller.ts' ? routed.get(name) : undefined;
+          const required = file.startsWith('match-control/') ? routed.get(name) : undefined;
           if (
             required === undefined ||
             required.some((hook) => !owner?.getText(source).includes(`${hook}(`))
@@ -62,14 +61,18 @@ describe('outcome writer routing', () => {
     }
     expect(violations).toEqual([]);
     expect(found.sort()).toEqual([
-      'controllers/match-control.controller.ts:anullSurplusOf:anullSurplusMatches',
-      'controllers/match-control.controller.ts:bulkLoad:recordResult',
-      'controllers/match-control.controller.ts:command:recordResult',
-      'controllers/match-control.controller.ts:correct:reinstateAnulledMatches',
-      'controllers/match-control.controller.ts:correct:supersedeResult',
+      'match-control/bulk-load.ts:handleBulkLoad:recordResult',
+      'match-control/commands.ts:handleCommand:recordResult',
+      'match-control/context.ts:anullSurplusOf:anullSurplusMatches',
+      'match-control/corrections.ts:handleCorrect:reinstateAnulledMatches',
+      'match-control/corrections.ts:handleCorrect:supersedeResult',
     ]);
-    // The one delegated writer is private and both callers resolve in their transaction.
-    const controller = readFileSync(join(root, 'controllers/match-control.controller.ts'), 'utf8');
-    expect(controller.match(/this\.anullSurplusOf\(/g)).toHaveLength(3);
+    // The one delegated writer is exported from `match-control/context.ts` for the handlers
+    // that share it, and every caller resolves in its transaction. Counting its calls across
+    // the whole API source, not only `match-control/`, keeps a new caller elsewhere visible.
+    const sources = filesOf(root)
+      .map((path) => readFileSync(path, 'utf8'))
+      .join('\n');
+    expect(sources.match(/(?<!function )anullSurplusOf\(/g)).toHaveLength(3);
   });
 });

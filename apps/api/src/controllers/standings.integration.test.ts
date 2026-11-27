@@ -377,7 +377,7 @@ describe('standings and seeding routes (integration)', () => {
 
   it('projects one correctly-scoped bracket per zone on the operator seeding read', async () => {
     // Reproduces the same cross-zone round/position collision as the public bracket endpoint's
-    // own test (public-projections.integration.test.ts): 2 zones, each with a round-1/position-1
+    // own test (public-projections.bracket.integration.test.ts): 2 zones, each with a round-1/position-1
     // fixture. Before the fix, `seeding()` generated one flat graph from every zone's entrants
     // combined, so both zones' round-1/position-1 nodes collided and were dropped as "ambiguous".
     const competition = new CompetitionRepository(scratch.db);

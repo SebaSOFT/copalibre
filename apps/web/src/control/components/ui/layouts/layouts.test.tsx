@@ -121,7 +121,7 @@ describe('AuthScreenLayout', () => {
     // centred its own card in a bare <body> instead of composing this template.
     const cssPath = join(
       dirname(fileURLToPath(import.meta.url)),
-      '../../../../../../../packages/design-tokens/src/generate/css.ts',
+      '../../../../../../../packages/design-tokens/src/generate/css/components/screens.ts',
     );
     const css = readFileSync(cssPath, 'utf8');
     expect(css).toContain('.cl-auth-screen { display: grid;');

@@ -278,7 +278,7 @@ export const RADIUS = {
    * that literal was the only value it ever had.
    */
   lg: '8px',
-  /** The chamfer's cut, not a corner radius: see `generate/css.ts`. */
+  /** The chamfer's cut, not a corner radius: see `generate/css/geometry.ts`. */
   chamfer: '14px',
   'chamfer-control': '8px',
   /** Same cut size as `chamfer` — the framed-image border matches it visually. */

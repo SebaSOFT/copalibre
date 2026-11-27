@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   classMethods,
@@ -138,9 +138,15 @@ describe('uncoveredMutations', () => {
 describe('the real repository sources', () => {
   it('records an audit entry for every UnitOfWork-mutating method, or names its exception', () => {
     const repositoriesDir = join(dirname(fileURLToPath(import.meta.url)), 'repositories');
+    // Recursive: the large repositories are facades over focused classes in subfolders
+    // (`competition/`, `schedule/`, ...), and those classes hold the writes. Keys are paths
+    // relative to `repositories/`, so an exception names a subfolder file as
+    // `competition/<file>.ts:<method>`.
     const files = new Map(
-      readdirSync(repositoriesDir)
-        .filter((entry) => entry.endsWith('-repository.ts') && !entry.endsWith('.test.ts'))
+      readdirSync(repositoriesDir, { recursive: true, encoding: 'utf8' })
+        .map((entry) => entry.split(sep).join('/'))
+        .filter((entry) => entry.endsWith('.ts') && !entry.endsWith('.test.ts'))
+        .filter((entry) => entry.includes('/') || entry.endsWith('-repository.ts'))
         .map((entry) => [entry, readFileSync(join(repositoriesDir, entry), 'utf8')] as const),
     );
     expect(uncoveredMutations(files)).toEqual([]);

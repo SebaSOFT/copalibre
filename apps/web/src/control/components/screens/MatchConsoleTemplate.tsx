@@ -1,10 +1,8 @@
-import { useContext, useEffect, useState, type ReactNode } from 'react';
-import { Alert } from '../ui/atoms/alert.js';
-import { FormattedMessage, useIntl, type IntlShape, type MessageDescriptor } from 'react-intl';
-import { isSupportedLanguage, resolveLabel, type SupportedLanguage } from '@copalibre/domain';
+import { useContext, useState } from 'react';
+import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
+import { isSupportedLanguage, resolveLabel } from '@copalibre/domain';
 import type {
   ConsoleEventDefinition,
-  ConsoleMatchEvent,
   ConsoleSegment,
   MatchConsoleApiClient,
   MatchConsoleResponse,
@@ -15,57 +13,58 @@ import {
   awaitingSourceText,
   clockActionsOf,
   clockOpenOf,
-  clockTimeInputOf,
-  REOPEN_REASON_MAX_LENGTH,
-  reopenReasonValidOf,
-  reopenTargetOf,
   type ClockAction,
-  type ClockActions,
-  type ClockTimeDraft,
   commandOfClockAction,
   currentEpochMilliseconds,
+  eventSyncKey,
   formatClock,
   isEventPermitted,
-  parseClockTime,
-  segmentLabel,
+  reopenReasonValidOf,
   segmentPhaseOf,
-  selectedSegmentOf,
-  sentOffPersonIds,
   type SegmentPhase,
-  typedClockTimeOf,
+  sentOffPersonIds,
   undecidedSidesOf,
 } from '../../lib/match-console.js';
 import { sideSourceLabelsFromControlIntl } from '../../lib/matches-view-labels.js';
 import { finalRoundOf } from '../../../lib/side-source.js';
 import { controlLinkClick } from '../../lib/control-navigation.js';
-import { describeQueuedAction, type QueuedMutation } from '../../lib/offline-queue.js';
+import type { QueuedMutation } from '../../lib/offline-queue.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
-import { Input } from '../ui/atoms/input.js';
-import { Label } from '../ui/atoms/label.js';
-import { RadioGroup, RadioGroupItem } from '../ui/atoms/radio.js';
 import { Select } from '../ui/atoms/select.js';
-import { Textarea } from '../ui/atoms/textarea.js';
 import { Field } from '../ui/molecules/field.js';
-import { FieldSet } from '../ui/molecules/field-set.js';
-import { ClockRing } from '../ui/organisms/clock-ring.js';
 import { BracketCanvas } from '../BracketCanvas.js';
 import type { CanvasMatch } from '../../lib/bracket-canvas.js';
 import { EntrantName } from '../../../components/ui/atoms/EntrantName.js';
 import { ValueFlash } from '../../../components/ui/atoms/ValueFlash.js';
-import { ResponsiveTimestamp } from '../../../components/ui/atoms/ResponsiveTimestamp.js';
-import { JerseyGrid } from '../JerseyGrid.js';
-import { RosterSelectionStep } from '../RosterSelectionStep.js';
 import { MatchConsoleLayout } from '../ui/layouts/match-console-layout.js';
 import { ConnectionStatus } from '../ui/organisms/connection-status.js';
 import { LinkButton } from '../ui/atoms/link-button.js';
-import { EventSyncMark, type EventSyncState } from '../ui/molecules/event-sync-mark.js';
+import type { EventSyncState } from '../ui/molecules/event-sync-mark.js';
 import { messages } from '../../i18n/messages.en.js';
 import type { ConsoleStatus } from '../pages/MatchConsolePage.js';
-import { eventSyncKey } from '../../lib/match-console.js';
 import { useEntryOnce } from '../../../lib/use-entry-once.js';
-import { formatEntrant } from '../../lib/presentation-formatting.js';
 import { PageHeaderContext } from '../ui/organisms/page-header.js';
+import {
+  AddSegmentField,
+  ClockCommands,
+  ClockCorrectionForm,
+  NoSegmentsLine,
+  ReopenSegmentConfirmation,
+  RunningSegmentLine,
+} from './MatchConsoleClockControls.js';
+import { AlertsSection, StatusSection } from './MatchConsoleStatusSections.js';
+import { MatchConsoleFinalizeSection } from './MatchConsoleFinalizeSection.js';
+import { MatchConsoleLedgerSection, type EventCategory } from './MatchConsoleLedgerSection.js';
+import { MatchConsoleRecordSection } from './MatchConsoleRecordSection.js';
+import {
+  matchConsoleBreadcrumbsOf,
+  matchConsoleLoadDataHrefOf,
+  queuedEventsOf,
+  secondaryActorFieldsOf,
+} from './match-console-model.js';
+import { useMatchConsoleSelection } from './use-match-console-selection.js';
+import { useSegmentClockDraft } from './use-segment-clock-draft.js';
 
 /**
  * How many events stay visible with the ledger collapsed. Three is what makes
@@ -74,13 +73,6 @@ import { PageHeaderContext } from '../ui/organisms/page-header.js';
  * spending the screen the recording controls need during play.
  */
 const LEDGER_PEEK_COUNT = 3;
-
-/**
- * Radix's `RadioGroup` treats an empty string value as "nothing selected,"
- * so the "no winner" option needs a real, non-empty sentinel — mapped back
- * to `''` (the actual unset state `finalizeWinner` carries) on change.
- */
-const FINALIZE_NO_WINNER_VALUE = '__no-winner__';
 
 export interface RecordEventContext {
   readonly selectedSide: string;
@@ -189,30 +181,15 @@ export function MatchConsoleTemplate({
   // confirmation itself.
   const [finalizeWinner, setFinalizeWinner] = useState('');
   const [rosterStepOpen, setRosterStepOpen] = useState(false);
-  // Only an explicit pick: until the operator names a segment, the console shows the one the
-  // match is in, so it follows the match from one segment to the next.
-  const [pickedSegmentId, setPickedSegmentId] = useState('');
-  // What the operator typed into the time field, and for which segment. Until they type, the field
-  // shows the selected segment's current time, so Correct never sends a value nobody entered.
-  const [clockDraft, setClockDraft] = useState<ClockTimeDraft>();
-  // The segment a reopen confirmation was opened for. It applies only while that segment stays the
-  // selected, ended one, so the reason can never be sent to another segment.
-  const [reopenOpenedFor, setReopenOpenedFor] = useState<string>();
-  const [reopenReason, setReopenReason] = useState('');
-  const [selectedSide, setSelectedSide] = useState('');
-  const [selectedPersonId, setSelectedPersonId] = useState('');
-  const [selectedStaffId, setSelectedStaffId] = useState('');
-  // Keyed by payload field name (e.g. 'assistedBy') rather than one fixed
-  // field, since which fields a definition declares varies by discipline —
-  // ambient state applied to whichever button gets clicked next, the same
-  // pattern the side/person/staff selectors above already use.
-  const [secondaryActorSelections, setSecondaryActorSelections] = useState<Record<string, string>>(
-    {},
-  );
-  // Which field a JerseyGrid tap currently sets — undefined means the
-  // primary actor (selectedSide/selectedPersonId), a field name means that
-  // secondary field (see JerseyGrid.tsx's own "ambient selection" note).
-  const [activeSecondaryField, setActiveSecondaryField] = useState<string | undefined>(undefined);
+  const selection = useMatchConsoleSelection(projection);
+  const {
+    secondaryActorSelections,
+    selectedPersonId,
+    selectedSide,
+    selectedStaffId,
+    setActiveSecondaryField,
+    setSecondaryActorSelections,
+  } = selection;
   const [conditionalEvent, setConditionalEvent] = useState<ConsoleEventDefinition>();
   // Captured when the event-creation button is first pressed, not when a
   // workflow's confirm step (after picking an outcome, typing a note) fires —
@@ -220,43 +197,30 @@ export function MatchConsoleTemplate({
   // not however long describing it afterward took.
   const [pendingOccurredAt, setPendingOccurredAt] = useState<number>();
   const [description, setDescription] = useState('');
-  const [eventCategory, setEventCategory] = useState<'all' | 'positive' | 'negative' | 'neutral'>(
-    'all',
-  );
+  const [eventCategory, setEventCategory] = useState<EventCategory>('all');
   const [logNote, setLogNote] = useState('');
   const [ledgerExpanded, setLedgerExpanded] = useState(false);
   const [bracketExpanded, setBracketExpanded] = useState(false);
   const [bracketZoom, setBracketZoom] = useState(1);
 
-  // A default side/person/staff selection, filled in whenever it is
-  // still unset — on first render and again after every reload, the same
-  // moment `MatchConsolePage`'s own `reload()` used to fill it in directly,
-  // before this state lived here instead. Nested inside a promise chain
-  // rather than called directly in the effect body — the same
-  // react-hooks/set-state-in-effect workaround `PreferencesPage.tsx`
-  // established for several setState calls reachable from one effect.
-  useEffect(() => {
-    Promise.resolve().then(() => {
-      setSelectedSide((current) => current || projection.entrants[0]?.entrantId || '');
-      setSelectedPersonId((current) => current || projection.eligiblePersonIds[0] || '');
-      setSelectedStaffId((current) => current || projection.eligibleStaffIds[0] || '');
-    });
-  }, [projection]);
+  const {
+    clockTimeInput,
+    correctedSeconds,
+    reopenReason,
+    reopenTarget,
+    selectedSegment,
+    selectedSegmentId,
+    setClockDraft,
+    setPickedSegmentId,
+    setReopenOpenedFor,
+    setReopenReason,
+  } = useSegmentClockDraft(projection);
 
   const activeSegment = projection.segments.find((segment) => segment.state === 'active');
   const permittedEvents = projection.eventDefinitions.filter((definition) =>
     isEventPermitted(definition, projection, activeSegment),
   );
-  // Deduplicated by field name, keeping the first declaration's label: two
-  // event definitions may prompt for the same field, and the chip row shows it
-  // once.
-  const secondaryActorFields = [
-    ...new Map(
-      permittedEvents
-        .flatMap((definition) => definition.secondaryActorFields)
-        .map((entry) => [entry.field, entry] as const),
-    ).values(),
-  ];
+  const secondaryActorFields = secondaryActorFieldsOf(permittedEvents);
   const sentOff = sentOffPersonIds(projection.events);
   // The projection names both sides itself; nothing here reads a name off a
   // roster, which only exists once players have actually been named to it.
@@ -266,23 +230,7 @@ export function MatchConsoleTemplate({
   const canControlClock = projection.capabilities.includes('match.control-clock');
   const canResolveTimer = projection.capabilities.includes('match.resolve-timer');
   const canFinalize = projection.capabilities.includes('match.finalize');
-  const queuedEvents: ConsoleMatchEvent[] = pendingMutations.flatMap((mutation, index) => {
-    if (mutation.action.kind !== 'record-event') return [];
-    const request = mutation.action.request;
-    const event = {
-      eventId: `queued-${mutation.id}`,
-      definitionCode: request.definitionCode,
-      segmentId: request.segmentId,
-      sequence: projection.events.length + index + 1,
-      occurredAt: new Date(request.occurredAt).toISOString(),
-      ...(request.side === undefined ? {} : { side: request.side }),
-      ...(request.personId === undefined ? {} : { personId: request.personId }),
-      ...(request.notes === undefined ? {} : { notes: request.notes }),
-    };
-    return projection.events.some((projected) => eventSyncKey(projected) === eventSyncKey(event))
-      ? []
-      : [event];
-  });
+  const queuedEvents = queuedEventsOf(projection, pendingMutations);
   const allEvents = [...projection.events, ...queuedEvents];
   const eventEntryIds = useEntryOnce(allEvents.map(eventSyncKey));
   const displayedEvents = allEvents.filter((event) => {
@@ -295,14 +243,6 @@ export function MatchConsoleTemplate({
   const newestFirst = [...displayedEvents].sort((left, right) => right.sequence - left.sequence);
   const ledgerEvents = ledgerExpanded ? newestFirst : newestFirst.slice(0, LEDGER_PEEK_COUNT);
 
-  const selectedSegment = selectedSegmentOf(projection.segments, pickedSegmentId);
-  const selectedSegmentId = segmentIdOf(selectedSegment);
-  const reopenTarget = reopenTargetOf(projection.segments, reopenOpenedFor, selectedSegmentId);
-  // A typed draft counts only while it belongs to the segment now selected. Otherwise the input
-  // shows that segment's clock, and Apply clock stays unavailable until the operator types again.
-  const typedClockTime = typedClockTimeOf(clockDraft, selectedSegmentId);
-  const clockTimeInput = clockTimeInputOf(selectedSegment, typedClockTime);
-  const correctedSeconds = parseClockTime(typedClockTime);
   const clockCommandsLabel = intl.formatMessage(messages.matchConsoleClockCommands);
   // Only what the match state and the segment's phase allow is offered, one primary action at a
   // time. The distinction between starting a fresh segment and resuming a stopped one belongs to
@@ -420,12 +360,18 @@ export function MatchConsoleTemplate({
     tournamentName,
     tournamentNameLoading,
   });
-  const loadMatchDataAction = matchConsoleLoadDataAction({
+  const loadMatchDataHref = matchConsoleLoadDataHrefOf({
     matchId,
     organizationAlias,
     projection,
     tournamentAlias,
   });
+  const loadMatchDataAction =
+    loadMatchDataHref === undefined ? undefined : (
+      <LinkButton href={loadMatchDataHref} onClick={controlLinkClick(loadMatchDataHref)}>
+        <FormattedMessage {...messages.matchConsoleLoadMatchData} />
+      </LinkButton>
+    );
 
   const titleNode = <FormattedMessage {...messages.matchConsoleTitle} />;
 
@@ -591,257 +537,45 @@ export function MatchConsoleTemplate({
         </div>
       </Card>
 
-      <Card className="cl-chamfer cl-chamfer--control">
-        <header className="cl-card__header">
-          <div className="cl-role-user">
-            <h2 className="cl-card__title">
-              <FormattedMessage {...messages.matchConsoleRecordEvent} />
-            </h2>
-            {canSelectRoster && (
-              <Button
-                onClick={() => setRosterStepOpen((open) => !open)}
-                type="button"
-                variant="secondary"
-              >
-                <FormattedMessage
-                  {...(rosterStepOpen
-                    ? messages.matchConsoleHideRosterStep
-                    : projection.rosters.length > 0
-                      ? messages.matchConsoleEditRoster
-                      : messages.matchConsoleSelectRoster)}
-                />
-              </Button>
-            )}
-          </div>
-        </header>
-        <div className="cl-card__content">
-          {rosterStepOpen && (
-            <RosterSelectionStep
-              api={api}
-              entrants={projection.entrants}
-              existingRosters={projection.rosters}
-              matchId={matchId}
-              onSaved={onRosterSaved}
-              organizationAlias={organizationAlias}
-              rosterRoles={projection.rosterRoles}
-              tournamentAlias={tournamentAlias}
-            />
-          )}
-          {projection.rosters.length > 0 ? (
-            <JerseyGrid
-              activeField={activeSecondaryField}
-              disabled={!canRecord}
-              onChangeActiveField={setActiveSecondaryField}
-              onSelectPrimary={(entrantId, personId) => {
-                setSelectedSide(entrantId);
-                setSelectedPersonId(personId);
-                setSelectedStaffId('');
-              }}
-              onSelectSecondary={(field, personId) =>
-                setSecondaryActorSelections((current) => ({ ...current, [field]: personId }))
-              }
-              organizationAlias={organizationAlias}
-              primaryPersonId={selectedPersonId}
-              primarySide={selectedSide}
-              rosterRoles={projection.rosterRoles}
-              rosters={projection.rosters}
-              secondaryFields={secondaryActorFields}
-              secondarySelections={secondaryActorSelections}
-              sentOffPersonIds={sentOff}
-            />
-          ) : (
-            !rosterStepOpen && (
-              <>
-                {!dismissedRosterNotice && (
-                  <Alert
-                    dismissLabel={intl.formatMessage(messages.toastDismiss)}
-                    onDismiss={() => setDismissedRosterNotice(true)}
-                    tone="info"
-                  >
-                    <FormattedMessage {...messages.matchConsoleNoRosterSelected} />
-                  </Alert>
-                )}
-                {canSelectRoster && (
-                  <Button onClick={() => setRosterStepOpen(true)} type="button" variant="secondary">
-                    <FormattedMessage {...messages.matchConsoleSelectRoster} />
-                  </Button>
-                )}
-              </>
-            )
-          )}
-          <div className="cl-platform-form-grid">
-            <Field id="console-staff" label={intl.formatMessage(messages.matchConsoleStaff)}>
-              <Select
-                aria-label={intl.formatMessage(messages.matchConsoleEventStaff)}
-                disabled={!canRecord || projection.eligibleStaffIds.length === 0}
-                id="console-staff"
-                onValueChange={(val) => {
-                  setSelectedStaffId(val);
-                  if (val) setSelectedPersonId('');
-                }}
-                options={[
-                  {
-                    value: '',
-                    label: intl.formatMessage(messages.matchConsoleNoAttribution),
-                  },
-                  ...projection.eligibleStaffIds.map((personId) => ({
-                    value: personId,
-                    label: formatEntrant(intl, {
-                      displayName: projection.eligibleStaff?.find(
-                        (staff) => staff.personId === personId,
-                      )?.displayName,
-                    }).fullName,
-                  })),
-                ]}
-                value={selectedStaffId}
-              />
-            </Field>
-          </div>
-          <div className="cl-role-user">
-            {permittedEvents.map((definition) => (
-              <Button
-                disabled={!canRecord}
-                key={definition.code}
-                onClick={() => record(definition)}
-                style={{ borderColor: definition.display.color }}
-                type="button"
-                variant="secondary"
-              >
-                {resolveLabel(definition.label, language)}
-              </Button>
-            ))}
-          </div>
-          {conditionalEvent && (
-            <Card
-              aria-label={intl.formatMessage(messages.matchConsoleEventOutcome)}
-              className="cl-chamfer cl-chamfer--control"
-            >
-              <strong>{resolveLabel(conditionalEvent.label, language)}</strong>
-              <div className="cl-role-user">
-                {conditionalEvent.workflow?.options.map((option) => {
-                  const finalDefinition = projection.eventDefinitions.find(
-                    (definition) => definition.code === option.definitionCode,
-                  );
-                  if (!finalDefinition) return null;
-                  return (
-                    <Button
-                      disabled={!canRecord}
-                      key={option.definitionCode}
-                      onClick={() =>
-                        recordFinal(
-                          finalDefinition,
-                          pendingOccurredAt ?? currentEpochMilliseconds(),
-                        )
-                      }
-                      type="button"
-                      variant="secondary"
-                    >
-                      {resolveLabel(option.label, language)}
-                    </Button>
-                  );
-                })}
-              </div>
-            </Card>
-          )}
-          <Field
-            id="console-description"
-            label={intl.formatMessage(messages.matchConsoleDescription)}
-          >
-            <Input
-              aria-label={intl.formatMessage(messages.matchConsoleEventDescription)}
-              disabled={!canRecord}
-              id="console-description"
-              onChange={(event) => setDescription(event.target.value)}
-              value={description}
-            />
-          </Field>
-        </div>
-      </Card>
+      <MatchConsoleRecordSection
+        api={api}
+        canRecord={canRecord}
+        canSelectRoster={canSelectRoster}
+        conditionalEvent={conditionalEvent}
+        description={description}
+        dismissedRosterNotice={dismissedRosterNotice}
+        language={language}
+        matchId={matchId}
+        onRecord={record}
+        onRecordFinal={recordFinal}
+        onRosterSaved={onRosterSaved}
+        organizationAlias={organizationAlias}
+        pendingOccurredAt={pendingOccurredAt}
+        permittedEvents={permittedEvents}
+        projection={projection}
+        rosterStepOpen={rosterStepOpen}
+        secondaryActorFields={secondaryActorFields}
+        selection={selection}
+        sentOff={sentOff}
+        setDescription={setDescription}
+        setDismissedRosterNotice={setDismissedRosterNotice}
+        setRosterStepOpen={setRosterStepOpen}
+        tournamentAlias={tournamentAlias}
+      />
 
-      <Card className="cl-chamfer cl-chamfer--control">
-        <header className="cl-card__header">
-          <h2 className="cl-card__title">
-            <FormattedMessage {...messages.matchConsoleFinalize} />
-          </h2>
-        </header>
-        <div className="cl-card__content">
-          {!confirmingFinalize ? (
-            <Button
-              disabled={!canFinalize || projection.status !== 'in-progress'}
-              onClick={() => setConfirmingFinalize(true)}
-              type="button"
-              variant={variantOf(clockActions.finalizePrimary)}
-            >
-              <FormattedMessage {...messages.matchConsoleFinalizeMatch} />
-            </Button>
-          ) : (
-            <Alert
-              block
-              dismissLabel={intl.formatMessage(messages.toastDismiss)}
-              onDismiss={handleCancelFinalize}
-              tone="warning"
-            >
-              <strong>
-                <FormattedMessage {...messages.matchConsoleFinalizeImmutable} />
-              </strong>
-              <span>
-                <FormattedMessage {...messages.matchConsoleFinalizeCorrections} />
-              </span>
-              <FieldSet legend={intl.formatMessage(messages.matchConsoleFinalizeWinnerLegend)}>
-                <RadioGroup
-                  name="finalize-winner"
-                  onValueChange={(value) =>
-                    setFinalizeWinner(value === FINALIZE_NO_WINNER_VALUE ? '' : value)
-                  }
-                  value={finalizeWinner || FINALIZE_NO_WINNER_VALUE}
-                >
-                  {projection.liveScores.map((side) => {
-                    const entrant = entrantById.get(side.entrantId);
-                    const fieldId = `finalize-winner-${side.entrantId}`;
-                    return (
-                      <Label
-                        className="cl-toggle cl-focusable"
-                        htmlFor={fieldId}
-                        key={side.entrantId}
-                      >
-                        <RadioGroupItem id={fieldId} value={side.entrantId} />
-                        <EntrantName
-                          {...(entrant?.abbreviation === undefined
-                            ? {}
-                            : { abbreviation: entrant.abbreviation })}
-                          fullName={
-                            entrant?.name ?? intl.formatMessage(messages.matchConsoleUnnamedEntrant)
-                          }
-                        />
-                        <strong>{side.score}</strong>
-                      </Label>
-                    );
-                  })}
-                  <Label className="cl-toggle cl-focusable" htmlFor="finalize-winner-none">
-                    <RadioGroupItem id="finalize-winner-none" value={FINALIZE_NO_WINNER_VALUE} />
-                    <span>
-                      <FormattedMessage {...messages.matchConsoleFinalizeNoWinner} />
-                    </span>
-                  </Label>
-                </RadioGroup>
-              </FieldSet>
-              <div className="cl-role-user">
-                <Button onClick={handleCancelFinalize} type="button" variant="secondary">
-                  <FormattedMessage {...messages.matchConsoleCancel} />
-                </Button>
-                <Button
-                  disabled={finalizing}
-                  onClick={() => void handleConfirmFinalize()}
-                  type="button"
-                  variant="primary"
-                >
-                  <FormattedMessage {...messages.matchConsoleConfirmFinalization} />
-                </Button>
-              </div>
-            </Alert>
-          )}
-        </div>
-      </Card>
+      <MatchConsoleFinalizeSection
+        canFinalize={canFinalize}
+        confirmingFinalize={confirmingFinalize}
+        entrantById={entrantById}
+        finalizePrimary={clockActions.finalizePrimary}
+        finalizeWinner={finalizeWinner}
+        finalizing={finalizing}
+        handleCancelFinalize={handleCancelFinalize}
+        handleConfirmFinalize={handleConfirmFinalize}
+        projection={projection}
+        setConfirmingFinalize={setConfirmingFinalize}
+        setFinalizeWinner={setFinalizeWinner}
+      />
     </>
   );
 
@@ -897,130 +631,20 @@ export function MatchConsoleTemplate({
         </div>
       </Card>
 
-      <Card className="cl-chamfer cl-chamfer--control">
-        <header className="cl-card__header">
-          <h2 className="cl-card__title">
-            <FormattedMessage {...messages.matchConsoleEventLedger} />
-          </h2>
-          {/* Collapsed is the default because the recording controls above have
-              to fit one screen during play; the peek strip is what keeps
-              collapsing from hiding the event just recorded from the operator
-              who just recorded it. */}
-          <Button
-            aria-expanded={ledgerExpanded}
-            onClick={() => setLedgerExpanded((expanded) => !expanded)}
-            type="button"
-            variant="secondary"
-          >
-            <FormattedMessage
-              {...(ledgerExpanded
-                ? messages.matchConsoleCollapseLedger
-                : messages.matchConsoleExpandLedger)}
-            />
-          </Button>
-        </header>
-        <div className="cl-card__content">
-          <div className="cl-role-user">
-            {(['all', 'positive', 'negative', 'neutral'] as const).map((category) => (
-              <Button
-                aria-pressed={eventCategory === category}
-                key={category}
-                onClick={() => setEventCategory(category)}
-                type="button"
-                variant="secondary"
-              >
-                {intl.formatMessage(
-                  category === 'all'
-                    ? messages.matchConsoleAll
-                    : category === 'positive'
-                      ? messages.matchConsoleCategoryPositive
-                      : category === 'negative'
-                        ? messages.matchConsoleCategoryNegative
-                        : messages.matchConsoleCategoryNeutral,
-                )}
-              </Button>
-            ))}
-          </div>
-          {ledgerEvents.length === 0 ? (
-            <p className="cl-card__description">
-              <FormattedMessage {...messages.matchConsoleNoEvents} />
-            </p>
-          ) : (
-            <ol className="cl-platform-update-list">
-              {ledgerEvents.map((event) => {
-                const key = eventSyncKey(event);
-                const queueEntry = pendingMutations.find(
-                  (mutation) =>
-                    mutation.action.kind === 'record-event' &&
-                    eventSyncKey({
-                      definitionCode: mutation.action.request.definitionCode,
-                      segmentId: mutation.action.request.segmentId,
-                      occurredAt: new Date(mutation.action.request.occurredAt).toISOString(),
-                    }) === key,
-                );
-                const explicitState = eventSyncStates[key];
-                const syncState =
-                  explicitState ??
-                  (queueEntry
-                    ? {
-                        state: queueEntry.status === 'refused' ? 'refused' : 'queued',
-                        ...(queueEntry.refusalReason === undefined
-                          ? {}
-                          : { refusalReason: queueEntry.refusalReason }),
-                      }
-                    : undefined);
-                return (
-                  <li
-                    key={key}
-                    className={`cl-role-user${eventEntryIds.has(key) ? ' cl-enter-once' : ''}`}
-                  >
-                    <strong>
-                      {event.definitionCode} ·{' '}
-                      {segmentLabel(
-                        projection,
-                        event.segmentId,
-                        intl.formatMessage(messages.matchConsoleUnknownSegment),
-                        segmentTypeText,
-                      )}
-                      {event.segmentElapsedSeconds === undefined
-                        ? null
-                        : ` · ${formatClock(event.segmentElapsedSeconds)}`}
-                    </strong>
-                    <ResponsiveTimestamp
-                      locale={intl.locale}
-                      timeZone={pageHeader?.organizationTimeZone}
-                      timestamp={event.occurredAt}
-                    />
-                    {syncState && (
-                      <EventSyncMark
-                        acknowledged={syncState.state === 'confirmed'}
-                        labels={{
-                          queued: intl.formatMessage(messages.interactionQueued),
-                          sent: intl.formatMessage(messages.interactionSent),
-                          confirmed: intl.formatMessage(messages.interactionConfirmed),
-                          refused: intl.formatMessage(messages.interactionRefused),
-                        }}
-                        refusalReason={syncState.refusalReason}
-                        state={syncState.state}
-                      />
-                    )}
-                    {event.notes ? <p className="cl-card__description">{event.notes}</p> : null}
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-          <Field id="console-log-note" label={intl.formatMessage(messages.matchConsoleLogNote)}>
-            <Textarea
-              aria-label={intl.formatMessage(messages.matchConsoleLogNote)}
-              id="console-log-note"
-              onChange={(event) => setLogNote(event.target.value)}
-              placeholder=""
-              value={logNote}
-            />
-          </Field>
-        </div>
-      </Card>
+      <MatchConsoleLedgerSection
+        eventCategory={eventCategory}
+        eventEntryIds={eventEntryIds}
+        eventSyncStates={eventSyncStates}
+        ledgerEvents={ledgerEvents}
+        ledgerExpanded={ledgerExpanded}
+        logNote={logNote}
+        pendingMutations={pendingMutations}
+        projection={projection}
+        segmentTypeText={segmentTypeText}
+        setEventCategory={setEventCategory}
+        setLedgerExpanded={setLedgerExpanded}
+        setLogNote={setLogNote}
+      />
 
       {bracketMatches && bracketMatches.length > 0 && (
         <Card className="cl-chamfer cl-chamfer--control">
@@ -1074,402 +698,5 @@ export function MatchConsoleTemplate({
       syncStatus={syncStatusNode}
       title={titleNode}
     />
-  );
-}
-
-const segmentIdOf = (segment: ConsoleSegment | undefined): string => segment?.segmentId ?? '';
-
-const variantOf = (primary: boolean): 'primary' | 'secondary' =>
-  primary ? 'primary' : 'secondary';
-
-/** The line under the clock card while no segment exists: what Start creates, else that there are none. */
-function NoSegmentsLine({
-  language,
-  projection,
-}: {
-  readonly language: SupportedLanguage;
-  readonly projection: MatchConsoleResponse;
-}) {
-  const regulation = projection.segmentPlan.regulation;
-  if (projection.status !== 'scheduled' || regulation === undefined) {
-    return <FormattedMessage {...messages.matchConsoleNoSegments} />;
-  }
-  return (
-    <FormattedMessage
-      {...messages.matchConsoleStartCreates}
-      values={{
-        count: regulation.count,
-        type: resolveLabel(regulation.typeLabel ?? regulation.type, language),
-      }}
-    />
-  );
-}
-
-interface AddSegmentFieldProps {
-  readonly disabled: boolean;
-  readonly labels: {
-    readonly button: ReactNode;
-    readonly field: string;
-    readonly placeholder: string;
-  };
-  readonly onAdd: (type: string) => Promise<void> | void;
-  readonly options: readonly { readonly value: string; readonly label: string }[];
-  readonly visible: boolean;
-}
-
-/** The line that names the running segment when another one holds the clock. */
-function RunningSegmentLine({
-  segmentText,
-  segment,
-}: {
-  readonly segmentText: (segment: ConsoleSegment) => string;
-  readonly segment: ConsoleSegment | undefined;
-}) {
-  if (segment === undefined) return null;
-  return (
-    <p className="cl-card__description">
-      <FormattedMessage
-        {...messages.matchConsoleAnotherSegmentRunning}
-        values={{ segment: segmentText(segment) }}
-      />
-    </p>
-  );
-}
-
-interface ReopenSegmentConfirmationProps {
-  readonly labels: {
-    readonly cancel: string;
-    readonly confirm: string;
-    readonly dismiss: string;
-    readonly reason: string;
-    readonly question: (segment: string) => string;
-  };
-  readonly onCancel: () => void;
-  readonly onConfirm: () => void;
-  readonly onReason: (reason: string) => void;
-  readonly segmentText: (segment: ConsoleSegment) => string;
-  readonly reason: string;
-  readonly segment: ConsoleSegment | undefined;
-  readonly visible: boolean;
-}
-
-/** The reopen confirmation, in the finalize card's pattern: a reason is required and it is cancellable. */
-function ReopenSegmentConfirmation({
-  labels,
-  onCancel,
-  onConfirm,
-  onReason,
-  segmentText,
-  reason,
-  segment,
-  visible,
-}: ReopenSegmentConfirmationProps) {
-  if (!visible || segment === undefined) return null;
-  return (
-    // Stacked under its question: inline, the reason field and both buttons squeeze into one row
-    // and become unreadable at phone width.
-    <Alert
-      block
-      dismissLabel={labels.dismiss}
-      heading={labels.question(segmentText(segment))}
-      onDismiss={onCancel}
-      tone="warning"
-    >
-      <Field id="console-reopen-reason" label={labels.reason}>
-        <Input
-          aria-label={labels.reason}
-          id="console-reopen-reason"
-          maxLength={REOPEN_REASON_MAX_LENGTH}
-          onChange={(event) => onReason(event.target.value)}
-          value={reason}
-        />
-      </Field>
-      <div className="cl-role-user">
-        <Button onClick={onCancel} type="button" variant="secondary">
-          {labels.cancel}
-        </Button>
-        <Button
-          disabled={!reopenReasonValidOf(reason)}
-          onClick={onConfirm}
-          type="button"
-          variant="primary"
-        >
-          {labels.confirm}
-        </Button>
-      </div>
-    </Alert>
-  );
-}
-
-interface ClockCorrectionFormProps {
-  readonly canCorrect: boolean;
-  readonly disabled: boolean;
-  readonly labels: { readonly button: ReactNode; readonly field: string };
-  readonly onChange: (value: string) => void;
-  readonly onCorrect: () => void;
-  readonly value: string;
-  readonly visible: boolean;
-}
-
-/** The time correction: a minutes:seconds field and its Correct button, withheld on a finalized match. */
-function ClockCorrectionForm({
-  canCorrect,
-  disabled,
-  labels,
-  onChange,
-  onCorrect,
-  value,
-  visible,
-}: ClockCorrectionFormProps) {
-  if (!visible) return null;
-  return (
-    <div className="cl-platform-form-grid">
-      <Field id="console-clock-time" label={labels.field}>
-        <Input
-          aria-label={labels.field}
-          disabled={disabled}
-          id="console-clock-time"
-          onChange={(event) => onChange(event.target.value)}
-          value={value}
-        />
-      </Field>
-      <Button
-        disabled={disabled || !canCorrect}
-        onClick={onCorrect}
-        type="button"
-        variant="secondary"
-      >
-        {labels.button}
-      </Button>
-    </div>
-  );
-}
-
-/** The Add segment choice: a declared type picked and appended, offered only while the match is in progress. */
-function AddSegmentField({ disabled, labels, onAdd, options, visible }: AddSegmentFieldProps) {
-  const [pick, setPick] = useState('');
-  // Held until the addition is queued and a send attempted, so a second tap cannot queue a
-  // second segment while the first one has not reached the segment list yet.
-  const [adding, setAdding] = useState(false);
-  if (!visible || options.length === 0) return null;
-  const value = options.some((option) => option.value === pick) ? pick : (options[0]?.value ?? '');
-  return (
-    <div className="cl-platform-form-grid">
-      <Field id="console-add-segment" label={labels.field}>
-        <Select
-          aria-label={labels.field}
-          disabled={disabled}
-          id="console-add-segment"
-          onValueChange={setPick}
-          options={options}
-          placeholder={labels.placeholder}
-          value={value}
-        />
-      </Field>
-      <Button
-        disabled={disabled || adding || value === ''}
-        onClick={() => {
-          setAdding(true);
-          void Promise.resolve(onAdd(value)).finally(() => setAdding(false));
-        }}
-        type="button"
-        variant="secondary"
-      >
-        {labels.button}
-      </Button>
-    </div>
-  );
-}
-
-/** The clock actions the match state allows; renders nothing when there are none. */
-function ClockCommands({
-  actions,
-  disabled,
-  label,
-  labels,
-  onAction,
-}: {
-  readonly actions: ClockActions['actions'];
-  readonly disabled: boolean;
-  readonly label: string;
-  readonly labels: Readonly<Record<ClockAction, string>>;
-  readonly onAction: (action: ClockAction) => void;
-}): React.JSX.Element | null {
-  if (actions.length === 0) return null;
-  return (
-    <div className="cl-clock-commands" role="group" aria-label={label}>
-      {actions.map(({ action, primary }) => (
-        <Button
-          disabled={disabled}
-          key={action}
-          onClick={() => onAction(action)}
-          type="button"
-          variant={variantOf(primary)}
-        >
-          {labels[action]}
-        </Button>
-      ))}
-    </div>
-  );
-}
-
-function matchConsoleBreadcrumbsOf({
-  organizationAlias,
-  projection,
-  tournamentAlias,
-  tournamentName,
-  tournamentNameLoading,
-}: {
-  readonly organizationAlias: string;
-  readonly projection: MatchConsoleResponse;
-  readonly tournamentAlias: string;
-  readonly tournamentName?: string | null;
-  readonly tournamentNameLoading: boolean;
-}) {
-  const homeName = projection.entrants.find(
-    ({ entrantId }) => entrantId === projection.homeEntrantId,
-  )?.name;
-  const awayName = projection.entrants.find(
-    ({ entrantId }) => entrantId === projection.awayEntrantId,
-  )?.name;
-  const matchName = homeName && awayName ? `${homeName} vs ${awayName}` : undefined;
-  const tournamentBreadcrumb = tournamentName
-    ? {
-        label: tournamentName,
-        href: `/control/${organizationAlias}/tournaments/${tournamentAlias}`,
-      }
-    : tournamentNameLoading
-      ? { label: '', loading: true }
-      : undefined;
-
-  return [
-    ...(tournamentBreadcrumb ? [tournamentBreadcrumb] : []),
-    ...(matchName ? [{ label: matchName, current: true }] : []),
-  ];
-}
-
-function matchConsoleLoadDataAction({
-  matchId,
-  organizationAlias,
-  projection,
-  tournamentAlias,
-}: {
-  readonly matchId: string;
-  readonly organizationAlias: string;
-  readonly projection: MatchConsoleResponse;
-  readonly tournamentAlias: string;
-}): React.JSX.Element | undefined {
-  if (
-    projection.status !== 'scheduled' ||
-    projection.segments.length > 0 ||
-    projection.events.length > 0
-  ) {
-    return undefined;
-  }
-
-  const href = `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/load`;
-  return (
-    <LinkButton href={href} onClick={controlLinkClick(href)}>
-      <FormattedMessage {...messages.matchConsoleLoadMatchData} />
-    </LinkButton>
-  );
-}
-
-/**
- * One component per section `MatchConsoleTemplate` composes into
- * `MatchConsoleLayout`'s slots: each section's own
- * conditionals now count toward its own function, not the template's, and
- * the template keeps only the composition itself. No behavior change — each
- * component's body is the section's prior inline JSX, unmodified.
- */
-function AlertsSection({
-  intl,
-  lastSyncedAt,
-  onDismissMutation,
-  pendingMutations,
-  stale,
-  status,
-}: {
-  readonly intl: IntlShape;
-  readonly lastSyncedAt: number | undefined;
-  readonly onDismissMutation: (mutationId: string) => void;
-  readonly pendingMutations: readonly QueuedMutation[];
-  readonly stale: boolean;
-  readonly status: ConsoleStatus;
-}): React.JSX.Element {
-  const staleKey = String(lastSyncedAt ?? 'unknown');
-  const [dismissedStaleKey, setDismissedStaleKey] = useState<string>();
-
-  return (
-    <>
-      {status.kind === 'error' && <Alert tone="destructive">{status.message}</Alert>}
-      {stale && dismissedStaleKey !== staleKey && (
-        <Alert
-          dismissLabel={intl.formatMessage(messages.toastDismiss)}
-          onDismiss={() => setDismissedStaleKey(staleKey)}
-          tone="warning"
-        >
-          <FormattedMessage {...messages.matchConsoleAwaitingProjection} />
-        </Alert>
-      )}
-      {pendingMutations.some((mutation) => mutation.status === 'refused') && (
-        <ul>
-          {pendingMutations
-            .filter((mutation) => mutation.status === 'refused')
-            .map((mutation) => (
-              <li key={mutation.id}>
-                <Alert block tone="destructive">
-                  <span>
-                    {intl.formatMessage(messages.matchConsoleRefusedAction, {
-                      kind: mutation.action.kind,
-                      reason: mutation.refusalReason ?? '',
-                    })}
-                  </span>
-                  {/* What was actually recorded, kept in front of the operator. A refusal
-                    caused by a series decision means this match will never be played, and
-                    these contents are the only basis for deciding whether the result
-                    belongs elsewhere — as a correction to an earlier game, most often. */}
-                  <span className="cl-card__description">
-                    {intl.formatMessage(messages.matchConsoleRefusedContents, {
-                      contents: describeQueuedAction(mutation.action),
-                    })}
-                  </span>
-                  <Button
-                    onClick={() => onDismissMutation(mutation.id)}
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage {...messages.matchConsoleDismiss} />
-                  </Button>
-                </Alert>
-              </li>
-            ))}
-        </ul>
-      )}
-    </>
-  );
-}
-
-function StatusSection({
-  activeSegment,
-  intl,
-  matchStatus,
-}: {
-  readonly activeSegment: ConsoleSegment | undefined;
-  readonly intl: IntlShape;
-  readonly matchStatus: MatchConsoleResponse['status'];
-}): React.JSX.Element {
-  return (
-    <>
-      <strong>
-        {matchStatus === 'in-progress'
-          ? intl.formatMessage(messages.matchConsoleLive)
-          : matchStatus.toUpperCase()}
-      </strong>
-      <ClockRing
-        durationSeconds={activeSegment?.durationSeconds}
-        elapsedSeconds={activeSegment?.elapsedSeconds ?? 0}
-      />
-    </>
   );
 }

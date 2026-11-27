@@ -378,7 +378,7 @@
         },
         {
           "kind": "test",
-          "file": "e2e/standings-and-rankings.spec.ts",
+          "file": "e2e/standings-and-rankings.players.spec.ts",
           "name": "the player dialog shows a stored name as text and never runs it"
         },
         {

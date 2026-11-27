@@ -1,0 +1,259 @@
+.cl-tournament-card {
+  display: grid;
+  gap: var(--cl-space-3);
+  min-width: 0;
+}
+
+.cl-tournament-card__header {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--cl-space-3);
+}
+
+.cl-tournament-card__title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cl-tournament-card .cl-tournament-card__title-link {
+  all: unset;
+  color: inherit;
+  cursor: pointer;
+  display: inline;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: start;
+  text-decoration: none;
+  text-transform: inherit;
+}
+
+.cl-tournament-card .cl-tournament-card__title-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.cl-tournament-card__metadata {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cl-space-2) var(--cl-space-4);
+  min-width: 0;
+}
+
+.cl-tournament-card__metadata-item {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--cl-space-1);
+  min-width: 0;
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.cl-tournament-card__metadata-label,
+.cl-tournament-card__fact-label {
+  color: var(--cl-text-primary);
+}
+
+.cl-tournament-card__registration {
+  display: grid;
+  gap: var(--cl-space-2);
+  min-width: 0;
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-tournament-card__progress {
+  width: 100%;
+  accent-color: var(--cl-state-live);
+}
+
+.cl-tournament-card__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--cl-space-3);
+  min-width: 0;
+}
+
+.cl-tournament-card__fact {
+  display: grid;
+  align-content: start;
+  gap: var(--cl-space-1);
+  min-width: 0;
+}
+
+.cl-tournament-card__fact-label,
+.cl-tournament-card__fact-value {
+  overflow-wrap: anywhere;
+}
+
+.cl-tournament-card__fact-label {
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+}
+
+.cl-tournament-card__fact-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-tournament-card__actions {
+  justify-content: flex-end;
+}
+
+.cl-unsaved-changes-bar {
+  position: sticky;
+  bottom: var(--cl-space-4);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--cl-space-4);
+  padding: var(--cl-space-4);
+  border-color: var(--cl-border-strong);
+  background: var(--cl-surface-raised);
+}
+
+.cl-tournament-summary__rules > summary {
+  display: list-item;
+  list-style-position: inside;
+  padding-block: var(--cl-space-3);
+  font-weight: var(--cl-weight-bold);
+  cursor: pointer;
+}
+
+.cl-tournament-summary__rules[open] > summary {
+  margin-block-end: var(--cl-space-4);
+}
+
+.cl-unsaved-changes-bar__details {
+  display: grid;
+  gap: var(--cl-space-2);
+  min-width: 0;
+}
+
+.cl-unsaved-changes-bar__fields,
+.cl-unsaved-changes-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cl-space-2) var(--cl-space-4);
+}
+
+.cl-unsaved-changes-bar__fields {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-sm);
+}
+
+.cl-section-tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cl-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cl-drop-zone {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--cl-space-4);
+  min-width: 0;
+  border: 1px dashed var(--cl-border-muted);
+  background: var(--cl-surface-panel);
+  padding: var(--cl-space-4);
+}
+
+.cl-drop-zone__icon-well {
+  display: grid;
+  place-items: center;
+  inline-size: var(--cl-touch-target);
+  aspect-ratio: 1;
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-chrome);
+  color: var(--cl-state-live);
+}
+
+.cl-drop-zone__content,
+.cl-drop-zone__picker {
+  min-width: 0;
+}
+
+/* The drop zone is the one box: the picker's own zone is only its click and drop target. */
+.cl-drop-zone:hover {
+  border-color: var(--cl-border-hover);
+}
+
+.cl-drop-zone .cl-file-picker,
+.cl-drop-zone .cl-file-picker__zone {
+  background: transparent;
+}
+
+.cl-drop-zone .cl-file-picker__zone {
+  align-items: flex-start;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+}
+
+.cl-drop-zone:has(.cl-file-picker--drag-active) {
+  border-color: var(--cl-border-accent);
+  background: var(--cl-surface-hover);
+}
+
+/* In a narrow column the icon sits above the picker instead of squeezing it. */
+.cl-drop-zone--stacked {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+}
+
+@media (width < 768px) {
+  .cl-filter-bar {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .cl-filter-bar__result-count {
+    justify-self: start;
+  }
+
+  .cl-tournament-card__facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cl-unsaved-changes-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cl-unsaved-changes-bar__actions {
+    justify-content: flex-end;
+  }
+}
+
+@media (width >= 768px) and (width < 1024px) {
+  .cl-filter-bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'search search'
+      'filters count';
+    align-items: start;
+  }
+
+  .cl-filter-bar > .cl-form-field {
+    grid-area: search;
+  }
+
+  .cl-filter-bar__filters {
+    grid-area: filters;
+  }
+
+  .cl-filter-bar__result-count {
+    align-self: end;
+    grid-area: count;
+  }
+}

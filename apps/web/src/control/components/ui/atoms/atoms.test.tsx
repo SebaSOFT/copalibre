@@ -561,7 +561,10 @@ describe('governance rules: atoms hold no state/data access', () => {
 });
 
 describe('form-control native theme contract', () => {
-  const cssPath = join(dirname(fileURLToPath(import.meta.url)), '../../../../styles/control.css');
+  const cssPath = join(
+    dirname(fileURLToPath(import.meta.url)),
+    '../../../../styles/control/04-forms-settings-and-seeding.css',
+  );
   const css = readFileSync(cssPath, 'utf8');
 
   it('lets the document theme select the native form-control palette', () => {

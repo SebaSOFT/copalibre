@@ -1,0 +1,377 @@
+/* 3. Dominant Focal Panel */
+.tv-focal-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--tv-bg-surface);
+  border: 1px solid var(--tv-border);
+  padding: 3vmin;
+  position: relative;
+  overflow: hidden;
+}
+
+.tv-focal-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2vmin;
+}
+
+.tv-focal-panel__label {
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.8rem, 1.6vmin, 1.1rem);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tv-live-cyan);
+}
+
+/* 3A. Champion Presentation */
+.tv-champion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  height: 100%;
+  gap: 2.5vmin;
+  position: relative;
+}
+
+.tv-champion__glow {
+  position: absolute;
+  width: 45vmin;
+  height: 45vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--tv-gold-glow) 0%, transparent 70%);
+  filter: blur(30px);
+  pointer-events: none;
+}
+
+.tv-champion__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 1vmin;
+  padding: 0.6vmin 2vmin;
+  background: color-mix(in srgb, var(--cl-state-upcoming) 15%, transparent);
+  border: 1px solid var(--tv-gold);
+  color: var(--cl-state-upcoming);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.9rem, 1.8vmin, 1.2rem);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.tv-champion__emblem-wrap {
+  width: 20vmin;
+  height: 20vmin;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 10px 25px color-mix(in srgb, var(--cl-state-upcoming) 35%, transparent));
+}
+
+.tv-champion__emblem {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.tv-champion__name {
+  margin: 0;
+  font-family: var(--cl-font-display);
+  font-size: clamp(2.2rem, 6vmin, 4.5rem);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--tv-text-primary);
+  line-height: 1.1;
+}
+
+.tv-champion__record {
+  margin: 0;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.9rem, 1.8vmin, 1.3rem);
+  color: var(--tv-text-secondary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* 3A-2. Champions of a tournament decided zone by zone */
+.tv-champions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(24vmin, 1fr));
+  align-content: center;
+  gap: 2vmin;
+  height: 100%;
+}
+
+.tv-champions__zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6vmin;
+  padding: 2.4vmin 1.6vmin;
+  background: color-mix(in srgb, var(--tv-bg-elevated) 80%, transparent);
+  border: 1px solid var(--tv-gold);
+  text-align: center;
+}
+
+.tv-champions__zone-name {
+  margin: 0;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.9rem, 1.8vmin, 1.2rem);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--cl-state-upcoming);
+}
+
+.tv-champions__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6vmin;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-champions__champion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1vmin;
+}
+
+.tv-champions__emblem {
+  filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--cl-state-upcoming) 35%, transparent));
+}
+
+.tv-champions__name {
+  font-family: var(--cl-font-display);
+  font-size: clamp(1.2rem, 3vmin, 2.2rem);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--tv-text-primary);
+  line-height: 1.1;
+}
+
+/* 3B. Live/Featured Match View */
+.tv-match-spotlight {
+  display: flex;
+  flex-direction: column;
+  /*
+   * The panel is as tall as the frame, so centring a small cluster inside it
+   * left most of the height empty. Distributing the blocks uses that
+   * height instead: the stage label reads at the top, the matchup takes the
+   * space it deserves in the middle, and the state sits at the foot.
+   */
+  justify-content: space-between;
+  height: 100%;
+  gap: 3vmin;
+  padding-block: 2vmin;
+}
+
+/* The matchup is the panel's subject, so it takes the height the others leave. */
+.tv-match-spotlight__vs-grid {
+  flex: 1;
+}
+
+.tv-match-spotlight__stage {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: var(--cl-space-2);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.85rem, 1.6vmin, 1.1rem);
+  color: var(--tv-live-cyan);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.tv-match-spotlight__match-number {
+  color: var(--tv-text-muted);
+  font-size: 0.85em;
+}
+
+.tv-match-spotlight__vs-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 3vmin;
+}
+
+/* Both teams get the same square crest frame; their role is spelled out beneath the name. */
+.tv-match-spotlight__vs-grid .tv-team-side__emblem-wrap {
+  width: clamp(14vmin, 18vmin, 22vmin);
+  height: clamp(14vmin, 18vmin, 22vmin);
+}
+
+.tv-match-spotlight__vs-grid .tv-team-side__name {
+  max-width: 36vmin;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-align: center;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.tv-team-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5vmin;
+  text-align: center;
+  min-width: 0;
+}
+
+/* A side's counters sit under its name and wrap inside the side's column, never widening it. */
+.tv-team-side .tv-match-counters {
+  justify-content: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.tv-team-side .tv-match-counter-cluster {
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.tv-team-side .tv-match-counter {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.tv-team-side__emblem-wrap {
+  width: 14vmin;
+  height: 14vmin;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tv-team-side__emblem {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.tv-team-side__name {
+  font-family: var(--cl-font-display);
+  font-size: max(var(--tv-min-team-name-size), 1.4rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  max-width: 25vmin;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-team-side__role {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 25vmin;
+  overflow: hidden;
+  padding: 0.3vmin 0.8vmin;
+  border: 1px solid var(--tv-border);
+  background: var(--tv-bg-elevated);
+  color: var(--tv-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.75rem, 1.3vmin, 0.875rem);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tv-team-side__leading {
+  min-height: 1.3em;
+  color: var(--tv-live-cyan);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.75rem, 1.3vmin, 0.875rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tv-team-side__leading--placeholder {
+  visibility: hidden;
+}
+
+.tv-score-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1vmin;
+}
+
+.tv-score-center__digits {
+  font-family: var(--cl-font-display);
+  font-size: max(var(--tv-min-score-size), 3.5rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+  color: var(--cl-text-primary);
+}
+
+/* 3C. Pinned-Match Event Ticker */
+.tv-event-ticker {
+  display: flex;
+  flex-direction: column;
+  gap: 1vmin;
+  max-height: 22vmin;
+  overflow-y: auto;
+  margin: 0;
+  padding: 1.5vmin 2vmin;
+  background: var(--tv-bg-elevated);
+  border: 1px solid var(--tv-border);
+  border-radius: 4px;
+  list-style: none;
+}
+
+.tv-event-ticker__item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1vmin;
+  font-size: clamp(0.75rem, 1.3vmin, 0.95rem);
+}
+
+.tv-event-ticker__time {
+  font-family: var(--cl-font-mono);
+  color: var(--tv-live-cyan);
+  flex-shrink: 0;
+}
+
+.tv-event-ticker__side {
+  font-family: var(--cl-font-mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.tv-event-ticker__side--home {
+  color: var(--tv-text-primary);
+}
+
+.tv-event-ticker__side--away {
+  color: var(--tv-text-secondary);
+}
+
+.tv-event-ticker__label {
+  color: var(--tv-text-primary);
+  flex: 1;
+}
+
+.tv-event-ticker__actor {
+  color: var(--tv-text-secondary);
+}

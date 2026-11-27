@@ -1,0 +1,67 @@
+:root {
+  --tv-bg-base: var(--cl-surface-base);
+  --tv-bg-surface: var(--cl-surface-panel);
+  --tv-bg-elevated: var(--cl-surface-chrome);
+  --tv-border: color-mix(in srgb, var(--cl-text-primary) 12%, transparent);
+  --tv-border-active: var(--cl-primary);
+  --tv-text-primary: var(--cl-text-primary);
+  --tv-text-secondary: var(--cl-text-secondary);
+  --tv-text-muted: var(--cl-text-muted);
+  --tv-live-red: var(--cl-state-destructive);
+  --tv-live-cyan: var(--cl-primary);
+  --tv-gold: var(--cl-state-upcoming);
+  --tv-gold-glow: color-mix(in srgb, var(--cl-state-upcoming) 25%, transparent);
+}
+
+.tv-root-container {
+  --entrant-pending-color: var(--tv-text-secondary);
+  --tv-min-score-size: 12vmin;
+  --tv-min-clock-size: 6vmin;
+  --tv-min-team-name-size: 3.5vmin;
+  --tv-min-table-body-size: 2.2vmin;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  margin: 0;
+  /* The outer margin belongs to the layout shell (`#tv-root`), so every route keeps the same one. */
+  padding: 0;
+  background-color: var(--tv-bg-base);
+  color: var(--tv-text-primary);
+  font-family: var(--cl-font-body);
+  display: flex;
+  flex-direction: column;
+  gap: 2.5vmin;
+  overflow: hidden;
+}
+
+.tv-stale-mark {
+  align-self: flex-start;
+  max-width: 100%;
+  margin: 0;
+  font-size: clamp(var(--cl-font-size-xs), 1.4vmin, var(--cl-font-size-base));
+}
+
+/*
+ * The shell lays its children out in a column: the score ticker above, the dashboard filling what is
+ * left. Sizing the dashboard to 100% of the shell instead pushed its lower panels past the bottom
+ * edge by the ticker's own height, on the one route that has a ticker.
+ */
+#tv-root {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5vmin;
+}
+
+#tv-root .tv-root-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+
+/* The ticker band keeps its block size whatever its items are doing, so the panels below never move. */
+#tv-root .cl-ticker__content--tv {
+  flex: 0 0 auto;
+  block-size: 5.5vmin;
+  overflow: hidden;
+}

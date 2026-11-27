@@ -1,0 +1,338 @@
+/* 4. Secondary Rotating Rail (Companion Panel) */
+.tv-rail-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--tv-bg-surface);
+  border: 1px solid var(--tv-border);
+  padding: 2.5vmin;
+  overflow: hidden;
+}
+
+.tv-rail-nav {
+  display: flex;
+  gap: 1vmin;
+  margin-bottom: 2vmin;
+  border-bottom: 1px solid var(--tv-border);
+  padding-bottom: 1.2vmin;
+}
+
+.tv-rail-tab {
+  background: transparent;
+  border: none;
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.75rem, 1.4vmin, 1rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.6vmin 1.2vmin;
+  cursor: pointer;
+  transition:
+    color var(--cl-motion-fast) var(--cl-motion-easing),
+    background-color var(--cl-motion-fast) var(--cl-motion-easing);
+}
+
+.tv-rail-tab:focus-visible {
+  outline: 2px solid var(--tv-live-cyan);
+  outline-offset: 2px;
+}
+
+.tv-rail-tab--active {
+  color: var(--tv-live-cyan);
+  background: var(--cl-surface-raised);
+  border-bottom: 2px solid var(--tv-live-cyan);
+}
+
+.tv-rail-content {
+  /* A definite basis: the content's height never sizes the panel the paging measures. */
+  flex: 1 1 0px;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* A paged tab never scrolls: paging replaces scrolling, so no scrollbar can change the frame's width.
+   The rail's other tabs keep their scroll. */
+.tv-rail-content--paged {
+  overflow: hidden;
+}
+
+.tv-bracket,
+.tv-fixtures {
+  display: grid;
+  align-content: start;
+  gap: var(--cl-space-4);
+}
+
+.tv-bracket__zone,
+.tv-bracket__round,
+.tv-bracket__matches,
+.tv-fixtures__zone,
+.tv-fixtures__round,
+.tv-fixtures__matches,
+.tv-standings-zone {
+  display: grid;
+  gap: var(--cl-space-2);
+}
+
+.tv-bracket__zone-name,
+.tv-bracket__round-name,
+.tv-fixtures__zone-name,
+.tv-fixtures__round-name,
+.tv-standings-zone__name {
+  margin: 0;
+  color: var(--tv-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-sm);
+  text-transform: uppercase;
+}
+
+.tv-bracket-card {
+  min-width: 0;
+  padding: var(--cl-space-3);
+  background: var(--cl-surface-chrome);
+  border: 1px solid var(--tv-border);
+  font-family: var(--cl-font-mono);
+}
+
+.tv-bracket-card__header,
+.tv-bracket-card__slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-2);
+}
+
+.tv-bracket-card__header {
+  color: var(--tv-text-secondary);
+  font-size: var(--cl-font-size-xs);
+  text-transform: uppercase;
+}
+
+.tv-bracket-card__slot {
+  min-width: 0;
+  margin-block-start: var(--cl-space-2);
+  /* Team names on a venue screen never drop below the TV secondary-text minimum. */
+  font-size: max(var(--tv-min-secondary-size), var(--cl-font-size-sm));
+}
+
+/* A side is its crest beside its name; the name gives way to the abbreviation only when it does not fit. */
+.tv-bracket-card__side {
+  display: flex;
+  align-items: center;
+  gap: var(--cl-space-2);
+  min-width: 0;
+}
+
+.tv-bracket-card__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The match the screen is about: the accent edge the standings use for the highlighted row. */
+.tv-bracket-card--focus {
+  border-color: var(--cl-border-accent);
+  box-shadow: inset 0.6vmin 0 0 var(--cl-border-accent);
+}
+
+.tv-bracket-card__score {
+  color: var(--tv-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Zones of a mixed-format stage are separate tables, so they need room between them. */
+.tv-standings-zone + .tv-standings-zone {
+  margin-block-start: var(--cl-space-5);
+}
+
+/* 4A. Standings Table */
+.tv-standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--cl-font-mono);
+  font-size: max(var(--tv-min-table-body-size), 0.85rem);
+}
+
+.tv-standings-table__club-name {
+  font-family: var(--cl-font-display);
+  font-weight: 500;
+}
+
+.tv-standings-zone {
+  border-inline-start: 0.45vmin solid var(--tv-live-cyan);
+  padding-inline-start: 1.2vmin;
+}
+
+.tv-standings-zone__name {
+  margin: 0 0 0.6vmin;
+  color: var(--tv-live-cyan);
+  font-family: var(--cl-font-display);
+  font-size: clamp(var(--cl-font-size-sm), 1.8vmin, var(--cl-font-size-lg));
+  font-weight: 700;
+}
+
+.tv-standings-group {
+  display: grid;
+  gap: var(--cl-space-1);
+}
+
+.tv-standings-group + .tv-standings-group {
+  margin-block-start: var(--cl-space-3);
+}
+
+.tv-standings-group__name {
+  margin: 0;
+  color: var(--tv-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+  text-transform: uppercase;
+}
+
+.tv-standings-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+/* The standings grid: rank, club and points at fixed widths; the figures between them share a width. */
+.tv-standings-col--rank {
+  width: 5vmin;
+}
+
+.tv-standings-col--figures {
+  width: 9vmin;
+}
+
+/* The compact rail's one figure column carries the played header, which is wider than a figure. */
+.tv-standings-col--played {
+  width: 15vmin;
+}
+
+.tv-standings-col--points {
+  width: 7vmin;
+}
+
+.tv-standings-table th {
+  color: var(--tv-text-secondary);
+  font-weight: 600;
+  text-align: left;
+  padding: 1vmin 1.2vmin;
+  border-bottom: 1px solid var(--tv-border);
+}
+
+.tv-standings-table td {
+  padding: 1.2vmin 1.2vmin;
+  border-bottom: 1px solid color-mix(in srgb, var(--cl-text-primary) 6%, transparent);
+  vertical-align: middle;
+}
+
+.tv-standings-table th:last-child,
+.tv-standings-table td:last-child {
+  text-align: right;
+  font-weight: 700;
+  color: var(--tv-live-cyan);
+}
+
+.tv-table-club-cell {
+  display: flex;
+  align-items: center;
+  gap: 1.2vmin;
+}
+
+.tv-table-club-emblem {
+  width: 3vmin;
+  height: 3vmin;
+  object-fit: contain;
+}
+
+/* 4B. Top Performers List */
+.tv-performers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5vmin;
+}
+
+.tv-performer-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--tv-bg-elevated);
+  border: 1px solid var(--tv-border);
+  padding: 1.5vmin 2vmin;
+}
+
+.tv-performer-card__left {
+  display: flex;
+  align-items: center;
+  gap: 1.5vmin;
+}
+
+.tv-performer-card__rank {
+  font-family: var(--cl-font-display);
+  font-size: clamp(1.2rem, 2.5vmin, 2rem);
+  font-weight: 800;
+  color: var(--tv-live-cyan);
+  min-width: 3vmin;
+}
+
+.tv-performer-card__info {
+  display: flex;
+  flex-direction: column;
+}
+
+.tv-performer-card__name {
+  font-family: var(--cl-font-display);
+  font-size: clamp(1.1rem, 2.2vmin, 1.6rem);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.tv-performer-card__club {
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.75rem, 1.3vmin, 0.95rem);
+  color: var(--tv-text-secondary);
+}
+
+.tv-performer-card__score {
+  font-family: var(--cl-font-display);
+  font-size: clamp(1.6rem, 3.2vmin, 2.6rem);
+  font-weight: 800;
+  color: var(--cl-text-primary);
+}
+
+/* 4C. Facts Grid */
+.tv-facts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2vmin;
+}
+
+.tv-fact-tile {
+  background: var(--tv-bg-elevated);
+  border: 1px solid var(--tv-border);
+  padding: 2vmin;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8vmin;
+}
+
+.tv-fact-tile__label {
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.75rem, 1.4vmin, 1rem);
+  color: var(--tv-text-secondary);
+  text-transform: uppercase;
+}
+
+.tv-fact-tile__value {
+  font-family: var(--cl-font-display);
+  font-size: clamp(1.8rem, 3.8vmin, 3rem);
+  font-weight: 800;
+  color: var(--cl-text-primary);
+  line-height: 1.1;
+}
+
+.tv-fact-tile__detail {
+  font-family: var(--cl-font-body);
+  font-size: clamp(0.75rem, 1.3vmin, 0.95rem);
+  color: var(--tv-live-cyan);
+}

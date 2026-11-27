@@ -8,11 +8,9 @@ import { DataImportExportController } from '../controllers/data-import-export.co
 import { InstallationBootstrapController } from '../controllers/installation-bootstrap.controller.js';
 import { MatchControlController } from '../controllers/match-control.controller.js';
 import { OrganizationsController } from '../controllers/organizations.controller.js';
-import {
-  DisciplinesController,
-  EntrantsController,
-  RegistrationsController,
-} from '../controllers/registrations.controller.js';
+import { DisciplinesController } from '../controllers/disciplines.controller.js';
+import { EntrantsController } from '../controllers/entrants.controller.js';
+import { RegistrationsController } from '../controllers/registrations.controller.js';
 import { OrganizationScheduleController } from '../controllers/organization-schedule.controller.js';
 import { SchedulesController } from '../controllers/schedules.controller.js';
 import { SeedingController } from '../controllers/seeding.controller.js';
@@ -41,10 +39,8 @@ import {
   ParticipantReportsController,
   ReportReviewController,
 } from '../controllers/reports.controller.js';
-import {
-  PublicProjectionsController,
-  PublicTournamentListingController,
-} from '../controllers/public-projections.controller.js';
+import { PublicProjectionsController } from '../controllers/public-projections.controller.js';
+import { PublicTournamentListingController } from '../controllers/public-tournament-listing.controller.js';
 import { PublicOrganizationClubController } from '../controllers/public-organization-club.controller.js';
 import {
   NativeAuthController,

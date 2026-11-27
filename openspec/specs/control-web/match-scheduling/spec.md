@@ -262,3 +262,18 @@ occupancy, and a full slot SHALL be disabled and say so in the active language. 
 
 - **WHEN** the schedule renders on the Panamericano demo at 1440, 768 or 390 pixels wide
 - **THEN** every slot control shows its time and venue in full
+
+### Requirement: An organizer can attach a stream link to a match
+The schedule builder SHALL let an organizer set, change or clear one stream link per match, from the match's row alongside its officials, as an audited edit. The link SHALL be refused only when it is not an absolute http or https URL of at most 2048 characters; CopaLibre SHALL NOT judge which streaming service is used. The edit is safe: no result, standing or schedule rule reads it.
+
+#### Scenario: Setting a link
+- **WHEN** an organizer enters `https://example.org/live/semifinal-1` for a match and saves
+- **THEN** the match carries that link, the edit is audited, and the public match page shows a watch link
+
+#### Scenario: An unusable link is refused
+- **WHEN** an organizer enters `ftp://example.org/stream` or a relative path
+- **THEN** the builder refuses it with a localized message asking for a link that starts with https://, and the match keeps its previous link
+
+#### Scenario: Clearing a link
+- **WHEN** an organizer clears the stream link of a match
+- **THEN** the public match page no longer shows a watch link

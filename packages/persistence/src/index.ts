@@ -146,13 +146,32 @@ export {
   type CreateTournamentInput,
   type CreateRulesetInput,
 } from './repositories/tournament-repository.js';
+export { DisciplineDescriptorRepository } from './repositories/tournament/discipline-descriptor-repository.js';
+export { RulesetRepository } from './repositories/tournament/ruleset-repository.js';
+export { TournamentLifecycleRepository } from './repositories/tournament/tournament-lifecycle-repository.js';
+export { TournamentQueryRepository } from './repositories/tournament/tournament-queries.js';
 export {
   EnrollmentRepository,
   type AuditContext,
   type ParticipantReportedResult,
   type ParticipantTeamMembership,
 } from './repositories/enrollment-repository.js';
+export { ClubTeamRepository } from './repositories/enrollment/club-team-repository.js';
+export { EntrantRepository } from './repositories/enrollment/entrant-repository.js';
+export { ParticipantQueryRepository } from './repositories/enrollment/participant-queries.js';
+export { EntrantNameRepository } from './repositories/enrollment/entrant-names.js';
 export { CompetitionRepository } from './repositories/competition-repository.js';
+export { SeasonRepository } from './repositories/competition/season-repository.js';
+export { ZoneGroupRepository } from './repositories/competition/zone-group-repository.js';
+export { PromotionPlanRepository } from './repositories/competition/promotion-plan-repository.js';
+export { DrawRepository } from './repositories/competition/draw-repository.js';
+export { FixtureRepository } from './repositories/competition/fixture-repository.js';
+export { FixtureSurplusRepository } from './repositories/competition/fixture-surplus-repository.js';
+export { StageRepository } from './repositories/competition/stage-repository.js';
+export { MatchRepository } from './repositories/competition/match-repository.js';
+export { SegmentTimerRepository } from './repositories/competition/segment-timer-repository.js';
+export { MatchEventRepository } from './repositories/competition/match-event-repository.js';
+export { MatchRosterRepository } from './repositories/competition/match-roster-repository.js';
 export {
   isPersistedGraph,
   type FixtureGraphBracket,
@@ -181,6 +200,11 @@ export {
   type ScheduleWithdrawal,
   type OrganizationScheduleEntry,
 } from './repositories/schedule-repository.js';
+export { VenueRepository } from './repositories/schedule/venue-repository.js';
+export { OfficialRepository } from './repositories/schedule/official-repository.js';
+export { ScheduleQueryRepository } from './repositories/schedule/schedule-queries.js';
+export { SchedulePublicationRepository } from './repositories/schedule/schedule-publication.js';
+export { ScheduleDefinitionRepository } from './repositories/schedule/schedule-definition-repository.js';
 export { MatchAssignmentRepository } from './repositories/match-assignment-repository.js';
 export {
   MatchCommandIdempotencyRepository,

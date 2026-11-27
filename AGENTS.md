@@ -346,6 +346,13 @@ Before creating or updating a PR, you MUST guarantee the CI will pass by running
 - `yarn test:e2e` (for frontend)
 - `yarn workspace @copalibre/design-tokens scan:forbidden` and `yarn workspace @copalibre/design-tokens check:integrity` (the `forbidden-token-scan` job runs both). The `--cl-*` custom-property namespace is reserved for declared design tokens, so name a component-local property without that prefix.
 - `node scripts/check-copy-voice.mjs`, `node scripts/check-change-number-references.mjs`, `node scripts/check-html-sinks.mjs`, and every `node --test` suite under `scripts/`, `scripts/lib/` and `apps/web/scripts/`
+- `node scripts/check-file-size.mjs` (the `enterprise-readiness-doc-lint` job runs it): a tracked
+  production source file over 800 lines, or a test file over 2000, fails unless
+  `KNOWN_OVERSIZED_FILES` in that script records it with a ceiling and a reason. A registered file
+  fails when it grows past its ceiling, and an entry fails when its file is gone or back under the
+  limit. Split a growing file by responsibility first; raising a ceiling needs the reason rewritten to
+  say why the file still holds one responsibility. Generated contracts and translation catalogues are
+  not measured
 - `openspec validate --specs --strict` (the `enterprise-readiness-doc-lint` job runs it): the accepted spec baseline stays strictly valid. Keep a requirement's statement to its normative sentences (under 500 characters) and put examples and cases in scenarios
 
 Screenshots are never committed: `docs/assets/screenshots/` is ignored and no e2e test writes one.
@@ -442,7 +449,7 @@ Before every commit, run `node --test scripts/lib/component-graph.test.mjs`. Whe
 
 Tracked content never cites an OpenSpec change by number or numbered directory name, and no tracked file name starts with one: `openspec/changes/` is git-ignored, so a citation points at something a fresh clone does not have. The same holds for a change's planning documents: do not cite a task number or point at a change's design, tasks or proposal file as the source of a rationale. Describe the behavior or the rationale in words (comments, test and story titles, docs, workflow notes, accepted specs). Change ids belong only in branch names, the local change directory, PR descriptions and commit history; `CHANGELOG.md`, database migrations and lockfiles are exempt. `node scripts/check-change-number-references.mjs` enforces this (the `enterprise-readiness-doc-lint` job in `ci.yml` runs it); run it before every commit.
 
-To capture real screens, the demo organization's alias is `panamericano-demo`, so Control opens at `/control/panamericano-demo`. The demo has no leaderboard players, so the public player dialog needs the fixture in `e2e/standings-and-rankings.spec.ts`. Starting `apps/api` by hand needs the authentication variables `hybridEnvironment` sets in `apps/copalibre/src/commands/dev-command.ts`.
+To capture real screens, the demo organization's alias is `panamericano-demo`, so Control opens at `/control/panamericano-demo`. The demo has no leaderboard players, so the public player dialog needs the fixture in `e2e/standings-and-rankings.fixtures.ts`. Starting `apps/api` by hand needs the authentication variables `hybridEnvironment` sets in `apps/copalibre/src/commands/dev-command.ts`.
 
 ## Tooling Reference
 
