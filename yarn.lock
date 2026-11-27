@@ -1626,6 +1626,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@borewit/text-codec@npm:^0.2.3":
+  version: 0.2.3
+  resolution: "@borewit/text-codec@npm:0.2.3"
+  checksum: 10c0/535ead5e89ca7c4493e243ba63c8504587502c23417e4effc034a16e6092009b05de6333f4f3a47f795563663cbef7ed34564f08555fb288bc04e6fb27a25e34
+  languageName: node
+  linkType: hard
+
 "@bramus/specificity@npm:^2.4.2":
   version: 2.4.2
   resolution: "@bramus/specificity@npm:2.4.2"
@@ -2057,7 +2064,7 @@ __metadata:
     "@copalibre/statistics-refold": "workspace:^"
     "@copalibre/tournament-engine": "workspace:^"
     "@fastify/helmet": "npm:^13.2.0"
-    "@nestjs/common": "npm:^12.2.0"
+    "@nestjs/common": "npm:^12.6.0"
     "@nestjs/core": "npm:^12.2.0"
     "@nestjs/platform-fastify": "npm:^12.1.3"
     "@nestjs/swagger": "npm:^12.0.2"
@@ -2209,7 +2216,7 @@ __metadata:
     "@copalibre/auth": "workspace:^"
     "@copalibre/persistence": "workspace:^"
     "@copalibre/realtime": "workspace:^"
-    "@nestjs/common": "npm:^12.2.0"
+    "@nestjs/common": "npm:^12.6.0"
     "@nestjs/core": "npm:^12.2.0"
     "@nestjs/platform-fastify": "npm:^12.1.3"
     "@nestjs/testing": "npm:^12.1.3"
@@ -2338,7 +2345,7 @@ __metadata:
   resolution: "@copalibre/scheduler@workspace:apps/scheduler"
   dependencies:
     "@copalibre/persistence": "workspace:^"
-    "@nestjs/common": "npm:^12.2.0"
+    "@nestjs/common": "npm:^12.6.0"
     "@nestjs/core": "npm:^12.2.0"
     "@nestjs/platform-fastify": "npm:^12.1.3"
     "@nestjs/testing": "npm:^12.1.3"
@@ -2472,7 +2479,7 @@ __metadata:
     "@copalibre/object-storage": "workspace:^"
     "@copalibre/persistence": "workspace:^"
     "@copalibre/statistics-refold": "workspace:^"
-    "@nestjs/common": "npm:^12.2.0"
+    "@nestjs/common": "npm:^12.6.0"
     "@nestjs/core": "npm:^12.2.0"
     "@nestjs/platform-fastify": "npm:^12.1.3"
     "@nestjs/testing": "npm:^12.1.3"
@@ -4698,15 +4705,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@nestjs/common@npm:^12.2.0":
-  version: 12.2.0
-  resolution: "@nestjs/common@npm:12.2.0"
+"@nestjs/common@npm:^12.6.0":
+  version: 12.6.0
+  resolution: "@nestjs/common@npm:12.6.0"
   dependencies:
     "@standard-schema/spec": "npm:1.1.0"
-    file-type: "npm:22.1.1"
+    file-type: "npm:22.3.0"
     iterare: "npm:1.2.1"
     load-esm: "npm:1.0.3"
-    tslib: "npm:2.8.1"
+    tslib: "npm:2.9.1"
     uid: "npm:2.0.2"
   peerDependencies:
     class-transformer: ">=0.4.1"
@@ -4718,7 +4725,7 @@ __metadata:
       optional: true
     class-validator:
       optional: true
-  checksum: 10c0/f1de28535de9671020ba641edbde19342dadb1de5610b819a16e97b78470da8ed8172e2d0d86183c9bbfa43e8ca9f0b44849fc6504b8fd4890bc678c5fafeba3
+  checksum: 10c0/7cede093e6d88b089366f94248c01c98bc5457fe30f2e4b56d64c4ab108d1ef918967bc70470393ad5e732cded4669292be54bf72586153ee7e26eafc28e71ad
   languageName: node
   linkType: hard
 
@@ -7811,13 +7818,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tokenizer/inflate@npm:^0.4.1":
-  version: 0.4.1
-  resolution: "@tokenizer/inflate@npm:0.4.1"
+"@tokenizer/inflate@npm:^0.6.0":
+  version: 0.6.1
+  resolution: "@tokenizer/inflate@npm:0.6.1"
   dependencies:
     debug: "npm:^4.4.3"
-    token-types: "npm:^6.1.1"
-  checksum: 10c0/9817516efe21d1ce3bdfb80a1f94efc8981064ce3873448ba79f4d81d96c0694c484c289bd042d346ae5536cf77f5aa9a367d39c3df700eb610761b7c306b4de
+    strtok3: "npm:^10.8.0"
+    token-types: "npm:^6.2.0"
+  checksum: 10c0/66563c6e5292d5c680f527727d2a56cf3949d2606bec6ae437e1fe0844e8842b5e3eb049a2679f6a3f183bb25ac41a737f0af18b365ba99de8b03b7295754e5e
   languageName: node
   linkType: hard
 
@@ -12589,15 +12597,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"file-type@npm:22.1.1":
-  version: 22.1.1
-  resolution: "file-type@npm:22.1.1"
+"file-type@npm:22.3.0":
+  version: 22.3.0
+  resolution: "file-type@npm:22.3.0"
   dependencies:
-    "@tokenizer/inflate": "npm:^0.4.1"
-    strtok3: "npm:^10.3.5"
+    "@tokenizer/inflate": "npm:^0.6.0"
+    strtok3: "npm:^10.6.3"
     token-types: "npm:^6.1.2"
-    uint8array-extras: "npm:^1.5.0"
-  checksum: 10c0/ab917e88d00f4ce33c90d95d1c41fbb96a91e6ae247fdf7ee3d4deb68b3ba7162dd9be0a2fa9e79ac037bbaae4f581a035f071e585f111ac064f0c0f9e7273d4
+    uint8array-extras: "npm:^1.6.0"
+  checksum: 10c0/0b592d008da7acb89a79d91d90c9b07a367f3246da323c156180378a933f97045c27428047b167a8913d65818686181b7ca10781d5d9ef8d39c8f62dd765d484
   languageName: node
   linkType: hard
 
@@ -20411,12 +20419,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"strtok3@npm:^10.3.5":
-  version: 10.3.5
-  resolution: "strtok3@npm:10.3.5"
+"strtok3@npm:^10.6.3, strtok3@npm:^10.8.0":
+  version: 10.8.0
+  resolution: "strtok3@npm:10.8.0"
   dependencies:
     "@tokenizer/token": "npm:^0.3.0"
-  checksum: 10c0/8d2477b239054c9f1f5b14a65d531147ca158ab9887fdc2d0938e77b7ec8891fb683b58254c7643afd5d98a421a59207534d491762b111f58c795071ecbe9fd1
+  checksum: 10c0/a29d06bba72f96208a4ea79e1feb0e4d45d8c1796ae4f108d1d3e8f3453d56cfd4a9fc25e9624fe335b6670ef00dd2e3907121f61030b6145d59f26792e2502a
   languageName: node
   linkType: hard
 
@@ -20771,7 +20779,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"token-types@npm:^6.1.1, token-types@npm:^6.1.2":
+"token-types@npm:^6.1.2":
   version: 6.1.2
   resolution: "token-types@npm:6.1.2"
   dependencies:
@@ -20779,6 +20787,17 @@ __metadata:
     "@tokenizer/token": "npm:^0.3.0"
     ieee754: "npm:^1.2.1"
   checksum: 10c0/8786e28e3cb65b9e890bc3c38def98e6dfe4565538237f8c0e47dbe549ed8f5f00de8dc464717868308abb4729f1958f78f69e1c4c3deebbb685729113a6fee8
+  languageName: node
+  linkType: hard
+
+"token-types@npm:^6.2.0":
+  version: 6.2.0
+  resolution: "token-types@npm:6.2.0"
+  dependencies:
+    "@borewit/text-codec": "npm:^0.2.3"
+    "@tokenizer/token": "npm:^0.3.0"
+    ieee754: "npm:^1.2.1"
+  checksum: 10c0/9aea20c6e59afc0cb527f6ad78aeff3bf34b8c604f4d33320269fe12e66edf84afed99cd9c3aba0221378f5a6ac7b54af825873d5dd4f492e10cf562f2d96e86
   languageName: node
   linkType: hard
 
@@ -20951,6 +20970,13 @@ __metadata:
   version: 2.8.1
   resolution: "tslib@npm:2.8.1"
   checksum: 10c0/9c4759110a19c53f992d9aae23aac5ced636e99887b51b9e61def52611732872ff7668757d4e4c61f19691e36f4da981cd9485e869b4a7408d689f6bf1f14e62
+  languageName: node
+  linkType: hard
+
+"tslib@npm:2.9.1":
+  version: 2.9.1
+  resolution: "tslib@npm:2.9.1"
+  checksum: 10c0/8ff46e7a4d19fa62c23483c89cf5ccc3906e742ef6e6d60bd3826b686143b300b4f6f04161cc1cf31a6b11fe70e1058ae4d4e4a108b5c68326d469684736a83c
   languageName: node
   linkType: hard
 
@@ -21199,7 +21225,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uint8array-extras@npm:^1.5.0":
+"uint8array-extras@npm:^1.6.0":
   version: 1.6.0
   resolution: "uint8array-extras@npm:1.6.0"
   checksum: 10c0/d53177c025ebea31af1e445abd474027b66341a56f207f352a5a486aa1d492e228bbc883dc4a51ea8358bb88d60a019351e20a92dd17c2ef8326e29fbad57127
