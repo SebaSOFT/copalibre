@@ -1,8 +1,13 @@
-import { evaluateDataIntegrity, type DataIntegritySnapshot } from './doctor-data.js';
+import {
+  evaluateDataIntegrity,
+  isKnownTimeZone,
+  type DataIntegritySnapshot,
+} from './doctor-data.js';
 
 const EMPTY_SNAPSHOT: DataIntegritySnapshot = {
   invalidStatusTournaments: [],
   reservedAliasOrganizations: [],
+  unknownTimeZoneOrganizations: [],
 };
 
 describe('evaluateDataIntegrity', () => {
@@ -65,5 +70,35 @@ describe('evaluateDataIntegrity', () => {
     expect(aliasCheck.status).toBe('warn');
     expect(aliasCheck.message).toContain("Plataforma Deportiva ('platform')");
     expect(aliasCheck.message).toContain('1 organization(s)');
+  });
+
+  it('passes the time zone check when every organization holds a known zone', () => {
+    const [, , zoneCheck] = evaluateDataIntegrity(EMPTY_SNAPSHOT);
+    expect(zoneCheck).toEqual({
+      name: 'data:organization-time-zone',
+      status: 'pass',
+      message: 'Every organization holds a known time zone',
+    });
+  });
+
+  it('warns and names an organization whose time zone the runtime does not know', () => {
+    const [, , zoneCheck] = evaluateDataIntegrity({
+      ...EMPTY_SNAPSHOT,
+      unknownTimeZoneOrganizations: [
+        { organizationId: 'org-1', alias: 'liga', name: 'Liga Mendocina', timezone: 'Not/A_Zone' },
+      ],
+    });
+    expect(zoneCheck.status).toBe('warn');
+    expect(zoneCheck.message).toContain("Liga Mendocina ('liga'): 'Not/A_Zone'");
+    expect(zoneCheck.message).toContain('organization settings');
+  });
+});
+
+describe('isKnownTimeZone', () => {
+  it('accepts an IANA zone and UTC, and refuses one the runtime does not know', () => {
+    expect(isKnownTimeZone('America/Argentina/Buenos_Aires')).toBe(true);
+    expect(isKnownTimeZone('UTC')).toBe(true);
+    expect(isKnownTimeZone('Not/A_Zone')).toBe(false);
+    expect(isKnownTimeZone('')).toBe(false);
   });
 });

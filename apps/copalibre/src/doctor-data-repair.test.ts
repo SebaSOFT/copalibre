@@ -5,6 +5,7 @@ import type { DataIntegritySnapshot } from './doctor-data.js';
 const EMPTY_SNAPSHOT: DataIntegritySnapshot = {
   invalidStatusTournaments: [],
   reservedAliasOrganizations: [],
+  unknownTimeZoneOrganizations: [],
 };
 
 function fakePrompter(overrides: Partial<Prompter> = {}): Prompter {
