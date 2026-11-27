@@ -35,7 +35,7 @@ export const KNOWN_OVERSIZED_FILES = new Map([
   [
     'apps/web/src/components/ui/organisms/StandingsTable.astro',
     {
-      ceiling: 1073,
+      ceiling: 1065,
       reason:
         "One standings table's markup and scoped styles; script and derivations live beside it",
     },
