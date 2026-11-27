@@ -23,6 +23,13 @@ export default defineConfig({
   // public broadcast pages that must remain useful without it. ClientRouter
   // continues to handle documentation navigation after a click.
   prefetch: false,
+  // Scoped <style> selectors get zero added specificity (`:where(.astro-…)`), so
+  // a component's scoped rule never outranks a global one by being scoped. Every
+  // stylesheet here is written for that. Starlight up to 0.42 set it for the
+  // whole site; 0.43 stopped, and Astro's own default ('attribute') then changed
+  // which rule wins on the public site and TV: overlay transparency beat the
+  // chroma key, and the phone header shifted.
+  scopedStyleStrategy: 'where',
   // Build-time half of the Content Security Policy: Astro hashes every inline
   // script and style it renders and writes them into a <meta> policy on each
   // page, prerendered or on demand. The web role's Caddy sends the other half
