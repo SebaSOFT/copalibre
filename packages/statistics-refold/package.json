@@ -16,7 +16,7 @@
     "@copalibre/domain": "workspace:^",
     "@copalibre/persistence": "workspace:^",
     "@copalibre/tournament-engine": "workspace:^",
-    "kysely": "^0.29.7"
+    "kysely": "^0.29.9"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
