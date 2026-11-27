@@ -1,4 +1,4 @@
-## [2.0.0](https://github.com/SebaSOFT/copalibre/compare/v1.2.6...v2.0.0) (2026-11-23)
+## [2.0.0](https://github.com/SebaSOFT/copalibre/compare/v1.2.6...v2.0.0) (2026-11-27)
 
 ### Breaking changes
 
