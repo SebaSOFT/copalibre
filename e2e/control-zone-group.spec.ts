@@ -334,8 +334,8 @@ test('reviews a promotion plan and confirms nothing is written to the next stage
         if (url === `${stage}/zones/1/promotion-preview` && method === 'GET') {
           const saved = sessionStorage.getItem(PLAN_KEY);
           if (saved === null) {
-            // Matches the real server's own message (zones-groups.controller.ts's
-            // `promotionPreview` handler) for "no plan configured yet".
+            // Matches the real server's own message (the `previewPromotion` handler in
+            // zones-groups/promotion-plans.ts) for "no plan configured yet".
             return Response.json(
               {
                 message: 'No promotion plan for zone 1',

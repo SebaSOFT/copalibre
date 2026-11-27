@@ -107,7 +107,7 @@ describe('PromotionPlanPage', () => {
   it('localizes the real server 404 the backend sends for an unconfigured plan', async () => {
     // The bug this change fixes: the backend really does throw a
     // `ControlApiError` for this case (`promotion-plan-not-found`,
-    // apps/api/src/controllers/zones-groups.controller.ts) — every other test
+    // apps/api/src/zones-groups/promotion-plans.ts) — every other test
     // here reaches the same UI copy only through the generic-Error fallback
     // branch, which was never the buggy path.
     const client = stubClient({

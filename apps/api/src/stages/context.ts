@@ -55,7 +55,7 @@ export async function stageMutationContext(
 
 /**
  * Defaults to the tournament's own configured format (set at tournament creation,
- * `overrides['format']` on its latest ruleset — `tournaments.controller.ts`'s `create()`) when the
+ * `overrides['format']` on its latest ruleset — `tournaments/create-tournament.ts`'s `create()`) when the
  * request supplies none. An explicit override is validated identically to tournament creation's own
  * check: a stage cannot be created in a format the installed discipline module does not support.
  */
