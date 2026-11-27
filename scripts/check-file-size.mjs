@@ -151,10 +151,6 @@ export const KNOWN_OVERSIZED_FILES = new Map([
     },
   ],
   // Test files of 2000 lines or more, split by the modularization plan.
-  [
-    'packages/persistence/src/repositories/repositories.integration.test.ts',
-    { ceiling: 2784, reason: SPLIT },
-  ],
   ['e2e/standings-and-rankings.spec.ts', { ceiling: 2004, reason: SPLIT }],
 ]);
 
