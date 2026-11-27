@@ -192,7 +192,7 @@ async function mockMatchConsole(page: Page): Promise<void> {
           // The one event definition this refuses on replay, however many
           // are already queued ahead of it — the server-side "same
           // validation a live action goes through" is proven directly in
-          // match-console.integration.test.ts's own idempotency coverage
+          // match-console.commands-and-clock.integration.test.ts's own idempotency coverage
           // This mock only needs to stand in for a refusal.
           // being possible at all, so the drain-continues-past-it behavior
           // is provable from the UI.
