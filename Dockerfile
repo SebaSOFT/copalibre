@@ -36,7 +36,11 @@ WORKDIR /app
 # npm, npx and corepack come with the base image and nothing at runtime uses
 # them: every role runs with node. Removing them takes their bundled
 # dependencies, and the advisories against those, out of the shipped image.
+# `apt-get upgrade` applies the Debian security updates published after the
+# base tag was built, so the release scan does not stop on a fixed advisory
+# the base image has not picked up yet.
 RUN apt-get update \
+    && apt-get upgrade --yes \
     && apt-get install --yes --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \

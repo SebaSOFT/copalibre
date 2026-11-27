@@ -23,6 +23,12 @@ updates:
     # entry when a new @imgly/background-removal declares a newer peer, then bump both by hand.
     ignore:
       - dependency-name: 'onnxruntime-web'
+      # TypeScript 7 is the native compiler and ships no JavaScript compiler API: typescript-eslint
+      # refuses to run on it, and ts-jest and the AST tests (outcome-writers.test.ts) call
+      # ts.createSourceFile and ts.forEachChild (#613). Minor and patch 6.x releases still come
+      # through. Drop this entry once typescript-eslint and ts-jest support 7.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: 'github-actions'
     directory: '/'
