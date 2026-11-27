@@ -38,7 +38,9 @@ const patchedFloors = {
   '@hono/node-server': { 2: '2.1.6' },
   'basic-ftp': { 6: '6.2.4' },
   undici: { 6: '6.29.1', 8: '8.12.2' },
-  nanoid: { 3: '3.3.18', 5: '5.1.16' },
+  // 6.x (through Scalar 1.85): no advisory covers it, and 6.0.0 shipped after the last 5.x fix
+  // (GHSA-28wg-ghj8-5hjv, 5.1.16), so the whole line starts patched.
+  nanoid: { 3: '3.3.18', 5: '5.1.16', 6: '6.0.0' },
   storybook: { 10: '10.6.2' },
   vite: { 8: '8.1.6' },
   zod: { 4: '4.6.7' },
