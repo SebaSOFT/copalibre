@@ -41,7 +41,7 @@
     "@copalibre/module-catalogue": "workspace:^",
     "@nestjs/testing": "^12.1.3",
     "@vitest/coverage-v8": "5.0.5",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vitest": "5.0.5"
   },
