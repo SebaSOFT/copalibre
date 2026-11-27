@@ -341,6 +341,11 @@ jobs:
       - run: node --test scripts/lib/component-graph.test.mjs
       - run: node --test scripts/check-atomic-composition.test.mjs
       - run: node scripts/check-atomic-composition.mjs
+      # Source file size: production source files stay within 800 lines and
+      # test files within 2000, unless the ceiling register in the script
+      # records the file with a ceiling and a reason.
+      - run: node --test scripts/check-file-size.test.mjs
+      - run: node scripts/check-file-size.mjs
       # Role manual capability lists: generated from
       # role-capabilities.ts, gated against it in both directions —
       # an undocumented grant and an over-promised claim both fail.
