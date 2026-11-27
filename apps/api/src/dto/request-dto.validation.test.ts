@@ -6,6 +6,7 @@ import {
   BootstrapAdministratorRequest,
   CreateOrganizationRequest,
   CreateTournamentRequest,
+  UpdateOrganizationSettingsRequest,
 } from './organization.dto.js';
 import { IssueDisplayTokenRequest } from './broadcast.dto.js';
 import { UploadImageRequest } from './identity-media.dto.js';
@@ -238,5 +239,21 @@ describe('request-body DTO validation rules', () => {
     expect(scheduleErrors.length).toBeGreaterThanOrEqual(1);
     const assignmentError = scheduleErrors.find((e) => e.property === 'assignments');
     expect(assignmentError).toBeDefined();
+  });
+
+  it('accepts an IANA time zone for an organization and rejects one the runtime does not know', async () => {
+    const valid = await validate(
+      plainToInstance(UpdateOrganizationSettingsRequest, {
+        timezone: 'America/Argentina/San_Juan',
+      }),
+    );
+    expect(valid).toEqual([]);
+    for (const [cls, body] of [
+      [UpdateOrganizationSettingsRequest, { timezone: 'America/Not_A_Zone' }],
+      [CreateOrganizationRequest, { alias: 'org-alias', name: 'Org Name', timezone: 'Mars/Base' }],
+    ] as const) {
+      const errors = await validate(plainToInstance(cls, body));
+      expect(errors.map((error) => error.property)).toEqual(['timezone']);
+    }
   });
 });

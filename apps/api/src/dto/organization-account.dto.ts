@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsTimeZone } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ORGANIZATION_ROLES,
@@ -66,6 +66,7 @@ export class CreateOrganizationRequest {
   })
   @IsOptional()
   @IsString()
+  @IsTimeZone()
   timezone?: string;
 }
 
@@ -111,6 +112,7 @@ export class UpdateOrganizationSettingsRequest {
 
   @IsOptional()
   @IsString()
+  @IsTimeZone()
   @ApiPropertyOptional({ example: 'America/Argentina/San_Juan' })
   timezone?: string;
 }
