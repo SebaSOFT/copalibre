@@ -27,6 +27,8 @@ profilo.
   identificano la partita tramite il suo numero pubblico di fase/partita, mai un identificativo
   interno.
 
+- Ogni riga partita indica anche l’avversario, il lato del giocatore, l’orario di inizio e i due punteggi.
+
 ## Quando un Giocatore Non Ha Statistiche Registrate
 
 Un giocatore senza presenza in rosa nelle partite concluse del torneo vede uno stato vuoto

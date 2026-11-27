@@ -47,20 +47,12 @@ Esistono due versioni di questa schermata, che condividono la stessa scheda:
   - Un incontro risolto da una serie mostra il suo avanzamento e, una volta risolta, il suo stato
     complessivo — la stessa rappresentazione della serie già usata dal
     [tabellone pubblico](/help/control/series).
-- **Fattore decisivo**: su una partita finalizzata il cui risultato ha richiesto un comparatore di
-  spareggio per separare due righe di classifica, una riga che indica cosa l'ha deciso (per esempio,
-  "deciso dalla differenza reti negli scontri diretti").
+- **Fattore decisivo**: non viene mostrato sulla scheda. La classifica indica il criterio di spareggio sotto le righe che ha separato.
+- **Pagina della partita**: aprendo una scheda si arriva alla pagina della partita, con ufficiali, formazioni e cronologia degli eventi. La cronologia indica il tempo di gioco di ogni evento e il punteggio dopo ogni gol; ogni tempo giocato si apre e si chiude con il suo punteggio. Le formazioni mostrano chi è iscritto prima del calcio d’inizio. Ogni partita di una serie ha la sua pagina, `?game=N`, raggiungibile dal tabellone.
 
-## La riga del fattore decisivo rispetto alla traccia completa
+## La traccia completa sulla scheda di controllo
 
-La riga del fattore decisivo della scheda pubblica è deliberatamente un riassunto, non il
-ragionamento completo — non porta mai con sé gli altri passaggi né i valori intermedi del comparatore
-interno. Un organizzatore con autorità sulla classifica interna di questo torneo (un admin, o un
-tournament-admin con autorità su di esso) vede invece la traccia completa del comparatore, nella
-versione di questa stessa scheda nel pannello di controllo, esattamente come già la mostra
-l'espansore di traccia della schermata di classifica interna. Nessuno vede una versione intermedia: uno
-spettatore vede o il riassunto di una riga o la traccia completa, mai una versione parzialmente
-oscurata.
+La scheda pubblica non porta alcuna riga di spareggio. Un organizzatore con autorità sulla classifica interna di questo torneo (un admin, o un tournament-admin con autorità su di essa) vede la traccia completa del comparatore sulla versione di questa stessa scheda nel pannello di controllo, come la mostra già l’espansore della traccia della classifica interna. Uno spettatore non vede mai una traccia parziale.
 
 ## Cosa questa schermata NON fa
 
