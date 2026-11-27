@@ -23,8 +23,6 @@ const GENERATED_PREFIXES = ['packages/contracts/src/generated/', 'packages/contr
 const CATALOGUE_PATTERN = /(^|\/)(public-)?messages\.[a-z]{2}\.ts$/;
 const TEST_PATTERN = /\.(test|spec|stories)\.[a-z]+$/;
 
-const SPLIT = 'Split in progress';
-
 /**
  * Oversized files and their ceilings. Keys are repository-relative paths.
  * @type {Map<string, { ceiling: number, reason: string }>}
@@ -150,8 +148,6 @@ export const KNOWN_OVERSIZED_FILES = new Map([
         'Public tournament overview page: data loading and section markup; split candidate: data loading',
     },
   ],
-  // Test files of 2000 lines or more, split by the modularization plan.
-  ['e2e/standings-and-rankings.spec.ts', { ceiling: 2004, reason: SPLIT }],
 ]);
 
 /** @param {string} path Repository-relative path. */

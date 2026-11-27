@@ -442,7 +442,7 @@ Before every commit, run `node --test scripts/lib/component-graph.test.mjs`. Whe
 
 Tracked content never cites an OpenSpec change by number or numbered directory name, and no tracked file name starts with one: `openspec/changes/` is git-ignored, so a citation points at something a fresh clone does not have. The same holds for a change's planning documents: do not cite a task number or point at a change's design, tasks or proposal file as the source of a rationale. Describe the behavior or the rationale in words (comments, test and story titles, docs, workflow notes, accepted specs). Change ids belong only in branch names, the local change directory, PR descriptions and commit history; `CHANGELOG.md`, database migrations and lockfiles are exempt. `node scripts/check-change-number-references.mjs` enforces this (the `enterprise-readiness-doc-lint` job in `ci.yml` runs it); run it before every commit.
 
-To capture real screens, the demo organization's alias is `panamericano-demo`, so Control opens at `/control/panamericano-demo`. The demo has no leaderboard players, so the public player dialog needs the fixture in `e2e/standings-and-rankings.spec.ts`. Starting `apps/api` by hand needs the authentication variables `hybridEnvironment` sets in `apps/copalibre/src/commands/dev-command.ts`.
+To capture real screens, the demo organization's alias is `panamericano-demo`, so Control opens at `/control/panamericano-demo`. The demo has no leaderboard players, so the public player dialog needs the fixture in `e2e/standings-and-rankings.fixtures.ts`. Starting `apps/api` by hand needs the authentication variables `hybridEnvironment` sets in `apps/copalibre/src/commands/dev-command.ts`.
 
 ## Tooling Reference
 

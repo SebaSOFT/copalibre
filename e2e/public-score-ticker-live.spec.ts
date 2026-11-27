@@ -11,7 +11,7 @@ import { recordedFlashes, recordFlashes } from './support/flash-recorder.js';
  *
  * B1 is server-rendered — its overview fetch runs inside the Astro preview
  * process, not the browser — so a local stub API stands in for it, the same
- * pattern `standings-and-rankings.spec.ts`'s "B2: public tournament page"
+ * pattern `standings-and-rankings.table.spec.ts`'s "B2: public tournament page"
  * describe block already established.
  */
 
