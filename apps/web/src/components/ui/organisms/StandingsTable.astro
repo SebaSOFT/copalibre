@@ -1,20 +1,9 @@
 ---
-import type { IntlShape } from 'react-intl';
-import type {
-  TableLayoutSummaryResponse,
-  TableProjectionResponse,
-  TableColumnResponse,
-  TableRowResponse,
-} from '@copalibre/api/src/dto/table-projections.dto.js';
 import { publicTableLayoutLabel } from '../../../lib/public-table-layout-label.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { API_PATH_PREFIX } from '../../../lib/api-path.ts';
-import { isValidClubAlias, optionalClubPageUrl } from '../../../lib/club-url.ts';
+import { optionalClubPageUrl } from '../../../lib/club-url.ts';
 import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
-import type { ClubView, StandingsRowView } from '../../../lib/overview.ts';
-import { columnHint } from '../../../lib/column-hints.ts';
-import { filterProjectionRowsByQuery } from '../../../lib/player-search.ts';
-import { standingsTieBreaks } from '../../../lib/standings-tie-breaks.ts';
 import Button from '../atoms/Button.astro';
 import Icon from '../atoms/Icon.astro';
 import SearchInput from '../atoms/SearchInput.astro';
@@ -24,63 +13,18 @@ import { EntrantName } from '../atoms/EntrantName.tsx';
 import EmblemImage from '../atoms/EmblemImage.astro';
 import { Popover } from '../atoms/Popover.tsx';
 import { ResponsivePlayerName } from '../atoms/ResponsivePlayerName.tsx';
+import { deriveStandingsView, type StandingsTableProps } from './standings-table-model.ts';
 
-interface Props {
-  /** The declared layouts for building the tab strip. */
-  readonly layouts?: readonly TableLayoutSummaryResponse[];
-  /** The declared layout this projection came from — its own label replaces the generic heading. */
-  readonly layout?: TableLayoutSummaryResponse;
-  readonly projection?: TableProjectionResponse;
-  /** The tournament overview's compact rows, before a table projection exists. */
-  readonly previewRows?: readonly StandingsRowView[];
-  readonly previewGrain?: 'series' | 'match';
-  /** Hide filtering, layout tabs, and sorting when the table is an overview summary. */
-  readonly showControls?: boolean;
-  /** Group sub-heading rendered as an `<h3>` above this table when multiple groups share a stage. */
-  readonly heading?: string;
-  /** `table-only` omits filter, CSV, tabs and legends so multi-group callers render them once. */
-  readonly chrome?: 'full' | 'table-only';
-  /** Multi-group wrapper mode: `'header'` or `'footer'` emits shared chrome without repeating the table. */
-  readonly renderPart?: 'all' | 'header' | 'footer';
-  readonly headingText?: string;
-  /** The enclosing section supplies its own heading; the table then keeps only its group subtitle. */
-  readonly omitHeading?: boolean;
-  readonly activeLayoutCode?: string;
-  readonly activeClubAlias?: string;
-  readonly activeClubId?: string;
-  readonly highlightClubAlias?: string;
-  readonly clubs?: readonly ClubView[];
-  readonly intl: IntlShape;
-  readonly canonicalPath?: string;
-  readonly sectionId?: string;
-  readonly teamAnchorId?: string;
-  readonly organizationAlias?: string;
-  readonly tournamentAlias?: string;
-  readonly csvHref?: string;
-  readonly sourceZoneName?: string;
-  /** How many entrants the table ranks, stated under the heading. */
-  readonly entrantCount?: number;
-  /** The localized tiebreak line, stated under the heading. */
-  readonly tiebreakLine?: string;
-  /** Transient player-name search query from `?q=`. */
-  readonly searchQuery?: string;
-}
+type Props = StandingsTableProps;
+
 const {
   layouts = [],
-  layout,
-  projection,
   previewRows,
-  previewGrain,
   showControls = true,
-  heading: groupHeadingProp,
-  chrome = 'full',
   renderPart = 'all',
   entrantCount,
   tiebreakLine,
-  searchQuery,
-  headingText,
   omitHeading = false,
-  activeLayoutCode,
   activeClubAlias,
   activeClubId,
   highlightClubAlias,
@@ -92,240 +36,42 @@ const {
   organizationAlias,
   tournamentAlias,
   csvHref,
-  sourceZoneName,
 } = Astro.props;
 
-const isTableOnly = chrome === 'table-only';
-const showHeader = !isTableOnly && (renderPart === 'all' || renderPart === 'header');
-const showTable = isTableOnly || renderPart === 'all';
-const showFooter = !isTableOnly && (renderPart === 'all' || renderPart === 'footer');
-const groupHeading =
-  groupHeadingProp === undefined
-    ? undefined
-    : intl.formatMessage(messages.standingsGroupHeading, { group: groupHeadingProp });
-const idPrefix = groupHeadingProp
-  ? groupHeadingProp
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '') || 'group'
-  : (sectionId ?? 'standings');
-const effectiveLayoutCode = activeLayoutCode ?? layout?.code;
-const heading =
-  headingText ??
-  (layout ? publicTableLayoutLabel(layout, intl) : intl.formatMessage(messages.standingsHeading));
-const rawColumns: readonly TableColumnResponse[] =
-  previewRows === undefined
-    ? (projection?.columns ?? [])
-    : [
-        { code: 'rank', header: '#', format: 'number' },
-        { code: 'name', header: intl.formatMessage(messages.standingsTeam), format: 'text' },
-        {
-          code: 'points',
-          header: intl.formatMessage(messages.standingsPoints),
-          format: 'number',
-        },
-      ];
-type DisplayRow = Pick<TableRowResponse, 'actorName' | 'cells'> &
-  Partial<
-    Pick<
-      TableRowResponse,
-      | 'actorId'
-      | 'entrantId'
-      | 'entrantName'
-      | 'entrantAbbreviation'
-      | 'clubId'
-      | 'clubAlias'
-      | 'emblemObjectId'
-      | 'nationality'
-      | 'shirtNumber'
-      | 'hiddenAtRequest'
-      | 'publicProfileAvailable'
-      | 'promotionBandLabel'
-      | 'promotionBandIndex'
-      | 'promotionSeed'
-      | 'separatedFromAboveBy'
-    >
-  >;
-const allRows: readonly DisplayRow[] =
-  previewRows === undefined
-    ? (projection?.rows ?? [])
-    : previewRows.map((row) => ({
-        actorName: row.name,
-        entrantId: row.entrantId,
-        entrantName: row.name,
-        entrantAbbreviation: row.abbreviation,
-        clubId: row.clubId,
-        clubAlias: row.clubAlias,
-        emblemObjectId: row.emblemObjectId,
-        hiddenAtRequest: row.hiddenAtRequest,
-        publicProfileAvailable: row.publicProfileAvailable,
-        cells: {
-          rank: { raw: row.position, formatted: String(row.position) },
-          name: { formatted: row.name },
-          points: { raw: row.points, formatted: String(row.points) },
-        },
-      }));
-const clubAliasById = new Map(clubs.map((club) => [club.clubId, club.alias] as const));
-const localePrefix = intl.locale === 'en' ? '' : `/${intl.locale}`;
-const activeClubQuery = activeClubAlias
-  ? `club=${encodeURIComponent(activeClubAlias)}`
-  : activeClubId
-    ? `clubId=${encodeURIComponent(activeClubId)}`
-    : undefined;
-// A row names its team's club by alias when the team has one; a team with no club has no club link.
-// A row names its team's club by alias when the row carries a usable one; a team with no club has no club link.
-const resolveRowClubAlias = (row: DisplayRow): string | undefined =>
-  isValidClubAlias(row.clubAlias)
-    ? row.clubAlias
-    : row.clubId
-      ? clubAliasById.get(row.clubId)
-      : undefined;
-const isPlayerRanking =
-  layout?.target === 'player-ranking' ||
-  layout?.entityGranularity === 'person' ||
-  layout?.entityGranularity === 'player';
-const showSearch = isPlayerRanking && showControls && !isTableOnly && renderPart !== 'footer';
-const effectiveSearchQuery = showSearch ? (searchQuery ?? '') : '';
-const rows: readonly DisplayRow[] =
-  showSearch && effectiveSearchQuery.trim().length > 0
-    ? filterProjectionRowsByQuery(allRows, effectiveSearchQuery)
-    : allRows;
-// Which later column separated rows level on the leading one, read from the table's own order so the
-// list agrees with it. Stated only for a complete entrant table: a club filter or a search no longer
-// shows each pair side by side, and a player table's secondary columns are noise here.
-const tieBreaks =
-  previewRows === undefined &&
-  !isPlayerRanking &&
-  activeClubAlias === undefined &&
-  activeClubId === undefined &&
-  rows === allRows
-    ? standingsTieBreaks(allRows, projection?.columns ?? [], intl.locale)
-    : [];
-const rowClassNames = rows.map((row, index) => {
-  const classes: string[] = [];
-  if (previewRows !== undefined) classes.push(index % 2 === 0 ? 'cl-row' : 'cl-row--alt');
-  if (row.promotionBandLabel !== undefined) classes.push('cl-standings-row--promotion');
-  const rowClubAlias = resolveRowClubAlias(row);
-  if (highlightClubAlias !== undefined && rowClubAlias === highlightClubAlias) {
-    classes.push('cl-standings-row--highlighted');
-  }
-  return classes.length > 0 ? classes.join(' ') : undefined;
-});
-const grain = projection?.grain ?? previewGrain;
-// Relabelled only under series grain — match grain keeps the discipline's own
-// wording for the column, which already reads as counting matches.
-const columns =
-  projection?.grain === 'series' && projection.countColumnCode !== undefined
-    ? rawColumns.map((column) =>
-        column.code === projection.countColumnCode
-          ? {
-              ...column,
-              header: intl.formatMessage(messages.standingsColumnSeriesLabel),
-              shortHeader: intl.formatMessage(messages.standingsColumnSeriesShortLabel),
-            }
-          : column,
-      )
-    : rawColumns;
-const promotionBands = (projection?.promotionBands ?? []).filter(
-  (band) => sourceZoneName === undefined || band.sourceZoneName === sourceZoneName,
-);
-const hasPromotionTags = rows.some((row) => row.promotionBandLabel !== undefined);
-const hasPromotionSeeds = rows.some((row) => row.promotionSeed !== undefined);
-const promotionOrderHint = intl.formatMessage(messages.standingsPromotionOrderHint);
-const NAME_CODES = ['name', 'entrant', 'team', 'person', 'player'];
-const shirtNumberColumn: TableColumnResponse = {
-  code: '__shirtNumber',
-  header: intl.formatMessage(messages.standingsTableColumnNumber),
-  format: 'number',
-};
-const nameColumnIndex = columns.findIndex((column) => NAME_CODES.includes(column.code));
-const columnsWithNumber =
-  isPlayerRanking && previewRows === undefined
-    ? nameColumnIndex >= 0
-      ? [...columns.slice(0, nameColumnIndex), shirtNumberColumn, ...columns.slice(nameColumnIndex)]
-      : [...columns, shirtNumberColumn]
-    : columns;
-const displayColumns = [
-  ...columnsWithNumber,
-  ...(hasPromotionTags
-    ? [
-        {
-          code: '__promotion',
-          header: intl.formatMessage(messages.standingsQualificationColumn),
-          format: 'text',
-        },
-      ]
-    : []),
-  ...(hasPromotionSeeds
-    ? [
-        {
-          code: '__promotionOrder',
-          header: intl.formatMessage(messages.standingsPromotionOrderColumn),
-          description: promotionOrderHint,
-          format: 'number',
-        },
-      ]
-    : []),
-];
-const isSortableColumn = (code: string): boolean =>
-  showControls && previewRows === undefined && code !== '__promotion';
-const initialSortColumnCode =
-  showControls && previewRows === undefined
-    ? displayColumns.some((column) => column.code === 'rank')
-      ? 'rank'
-      : displayColumns.find((column) => isSortableColumn(column.code))?.code
-    : undefined;
-const hints = displayColumns.map((column) => columnHint(column, intl.locale));
-// On a phone the table keeps the position, the name, matches played and the points; every other
-// column stays one tap away in a disclosure in the name cell, which a sort carries along.
-const moreColumnsLabel = intl.formatMessage(messages.standingsMoreColumns);
-const PRIORITY_CODES = new Set(['rank', 'played', 'points', ...NAME_CODES]);
-const priorityOf = (code: string): 'low' | undefined =>
-  PRIORITY_CODES.has(code) ? undefined : 'low';
-const lowColumnIndexes = displayColumns.flatMap((column, index) =>
-  priorityOf(column.code) === 'low' ? [index] : [],
-);
-const hostColumnIndex = Math.max(
-  0,
-  displayColumns.findIndex((column) => NAME_CODES.includes(column.code)),
-);
-// The name column takes whatever width the table has beyond its figures.
-const fillColumnIndex = displayColumns.findIndex((column) => NAME_CODES.includes(column.code));
-const legend = hints.filter((one) => one.hint !== undefined);
-
-// The player quick-view dialog's body is built by the inline `<script>` below,
-// client-side, after a fetch this SSR pass cannot await — so its localized
-// strings are resolved here and handed across as a JSON data island (the same
-// mechanism BracketView.astro uses for `data-journey-matches`), not called as
-// `intl.formatMessage` from within the script itself.
-const playerDialogLabels = {
-  locale: intl.locale,
-  roles: {
-    player: intl.formatMessage(messages.playerProfileRolePlayer),
-    substitute: intl.formatMessage(messages.playerProfileRoleSubstitute),
-    coach: intl.formatMessage(messages.playerProfileRoleCoach),
-    staff: intl.formatMessage(messages.playerProfileRoleStaff),
-  },
-  fallbackTitle: intl.formatMessage(messages.playerProfileHeading),
-  loadingPlaceholder: intl.formatMessage(messages.standingsPlayerDialogLoadingPlaceholder),
-  loadingFetch: intl.formatMessage(messages.standingsPlayerDialogLoadingFetch),
-  careerStatisticsHeading: intl.formatMessage(messages.playerProfileCareerStatsHeading),
-  competitionHistoryHeading: intl.formatMessage(messages.playerProfileHistoryHeading),
-  columnTournament: intl.formatMessage(messages.standingsPlayerDialogColumnTournament),
-  columnTeam: intl.formatMessage(messages.standingsPlayerDialogColumnTeam),
-  columnRole: intl.formatMessage(messages.standingsPlayerDialogColumnRole),
-  noCareerStatistics: intl.formatMessage(messages.playerProfileNoStats),
-  noCompetitionHistory: intl.formatMessage(messages.playerProfileNoHistory),
-  loadError: intl.formatMessage(messages.standingsPlayerDialogLoadError),
-  viewProfile: intl.formatMessage(messages.playerDialogViewProfile),
-  shirtNumberTemplate: intl.formatMessage(messages.playerProfileShirtNumber, {
-    number: '{number}',
-  }),
-  clubLabelTemplate: intl.formatMessage(messages.playerProfileClubLabel, { club: '{club}' }),
-  ageTemplate: intl.formatMessage(messages.playerProfileAge, { age: '{age}' }),
-  tournamentTotalsHeading: intl.formatMessage(messages.playerProfileTournamentTotalHeading),
-};
-const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
+const {
+  isTableOnly,
+  showHeader,
+  showTable,
+  showFooter,
+  groupHeading,
+  idPrefix,
+  effectiveLayoutCode,
+  heading,
+  localePrefix,
+  activeClubQuery,
+  resolveRowClubAlias,
+  isPlayerRanking,
+  showSearch,
+  effectiveSearchQuery,
+  rows,
+  tieBreaks,
+  rowClassNames,
+  grain,
+  promotionBands,
+  promotionOrderHint,
+  displayColumns,
+  isSortableColumn,
+  initialSortColumnCode,
+  hints,
+  moreColumnsLabel,
+  priorityOf,
+  lowColumnIndexes,
+  hostColumnIndex,
+  fillColumnIndex,
+  legend,
+  playerDialogLabels,
+  Wrapper,
+} = deriveStandingsView(Astro.props);
 ---
 
 <Wrapper
@@ -921,326 +667,7 @@ const Wrapper = renderPart === 'all' && !isTableOnly ? 'section' : 'div';
 </Wrapper>
 
 <script>
-  import type { PlayerStatisticsDrilldownResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
-  import {
-    buildPlayerDialogContent,
-    extractDialogTournamentTotals,
-    playerDialogMessage,
-    type PlayerDialogLabels,
-    type PlayerDialogProfile,
-  } from '../../../lib/player-dialog-content.ts';
-  import { matchesPlayerQuery } from '../../../lib/player-search.ts';
-
-  function initTableSorting(root: ParentNode = document) {
-    root.querySelectorAll<HTMLTableElement>('[data-sortable-table]').forEach((table) => {
-      const body = table.tBodies.item(0);
-      if (!body) return;
-
-      const headers = Array.from(table.querySelectorAll<HTMLTableCellElement>('thead th'));
-      const initialSortedHeader = headers.find((header) => {
-        const state = header.getAttribute('aria-sort');
-        return state === 'ascending' || state === 'descending';
-      });
-      let activeColumn: string | undefined = initialSortedHeader?.querySelector<HTMLButtonElement>(
-        '[data-table-sort-button]',
-      )?.dataset.columnCode;
-      let direction: 'ascending' | 'descending' =
-        initialSortedHeader?.getAttribute('aria-sort') === 'descending'
-          ? 'descending'
-          : 'ascending';
-      const announcement = table.parentElement?.querySelector<HTMLElement>(
-        '[data-table-sort-announcement]',
-      );
-      const ascLabel = table.dataset.sortedAscLabel ?? 'Sorted ascending';
-      const descLabel = table.dataset.sortedDescLabel ?? 'Sorted descending';
-
-      for (const button of table.querySelectorAll<HTMLButtonElement>('[data-table-sort-button]')) {
-        button.addEventListener('click', () => {
-          const columnCode = button.dataset.columnCode;
-          if (!columnCode) return;
-          direction =
-            activeColumn === columnCode && direction === 'ascending' ? 'descending' : 'ascending';
-          activeColumn = columnCode;
-
-          const columnIndex = headers.findIndex(
-            (header) =>
-              header.querySelector<HTMLButtonElement>('[data-table-sort-button]')?.dataset
-                .columnCode === columnCode,
-          );
-          if (columnIndex < 0) return;
-
-          const rows = Array.from(body.rows);
-          rows.sort((left, right) => {
-            const leftCell = left.cells.item(columnIndex);
-            const rightCell = right.cells.item(columnIndex);
-            const leftMissing = leftCell?.dataset.sortMissing === 'true';
-            const rightMissing = rightCell?.dataset.sortMissing === 'true';
-            if (leftMissing && rightMissing) return 0;
-            if (leftMissing) return 1;
-            if (rightMissing) return -1;
-
-            const leftValue = leftCell?.dataset.sortValue ?? '';
-            const rightValue = rightCell?.dataset.sortValue ?? '';
-            const numeric =
-              leftCell?.dataset.sortType === 'number' && rightCell?.dataset.sortType === 'number';
-            const comparison = numeric
-              ? Number(leftValue) - Number(rightValue)
-              : leftValue.localeCompare(rightValue);
-            return direction === 'ascending' ? comparison : -comparison;
-          });
-          body.append(...rows);
-
-          headers.forEach((header, index) => {
-            if (header.hasAttribute('aria-sort')) {
-              header.setAttribute('aria-sort', index === columnIndex ? direction : 'none');
-            }
-          });
-          if (announcement) {
-            const columnLabel = button.textContent?.trim() || columnCode;
-            announcement.textContent = `${columnLabel}: ${direction === 'ascending' ? ascLabel : descLabel}`;
-          }
-        });
-      }
-    });
-  }
-
-  function applyClientSearch(section: ParentNode, query: string): void {
-    const table = section.querySelector<HTMLTableElement>('table[data-sortable-table]');
-    const body = table?.tBodies.item(0);
-    if (!body) return;
-    let visible = 0;
-    for (const row of Array.from(body.rows)) {
-      const name = row.dataset.playerName ?? '';
-      const matched = matchesPlayerQuery(name, query);
-      row.hidden = !matched;
-      if (matched) visible += 1;
-    }
-    const emptyNote = section.querySelector<HTMLElement>('[data-standings-empty]');
-    if (emptyNote) emptyNote.hidden = visible > 0;
-  }
-
-  function updateQueryParam(query: string): void {
-    const nextUrl = new URL(window.location.href);
-    const trimmed = query.trim();
-    if (trimmed.length > 0) nextUrl.searchParams.set('q', trimmed);
-    else nextUrl.searchParams.delete('q');
-    history.replaceState(history.state, '', nextUrl);
-  }
-
-  function initTableSearch(root: ParentNode = document) {
-    root.querySelectorAll<HTMLFormElement>('[data-table-search-form]').forEach((form) => {
-      const input = form.querySelector<HTMLInputElement>('[data-table-search-input]');
-      const section = form.closest<HTMLElement>('.cl-standings-section') ?? root;
-      if (!input) return;
-
-      let searchController: AbortController | undefined;
-
-      const handleSearchUpdate = async (): Promise<void> => {
-        if (form.dataset.serverFiltered === 'true') {
-          const url = new URL(form.action, window.location.origin);
-          form.querySelectorAll<HTMLInputElement>('input[type="hidden"]').forEach((hidden) => {
-            if (hidden.name && hidden.value) url.searchParams.set(hidden.name, hidden.value);
-          });
-          searchController?.abort();
-          searchController = new AbortController();
-          try {
-            const response = await fetch(url.toString(), {
-              signal: searchController.signal,
-              headers: { accept: 'text/html' },
-            });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const parsed = new DOMParser().parseFromString(await response.text(), 'text/html');
-            const nextContainer = parsed.querySelector('.cl-standings-section .cl-table-container');
-            const currentContainer = section.querySelector('.cl-table-container');
-            if (nextContainer && currentContainer) {
-              currentContainer.replaceWith(document.importNode(nextContainer, true));
-              form.dataset.serverFiltered = 'false';
-              initTableSorting(section);
-              initPlayerDialog(section);
-            }
-          } catch (error) {
-            if ((error as { name?: string }).name === 'AbortError') return;
-            return;
-          }
-        }
-        applyClientSearch(section, input.value);
-        updateQueryParam(input.value);
-      };
-
-      input.addEventListener('input', () => {
-        void handleSearchUpdate();
-      });
-      form.addEventListener('submit', (event) => {
-        event.preventDefault();
-        void handleSearchUpdate();
-      });
-    });
-  }
-
-  function readPlayerDialogLabels(root: ParentNode): PlayerDialogLabels {
-    const fallback: PlayerDialogLabels = {
-      locale: 'en',
-      roles: {},
-      fallbackTitle: 'Player Profile',
-      loadingPlaceholder: 'Loading player details...',
-      loadingFetch: 'Loading...',
-      careerStatisticsHeading: 'Career Statistics',
-      competitionHistoryHeading: 'Competition History',
-      columnTournament: 'Tournament',
-      columnTeam: 'Team',
-      columnRole: 'Role',
-      noCareerStatistics: 'No career statistics recorded.',
-      noCompetitionHistory: 'No competition history recorded.',
-      loadError: 'Unable to load player details.',
-    };
-    const payload = root.querySelector('[data-player-dialog-labels]');
-    if (!payload?.textContent) return fallback;
-    try {
-      return { ...fallback, ...(JSON.parse(payload.textContent) as Partial<PlayerDialogLabels>) };
-    } catch {
-      return fallback;
-    }
-  }
-
-  function initPlayerDialog(root: ParentNode = document) {
-    const dialog = root.querySelector<HTMLDialogElement>('#cl-player-dialog');
-    if (!dialog) return;
-
-    const labels = readPlayerDialogLabels(root);
-    const body = dialog.querySelector('#cl-player-dialog-body');
-    const title = dialog.querySelector('#cl-player-dialog-title');
-    const closeBtn = dialog.querySelector('[data-close-dialog]');
-
-    if (dialog.dataset.dialogBound !== 'true') {
-      dialog.dataset.dialogBound = 'true';
-      closeBtn?.addEventListener('click', () => dialog.close());
-      dialog.addEventListener('click', (e) => {
-        if (e.target === dialog) dialog.close();
-      });
-    }
-
-    root.querySelectorAll<HTMLAnchorElement>('.cl-player-link').forEach((link) => {
-      link.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const profileUrl = link.dataset.profileUrl || link.href;
-        const profileHref = link.dataset.profileHref || link.href;
-        const statisticsUrl = link.dataset.statisticsUrl;
-        const tournamentAlias = link.dataset.tournamentAlias;
-        body?.replaceChildren(
-          playerDialogMessage(document, 'cl-player-dialog__loading', labels.loadingFetch),
-        );
-        if (typeof dialog.showModal === 'function') {
-          dialog.showModal();
-        }
-
-        try {
-          const [profileRes, statsRes] = await Promise.all([
-            fetch(profileUrl),
-            statisticsUrl
-              ? fetch(statisticsUrl).catch(() => undefined)
-              : Promise.resolve(undefined),
-          ]);
-          if (!profileRes.ok) throw new Error(`HTTP ${profileRes.status}`);
-          const data = (await profileRes.json()) as PlayerDialogProfile;
-          let statsData: PlayerStatisticsDrilldownResponse | undefined;
-          if (statsRes?.ok) {
-            statsData = (await statsRes.json()) as PlayerStatisticsDrilldownResponse;
-          }
-          const tournamentTotals = extractDialogTournamentTotals(statsData, labels.locale, 2);
-          if (title) title.textContent = data.displayName || labels.fallbackTitle;
-          body?.replaceChildren(
-            buildPlayerDialogContent(document, data, labels, {
-              ...(tournamentAlias === undefined ? {} : { tournamentAlias }),
-              profileHref,
-              tournamentTotals,
-            }),
-          );
-        } catch {
-          body?.replaceChildren(playerDialogMessage(document, 'cl-inline-alert', labels.loadError));
-        }
-      });
-    });
-  }
-
-  /*
-    A tab or a club chip changes the table, not the page: the choice is fetched as the
-    same server-rendered page, the standings section is swapped in place, and the query
-    string is recorded with `replaceState`. The scroll position and the focused control
-    survive the swap. Without this script every control is still a link to the same page
-    in that state, and a failed fetch falls back to following it.
-  */
-  const CONTROL = 'a.cl-table-tab, a[data-club-filter]';
-  let pending: AbortController | undefined;
-
-  function controlKey(control: Element): string {
-    return control.matches('.cl-table-tab')
-      ? `tab:${control.getAttribute('data-layout-code') ?? ''}`
-      : `club:${control.getAttribute('data-club-filter') ?? ''}`;
-  }
-
-  async function swapStandings(link: HTMLAnchorElement): Promise<void> {
-    const section = link.closest<HTMLElement>('.cl-standings-section');
-    if (!section) return;
-    const sections = Array.from(document.querySelectorAll('.cl-standings-section'));
-    const index = sections.indexOf(section);
-    const key = controlKey(link);
-    const scrollX = window.scrollX;
-    const scrollY = window.scrollY;
-
-    pending?.abort();
-    pending = new AbortController();
-    section.setAttribute('aria-busy', 'true');
-    try {
-      const response = await fetch(link.href, {
-        signal: pending.signal,
-        headers: { accept: 'text/html' },
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const parsed = new DOMParser().parseFromString(await response.text(), 'text/html');
-      const next = parsed.querySelectorAll('.cl-standings-section').item(index);
-      if (!next) throw new Error('no standings section');
-
-      const fresh = document.importNode(next, true) as HTMLElement;
-      section.replaceWith(fresh);
-      history.replaceState(history.state, '', link.href);
-      initTableSorting(fresh);
-      initTableSearch(fresh);
-      initPlayerDialog(fresh);
-      window.scrollTo(scrollX, scrollY);
-      const same = Array.from(fresh.querySelectorAll<HTMLElement>(CONTROL)).find(
-        (control) => controlKey(control) === key,
-      );
-      same?.focus({ preventScroll: true });
-    } catch (error) {
-      if ((error as { name?: string }).name === 'AbortError') return;
-      section.removeAttribute('aria-busy');
-      window.location.href = link.href;
-    }
-  }
-
-  function initStandingsControls() {
-    document.addEventListener('click', (event) => {
-      if (event.defaultPrevented || event.button !== 0) return;
-      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      const link = (event.target as Element | null)?.closest<HTMLAnchorElement>(CONTROL);
-      if (!link || !link.closest('.cl-standings-section')) return;
-      event.preventDefault();
-      void swapStandings(link);
-    });
-  }
-
-  function init() {
-    initTableSorting();
-    initTableSearch();
-    initPlayerDialog();
-    initStandingsControls();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  import './standings-table-client.ts';
 </script>
 
 <style>

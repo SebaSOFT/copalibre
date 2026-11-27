@@ -34,7 +34,14 @@ export const KNOWN_OVERSIZED_FILES = new Map([
   // Production files of 1000 to 1999 lines, split by the modularization plan.
   ['apps/web/src/control/lib/activity-formatting.ts', { ceiling: 1007, reason: SPLIT }],
   ['apps/web/src/lib/reference-fixtures.ts', { ceiling: 1220, reason: SPLIT }],
-  ['apps/web/src/components/ui/organisms/StandingsTable.astro', { ceiling: 1638, reason: SPLIT }],
+  [
+    'apps/web/src/components/ui/organisms/StandingsTable.astro',
+    {
+      ceiling: 1073,
+      reason:
+        "One standings table's markup and scoped styles; script and derivations live beside it",
+    },
+  ],
   // Production files of 801 to 999 lines at the time the register was written, and the
   // files that have grown past them since. Each is one responsibility that is not split.
   [

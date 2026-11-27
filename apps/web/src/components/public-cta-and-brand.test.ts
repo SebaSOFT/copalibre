@@ -101,6 +101,7 @@ describe('public tables and filter pills', () => {
   );
   const matchReport = read('ui/organisms/MatchRosters.astro');
   const standings = read('ui/organisms/StandingsTable.astro');
+  const standingsClient = read('ui/organisms/standings-table-client.ts');
 
   it('renders every filter facet as a bounded pill group, not bare anchors', () => {
     expect(matchesPage).toContain('class="cl-pill-group"');
@@ -131,13 +132,13 @@ describe('public tables and filter pills', () => {
     expect(standings).toContain('data-column-code');
     expect(standings).toContain('data-sort-value');
     expect(standings).toContain('data-player-id');
-    expect(standings).toContain('initTableSorting');
+    expect(standingsClient).toContain('initTableSorting');
   });
 
   it('keeps missing values after numeric rows and reverses activation direction', () => {
-    expect(standings).toContain('sortMissing');
-    expect(standings).toContain("direction === 'ascending'");
-    expect(standings).toContain("header.setAttribute('aria-sort'");
+    expect(standingsClient).toContain('sortMissing');
+    expect(standingsClient).toContain("direction === 'ascending'");
+    expect(standingsClient).toContain("header.setAttribute('aria-sort'");
   });
 
   it('renders the standings club filter through the shared chip, not a local duplicate', () => {

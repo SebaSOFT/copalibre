@@ -89,6 +89,7 @@ describe('Modal.astro', () => {
 describe('DataTable.astro narrow-screen modes', () => {
   const matchSchedule = readFileSync(join(here, 'MatchSchedule.astro'), 'utf8');
   const standings = readFileSync(join(here, 'StandingsTable.astro'), 'utf8');
+  const standingsModel = readFileSync(join(here, 'standings-table-model.ts'), 'utf8');
 
   it('declares scroll, priority and stacked, defaulting to scroll', () => {
     expect(dataTable).toContain(
@@ -127,7 +128,7 @@ describe('DataTable.astro narrow-screen modes', () => {
   });
 
   it('keeps the standings position, name, played and points on a phone and the rest in a disclosure', () => {
-    expect(standings).toContain("const PRIORITY_CODES = new Set(['rank', 'played', 'points'");
+    expect(standingsModel).toContain("const PRIORITY_CODES = new Set(['rank', 'played', 'points'");
     expect(standings).toContain('data-priority={priorityOf(column.code)}');
     expect(standings).toContain('<details class="cl-more">');
     expect(standings).toContain('cl-cell-name__text');

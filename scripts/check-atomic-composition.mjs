@@ -217,7 +217,10 @@ export const KNOWN_RAW_STYLE_VALUES = new Map([
  */
 export const KNOWN_DATA_BELOW_PAGE = new Map([
   ['components/ui/organisms/LiveMatchHero.tsx', 1],
-  ['components/ui/organisms/StandingsTable.astro', 2],
+  ['components/ui/organisms/StandingsTable.astro', 1],
+  // Re-keyed when the script moved to standings-table-client.ts: its fetch calls are the
+  // same debt, recorded against the module that now holds them.
+  ['components/ui/organisms/standings-table-client.ts', 1],
   ['components/ui/molecules/TournamentHero.astro', 1],
   ['components/ui/organisms/PlayerProfileView.astro', 1],
   // Bracket entrant slots gain a club emblem, the same
