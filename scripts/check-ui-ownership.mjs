@@ -141,7 +141,8 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // `Inline` layout atom; `AcceptInvitationForm.tsx` and `NativeAuthRoutes.tsx`
   // remain recorded because their inline layouts need a separate migration.
   ['control/components/AcceptInvitationForm.tsx', 1],
-  ['control/components/DescriptorBuilderWizard.tsx', 5],
+  ['control/components/DescriptorBuilderWizard.tsx', 3],
+  ['control/components/DescriptorBuilderLists.tsx', 2],
   ['control/components/screens/LoadMatchDataTemplate.tsx', 3],
   ['control/components/NativeAuthRoutes.tsx', 3],
   ['control/components/RosterSelectionStep.tsx', 3],

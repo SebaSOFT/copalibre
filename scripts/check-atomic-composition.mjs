@@ -232,7 +232,9 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   ['components/ui/organisms/MatchCard.tsx', 1],
   ['control/components/BracketCanvas.tsx', 1],
   ['control/components/ControlApp.tsx', 8],
-  ['control/components/DescriptorBuilderWizard.tsx', 9],
+  ['control/components/DescriptorBuilderWizard.tsx', 7],
+  // Historical debt from before the rule existed, moved with the lists.
+  ['control/components/DescriptorBuilderLists.tsx', 2],
   ['control/components/screens/LiveConsoleTemplate.tsx', 2],
   ['control/components/NativeAuthRoutes.tsx', 7],
   ['control/components/screens/PlatformAdministrationTemplate.tsx', 1],
