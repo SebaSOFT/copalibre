@@ -39,13 +39,13 @@ personne sur place n'a besoin de la déclencher ou de la fermer.
 
 ## Ce qu’affiche l’écran de la salle
 
-L’écran en rotation complète parcourt le classement, les meilleurs joueurs, les statistiques du tournoi et, lorsque la phase mise en avant en a un, le tableau, puis la liste des matchs. Une adresse avec `?view=standings` ou `?view=matches` fixe cette seule section en plein écran au lieu de faire tourner (`?view=fixtures` fonctionne toujours comme ancien nom de `matches`). Le récapitulatif du champion d’un tournoi terminé appartient à l’écran en rotation seul. L’en-tête nomme l’état du tournoi : un tournoi en cours affiche une horloge étiquetée, à la minute, dans le fuseau de l’organisation ; un tournoi terminé affiche le jour de son dernier match, sans horloge qui défile.
+L’écran en rotation complète parcourt le classement, les meilleurs joueurs, les statistiques du tournoi et, lorsque la phase mise en avant en a un, le tableau, puis la liste des matchs. Une adresse avec `?view=standings` ou `?view=matches` fixe cette seule section en plein écran au lieu de faire tourner (`?view=fixtures` fonctionne toujours comme ancien nom de `matches`). Le récapitulatif du champion d’un tournoi terminé appartient à l’écran en rotation seul. L’en-tête nomme l’état du tournoi (programmé, en direct, en cours ou terminé) et affiche l’horloge dans le fuseau de l’organisation.
 
 Un match épinglé — `/tv/<organisation>/tournaments/<tournoi>/stages/<phase>/matches/<numéro>` — est désigné comme sur la page publique du match, par son numéro dans la phase, et montre toujours son score, ses côtés et ses événements enregistrés, terminé ou non. Un numéro que la phase n’a pas est signalé comme un match qui n’existe pas.
 
 Une phase peut mélanger les formats ; l’écran présente donc chaque zone selon le format qu’elle joue :
 
-- **Classement** : Chaque zone qui classe ses participants dans un tableau a son propre tableau, titré du nom de la zone. Les lignes de zones différentes ne sont jamais mêlées dans un même classement, et chaque tableau montre jusqu’à huit lignes. Une phase dont toutes les zones jouent le format de la phase garde un seul tableau sans titre.
+- **Classement** : Chaque zone qui classe ses participants dans un tableau a son propre tableau, titré du nom de la zone. Les lignes de zones différentes ne sont jamais mêlées dans un même classement, et, en rotation complète comme dans une vue fixe de classement, chaque tableau défile sur toutes ses lignes ; la disposition présentation en montre jusqu’à huit à la fois. Une phase dont toutes les zones jouent le format de la phase garde un seul tableau sans titre.
 - **Tableau** : Les zones qui jouent un format à élimination sont dessinées en tableau.
 - **Matchs** : Liste tous les matchs du tournoi dans un tableau compact, deux par ligne avec abréviations et score, une page à la fois ; les pages avancent avec la rotation, et une vue `matches` fixe continue de paginer.
 
@@ -57,7 +57,7 @@ Une incrustation ne montre que le match qu’on lui a donné : celui que nomme s
 
 ### Le lanceur d’écran
 
-`/tv` est un lanceur qui compose l’adresse d’un écran de salle ou d’une incrustation : choisissez l’organisation, le tournoi et la vue (le panneau rotatif, la disposition présentation ou tableau de bord, la grille des terrains, le classement, la liste des matchs, un match épinglé ou l’une des trois incrustations), le fond et la langue. Les incrustations démarrent sur un fond transparent, et chaque vue affiche une description d’une ligne. La langue change immédiatement les libellés du lanceur, sans recharger. Les phases sont listées avec leur numéro et leur nom, et les matchs regroupés par zone et groupe ; chaque option indique la compétition et le tour, les deux équipes, l’heure du coup d’envoi dans le fuseau de l’organisation, le terrain, l’état et son numéro (`#34`). La phase s’ouvre sur le match en direct, sinon sur le prochain programmé, sinon sur la dernière. Suivre un terrain et épingler un match sont deux choix distincts. L’adresse finale est affichée avec un bouton de copie et prévisualisée dans un cadre 16:9, à coller dans OBS.
+`/tv` est un lanceur qui compose l’adresse d’un écran de salle ou d’une incrustation : choisissez l’organisation, le tournoi et la vue (le panneau rotatif, la disposition présentation ou tableau de bord, la grille des terrains, le classement, la liste des matchs, un match épinglé ou l’une des trois incrustations), le fond et la langue. Le bandeau d’angle et le bandeau inférieur démarrent sur un fond transparent, la scène plein cadre sur le fond de sa discipline, et chaque vue affiche une description d’une ligne. La langue change immédiatement les libellés du lanceur, sans recharger. Les phases sont listées avec leur numéro et leur nom, et les matchs regroupés par zone et groupe ; chaque option indique la compétition et le tour, les deux équipes, l’heure du coup d’envoi dans le fuseau de l’organisation, le terrain, l’état et son numéro (`#34`). La phase s’ouvre sur le match en direct, sinon sur le prochain programmé, sinon sur la dernière. Suivre un terrain et épingler un match sont deux choix distincts. L’adresse finale est affichée avec un bouton de copie et prévisualisée dans un cadre 16:9, à coller dans OBS.
 
 ### Compteurs du match
 
@@ -72,6 +72,8 @@ direct et quel camp mène sur le tableau public de la même façon que dans le p
 match pas encore planifié est affiché comme tel, jamais deviné.
 
 Sur l’écran TV, le récapitulatif d’un tournoi terminé décidé zone par zone liste le champion ou les co-champions de chaque zone de la dernière phase sous le nom de la zone, les mêmes vainqueurs que ceux de l’aperçu public. Un tournoi à champion unique garde la présentation du champion unique, et le leader du classement d’une phase précédente n’est jamais présenté comme champion.
+
+Sur le site public, chaque match indique sa phase, et sa zone et son groupe lorsque la phase en a. Une phase à plusieurs groupes affiche un classement par groupe ; un départage qui a séparé des équipes à égalité apparaît sous le tableau, avec la colonne qui l’a décidé. Un match à élimination directe nul indique l’équipe qualifiée. Les onglets du tournoi (résumé, matchs, en direct, classement, et le tableau lorsqu’une phase en dessine un) ouvrent chacun leur propre page. Les horaires s’affichent dans le fuseau de l’organisation, avec une note qui le nomme ; un match qui n’a pas commencé 15 minutes après son coup d’envoi apparaît comme retardé. La vue d’ensemble affiche l’avancement du tournoi, et le calendrier a un filtre par jour sur ordinateur.
 
 ## Ce que vous ne pouvez pas faire ici
 
