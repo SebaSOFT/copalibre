@@ -19,9 +19,9 @@
   },
   "dependencies": {
     "@astrojs/check": "^0.9.10",
-    "@astrojs/node": "^11.1.13",
+    "@astrojs/node": "^11.1.14",
     "@astrojs/react": "^7.1.0",
-    "@astrojs/starlight": "0.42.6",
+    "@astrojs/starlight": "0.43.1",
     "@cfworker/json-schema": "4.1.6",
     "@copalibre/contracts": "workspace:^",
     "@copalibre/design-tokens": "workspace:^",
