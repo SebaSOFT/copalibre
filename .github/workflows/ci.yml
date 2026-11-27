@@ -164,8 +164,11 @@ jobs:
       - run: yarn lint
       - name: Check interface copy voice
         run: node scripts/check-copy-voice.mjs
+      # Every pull request into develop lists its changed strings for review. A release pull
+      # request into main carries all of them at once, already reviewed, and their list
+      # outgrows GitHub's pull request body limit, so it is not checked again there.
       - name: Check changed interface strings in pull request body
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.base_ref != 'main'
         run: node scripts/list-changed-strings.mjs --check-body
       - run: yarn format:check
 
