@@ -166,7 +166,6 @@ export const KNOWN_OVERSIZED_FILES = new Map([
     'packages/persistence/src/repositories/repositories.integration.test.ts',
     { ceiling: 2784, reason: SPLIT },
   ],
-  ['apps/web/src/control/match-console-route.test.tsx', { ceiling: 2158, reason: SPLIT }],
   ['e2e/standings-and-rankings.spec.ts', { ceiling: 2004, reason: SPLIT }],
 ]);
 
