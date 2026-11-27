@@ -33,10 +33,6 @@ export const KNOWN_OVERSIZED_FILES = new Map([
   // Production files of 2000 lines or more, split by the modularization plan.
   // Production files of 1000 to 1999 lines, split by the modularization plan.
   [
-    'apps/web/src/control/components/screens/MatchConsoleTemplate.tsx',
-    { ceiling: 1475, reason: SPLIT },
-  ],
-  [
     'apps/web/src/control/components/screens/RegistrationReviewTemplate.tsx',
     { ceiling: 1081, reason: SPLIT },
   ],
