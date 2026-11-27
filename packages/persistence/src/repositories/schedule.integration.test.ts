@@ -177,7 +177,7 @@ describe('scheduling (integration)', () => {
 
       const slots = await schedules.listScheduleSlots(schedule.scheduleId, uow);
 
-      return { stage, fixtures, matches, entrants, venue, referee, schedule, slots };
+      return { tournament, stage, fixtures, matches, entrants, venue, referee, schedule, slots };
     });
   }
 
@@ -391,14 +391,22 @@ describe('scheduling (integration)', () => {
     expect(v1Slot0?.matchCount).toBe(1);
   });
 
-  it('refuses to reshape a schedule or remove a venue while affected slots hold matches', async () => {
-    const { matches, schedule, slots } = await seedStage('copa-reshape-guard');
+  it('previews and audits schedule deletion, unassigning every affected match', async () => {
+    const { matches, referee, schedule, slots, stage, venue } =
+      await seedStage('copa-delete-preview');
+    const matchId = item(matches, 0).matchId;
 
     // Assign match 0 to slot 0
     await withTransaction(scratch.db, (uow) =>
       schedules.publishSchedule(uow, {
         organizationId,
-        assignments: [{ matchId: item(matches, 0).matchId, slotId: item(slots, 0).slotId }],
+        assignments: [
+          {
+            matchId,
+            slotId: item(slots, 0).slotId,
+            officialIds: [referee.officialId],
+          },
+        ],
         ...AUDIT,
       }),
     );
@@ -415,16 +423,59 @@ describe('scheduling (integration)', () => {
       ),
     ).rejects.toThrow(/Cannot reshape schedule while its slots hold matches/);
 
-    // Attempt to delete schedule -> must be refused
+    const preview = await schedules.previewRemoveSchedule(schedule.scheduleId);
+    expect(preview).toEqual({ slots: slots.length, matchesUnassigned: 1 });
+    await expect(schedules.listScheduleForStage(stage.stageId)).resolves.toHaveLength(1);
+
+    const result = await withTransaction(scratch.db, (uow) =>
+      schedules.removeSchedule(uow, {
+        scheduleId: schedule.scheduleId,
+        organizationId,
+        confirmationName: schedule.name,
+        ...AUDIT,
+      }),
+    );
+    expect(result).toEqual({ slots: slots.length, matchesUnassigned: 1 });
+    await expect(schedules.listScheduleForStage(stage.stageId)).resolves.toEqual([]);
     await expect(
-      withTransaction(scratch.db, (uow) =>
-        schedules.removeSchedule(uow, {
-          scheduleId: schedule.scheduleId,
-          organizationId,
-          ...AUDIT,
+      scratch.db
+        .selectFrom('match_schedule_officials')
+        .select('match_id')
+        .where('match_id', '=', matchId)
+        .execute(),
+    ).resolves.toEqual([]);
+
+    const history = await schedules.listScheduleHistory(matchId);
+    expect(history).toHaveLength(1);
+    expect(history[0]).toMatchObject({
+      priorSlotId: item(slots, 0).slotId,
+      priorVenueId: venue.venueId,
+      priorOfficialIds: [referee.officialId],
+      reason: 'Schedule deleted',
+    });
+    const audit = await new AuditReader(scratch.db).historyFor('schedule', schedule.scheduleId);
+    expect(audit.at(-1)).toMatchObject({
+      action: 'schedule.deleted',
+      resultingState: { slots: slots.length, matchesUnassigned: 1 },
+    });
+    const outbox = await scratch.db
+      .selectFrom('outbox_events')
+      .select(['event_type', 'entity_id', 'payload'])
+      .where('event_type', 'in', ['match.rescheduled', 'schedule.deleted'])
+      .where((eb) =>
+        eb.or([eb('entity_id', '=', matchId), eb('entity_id', '=', schedule.scheduleId)]),
+      )
+      .execute();
+    expect(outbox).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ event_type: 'match.rescheduled', entity_id: matchId }),
+        expect.objectContaining({
+          event_type: 'schedule.deleted',
+          entity_id: schedule.scheduleId,
+          payload: expect.objectContaining({ slots: slots.length, matchesUnassigned: 1 }),
         }),
-      ),
-    ).rejects.toThrow(/Cannot delete schedule while its slots hold matches/);
+      ]),
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -499,6 +550,7 @@ describe('scheduling (integration)', () => {
       schedules.publishSchedule(uow, {
         organizationId,
         assignments: [{ matchId, slotId: item(slots, 1).slotId }],
+        reason: { text: 'Court 1 without lights' },
         ...AUDIT,
       }),
     );
@@ -526,11 +578,19 @@ describe('scheduling (integration)', () => {
     await expect(schedules.listScheduleForStage(stage.stageId)).resolves.toHaveLength(3);
   });
 
-  it('enforces a rest rule across matches an entrant plays in', async () => {
-    const { matches, slots } = await seedStage('copa-descanso');
+  it('enforces the tournament rest rule across matches an entrant plays in', async () => {
+    const { tournament, matches, slots } = await seedStage('copa-descanso');
+    await withTransaction(scratch.db, (uow) =>
+      new TournamentRepository(scratch.db).setMinimumRest(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        minimumRestMinutes: 30,
+        ...AUDIT,
+      }),
+    );
 
     // Matches 0 and 2 share entrant Alfa. Slots 0 (14:00-15:00) and 1 (15:15-16:15) have a 15m turnaround.
-    // Rest rule requires minimum 30 minutes.
+    // The tournament requires a minimum of 30 minutes.
     await expect(
       withTransaction(scratch.db, (uow) =>
         schedules.publishSchedule(uow, {
@@ -539,7 +599,6 @@ describe('scheduling (integration)', () => {
             { matchId: item(matches, 0).matchId, slotId: item(slots, 0).slotId },
             { matchId: item(matches, 2).matchId, slotId: item(slots, 1).slotId },
           ],
-          restRule: { minimumMinutes: 30 },
           ...AUDIT,
         }),
       ),

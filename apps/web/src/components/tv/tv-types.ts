@@ -1,3 +1,5 @@
+import type { SideSourceMessages } from '../../lib/side-source.js';
+import type { CompetitionContextLabels } from '../../lib/competition-context.js';
 import type { ResultStateLabels } from '../../lib/result-state.js';
 
 /**
@@ -6,19 +8,49 @@ import type { ResultStateLabels } from '../../lib/result-state.js';
  * sub-component doesn't import back into the file that composes it.
  */
 export interface TvClubItem {
+  readonly clubId?: string;
   readonly name: string;
+  readonly abbreviation?: string;
   /** Same-origin URL of the club's emblem route; absent when the club has none. */
   readonly emblemUrl?: string;
 }
 
 export interface TvDashboardLabels {
+  readonly stale?: string;
+  readonly sideSource: SideSourceMessages;
+  readonly homeSide: string;
+  readonly awaySide: string;
+  readonly rescheduled?: string;
   readonly resultState: ResultStateLabels;
+  readonly delayed?: string;
+  /** The featured-performers tab when the fallback ranks teams. */
+  readonly performersTeamsTab: string;
+  /** The pinned route's recent-results tab. */
+  readonly recentFormTab: string;
+  /** The tournament badge while matches are final and none is live. */
+  readonly inProgress: string;
   readonly noMatchesScheduled: string;
   readonly standingsUnavailable: string;
   readonly clubColumn: string;
-  readonly playedColumn: string;
+  readonly playedShort: string;
   readonly noTopPerformers: string;
   readonly focalPanelLabel: string;
+  readonly focalPanelTitle: string;
+  readonly recapTitle: string;
+  /** Templates used by `competitionContext` for the pinned/spotlight match header. */
+  readonly contextLabels: CompetitionContextLabels;
+  readonly bracketBranch: {
+    readonly winners: string;
+    readonly losers: string;
+    readonly grandFinal: string;
+    readonly placement: string;
+  };
+  readonly bracketRoundFinal: string;
+  readonly bracketRoundSemifinals: string;
+  readonly bracketRoundQuarterfinals: string;
+  readonly zonePrefix?: string;
+  /** Raw `{ordinal}` / `{place}` template for overall placement suffix. */
+  readonly overallPlace?: string;
   readonly matchEventsLabel: string;
   readonly statsAndTablesLabel: string;
   readonly sidebarSectionsLabel: string;
@@ -31,8 +63,18 @@ export interface TvDashboardLabels {
   readonly bracketMatch: string;
   readonly possession: string;
   readonly penalty: string;
+  /** Templates the match counters read through, filled by the organism per counter and side. */
+  readonly counters: {
+    readonly accessibleValue: string;
+    readonly accessibleAllowance: string;
+    readonly warning: string;
+  };
   /** Names the wall clock the header shows for a tournament still being played. */
   readonly clockLabel: string;
+  readonly clockStopped: string;
+  readonly clockAriaLabel: string;
+  readonly leading: string;
+  readonly nextMatch: string;
   /** Raw `{date}` template: the header of a finished tournament, naming the day it ended. */
   readonly finishedOn: string;
   /** Said by a pinned route whose match does not exist. */

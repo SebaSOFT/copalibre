@@ -18,6 +18,7 @@ export function MatchesViewTemplate({
   completion,
   labels,
   matches,
+  organizationAlias,
   onSelectState,
   state,
   status,
@@ -25,6 +26,7 @@ export function MatchesViewTemplate({
   readonly completion?: TournamentCompletionResponse;
   readonly labels: ReturnType<typeof matchCardLabelsFromControlIntl>;
   readonly matches: readonly MatchCardData[];
+  readonly organizationAlias?: string;
   readonly onSelectState: (state: StateFilter) => void;
   readonly state: StateFilter;
   readonly status: 'loading' | 'ready' | 'error';
@@ -62,7 +64,10 @@ export function MatchesViewTemplate({
                 ? {
                     value: (
                       <span data-testid="completion-value">
-                        {`${completion.resolvedMatches} of ${completion.totalMatches}`}
+                        {intl.formatMessage(messages.tournamentCompletionValue, {
+                          resolved: completion.resolvedMatches,
+                          total: completion.totalMatches,
+                        })}
                       </span>
                     ),
                   }
@@ -79,7 +84,10 @@ export function MatchesViewTemplate({
                     ? {
                         value: (
                           <span data-testid={`completion-stage-${stage.stageNumber}`}>
-                            {`${stage.resolvedMatches} of ${stage.totalMatches}`}
+                            {intl.formatMessage(messages.tournamentCompletionValue, {
+                              resolved: stage.resolvedMatches,
+                              total: stage.totalMatches,
+                            })}
                           </span>
                         ),
                       }
@@ -94,11 +102,23 @@ export function MatchesViewTemplate({
         <p className="cl-list-screen__empty">{labels.empty}</p>
       )}
       {matches.length > 0 && (
-        <div className="cl-matches-view__grid">
-          {matches.map((match) => (
-            <MatchCard key={match.matchId} locale={intl.locale} match={match} labels={labels} />
-          ))}
-        </div>
+        <section aria-labelledby="matches-view-list-heading">
+          <h2 className="cl-visually-hidden" id="matches-view-list-heading">
+            {intl.formatMessage(messages.matchesViewListHeading)}
+          </h2>
+          <div className="cl-matches-view__grid">
+            {matches.map((match) => (
+              <MatchCard
+                key={match.matchId}
+                headingLevel={3}
+                locale={intl.locale}
+                match={match}
+                labels={labels}
+                organizationAlias={organizationAlias}
+              />
+            ))}
+          </div>
+        </section>
       )}
     </>
   );

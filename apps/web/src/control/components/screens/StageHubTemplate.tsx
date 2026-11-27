@@ -5,13 +5,17 @@ import { isSupportedLanguage, resolveLabel, type LocalizedLabel } from '@copalib
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
+import { Container } from '../ui/atoms/layout/container.js';
 import { Input } from '../ui/atoms/input.js';
 import { Select } from '../ui/atoms/select.js';
 import { DecisionHint } from '../ui/atoms/decision-hint.js';
 import { Field } from '../ui/molecules/field.js';
 import { messages } from '../../i18n/messages.en.js';
 import { resolveDecisionDescription } from '../../lib/wizard.js';
-import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { PageHeaderTemplate } from './PageHeaderTemplate.js';
+import { formatEnum } from '../../lib/presentation-formatting.js';
+import { ConsequenceDialog } from '../ui/organisms/consequence-dialog.js';
+import type { StageDeletionResponse } from '../../lib/api-client.js';
 
 /**
  * Rename/format-change/delete for the stage this hub is on — relocated from
@@ -61,69 +65,79 @@ function StageIdentitySection({
     : [format, ...availableFormats];
 
   return (
-    <Card
-      aria-label={intl.formatMessage(messages.stageSettingsTitle)}
-      className="cl-chamfer cl-chamfer--control"
-    >
-      <header className="cl-card__header">
-        <h2 className="cl-card__title">
-          <FormattedMessage {...messages.stageSettingsTitle} />
-        </h2>
-      </header>
-      <div className="cl-card__content">
-        <Field id="stage-rename" label={intl.formatMessage(messages.stageRenameLabel)}>
-          <Input id="stage-rename" onChange={(event) => setName(event.target.value)} value={name} />
-        </Field>
-        <Button
-          disabled={name.trim() === ''}
-          onClick={() => void onRename(name)}
-          type="button"
-          variant="secondary"
-        >
-          <FormattedMessage {...messages.stageRenameSubmit} />
-        </Button>
+    <Container variant="form">
+      <Card
+        aria-label={intl.formatMessage(messages.stageSettingsTitle)}
+        className="cl-chamfer cl-chamfer--control"
+      >
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.stageSettingsTitle} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          {seeded && !dismissedSeededNotice && (
+            <Alert
+              dismissLabel={intl.formatMessage(messages.toastDismiss)}
+              onDismiss={() => setDismissedSeededNotice(true)}
+              tone="warning"
+            >
+              <FormattedMessage {...messages.stageSeededExplanation} />
+            </Alert>
+          )}
+          <div className="cl-stage-identity__row">
+            <Field id="stage-rename" label={intl.formatMessage(messages.stageRenameLabel)}>
+              <Input
+                id="stage-rename"
+                onChange={(event) => setName(event.target.value)}
+                value={name}
+              />
+            </Field>
+            <Button
+              disabled={name.trim() === ''}
+              onClick={() => void onRename(name)}
+              type="button"
+              variant="secondary"
+            >
+              <FormattedMessage {...messages.stageRenameSubmit} />
+            </Button>
+          </div>
 
-        <Field id="stage-format" label={intl.formatMessage(messages.stageFormatLabel)}>
-          <Select
-            aria-describedby={formatHintText === undefined ? undefined : 'stage-format-hint'}
-            disabled={seeded}
-            id="stage-format"
-            onValueChange={setFormat}
-            options={formatOptions.map((value) => ({ value, label: value }))}
-            value={format}
-          />
-        </Field>
-        {formatHintText !== undefined && (
-          <DecisionHint id="stage-format-hint" text={formatHintText} />
-        )}
-        <Button
-          disabled={seeded || format.trim() === ''}
-          onClick={() => void onChangeFormat(format)}
-          type="button"
-          variant="secondary"
-        >
-          <FormattedMessage {...messages.stageFormatSubmit} />
-        </Button>
+          <div className="cl-stage-identity__row">
+            <Field id="stage-format" label={intl.formatMessage(messages.stageFormatLabel)}>
+              <Select
+                aria-describedby={formatHintText === undefined ? undefined : 'stage-format-hint'}
+                disabled={seeded}
+                id="stage-format"
+                onValueChange={setFormat}
+                options={formatOptions.map((value) => ({
+                  value,
+                  label: formatEnum(intl, 'format', value),
+                }))}
+                value={format}
+              />
+            </Field>
+            <Button
+              disabled={seeded || format.trim() === ''}
+              onClick={() => void onChangeFormat(format)}
+              type="button"
+              variant="secondary"
+            >
+              <FormattedMessage {...messages.stageFormatSubmit} />
+            </Button>
+          </div>
+          {formatHintText !== undefined && (
+            <DecisionHint id="stage-format-hint" text={formatHintText} />
+          )}
 
-        <Button
-          disabled={seeded}
-          onClick={() => void onDelete()}
-          type="button"
-          variant="destructive-outline"
-        >
-          <FormattedMessage {...messages.stageDelete} />
-        </Button>
-        {seeded && !dismissedSeededNotice && (
-          <Alert
-            dismissLabel={intl.formatMessage(messages.toastDismiss)}
-            onDismiss={() => setDismissedSeededNotice(true)}
-            tone="warning"
-          >
-            <FormattedMessage {...messages.stageSeededExplanation} />
-          </Alert>
-        )}
-      </div>
-    </Card>
+          <div className="cl-stage-identity__danger">
+            <Button onClick={() => void onDelete()} type="button" variant="destructive-outline">
+              <FormattedMessage {...messages.stageDelete} />
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </Container>
   );
 }
 
@@ -148,37 +162,39 @@ function StageRoundsSection({
 }): React.JSX.Element {
   const intl = useIntl();
   return (
-    <Card
-      aria-label={intl.formatMessage(messages.stageRoundsHeading)}
-      className="cl-chamfer cl-chamfer--control"
-    >
-      <header className="cl-card__header">
-        <h2 className="cl-card__title">
-          <FormattedMessage {...messages.stageRoundsHeading} />
-        </h2>
-      </header>
-      <div className="cl-card__content">
-        <p>
-          <FormattedMessage {...messages.stageRoundsExplanation} />
-        </p>
-        <ul>
-          {zones.map((zone) => (
-            <li key={zone.zoneNumber}>
-              <Button
-                onClick={() => void onGenerateNextRound(zone.zoneNumber)}
-                type="button"
-                variant="secondary"
-              >
-                <FormattedMessage
-                  {...messages.stageRoundsGenerate}
-                  values={{ zone: zone.zoneName }}
-                />
-              </Button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </Card>
+    <Container variant="form">
+      <Card
+        aria-label={intl.formatMessage(messages.stageRoundsHeading)}
+        className="cl-chamfer cl-chamfer--control"
+      >
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.stageRoundsHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          <p>
+            <FormattedMessage {...messages.stageRoundsExplanation} />
+          </p>
+          <ul>
+            {zones.map((zone) => (
+              <li key={zone.zoneNumber}>
+                <Button
+                  onClick={() => void onGenerateNextRound(zone.zoneNumber)}
+                  type="button"
+                  variant="secondary"
+                >
+                  <FormattedMessage
+                    {...messages.stageRoundsGenerate}
+                    values={{ zone: zone.zoneName }}
+                  />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Card>
+    </Container>
   );
 }
 
@@ -190,45 +206,60 @@ function StageRoundsSection({
 export function StageHubTemplate({
   organizationAlias,
   tournamentAlias,
+  tournamentName,
   stageNumber,
   stageName,
   stageFormat,
   availableFormats,
   formatDescriptions,
   seeded,
+  deletePreview,
+  deleteBusy = false,
   roundZones = [],
   onGenerateNextRound,
   onRename,
   onChangeFormat,
   onDelete,
+  onDeletePreviewOpenChange = () => undefined,
+  onConfirmDelete = () => undefined,
 }: {
   readonly organizationAlias: string;
   readonly tournamentAlias: string;
+  readonly tournamentName?: string;
   readonly stageNumber: number;
   readonly stageName: string;
   readonly stageFormat: string;
   readonly availableFormats: readonly string[];
   readonly formatDescriptions?: Readonly<Record<string, string | LocalizedLabel>>;
   readonly seeded: boolean;
+  readonly deletePreview?: StageDeletionResponse;
+  readonly deleteBusy?: boolean;
   /** Zones that can advance a round; empty hides the rounds section. */
   readonly roundZones?: readonly RoundZone[];
   readonly onGenerateNextRound?: (zoneNumber: number) => Promise<void>;
   readonly onRename: (name: string) => Promise<void>;
   readonly onChangeFormat: (format: string) => Promise<void>;
   readonly onDelete: () => Promise<void>;
+  readonly onDeletePreviewOpenChange?: (open: boolean) => void;
+  readonly onConfirmDelete?: () => void;
 }): React.JSX.Element {
   const intl = useIntl();
   const base = `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}`;
 
-  const breadcrumbNode = (
-    <span>
-      {organizationAlias} / {tournamentAlias}
-    </span>
-  );
-
-  const titleNode = (
+  const titleNode = stageName.trim() || (
     <FormattedMessage {...messages.stageHubTitle} values={{ number: stageNumber }} />
   );
+  const breadcrumbs = [
+    ...(tournamentName?.trim()
+      ? [
+          {
+            label: tournamentName.trim(),
+            href: `/control/${organizationAlias}/tournaments/${tournamentAlias}`,
+          },
+        ]
+      : []),
+    { label: stageName, current: true },
+  ] as const;
 
   const tools: readonly { readonly href: string; readonly label: string }[] = [
     { href: `${base}/seeding`, label: intl.formatMessage(messages.stageHubSeedingLink) },
@@ -236,6 +267,56 @@ export function StageHubTemplate({
     { href: `${base}/standings`, label: intl.formatMessage(messages.stageHubStandingsLink) },
     { href: `${base}/schedule`, label: intl.formatMessage(messages.stageHubScheduleLink) },
   ];
+
+  const deletionCounts =
+    deletePreview === undefined
+      ? []
+      : [
+          {
+            label: intl.formatMessage(messages.stageDeleteFixtures),
+            value: deletePreview.fixtures,
+          },
+          { label: intl.formatMessage(messages.stageDeleteMatches), value: deletePreview.matches },
+          {
+            label: intl.formatMessage(messages.stageDeleteZonesGroups),
+            value: deletePreview.zones + deletePreview.groups,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeleteEvents),
+            value: deletePreview.matchEvents,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeleteSchedule),
+            value: deletePreview.schedulePlacements + deletePreview.scheduleOfficials,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeleteReports),
+            value: deletePreview.participantReports + deletePreview.reportEvidence,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeleteStatistics),
+            value: deletePreview.statistics,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeleteAccess),
+            value: deletePreview.matchPermissions + deletePreview.displayTokens,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeleteConfiguration),
+            value:
+              deletePreview.stageConfigurations +
+              deletePreview.compiledRulesets +
+              deletePreview.thresholdConsumption,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeletePromotionPlans),
+            value: deletePreview.promotionPlans,
+          },
+          {
+            label: intl.formatMessage(messages.stageDeleteCommandRecords),
+            value: deletePreview.commandRecords,
+          },
+        ].filter((count) => count.value > 0);
 
   const listingNode = (
     <div className="cl-screen-sections">
@@ -276,5 +357,27 @@ export function StageHubTemplate({
     </div>
   );
 
-  return <ListScreenLayout breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
+  return (
+    <>
+      <PageHeaderTemplate breadcrumbs={breadcrumbs} title={titleNode}>
+        {listingNode}
+      </PageHeaderTemplate>
+      <ConsequenceDialog
+        busy={deleteBusy}
+        cancelLabel={intl.formatMessage(messages.dashboardExportColumnsCancel)}
+        closeLabel={intl.formatMessage(messages.registrationModalClose)}
+        confirmLabel={intl.formatMessage(messages.stageDelete)}
+        counts={deletionCounts}
+        description={intl.formatMessage(messages.stageDeleteDescription)}
+        onConfirm={onConfirmDelete}
+        onOpenChange={onDeletePreviewOpenChange}
+        open={deletePreview !== undefined}
+        title={intl.formatMessage(messages.stageDeleteTitle, {
+          name: deletePreview?.stageName ?? stageName,
+        })}
+        typeToConfirm={deletePreview?.stageName}
+        typeToConfirmLabel={intl.formatMessage(messages.stageDeleteTypeName)}
+      />
+    </>
+  );
 }

@@ -34,14 +34,20 @@ const projection: TableProjectionResponseData = {
       entrantId: 'tll',
       rank: 1,
       sharedRank: false,
-      cells: { name: { raw: 'tll', formatted: 'tll' }, points: { raw: 6, formatted: '6' } },
+      cells: {
+        name: { raw: 'Talleres', formatted: 'Talleres' },
+        points: { raw: 6, formatted: '6' },
+      },
     },
     {
       actorId: 'ind',
       entrantId: 'ind',
       rank: 2,
       sharedRank: true,
-      cells: { name: { raw: 'ind', formatted: 'ind' }, points: { raw: 3, formatted: '3' } },
+      cells: {
+        name: { raw: 'Independiente', formatted: 'Independiente' },
+        points: { raw: 3, formatted: '3' },
+      },
     },
   ],
   projectionVersion: 7,
@@ -70,15 +76,13 @@ const matches: readonly CanvasMatch[] = [
   },
 ];
 
-function openRow(entrantId: string): HTMLDetailsElement {
-  const tr = screen.getAllByText(entrantId)[0]?.closest('tr');
-  const detailTr = tr?.nextElementSibling;
-  const row = (detailTr?.querySelector('details') ??
-    tr?.querySelector('details') ??
-    document.querySelector('details')) as HTMLDetailsElement;
-  row.open = true;
-  fireEvent(row, new Event('toggle'));
-  return row;
+function openRow(entrantId: string): HTMLButtonElement {
+  const table = screen.getByRole('table');
+  const tr = within(table).getAllByText(entrantId)[0]?.closest('tr');
+  if (!tr) throw new Error(`No standings row for ${entrantId}`);
+  const toggle = within(tr).getByRole('button') as HTMLButtonElement;
+  fireEvent.click(toggle);
+  return toggle;
 }
 
 describe('SeedingBuilderTemplate', () => {
@@ -93,6 +97,7 @@ describe('SeedingBuilderTemplate', () => {
         <SeedingBuilderTemplate
           hasRecordedResults={false}
           zones={[{ matches }]}
+          names={{ tll: 'Talleres', ind: 'Independiente' }}
           organizationAlias="liga-mendocina"
           random={() => 0.99}
           seeds={seeds}
@@ -105,7 +110,7 @@ describe('SeedingBuilderTemplate', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Shuffle unlocked' }));
 
     const rows = screen.getAllByRole('listitem').map((item) => item.textContent ?? '');
-    expect(rows[0]).toContain('tll');
+    expect(rows[0]).toContain('Talleres');
   });
 
   it('undoes and redoes a change', () => {
@@ -193,10 +198,8 @@ describe('SeedingBuilderTemplate', () => {
       ),
     );
 
-    // describeSlot (lib/bracket-canvas.ts) is not yet extracted (documented
-    // follow-up) — its dynamic match-ID interpolation stays Spanish regardless of locale.
-    expect(screen.getByText('Ganador del WB-R1-M1')).toBeTruthy();
-    expect(screen.getByText('BO3')).toBeTruthy();
+    expect(screen.getByText('Winner of Round 1, match 1')).toBeTruthy();
+    expect(screen.getByText('Best of 3')).toBeTruthy();
   });
 
   it('zooms the canvas through the declared stops', () => {
@@ -253,6 +256,7 @@ function stubClient(overrides: Partial<ControlApiClient>): ControlApiClient {
       Promise.resolve({
         stageId: 'stage-1',
         format: 'single-elimination',
+        names: { tll: 'Talleres', ind: 'Independiente' },
         seeds: [{ seed: 1, entrantId: 'tll' }],
         zones: [{ matches }],
         hasRecordedResults: false,
@@ -291,11 +295,11 @@ describe('control routes', () => {
       />,
     );
 
-    await screen.findByText('Posiciones');
+    await screen.findByRole('heading', { level: 1, name: 'Posiciones' });
     // Both the distribution chart's bar label and the table row repeat the
     // entrant name; either is proof the projection loaded.
-    await screen.findAllByText('ind');
-    openRow('ind');
+    await screen.findAllByText('Independiente');
+    openRow('Independiente');
     expect(await screen.findByText('linea')).toBeTruthy();
   });
 
@@ -309,7 +313,8 @@ describe('control routes', () => {
       />,
     );
 
-    expect(await screen.findByText('No se pudieron cargar las posiciones.')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeTruthy();
+    expect(document.querySelector('.cl-skeleton')).not.toBeNull();
   });
 
   it('reports a table-layout list it could not complete', async () => {
@@ -322,7 +327,8 @@ describe('control routes', () => {
       />,
     );
 
-    expect(await screen.findByText('No se pudieron cargar las tablas.')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeTruthy();
+    expect(document.querySelector('.cl-skeleton')).not.toBeNull();
   });
 
   it('offers a group selector for a stage with more than one group and scopes the table to the selected one', async () => {
@@ -384,7 +390,7 @@ describe('control routes', () => {
       />,
     );
 
-    await screen.findAllByText('ind');
+    await screen.findAllByText('Independiente');
     expect(screen.queryByRole('combobox', { name: 'Grupo' })).toBeNull();
   });
 
@@ -412,7 +418,7 @@ describe('control routes', () => {
       />,
     );
 
-    await screen.findByText('Sembrado');
+    await screen.findByRole('button', { name: 'Sortear no fijados' });
     // Pinned so the shuffle is a real change every run: with two entrants an
     // unpinned Math.random leaves the order alone half the time.
     const random = jest.spyOn(Math, 'random').mockReturnValue(0);
@@ -467,7 +473,7 @@ describe('control routes', () => {
       />,
     );
 
-    await screen.findByText('Sembrado');
+    await screen.findByRole('button', { name: 'Sortear no fijados' });
     const random = jest.spyOn(Math, 'random').mockReturnValue(0);
     fireEvent.click(screen.getByRole('button', { name: 'Sortear no fijados' }));
     random.mockRestore();
@@ -498,7 +504,8 @@ describe('control routes', () => {
     // English, not translated: this id has no Spanish catalogue entry yet,
     // the same `auth.*`/`invitation.*` namespace
     // gap other screens already restate in English.
-    expect(await screen.findByText('Could not load the seeding.')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeTruthy();
+    expect(document.querySelector('.cl-skeleton')).not.toBeNull();
   });
 
   it('pre-fills from a resolved promotion plan when the stage has no seeds yet', async () => {
@@ -509,6 +516,7 @@ describe('control routes', () => {
             Promise.resolve({
               stageId: 'stage-2',
               format: 'single-elimination',
+              names: { tll: 'Talleres', ind: 'Independiente' },
               seeds: [],
               zones: [],
               hasRecordedResults: false,
@@ -531,12 +539,15 @@ describe('control routes', () => {
       />,
     );
 
-    await screen.findByText('Sembrado');
+    await screen.findByRole('button', { name: 'Sortear no fijados' });
     const seedList = screen.getByRole('list', { name: 'Orden de siembra' });
     const rows = within(seedList)
       .getAllByRole('listitem')
       .map((row) => row.textContent);
-    expect(rows).toEqual([expect.stringContaining('tll'), expect.stringContaining('ind')]);
+    expect(rows).toEqual([
+      expect.stringContaining('Talleres'),
+      expect.stringContaining('Independiente'),
+    ]);
   });
 
   it('does not override an already-recorded seed order with a matching promotion plan', async () => {
@@ -549,6 +560,7 @@ describe('control routes', () => {
             Promise.resolve({
               stageId: 'stage-2',
               format: 'single-elimination',
+              names: { tll: 'Talleres', ind: 'Independiente' },
               seeds: [{ seed: 1, entrantId: 'tll' }],
               zones: [{ matches }],
               hasRecordedResults: false,
@@ -561,13 +573,13 @@ describe('control routes', () => {
       />,
     );
 
-    await screen.findByText('Sembrado');
+    await screen.findByRole('button', { name: 'Sortear no fijados' });
     const seedList = screen.getByRole('list', { name: 'Orden de siembra' });
     expect(
       within(seedList)
         .getAllByRole('listitem')
         .map((row) => row.textContent),
-    ).toEqual([expect.stringContaining('tll')]);
+    ).toEqual([expect.stringContaining('Talleres')]);
     // Existing seeds are the API's own signal not to look further — the
     // reverse lookup is never even called (no override, ever).
     expect(fetchPromotionPlansTargetingStage).not.toHaveBeenCalled();
@@ -593,18 +605,16 @@ describe('control routes', () => {
       />,
     );
 
-    await screen.findByText('Sembrado');
+    await screen.findByRole('button', { name: 'Sortear no fijados' });
     const seedList = screen.getByRole('list', { name: 'Orden de siembra' });
     expect(within(seedList).queryAllByRole('listitem')).toEqual([]);
   });
 });
 
 describe('control api client endpoints', () => {
-  it('addresses the stage routes and never puts the token in the URL', async () => {
+  it('addresses the stage routes and authenticates with the cookie, never a URL or header', async () => {
     const calls: { url: string; init?: RequestInit }[] = [];
     const client = createControlApiClient({
-      accessToken: () => 'secret-token',
-      baseUrl: '/api',
       fetch: ((url: string, init?: RequestInit) => {
         calls.push({ url, init });
         return Promise.resolve(new Response(JSON.stringify({}), { status: 200 }));
@@ -622,8 +632,9 @@ describe('control api client endpoints', () => {
       '/api/organizations/liga/tournaments/apertura/stages/2/seeding',
       '/api/organizations/liga/tournaments/apertura/stages/2/seeding',
     ]);
-    expect(calls.every((call) => !call.url.includes('secret-token'))).toBe(true);
-    expect(new Headers(calls[0]?.init?.headers).get('authorization')).toBe('Bearer secret-token');
+    expect(calls.every((call) => !/token/i.test(call.url))).toBe(true);
+    expect(new Headers(calls[0]?.init?.headers).get('authorization')).toBeNull();
+    expect(calls.every((call) => call.init?.credentials === 'same-origin')).toBe(true);
   });
 
   it('surfaces the server’s message when a publish is refused', async () => {

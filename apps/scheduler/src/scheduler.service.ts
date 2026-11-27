@@ -52,11 +52,26 @@ export class SchedulerService implements OnModuleInit, OnApplicationShutdown {
     this.jobs = new ScheduledJobStore(this.db);
   }
 
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
     if (process.env.COPALIBRE_SCHEDULER_DISABLED === 'true') {
       this.logger.log('Scheduler loop disabled by COPALIBRE_SCHEDULER_DISABLED');
       return;
     }
+    await this.register({
+      jobName: 'soft-deleted-records-purge',
+      eventType: 'privacy.soft-deletes.purge',
+      payload: {},
+      intervalSeconds: 60 * 60,
+      enabled: true,
+    });
+    // Looks for bursts of refused requests; the worker raises the alert.
+    await this.register({
+      jobName: 'security-refusal-watch',
+      eventType: 'security.refusals.check',
+      payload: {},
+      intervalSeconds: 5 * 60,
+      enabled: true,
+    });
     this.timer = setInterval(() => void this.tick(), renewIntervalMs(this.timing));
     this.timer.unref?.();
   }

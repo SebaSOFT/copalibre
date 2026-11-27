@@ -2,8 +2,12 @@ import {
   BREAKPOINTS,
   COLOR_PRIMITIVES,
   CONTROL_DENSITY_SPACING,
+  FIGURE_SIZE,
   FONT_SIZE,
   FONT_WEIGHTS,
+  ICON_TOKENS,
+  LAYOUT_TOKENS,
+  CHART_TOKENS,
   MOTION,
   RADIUS,
   SPACING,
@@ -29,16 +33,24 @@ export interface TailwindTheme {
   readonly fontSize: Record<string, string>;
   readonly fontWeight: Record<string, string>;
   readonly spacing: Record<string, string>;
+  readonly maxWidth: Record<string, string>;
+  readonly gridTemplateColumns: Record<string, string>;
   readonly borderRadius: Record<string, string>;
   readonly transitionDuration: Record<string, string>;
   readonly screens: Record<string, string>;
   /** Control-web's data-density spacing subset, prefixed the same way `spacing` is. */
   readonly densitySpacing: Record<string, string>;
+  readonly iconSize: Record<string, string>;
+  readonly iconStroke: number;
+  readonly iconTablerOpticalScale: number;
 }
 
 export function generateTailwindTheme(): TailwindTheme {
   const colors: Record<string, string> = {};
   for (const [name, value] of Object.entries(COLOR_PRIMITIVES)) colors[`cl-${name}`] = value;
+  for (const name of Object.keys(CHART_TOKENS.series))
+    colors[`chart-${name}`] = `var(--cl-chart-${name})`;
+  colors['chart-other'] = 'var(--cl-chart-other)';
   for (const name of Object.keys(SEMANTIC_COLORS)) colors[name] = `var(--cl-${name})`;
   for (const name of Object.keys(BADGE_TONES))
     colors[`badge-${name}`] = `var(--cl-badge-${name}-color)`;
@@ -50,10 +62,22 @@ export function generateTailwindTheme(): TailwindTheme {
       body: split(TYPOGRAPHY.body),
       mono: split(TYPOGRAPHY.mono),
     },
-    fontSize: { ...FONT_SIZE },
+    fontSize: {
+      ...FONT_SIZE,
+      ...Object.fromEntries(
+        Object.entries(FIGURE_SIZE).map(([name, value]) => [`figure-${name}`, value]),
+      ),
+    },
     fontWeight: { ...FONT_WEIGHTS },
-    spacing: Object.fromEntries(
-      Object.entries(SPACING).map(([name, value]) => [`cl-${name}`, value]),
+    spacing: Object.fromEntries([
+      ...Object.entries(SPACING).map(([name, value]) => [`cl-${name}`, value]),
+      ...Object.entries(LAYOUT_TOKENS.gutter).map(([name, value]) => [`cl-gutter-${name}`, value]),
+    ]),
+    maxWidth: Object.fromEntries(
+      Object.entries(LAYOUT_TOKENS.container).map(([name, value]) => [`cl-${name}`, value]),
+    ),
+    gridTemplateColumns: Object.fromEntries(
+      Object.entries(LAYOUT_TOKENS.split).map(([name, value]) => [`cl-${name}`, value]),
     ),
     borderRadius: Object.fromEntries(
       Object.entries(RADIUS).map(([name, value]) => [`cl-${name}`, value]),
@@ -62,11 +86,18 @@ export function generateTailwindTheme(): TailwindTheme {
       'cl-fast': MOTION.fast,
       'cl-base': MOTION.base,
       'cl-slow': MOTION.slow,
+      'cl-flash': MOTION.flash,
+      'cl-pulse': MOTION.pulse,
     },
     screens: { ...BREAKPOINTS },
     densitySpacing: Object.fromEntries(
       Object.entries(CONTROL_DENSITY_SPACING).map(([name, value]) => [`cl-density-${name}`, value]),
     ),
+    iconSize: Object.fromEntries(
+      Object.entries(ICON_TOKENS.size).map(([name, value]) => [name, `${value}px`]),
+    ),
+    iconStroke: ICON_TOKENS.stroke,
+    iconTablerOpticalScale: ICON_TOKENS.tablerOpticalScale,
   };
 }
 

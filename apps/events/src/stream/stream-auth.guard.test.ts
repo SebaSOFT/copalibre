@@ -76,6 +76,36 @@ describe('authenticating a stream', () => {
     ).rejects.toThrow('the token expired');
   });
 
+  describe('with a Control browser session cookie', () => {
+    const SECURE = { secure: true } as const;
+
+    it('accepts the session cookie when no header is sent', async () => {
+      const request: Record<string, unknown> = {
+        headers: { cookie: '__Host-copalibre_session=good' },
+      };
+      const guard = new StreamAuthGuard(verifier(SUBJECT), SECURE);
+
+      expect(await guard.canActivate(context(request))).toBe(true);
+      expect(request.subject).toEqual(SUBJECT);
+    });
+
+    it('refuses a personal access token in the cookie', async () => {
+      const guard = new StreamAuthGuard(verifier(SUBJECT), SECURE);
+
+      await expect(
+        guard.canActivate(context({ headers: { cookie: '__Host-copalibre_session=clpat_x' } })),
+      ).rejects.toThrow('session cookie');
+    });
+
+    it('reads the plain-HTTP cookie name when Secure is off', async () => {
+      const guard = new StreamAuthGuard(verifier(SUBJECT), { secure: false });
+
+      expect(
+        await guard.canActivate(context({ headers: { cookie: 'copalibre_session=good' } })),
+      ).toBe(true);
+    });
+  });
+
   it('does not leak an unexpected failure to the caller', async () => {
     const guard = new StreamAuthGuard(verifier(new Error('JWKS host unreachable')));
 

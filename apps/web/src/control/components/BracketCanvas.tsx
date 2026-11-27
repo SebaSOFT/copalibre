@@ -1,3 +1,12 @@
+import { EntrantName } from '../../components/ui/atoms/EntrantName.js';
+import { EntrantEmblem } from '../../components/ui/molecules/EntrantEmblem.js';
+import {
+  finalRoundOf,
+  formatSideSource,
+  sourceMatchLabel,
+  type SideSourceMessages,
+} from '../../lib/side-source.js';
+import { sideSourceLabelsFromControlIntl } from '../lib/matches-view-labels.js';
 import { useEffect, useRef } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
@@ -10,30 +19,37 @@ import {
   type LaidOutMatch,
 } from '../lib/bracket-canvas.js';
 import { Button } from './ui/atoms/button.js';
+import { Icon } from './ui/atoms/icon.js';
 import { Badge } from './ui/atoms/badge.js';
 import { messages } from '../i18n/messages.en.js';
 import { controlLinkClick } from '../lib/control-navigation.js';
+import { clubEmblemUrl } from '../lib/api-client.js';
+import { formatEntrant, formatEnum, formatMatchRef } from '../lib/presentation-formatting.js';
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** An undecided seat names its source, with the compact form for narrow nodes. */
+function pendingSlotName(
+  slot: LaidOutMatch['slots'][number],
+  sourceLabels: SideSourceMessages,
+  finalRound?: number,
+): { readonly fullName: string; readonly abbreviation: string } {
+  const text = formatSideSource(
+    slot.source,
+    sourceLabels,
+    sourceMatchLabel(slot.source, sourceLabels, finalRound),
+  );
+  return { fullName: text.long, abbreviation: text.short };
+}
 
+/** A seated entrant's name; missing read-model data stays a translated label. */
 function resolveSlotLabel(
   slot: LaidOutMatch['slots'][number],
   names: Readonly<Record<string, string>>,
   intl: ReturnType<typeof useIntl>,
+  sourceLabels: SideSourceMessages,
 ): string {
-  if (slot.entrantId === undefined) {
-    return slot.label;
-  }
+  if (slot.entrantId === undefined) return sourceLabels.unknown;
   const resolved = names[slot.entrantId];
-  if (resolved) {
-    return resolved;
-  }
-  if (UUID_PATTERN.test(slot.entrantId)) {
-    return intl.formatMessage(messages.seedingUnresolvedEntrant, {
-      id: slot.entrantId.slice(0, 8),
-    });
-  }
-  return slot.label;
+  return formatEntrant(intl, { displayName: resolved }).fullName;
 }
 
 /**
@@ -44,11 +60,6 @@ function resolveSlotLabel(
  * two places draws two lines because the engine said so, not because this file
  * knows what a losers' bracket is.
  *
- * Per-slot labels (`describeSlot` in `lib/bracket-canvas.ts`: "Bye", "Winner
- * of <match>", "Loser of <match>") are not yet extracted — they embed a
- * dynamic match ID and need ICU interpolation at the point they are computed,
- * a genuinely different pattern from this file's static chrome; tracked as a
- * follow-up rather than rushed here.
  */
 export function BracketCanvas({
   matches,
@@ -60,6 +71,7 @@ export function BracketCanvas({
   highlightEntrantId,
   onHighlightEntrant,
   names = {},
+  organizationAlias,
   showBracketLabels = false,
   skeletonMode = false,
 }: {
@@ -79,6 +91,7 @@ export function BracketCanvas({
   readonly highlightEntrantId?: string;
   readonly onHighlightEntrant?: (entrantId?: string) => void;
   readonly names?: Readonly<Record<string, string>>;
+  readonly organizationAlias?: string;
   /** Label winners, losers, and grand-final bands in a double-elimination preview. */
   readonly showBracketLabels?: boolean;
   /** Replace entrants, structural ids, and scores with neutral slot skeletons. */
@@ -86,6 +99,9 @@ export function BracketCanvas({
 }): React.JSX.Element {
   const intl = useIntl();
   const interactive = onHighlightEntrant !== undefined;
+  const finalRound = finalRoundOf(
+    matches.map((match) => ({ nodeKey: match.matchId, round: match.round })),
+  );
   const hasSeries = matches.some((m) => m.series !== undefined);
   const layout = layoutBracket(
     matches,
@@ -125,7 +141,7 @@ export function BracketCanvas({
           type="button"
           variant="secondary"
         >
-          −
+          <Icon name="zoom-out" />
         </Button>
         <span style={zoomLabelStyle}>{Math.round(zoom * 100)}%</span>
         <Button
@@ -134,7 +150,7 @@ export function BracketCanvas({
           type="button"
           variant="secondary"
         >
-          +
+          <Icon name="zoom-in" />
         </Button>
       </div>
 
@@ -190,12 +206,14 @@ export function BracketCanvas({
                 }
                 key={node.matchId}
                 node={node}
+                finalRound={finalRound}
                 pathState={
                   path?.size ? (path.has(node.matchId) ? 'included' : 'excluded') : undefined
                 }
                 highlightEntrantId={highlightEntrantId}
                 onHighlightEntrant={onHighlightEntrant}
                 names={names}
+                organizationAlias={organizationAlias}
                 showBracketLabel={
                   showBracketLabels &&
                   layout.matches.find((match) => match.bracket === node.bracket)?.matchId ===
@@ -220,6 +238,7 @@ export function BracketCanvas({
  */
 function BracketNode({
   focused,
+  finalRound,
   focusedRef,
   href,
   node,
@@ -227,10 +246,12 @@ function BracketNode({
   highlightEntrantId,
   onHighlightEntrant,
   names,
+  organizationAlias,
   showBracketLabel,
   skeletonMode,
 }: {
   readonly focused: boolean;
+  readonly finalRound?: number;
   /** Set only on the focused node, so `BracketCanvas` can scroll it into view on mount. */
   readonly focusedRef: React.RefObject<HTMLElement | null> | undefined;
   readonly href: string | undefined;
@@ -239,11 +260,14 @@ function BracketNode({
   readonly highlightEntrantId?: string;
   readonly onHighlightEntrant?: (entrantId?: string) => void;
   readonly names: Readonly<Record<string, string>>;
+  readonly organizationAlias: string | undefined;
   readonly showBracketLabel: boolean;
   readonly skeletonMode: boolean;
 }): React.JSX.Element {
   const intl = useIntl();
   const interactive = onHighlightEntrant !== undefined;
+  const sourceLabels = sideSourceLabelsFromControlIntl(intl);
+  const title = formatMatchRef(intl, node.matchId, finalRound);
   const children = (
     <>
       <header style={nodeHeaderStyle}>
@@ -260,13 +284,13 @@ function BracketNode({
           <span aria-hidden="true" className="cl-bracket-node__title-skeleton" />
         ) : interactive && href !== undefined ? (
           <a className="cl-focusable" href={href} onClick={controlLinkClick(href)}>
-            {node.matchId}
+            {title}
           </a>
         ) : (
-          <span>{node.matchId}</span>
+          <span>{title}</span>
         )}
         {skeletonMode || node.format === undefined ? null : (
-          <span className="cl-badge">{node.format}</span>
+          <span className="cl-badge">{formatEnum(intl, 'format', node.format)}</span>
         )}
         {node.conditional === 'bracket-reset' && (
           <Badge
@@ -284,24 +308,63 @@ function BracketNode({
               {/* Named, never blank: "Ganador del WB-R1-M2" tells an
               operator what has to happen; an empty box reads as a bug. */}
               {interactive && slot.entrantId !== undefined ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="cl-journey-name"
-                  aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
-                    entrant: resolveSlotLabel(slot, names, intl),
-                  })}
-                  aria-pressed={highlightEntrantId === slot.entrantId}
-                  onClick={() =>
-                    onHighlightEntrant(
-                      slot.entrantId === highlightEntrantId ? undefined : slot.entrantId,
-                    )
-                  }
-                >
-                  {resolveSlotLabel(slot, names, intl)}
-                </Button>
+                <span style={entrantSlotLabelStyle}>
+                  {slot.clubId !== undefined && (
+                    <EntrantEmblem
+                      alt={resolveSlotLabel(slot, names, intl, sourceLabels)}
+                      abbreviation={slot.abbreviation}
+                      className="cl-bracket-slot-emblem"
+                      control
+                      decorative
+                      size={24}
+                      src={
+                        organizationAlias !== undefined && slot.emblemObjectId !== undefined
+                          ? clubEmblemUrl(organizationAlias, slot.clubId)
+                          : undefined
+                      }
+                    />
+                  )}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="cl-journey-name"
+                    aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
+                      entrant: resolveSlotLabel(slot, names, intl, sourceLabels),
+                    })}
+                    aria-pressed={highlightEntrantId === slot.entrantId}
+                    onClick={() =>
+                      onHighlightEntrant(
+                        slot.entrantId === highlightEntrantId ? undefined : slot.entrantId,
+                      )
+                    }
+                  >
+                    {resolveSlotLabel(slot, names, intl, sourceLabels)}
+                  </Button>
+                </span>
               ) : (
-                <span>{resolveSlotLabel(slot, names, intl)}</span>
+                <span style={entrantSlotLabelStyle}>
+                  {slot.clubId !== undefined && (
+                    <EntrantEmblem
+                      alt={resolveSlotLabel(slot, names, intl, sourceLabels)}
+                      abbreviation={slot.abbreviation}
+                      className="cl-bracket-slot-emblem"
+                      control
+                      decorative
+                      size={24}
+                      src={
+                        organizationAlias !== undefined && slot.emblemObjectId !== undefined
+                          ? clubEmblemUrl(organizationAlias, slot.clubId)
+                          : undefined
+                      }
+                    />
+                  )}
+                  <EntrantName
+                    pending={slot.pending}
+                    {...(slot.pending
+                      ? pendingSlotName(slot, sourceLabels, finalRound)
+                      : { fullName: resolveSlotLabel(slot, names, intl, sourceLabels) })}
+                  />
+                </span>
               )}
               <span style={scoreStyle}>{slot.score ?? '—'}</span>
             </>
@@ -381,7 +444,7 @@ function BracketNode({
     minHeight: node.height,
     // Same treatment the public bracket-context panel gives its focused node — one
     // "look here" cue reused across both surfaces, not two different ones to learn.
-    ...(focused ? { borderWidth: 2, borderColor: 'var(--cl-primary)' } : {}),
+    ...(focused ? { borderWidth: 2, borderColor: 'var(--cl-border-accent)' } : {}),
   };
 
   if (href === undefined || interactive) {
@@ -461,6 +524,12 @@ const slotStyle: React.CSSProperties = {
   justifyContent: 'space-between',
   gap: 'var(--cl-space-2)',
   fontSize: 'var(--cl-font-size-sm)',
+};
+const entrantSlotLabelStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 'var(--cl-space-1)',
+  minWidth: 0,
 };
 const pendingSlotStyle: React.CSSProperties = {
   ...slotStyle,

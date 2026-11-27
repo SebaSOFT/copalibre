@@ -93,11 +93,10 @@ The abbreviation SHALL NOT be derived from the name, and SHALL NOT be substitute
   competing
 
 ### Requirement: A club is reachable by a path identifier that may be suggested
-A club SHALL be able to carry an alias, unique within its organization, and the system SHALL be able
-to suggest one from the club's name — which the abbreviation is deliberately never derived from,
-because an alias is a transformation and an abbreviation is a choice. Every suggestion the system
-offers SHALL itself be a valid alias — never a value that would fail the same validation an organizer's
-own input is subject to.
+Every club SHALL carry an alias, unique within its organization. The system SHALL suggest one from
+the club's name. The abbreviation is deliberately never derived from the name, because an alias is a
+transformation and an abbreviation is a choice. Every suggestion the system offers SHALL itself be a
+valid alias, never a value that fails the validation an organizer's own input must pass.
 
 #### Scenario: An alias is suggested from the name
 - **WHEN** a club named "Club Atlético San Martín" is created without an alias
@@ -116,6 +115,37 @@ own input is subject to.
   already has a club whose alias equals that full-length base
 - **THEN** the second club is offered a suggestion that still satisfies the length limit, not a
   suggestion that exceeds it
+
+### Requirement: A suggested club alias is never empty
+A suggested alias SHALL never be empty. When the club's name folds to no usable character, the
+system SHALL suggest:
+- the club's abbreviation, folded into an alias, when the club has one;
+- otherwise `club-<n>`, with the smallest `n` not already taken in the organization.
+
+#### Scenario: A name with no foldable character falls back to the abbreviation
+- **WHEN** a club named "北京俱乐部" with abbreviation `BJ` is created without an alias
+- **THEN** it is given `bj`
+
+#### Scenario: A name and abbreviation with no foldable character fall back to a numbered alias
+- **WHEN** a club named "Динамо" with no abbreviation is created without an alias, and the
+  organization already has a club whose alias is `club-1`
+- **THEN** it is given `club-2`
+
+### Requirement: A club alias cannot be cleared
+A club SHALL NOT be stored without an alias, and an alias SHALL NOT be cleared. It may only be
+replaced by another valid alias that is free in the organization.
+
+#### Scenario: An alias cannot be cleared
+- **WHEN** an organizer edits a club and submits an empty alias
+- **THEN** the edit is refused with the club-conflict error naming the alias, and the stored alias is
+  unchanged
+
+#### Scenario: Existing clubs without an alias are backfilled on upgrade
+- **WHEN** an installation whose clubs include some with no alias is upgraded to this version
+- **THEN** every such club gets an alias by the same suggestion rules, processed oldest first, and
+  each one is unique in its organization
+- **AND** clubs that already had an alias keep it unchanged
+- **AND** running the upgrade again changes nothing
 
 ### Requirement: A person may declare a nationality
 
@@ -172,11 +202,8 @@ rather than a broken image or an empty gap.
 ### Requirement: An entrant carries a tournament-scoped, guaranteed-distinct abbreviation
 
 An entrant SHALL be able to carry a short label, in the same format as a club's or team's own
-abbreviation, distinct from every other entrant's label within the same tournament. This is a separate
-guarantee from a club's or team's own abbreviation, which remains organizer-chosen and
-collision-tolerant exactly as before — an entrant's label is what a tournament-scoped surface (a group
-table, a bracket cell, a match header) shows, and it is resolved automatically, as a default, only when
-nothing usable was explicitly supplied.
+abbreviation, distinct from every other entrant's label within the same tournament. It is resolved
+automatically, as a default, only when nothing usable was explicitly supplied.
 
 #### Scenario: An unambiguous name resolves automatically on registration
 - **WHEN** a team registers for a tournament and no other registered entrant's label would collide
@@ -215,6 +242,17 @@ nothing usable was explicitly supplied.
 - **WHEN** two entrants in two different tournaments carry the identical label
 - **THEN** neither registration nor label change is affected by the other tournament's usage
 
+#### Scenario: A club's own abbreviation stays collision-tolerant
+
+- **WHEN** two clubs or teams carry the same organizer-chosen abbreviation
+- **THEN** that remains allowed, exactly as before: only entrant labels within one tournament must
+  differ
+
+#### Scenario: Tournament-scoped surfaces show the entrant's label
+
+- **WHEN** a group table, a bracket cell or a match header shows an entrant
+- **THEN** it shows the entrant's tournament-scoped label
+
 ### Requirement: A person may declare a birth date, exposed publicly only as a computed age
 
 A person SHALL be able to carry an optional birth date. A person without one is valid and unaffected
@@ -242,3 +280,26 @@ raw birth date; it SHALL receive, at most, an age computed from it.
 #### Scenario: A public read of a person with no birth date shows no age
 - **WHEN** a surface that may read public competition data requests a person with no birth date set
 - **THEN** no age is present in what it receives, rather than a default or a guess
+
+### Requirement: A club alias rename is recorded
+Changing a club's alias from one value to a different value SHALL record the previous alias as a
+redirect to the new one within the organization, in the same transaction and with an audit record.
+Giving an alias to a club that had none, or saving the same alias, SHALL record nothing. A rename SHALL
+keep every recorded chain one step long, and SHALL drop a recorded redirect whose old alias is current
+again.
+
+#### Scenario: A rename records the old alias
+- **WHEN** an organizer changes a club's alias from `club-hispano` to `hispano`
+- **THEN** `club-hispano` resolves to `hispano` within the organization, and an `alias.renamed` audit record names both
+
+#### Scenario: A first alias is not a rename
+- **WHEN** a club with no alias is given the alias `club-1`
+- **THEN** no redirect is recorded
+
+#### Scenario: A second rename repoints the first
+- **WHEN** a club's alias goes from `a` to `b` and then from `b` to `c`
+- **THEN** both `a` and `b` resolve directly to `c`
+
+#### Scenario: Renaming back drops the stale redirect
+- **WHEN** a club's alias goes from `a` to `b` and then back to `a`
+- **THEN** `b` resolves to `a`, and no redirect from `a` remains

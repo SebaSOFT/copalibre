@@ -1,8 +1,10 @@
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
 import { jest } from '@jest/globals';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { SeedingBuilderPage } from '../pages/SeedingBuilderPage.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { ControlApiClient, SeedingResponse } from '../../lib/api-client.js';
+import { qualifierSeeds } from '../screen-story-fixtures.js';
 
 function seeding(overrides: Partial<SeedingResponse> = {}): SeedingResponse {
   return {
@@ -25,7 +27,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('SeedingBuilderPage', () => {
-  it('starts empty when the promotion-plan pre-fill lookup fails, rather than failing the whole screen', async () => {
+  it('keeps the skeleton and offers retry when the promotion-plan pre-fill lookup fails', async () => {
     render(
       withIntl(
         <SeedingBuilderPage
@@ -39,8 +41,8 @@ describe('SeedingBuilderPage', () => {
       ),
     );
 
-    await screen.findByText('Stage configuration');
-    expect(screen.getByText('This stage has no participants.')).toBeDefined();
+    await expectFirstReadFailure();
+    expect(screen.queryByText('This stage has no participants.')).toBeNull();
   });
 
   it('passes resolved entrant names from fetchSeeding to the template and renders them', async () => {
@@ -65,6 +67,102 @@ describe('SeedingBuilderPage', () => {
 
     await screen.findByText('Stage configuration');
     expect(await screen.findByText('Club Atlético Huracán')).toBeDefined();
+  });
+});
+
+describe('SeedingBuilderPage — generate ahead', () => {
+  const ahead = seeding({
+    format: 'single-elimination',
+    qualifiers: [{ format: 'single-elimination', seeds: qualifierSeeds }],
+  });
+
+  it('previews the bracket with qualifier labels and publishes only on an explicit action', async () => {
+    const generated = seeding({
+      format: 'single-elimination',
+      qualifiers: ahead.qualifiers,
+      zones: [
+        {
+          matches: [
+            {
+              matchId: 'SE-R1-M1',
+              bracket: 'winners',
+              round: 1,
+              position: 1,
+              status: 'scheduled',
+              slots: [
+                {
+                  kind: 'qualifier',
+                  source: {
+                    kind: 'qualifier',
+                    position: 1,
+                    qualifierLabel: qualifierSeeds[0]?.qualifierLabel,
+                  },
+                },
+                {
+                  kind: 'qualifier',
+                  source: {
+                    kind: 'qualifier',
+                    position: 4,
+                    qualifierLabel: qualifierSeeds[3]?.qualifierLabel,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const fetchSeeding = jest
+      .fn<ControlApiClient['fetchSeeding']>()
+      .mockResolvedValueOnce(ahead)
+      .mockResolvedValueOnce(generated);
+    const publishSeeding = jest.fn<ControlApiClient['publishSeeding']>(async () => ({
+      mutationClass: 'safe',
+      reason: 'No fixtures generated yet',
+      invalidates: [],
+      persisted: true,
+    }));
+    render(
+      withIntl(
+        <SeedingBuilderPage
+          client={stubClient({ fetchSeeding, publishSeeding })}
+          organizationAlias="liga-san-juan"
+          stageNumber={2}
+          tournamentAlias="copa-premier"
+        />,
+      ),
+    );
+
+    const panel = await screen.findByRole('region', { name: 'Generate ahead' });
+    expect(panel.textContent).toContain('1st Grupo A');
+    expect(panel.textContent).toContain('2nd Grupo B');
+    expect(publishSeeding).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Generate ahead' }));
+    await waitFor(() =>
+      expect(publishSeeding).toHaveBeenCalledWith('liga-san-juan', 'copa-premier', 2, {
+        ahead: true,
+      }),
+    );
+    const link = await screen.findByRole('link', { name: 'Confirm qualification' });
+    expect(link.getAttribute('href')).toBe(
+      '/control/liga-san-juan/tournaments/copa-premier/stages/2/qualification',
+    );
+  });
+
+  it('offers nothing to generate when no plan routes to the stage', async () => {
+    render(
+      withIntl(
+        <SeedingBuilderPage
+          client={stubClient()}
+          organizationAlias="liga-san-juan"
+          stageNumber={2}
+          tournamentAlias="copa-premier"
+        />,
+      ),
+    );
+    await screen.findByText('Stage configuration');
+    expect(screen.queryByRole('button', { name: 'Generate ahead' })).toBeNull();
   });
 });
 

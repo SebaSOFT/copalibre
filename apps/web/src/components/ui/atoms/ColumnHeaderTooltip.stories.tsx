@@ -15,10 +15,10 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Playground: Story = {
-  args: { label: 'PTS', description: 'Points' },
+  args: { label: 'PTS', description: 'Points', infoLabel: 'About PTS' },
 };
 
-/** No description: a plain sort trigger, no tooltip wiring at all. */
+/** No description: a plain sort trigger, with no icon and no description wiring. */
 export const WithoutDescription: Story = {
   args: { label: 'Rank', description: undefined },
 };
@@ -28,6 +28,7 @@ export const Sorted: Story = {
   args: {
     label: 'PTS',
     description: 'Points',
+    infoLabel: 'About PTS',
     indicator: (
       <span aria-hidden="true" className="cl-column-header__indicator">
         ▾
@@ -47,11 +48,12 @@ export const Matrix: Story = {
               <ColumnHeaderTooltip label="MP" />
             </th>
             <th>
-              <ColumnHeaderTooltip description="Goal Difference" label="GD" />
+              <ColumnHeaderTooltip description="Goal Difference" infoLabel="About GD" label="GD" />
             </th>
             <th>
               <ColumnHeaderTooltip
                 description="Points"
+                infoLabel="About PTS"
                 indicator={
                   <span aria-hidden="true" className="cl-column-header__indicator">
                     ▴

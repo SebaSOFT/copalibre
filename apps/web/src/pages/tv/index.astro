@@ -1,5 +1,7 @@
 ---
 import TvLayout from '../../layouts/TvLayout.astro';
+import Select from '../../components/ui/atoms/Select.astro';
+import TvLauncherLinkPreview from '../../components/ui/molecules/TvLauncherLinkPreview.astro';
 import {
   fetchCompletion,
   fetchOrganizations,
@@ -7,36 +9,40 @@ import {
   fetchOverview,
   fetchMatchesView,
   mapMatchesViewResponse,
+  mapOverviewResponse,
 } from '../../lib/public-api-client.ts';
-import { TV_BACKGROUNDS } from '../../lib/tv-background.ts';
+import { TV_BACKGROUNDS, type TvBackground } from '../../lib/tv-background.ts';
 import { selectDisciplineBackground } from '../../lib/discipline-background.ts';
-import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import { tvLanguage } from '../../lib/tv-language.ts';
+import { publicIntl, tvDashboardLabels } from '../../lib/i18n/public-intl.ts';
+import { messages } from '../../lib/i18n/public-messages.en.ts';
 import { TV_LAUNCHER_LABELS } from '../../lib/tv-launcher-labels.ts';
+import { tvMatchEntriesOf } from '../../lib/tv-match-list.ts';
 import {
   courtOptions,
-  COURT_VALUE_PREFIX,
+  buildTvLauncherDestination,
+  defaultBackgroundFor,
+  formatKickoff,
+  gridFromParams,
+  isOverlayView,
+  knownCourt,
+  launcherStateLabels,
   matchOptionGroups,
+  openingStage,
+  pinnedMatchOf,
   stageOptions,
+  TV_LAUNCHER_VIEW_LABEL,
+  TV_LAUNCHER_VIEWS,
+  viewFromParams,
   viewShowsMatch,
   type TvLauncherMatchChoice,
 } from '../../lib/tv-launcher.ts';
 
 export const prerender = false;
 
-const VIEWS = ['dashboard', 'standings', 'matches', 'match', 'overlay'] as const;
-/** The label key each view's option reads. */
-const VIEW_LABEL = {
-  dashboard: 'dashboard',
-  standings: 'standings',
-  matches: 'matchList',
-  match: 'pinnedMatch',
-  overlay: 'overlay',
-} as const;
+const BACKGROUNDS = TV_BACKGROUNDS;
 
 const params = Astro.url.searchParams;
-const langParam = params.get('lang');
-const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam : 'en';
-const t = TV_LAUNCHER_LABELS[language];
 let organizationsResponse;
 try {
   organizationsResponse = await fetchOrganizations();
@@ -47,6 +53,11 @@ const organizations = organizationsResponse ?? [];
 const requestedOrganization = params.get('organization');
 const selectedOrganization =
   organizations.find((item) => item.alias === requestedOrganization) ?? organizations[0];
+// The address the launcher builds carries this language, so it starts on the organization's own.
+const language = tvLanguage(params.get('lang'), selectedOrganization?.primaryLanguage);
+const t = TV_LAUNCHER_LABELS[language];
+const intl = publicIntl(language);
+const undecidedSide = intl.formatMessage(messages.resultStateTbd);
 let tournaments: NonNullable<
   Awaited<ReturnType<typeof fetchOrganizationTournaments>>
 >['tournaments'] = [];
@@ -66,11 +77,11 @@ const selectedTournament =
   tournaments.find((item) => item.alias === requestedTournament) ?? tournaments[0];
 
 /*
-  The matches the launcher can pin, each with its stage's name, its zone and group and its round.
-  A match is named the way the public match route names it, by stage and ordinal in the stage,
-  which the matches view already reports as `matchNumber`.
+  The matches the launcher can pin or follow. Each names its stage, its competition and round, its
+  zone and group, its court, its state and its kickoff, the same words the TV surfaces show.
 */
 let matchChoices: TvLauncherMatchChoice[] = [];
+let organizationTimeZone: string | undefined;
 let selectedDisciplineBackground: ReturnType<typeof selectDisciplineBackground>;
 if (selectedOrganization && selectedTournament) {
   try {
@@ -81,47 +92,141 @@ if (selectedOrganization && selectedTournament) {
     ]);
     if (!overview || !matchesView) loadFailed = true;
     selectedDisciplineBackground = selectDisciplineBackground(overview?.disciplineImages);
+    organizationTimeZone = overview
+      ? mapOverviewResponse(overview, language).organizationTimeZone
+      : undefined;
     const stageNames = new Map(
       (completion?.stages ?? []).map((stage) => [stage.stageNumber, stage.stageName]),
     );
-    matchChoices = mapMatchesViewResponse(matchesView ?? { matches: [] }).matches.map((match) => ({
-      stage: match.stageNumber,
-      stageName: stageNames.get(match.stageNumber) ?? '',
-      match: match.matchNumber,
-      ...(match.round === undefined ? {} : { round: match.round }),
-      ...(match.zoneName === undefined ? {} : { zone: match.zoneName }),
-      ...(match.groupName === undefined ? {} : { group: match.groupName }),
-      home: match.homeName ?? 'TBD',
-      away: match.awayName ?? 'TBD',
-      ...(match.venueName === undefined ? {} : { venue: match.venueName }),
-    }));
+    const rows = mapMatchesViewResponse(
+      matchesView ?? { matches: [] },
+      undefined,
+      language,
+    ).matches;
+    const entries = tvMatchEntriesOf(rows, {
+      state: tvDashboardLabels(intl).resultState,
+      delayed: tvDashboardLabels(intl).delayed,
+      round: tvDashboardLabels(intl).bracketRound,
+      sideSource: tvDashboardLabels(intl).sideSource,
+      zonePrefix: tvDashboardLabels(intl).zonePrefix,
+    });
+    matchChoices = rows.map((match, index) => {
+      const entry = entries[index];
+      return {
+        stage: match.stageNumber,
+        stageName: stageNames.get(match.stageNumber) ?? '',
+        match: match.matchNumber,
+        ...(entry === undefined ? {} : { scope: entry.scope }),
+        ...(match.zoneName === undefined ? {} : { zone: match.zoneName }),
+        ...(match.groupName === undefined ? {} : { group: match.groupName }),
+        home: entry?.home.name ?? match.homeName ?? undecidedSide,
+        away: entry?.away.name ?? match.awayName ?? undecidedSide,
+        ...(match.venueName === undefined ? {} : { venue: match.venueName }),
+        state: match.state,
+        ...(match.scheduledAt === undefined ? {} : { scheduledAt: match.scheduledAt }),
+        ...(entry?.delayed === true ? { delayed: true } : {}),
+      };
+    });
   } catch {
     loadFailed = true;
   }
 }
-const viewParam = params.get('view');
-// An address made when `matches` meant the pinned match still means it.
-const view: (typeof VIEWS)[number] =
-  viewParam === 'matches' && params.has('stage') && params.has('match')
-    ? 'match'
-    : (VIEWS.find((item) => item === viewParam) ?? 'dashboard');
+
+const view = viewFromParams(params);
 const requestedBackground = params.get('bg') ?? params.get('background');
-const background =
-  TV_BACKGROUNDS.find((value) => value === requestedBackground && value !== 'transparent') ??
-  'discipline';
+const background: TvBackground =
+  BACKGROUNDS.find((value) => value === requestedBackground) ?? defaultBackgroundFor(view);
+const grid = gridFromParams(params);
 const stages = stageOptions(matchChoices);
-const initialStage = Number(params.get('stage')) || stages[0]?.stage;
-const initialMatch = Number(params.get('match')) || undefined;
+// The stage an address names is kept only when this tournament has it; otherwise the default stage opens.
+const initialStage =
+  openingStage(matchChoices, Number(params.get('stage')) || undefined) ?? stages[0]?.stage;
 const courts = courtOptions(matchChoices);
-const initialCourt = params.get('court') ?? undefined;
+// A match or a court is kept only when the opening stage and this tournament have it; a number or a name
+// left over from another tournament pins or follows nothing.
+const initialMatch = pinnedMatchOf(
+  matchChoices,
+  Number(params.get('stage')) || undefined,
+  initialStage,
+  Number(params.get('match')) || undefined,
+);
+const initialCourt = knownCourt(courts, params.get('court') ?? undefined);
 const matchGroups =
-  initialStage === undefined ? [] : matchOptionGroups(matchChoices, initialStage, t.round ?? '');
+  initialStage === undefined
+    ? []
+    : matchOptionGroups(matchChoices, initialStage, {
+        state: launcherStateLabels(t),
+        delayed: t.optionDelayed ?? '',
+        when: (scheduledAt) => formatKickoff(scheduledAt, language, organizationTimeZone),
+      });
 const matchFieldsShown = viewShowsMatch(view);
+const courtFieldShown = isOverlayView(view);
+const gridShown = view === 'multicourt';
 const noMatchesShown = matchFieldsShown && matchChoices.length === 0;
 const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'football';
+const choicesJson = encodeURIComponent(JSON.stringify(matchChoices));
+// The address the form names, as a same-origin path. The script makes it absolute once it runs, from the origin
+// the viewer has, and only then loads the preview. A pinned view with no match names no page, so it gets none.
+const launchAddress =
+  selectedOrganization && selectedTournament && !(view === 'match' && initialMatch === undefined)
+    ? buildTvLauncherDestination({
+        organization: selectedOrganization.alias,
+        tournament: selectedTournament.alias,
+        view,
+        background,
+        language,
+        ...(viewShowsMatch(view) && initialMatch !== undefined && initialStage !== undefined
+          ? { stage: initialStage, match: initialMatch }
+          : {}),
+        ...(isOverlayView(view) && initialMatch === undefined && initialCourt !== undefined
+          ? { court: initialCourt }
+          : {}),
+        ...(view === 'multicourt' ? { grid } : {}),
+      })
+    : '';
+const timeZoneAttr = organizationTimeZone ?? '';
+const organizationOptions = organizations.map((org) => ({
+  value: org.alias,
+  label: org.name,
+  selected: org.alias === selectedOrganization?.alias,
+}));
+const tournamentOptions = tournaments.map((tournament) => ({
+  value: tournament.alias,
+  label: tournament.name,
+  selected: tournament.alias === selectedTournament?.alias,
+}));
+const viewOptions = TV_LAUNCHER_VIEWS.map((item) => ({
+  value: item,
+  label: t[TV_LAUNCHER_VIEW_LABEL[item]] ?? '',
+  selected: item === view,
+}));
+const gridOptions = (['auto', '2', '4', '6'] as const).map((item) => ({
+  value: item,
+  label: item === 'auto' ? (t.gridAuto ?? '') : item,
+  selected: item === String(grid),
+}));
+const stageSelectOptions = stages.map((item) => ({
+  value: String(item.stage),
+  label: item.label,
+  selected: item.stage === initialStage,
+}));
+const courtSelectOptions = [
+  { value: '', label: t.noCourt ?? '', selected: initialCourt === undefined },
+  ...courts.map((venue) => ({ value: venue, label: venue, selected: venue === initialCourt })),
+];
+const backgroundOptions = BACKGROUNDS.map((item) => ({
+  value: item,
+  label: t[item] ?? '',
+  selected: item === background,
+}));
+const languageOptions = (['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const).map((item) => ({
+  value: item,
+  label: item.toUpperCase(),
+  selected: item === language,
+}));
 ---
 
-<TvLayout title={t.title} background={background}>
+<TvLayout language={language} title={t.title} background={background}>
   <main
     class="tv-launcher"
     data-tv-launcher
@@ -129,170 +234,185 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
     data-discipline={backdropDiscipline}
     data-has-discipline={String(Boolean(selectedDisciplineBackground))}
   >
-    {
-      selectedDisciplineBackground && (
-        <img
-          class="tv-launcher__discipline"
-          data-discipline-image
-          data-active={background === 'discipline' ? 'true' : 'false'}
-          src={selectedDisciplineBackground.url}
-          alt=""
-          aria-hidden="true"
-          style={`opacity:${selectedDisciplineBackground.opacity}`}
-        />
-      )
-    }
+    {selectedDisciplineBackground && (
+      <img
+        class="tv-launcher__discipline"
+        data-discipline-image
+        data-active={background === 'discipline' ? 'true' : 'false'}
+        src={selectedDisciplineBackground.url}
+        alt=""
+        aria-hidden="true"
+        style={`opacity:${selectedDisciplineBackground.opacity}`}
+      />
+    )}
     <div class="tv-launcher__backdrop" aria-hidden="true"></div>
     <section class="tv-launcher__panel cl-chamfer" aria-labelledby="tv-launcher-title">
-      <h1 id="tv-launcher-title" data-i18n="title">{t.title}</h1>
-      <p class="tv-launcher__intro" data-i18n="intro">{t.intro}</p>
-      {
-        organizations.length === 0 ? (
-          <p role="status" data-i18n={loadFailed ? 'loadError' : 'emptyOrganizations'}>
-            {loadFailed ? t.loadError : t.emptyOrganizations}
-          </p>
-        ) : (
-          <form
-            class="tv-launcher__form"
-            data-match-options={encodeURIComponent(JSON.stringify(matchChoices))}
+      <h1 id="tv-launcher-title" data-i18n="title">
+        {t.title}
+      </h1>
+      <p class="tv-launcher__intro" data-i18n="intro">
+        {t.intro}
+      </p>
+      {organizations.length === 0 ? (
+        <p role="status" data-i18n={loadFailed ? 'loadError' : 'emptyOrganizations'}>
+          {loadFailed ? t.loadError : t.emptyOrganizations}
+        </p>
+      ) : (
+        <form
+          class="tv-launcher__form"
+          data-match-options={choicesJson}
+          data-time-zone={timeZoneAttr}
+        >
+          <label>
+            <span data-i18n="organization">{t.organization}</span>
+            <Select
+              name="organization"
+              dataAttr="data-launcher-organization"
+              class="cl-chamfer cl-chamfer--control"
+              options={organizationOptions}
+            />
+          </label>
+          <label>
+            <span data-i18n="tournament">{t.tournament}</span>
+            <Select
+              name="tournament"
+              dataAttr="data-launcher-tournament"
+              class="cl-chamfer cl-chamfer--control"
+              options={tournamentOptions}
+            />
+          </label>
+          <label class="tv-launcher__wide">
+            <span data-i18n="view">{t.view}</span>
+            <Select
+              name="view"
+              dataAttr="data-launcher-view"
+              class="cl-chamfer cl-chamfer--control"
+              options={viewOptions}
+            />
+            <span
+              class="tv-launcher__hint"
+              data-view-description
+              data-i18n={`${TV_LAUNCHER_VIEW_LABEL[view]}Description`}
+            >
+              {t[`${TV_LAUNCHER_VIEW_LABEL[view]}Description`]}
+            </span>
+          </label>
+          <label data-grid-field hidden={!gridShown}>
+            <span data-i18n="grid">{t.grid}</span>
+            <Select
+              name="grid"
+              dataAttr="data-launcher-grid"
+              class="cl-chamfer cl-chamfer--control"
+              options={gridOptions}
+            />
+          </label>
+          <div class="tv-launcher__match-fields" data-match-fields hidden={!matchFieldsShown}>
+            <label>
+              <span data-i18n="stage">{t.stage}</span>
+              <Select
+                name="stage"
+                dataAttr="data-launcher-stage"
+                class="cl-chamfer cl-chamfer--control"
+                options={stageSelectOptions}
+              />
+            </label>
+            <label>
+              <span data-i18n="pinMatch">{t.pinMatch}</span>
+              <select class="cl-chamfer cl-chamfer--control cl-select" data-launcher-match>
+                {/* No match is named until the operator chooses one, in every view: a stage's first match is never pinned for them. */}
+                <option value="" selected={initialMatch === undefined}>
+                  {t.noMatch}
+                </option>
+                {matchGroups.map((group) => (
+                  <optgroup label={group.heading}>
+                    {group.options.map((item) => (
+                      <option value={item.match} selected={item.match === initialMatch}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label data-court-field hidden={!courtFieldShown}>
+            <span data-i18n="followCourt">{t.followCourt}</span>
+            <Select
+              name="court"
+              dataAttr="data-launcher-court"
+              class="cl-chamfer cl-chamfer--control"
+              options={courtSelectOptions}
+            />
+          </label>
+          <p
+            role="status"
+            class="tv-launcher__notice"
+            data-i18n="noMatches"
+            data-no-matches
+            hidden={!noMatchesShown}
           >
-            <label>
-              <span data-i18n="organization">{t.organization}</span>
-              <select
-                class="cl-chamfer cl-chamfer--control"
-                name="organization"
-                data-launcher-organization
-              >
-                {organizations.map((org) => (
-                  <option value={org.alias} selected={org.alias === selectedOrganization?.alias}>
-                    {org.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span data-i18n="tournament">{t.tournament}</span>
-              <select
-                class="cl-chamfer cl-chamfer--control"
-                name="tournament"
-                data-launcher-tournament
-              >
-                {tournaments.map((tournament) => (
-                  <option
-                    value={tournament.alias}
-                    selected={tournament.alias === selectedTournament?.alias}
-                  >
-                    {tournament.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span data-i18n="view">{t.view}</span>
-              <select class="cl-chamfer cl-chamfer--control" name="view" data-launcher-view>
-                {VIEWS.map((item) => (
-                  <option value={item} selected={item === view} data-i18n={VIEW_LABEL[item]}>
-                    {t[VIEW_LABEL[item]]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div class="tv-launcher__match-fields" data-match-fields hidden={!matchFieldsShown}>
-              <label>
-                <span data-i18n="stage">{t.stage}</span>
-                <select class="cl-chamfer cl-chamfer--control" data-launcher-stage>
-                  {stages.map((item) => (
-                    <option value={item.stage} selected={item.stage === initialStage}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span data-i18n="match">{t.match}</span>
-                <select class="cl-chamfer cl-chamfer--control" data-launcher-match>
-                  {view === 'overlay' && courts.length > 0 && (
-                    <optgroup label={t.courtGroup} data-i18n="courtGroup">
-                      {courts.map((venue) => (
-                        <option
-                          value={`${COURT_VALUE_PREFIX}${venue}`}
-                          selected={venue === initialCourt && initialMatch === undefined}
-                        >
-                          {venue}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                  {matchGroups.map((group) => (
-                    <optgroup label={group.heading}>
-                      {group.options.map((item) => (
-                        <option value={item.match} selected={item.match === initialMatch}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <p
-              role="status"
-              class="tv-launcher__notice"
-              data-i18n="noMatches"
-              data-no-matches
-              hidden={!noMatchesShown}
-            >
-              {t.noMatches}
+            {t.noMatches}
+          </p>
+          <label>
+            <span data-i18n="background">{t.background}</span>
+            <Select
+              name="bg"
+              dataAttr="data-launcher-background"
+              class="cl-chamfer cl-chamfer--control"
+              options={backgroundOptions}
+            />
+          </label>
+          <label>
+            <span data-i18n="language">{t.language}</span>
+            <Select
+              name="lang"
+              dataAttr="data-launcher-language"
+              class="cl-chamfer cl-chamfer--control"
+              options={languageOptions}
+            />
+          </label>
+          {loadFailed && (
+            <p role="status" class="tv-launcher__notice" data-i18n="loadError">
+              {t.loadError}
             </p>
-            <label>
-              <span data-i18n="background">{t.background}</span>
-              <select class="cl-chamfer cl-chamfer--control" name="bg" data-launcher-background>
-                {(['discipline', 'neutral', 'chroma', 'football', 'court'] as const).map((item) => (
-                  <option value={item} selected={item === background} data-i18n={item}>
-                    {t[item]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span data-i18n="language">{t.language}</span>
-              <select class="cl-chamfer cl-chamfer--control" name="lang" data-launcher-language>
-                {(['en', 'es', 'fr', 'pt', 'it', 'de', 'ru', 'zh'] as const).map((item) => (
-                  <option value={item} selected={item === language}>
-                    {item.toUpperCase()}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {loadFailed && (
-              <p role="status" class="tv-launcher__notice" data-i18n="loadError">
-                {t.loadError}
-              </p>
-            )}
-            {selectedOrganization && tournaments.length === 0 && !loadFailed && (
-              <p role="status" class="tv-launcher__notice" data-i18n="unavailable">
-                {t.unavailable}
-              </p>
-            )}
+          )}
+          {selectedOrganization && tournaments.length === 0 && !loadFailed && (
+            <p role="status" class="tv-launcher__notice" data-i18n="unavailable">
+              {t.unavailable}
+            </p>
+          )}
+          <p
+            role="status"
+            class="tv-launcher__notice tv-launcher__nothing"
+            data-i18n="nothingToShow"
+            data-nothing-to-show
+            hidden={
+              !(isOverlayView(view) && initialMatch === undefined && initialCourt === undefined)
+            }
+          >
+            {t.nothingToShow}
+          </p>
+          <TvLauncherLinkPreview
+            url={launchAddress}
+            transparent={background === 'transparent'}
+            finalLinkLabel={t.finalLink ?? ''}
+            copyLabel={t.copyLink ?? ''}
+            previewLabel={t.preview ?? ''}
+          />
+          <a class="tv-launcher__launch cl-chamfer cl-chamfer--control" data-launcher-link href="#">
+            <span data-i18n="launch">{t.launch}</span>
+            <span aria-hidden="true">↗</span>
+          </a>
+          {selectedOrganization && (
             <a
-              class="tv-launcher__launch cl-chamfer cl-chamfer--control"
-              data-launcher-link
-              href="#"
+              class="tv-launcher__public"
+              href={`/${encodeURIComponent(selectedOrganization.alias)}`}
             >
-              <span data-i18n="launch">{t.launch}</span>
-              <span aria-hidden="true">↗</span>
+              <span data-i18n="publicSite">{t.publicSite}</span> ↗
             </a>
-            {selectedOrganization && (
-              <a
-                class="tv-launcher__public"
-                href={`/${encodeURIComponent(selectedOrganization.alias)}`}
-              >
-                <span data-i18n="publicSite">{t.publicSite}</span> ↗
-              </a>
-            )}
-          </form>
-        )
-      }
+          )}
+        </form>
+      )}
     </section>
   </main>
 </TvLayout>
@@ -301,17 +421,26 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
   import { TV_LAUNCHER_LABELS } from '../../lib/tv-launcher-labels.js';
   import {
     buildTvLauncherDestination,
-    courtOptions,
-    COURT_VALUE_PREFIX,
+    defaultBackgroundFor,
+    formatKickoff,
+    isOverlayView,
+    launcherStateLabels,
     matchOptionGroups,
     parseTvLauncherPreset,
+    TV_LAUNCHER_VIEW_LABEL,
     viewShowsMatch,
+    type TvLauncherDestination,
+    type TvLauncherGrid,
     type TvLauncherMatchChoice,
     type TvLauncherView,
   } from '../../lib/tv-launcher.js';
   import type { TvBackground } from '../../lib/tv-background.js';
 
   type Language = keyof typeof TV_LAUNCHER_LABELS;
+  const PRESET_KEY = 'copalibre.tv.launcher_preset';
+  /** The preview is a 1920x1080 frame scaled to the panel: the size the broadcast is composed at. */
+  const FRAME_WIDTH = 1920;
+  const FRAME_HEIGHT = 1080;
 
   const root = document.querySelector<HTMLElement>('[data-tv-launcher]');
   const form = root?.querySelector<HTMLFormElement>('.tv-launcher__form');
@@ -321,66 +450,96 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
     const view = form.querySelector<HTMLSelectElement>('[data-launcher-view]');
     const background = form.querySelector<HTMLSelectElement>('[data-launcher-background]');
     const language = form.querySelector<HTMLSelectElement>('[data-launcher-language]');
+    const grid = form.querySelector<HTMLSelectElement>('[data-launcher-grid]');
+    const gridField = form.querySelector<HTMLElement>('[data-grid-field]');
     const stage = form.querySelector<HTMLSelectElement>('[data-launcher-stage]');
     const match = form.querySelector<HTMLSelectElement>('[data-launcher-match]');
+    const court = form.querySelector<HTMLSelectElement>('[data-launcher-court]');
+    const courtField = form.querySelector<HTMLElement>('[data-court-field]');
     const matchFields = form.querySelector<HTMLElement>('[data-match-fields]');
+    const description = form.querySelector<HTMLElement>('[data-view-description]');
     const noMatches = form.querySelector<HTMLElement>('[data-no-matches]');
+    const nothing = form.querySelector<HTMLElement>('[data-nothing-to-show]');
     const launch = form.querySelector<HTMLAnchorElement>('[data-launcher-link]');
+    const urlField = form.querySelector<HTMLOutputElement>('[data-launcher-url]');
+    const copy = form.querySelector<HTMLButtonElement>('[data-launcher-copy]');
+    const copied = form.querySelector<HTMLElement>('[data-copy-status]');
+    const preview = form.querySelector<HTMLIFrameElement>('[data-launcher-preview]');
+    const previewStage = form.querySelector<HTMLElement>('[data-preview-stage]');
     let choices: TvLauncherMatchChoice[] = [];
     try {
       choices = JSON.parse(decodeURIComponent(form.dataset.matchOptions ?? ''));
     } catch {
       choices = [];
     }
+    const timeZone = form.dataset.timeZone || undefined;
+    // Once the operator picks a background, switching the view no longer changes it.
+    let backgroundPicked = false;
 
     const labelsFor = (): Readonly<Record<string, string>> =>
       TV_LAUNCHER_LABELS[(language?.value ?? 'en') as Language] ?? TV_LAUNCHER_LABELS.en;
 
-    // The match options of the chosen stage, grouped by zone and group, with the round's word in the
-    // chosen language. The overlay alone may leave the match to the live one, so only it has that option.
+    // The match select starts on its empty choice in every view: a match is pinned only when the
+    // operator picks one. An overlay may stay empty (it follows a court instead); the pinned view cannot
+    // launch, copy or preview until a match is picked. The options read in the chosen language.
     const renderMatches = (): void => {
-      if (!stage || !match || !view) return;
+      if (!stage || !match || !view || !language) return;
       const labels = labelsFor();
       const previous = match.value;
-      const overlay = view.value === 'overlay';
-      const courtGroup = document.createElement('optgroup');
-      courtGroup.dataset.i18n = 'courtGroup';
-      courtGroup.label = labels.courtGroup ?? '';
-      courtGroup.append(
-        ...courtOptions(choices).map((venue) => {
-          const option = document.createElement('option');
-          option.value = `${COURT_VALUE_PREFIX}${venue}`;
-          option.textContent = venue;
-          return option;
-        }),
-      );
-      const groups = matchOptionGroups(choices, Number(stage.value), labels.round ?? '').map(
-        (group) => {
-          const element = document.createElement('optgroup');
-          element.label = group.heading;
-          element.append(
-            ...group.options.map((item) => {
-              const option = document.createElement('option');
-              option.value = String(item.match);
-              option.textContent = item.label;
-              return option;
-            }),
-          );
-          return element;
-        },
-      );
-      match.replaceChildren(
-        ...(overlay && courtGroup.children.length > 0 ? [courtGroup] : []),
-        ...groups,
-      );
-      const usable = [...match.options].filter((option) => !option.disabled);
-      match.value = usable.some((option) => option.value === previous)
-        ? previous
-        : (usable[0]?.value ?? '');
+      const groups = matchOptionGroups(choices, Number(stage.value), {
+        state: launcherStateLabels(labels),
+        delayed: labels.optionDelayed ?? '',
+        when: (scheduledAt) => formatKickoff(scheduledAt, language.value, timeZone),
+      }).map((group) => {
+        const element = document.createElement('optgroup');
+        element.label = group.heading;
+        element.append(
+          ...group.options.map((item) => {
+            const option = document.createElement('option');
+            option.value = String(item.match);
+            option.textContent = item.label;
+            return option;
+          }),
+        );
+        return element;
+      });
+      const none = document.createElement('option');
+      none.value = '';
+      none.textContent = labels.noMatch ?? '';
+      match.replaceChildren(none, ...groups);
+      // A choice that the new stage does not have is dropped: nothing is pinned until the operator picks one.
+      match.value = [...match.options].some((option) => option.value === previous) ? previous : '';
     };
 
-    // Every label the page rendered, again in the chosen language: no reload, so the other
-    // selections stay as they are.
+    const showDescription = (): void => {
+      if (!view || !description) return;
+      const key = TV_LAUNCHER_VIEW_LABEL[view.value as TvLauncherView];
+      if (key === undefined) return;
+      description.dataset.i18n = `${key}Description`;
+      description.textContent = labelsFor()[`${key}Description`] ?? '';
+    };
+
+    // The owned select options carry no label keys of their own: each one re-reads its label here.
+    const relabelOptions = (
+      select: HTMLSelectElement | null,
+      labelOf: (value: string) => string | undefined,
+    ): void => {
+      if (!select) return;
+      for (const option of select.options) {
+        const text = labelOf(option.value);
+        if (text !== undefined) option.textContent = text;
+      }
+    };
+
+    const showFields = (): void => {
+      if (!view) return;
+      const showsMatch = viewShowsMatch(view.value);
+      matchFields?.toggleAttribute('hidden', !showsMatch);
+      courtField?.toggleAttribute('hidden', !isOverlayView(view.value));
+      gridField?.toggleAttribute('hidden', view.value !== 'multicourt');
+    };
+
+    // Every label the page rendered, again in the chosen language: no reload, so the other selections stay.
     const applyLabels = (): void => {
       const labels = labelsFor();
       for (const element of root.querySelectorAll<HTMLElement>('[data-i18n]')) {
@@ -389,6 +548,10 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
         if (element instanceof HTMLOptGroupElement) element.label = text;
         else element.textContent = text;
       }
+      relabelOptions(view, (value) => labels[TV_LAUNCHER_VIEW_LABEL[value as TvLauncherView]]);
+      relabelOptions(background, (value) => labels[value]);
+      relabelOptions(grid, (value) => (value === 'auto' ? labels.gridAuto : value));
+      relabelOptions(court, (value) => (value === '' ? labels.noCourt : undefined));
       document.documentElement.lang = language?.value ?? 'en';
       if (labels.title) document.title = labels.title;
       renderMatches();
@@ -403,52 +566,63 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
         !language?.value
       )
         return;
-      const showsMatch = viewShowsMatch(view.value);
+      const viewValue = view.value as TvLauncherView;
+      const overlay = isOverlayView(viewValue);
       const stageNumber = Number(stage?.value);
-      const matchValue = match?.value ?? '';
-      const court = matchValue.startsWith(COURT_VALUE_PREFIX)
-        ? matchValue.slice(COURT_VALUE_PREFIX.length)
-        : undefined;
-      const matchNumber = court === undefined ? Number(matchValue) : Number.NaN;
-      const preset = {
+      const matchNumber = Number(match?.value);
+      const pinned = viewShowsMatch(viewValue) && stageNumber > 0 && matchNumber > 0;
+      const courtName = overlay && !pinned ? (court?.value ?? '') : '';
+      const preset: TvLauncherDestination = {
         organization: organization.value,
         tournament: tournament.value,
-        view: view.value as TvLauncherView,
-        background: background.value as Exclude<TvBackground, 'transparent'>,
+        view: viewValue,
+        background: background.value as TvBackground,
         language: language.value,
-        ...(showsMatch && stageNumber > 0 && matchNumber > 0
-          ? { stage: stageNumber, match: matchNumber }
+        ...(pinned ? { stage: stageNumber, match: matchNumber } : {}),
+        ...(courtName === '' ? {} : { court: courtName }),
+        ...(viewValue === 'multicourt' && grid
+          ? { grid: (grid.value === 'auto' ? 'auto' : Number(grid.value)) as TvLauncherGrid }
           : {}),
-        ...(view.value === 'overlay' && court !== undefined ? { court } : {}),
       };
       try {
-        localStorage.setItem('copalibre.tv.launcher_preset', JSON.stringify(preset));
+        localStorage.setItem(PRESET_KEY, JSON.stringify(preset));
       } catch {
         /* Storage can be disabled by kiosk policy. */
       }
       root.dataset.background = background.value;
-      document.documentElement.dataset.tvBackground = background.value as TvBackground;
-      const disciplineImage = root.querySelector<HTMLElement>('[data-discipline-image]');
-      disciplineImage?.setAttribute('data-active', String(background.value === 'discipline'));
-      matchFields?.toggleAttribute('hidden', !showsMatch);
-      noMatches?.toggleAttribute('hidden', !(showsMatch && choices.length === 0));
-      // The pinned view cannot launch without a match; the overlay may, and then shows the live one.
-      const matchUnavailable = view.value === 'match' && !(stageNumber > 0 && matchNumber > 0);
-      const href = buildTvLauncherDestination(preset);
+      document.documentElement.dataset.tvBackground = background.value;
+      root
+        .querySelector<HTMLElement>('[data-discipline-image]')
+        ?.setAttribute('data-active', String(background.value === 'discipline'));
+      previewStage?.toggleAttribute('data-transparent', background.value === 'transparent');
+      noMatches?.toggleAttribute('hidden', !(viewShowsMatch(viewValue) && choices.length === 0));
+      nothing?.toggleAttribute('hidden', !(overlay && !pinned && courtName === ''));
+      // The pinned view cannot open without a match; an overlay may, and then shows whatever it follows.
+      const unavailable = viewValue === 'match' && !pinned;
+      const destination = buildTvLauncherDestination(preset);
+      const absolute = `${window.location.origin}${destination}`;
       if (launch) {
-        launch.href = matchUnavailable ? '#' : href;
-        launch.setAttribute('aria-disabled', String(matchUnavailable));
+        launch.href = unavailable ? '#' : destination;
+        launch.setAttribute('aria-disabled', String(unavailable));
+      }
+      // Without a match the pinned view has no address: nothing to copy, and no page to preview.
+      const shown = unavailable ? '' : absolute;
+      if (urlField && urlField.value !== shown) urlField.value = shown;
+      if (copy) copy.disabled = unavailable;
+      if (copied) copied.textContent = '';
+      if (preview && unavailable) preview.removeAttribute('src');
+      else if (preview && preview.getAttribute('src') !== absolute) {
+        preview.setAttribute('src', absolute);
       }
     };
+
     const restore = (): void => {
       try {
-        const saved = parseTvLauncherPreset(
-          JSON.parse(localStorage.getItem('copalibre.tv.launcher_preset') ?? 'null'),
-        );
+        const saved = parseTvLauncherPreset(JSON.parse(localStorage.getItem(PRESET_KEY) ?? 'null'));
         if (!saved) return;
         const url = new URL(window.location.href);
         if (
-          ['organization', 'tournament', 'view', 'bg', 'lang'].some((key) =>
+          ['organization', 'tournament', 'view', 'bg', 'lang', 'layout', 'mode'].some((key) =>
             url.searchParams.has(key),
           )
         )
@@ -467,6 +641,7 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
               ...(saved.stage === undefined ? {} : { stage: String(saved.stage) }),
               ...(saved.match === undefined ? {} : { match: String(saved.match) }),
               ...(saved.court === undefined ? {} : { court: saved.court }),
+              ...(saved.grid === undefined ? {} : { grid: String(saved.grid) }),
             });
             window.location.replace(`/tv?${restored}`);
           }
@@ -480,40 +655,107 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
         choose(background, saved.background);
         choose(language, saved.language);
         choose(tournament, saved.tournament);
-        choose(stage, String(saved.stage));
+        choose(stage, String(saved.stage ?? ''));
+        choose(grid, String(saved.grid ?? 'auto'));
+        backgroundPicked = true;
         applyLabels();
         if (saved.match !== undefined) choose(match, String(saved.match));
-        if (saved.court !== undefined) choose(match, `${COURT_VALUE_PREFIX}${saved.court}`);
+        if (saved.court !== undefined) choose(court, saved.court);
+        showFields();
+        showDescription();
       } catch {
         /* Invalid or unavailable local storage leaves server defaults in place. */
       }
     };
+
     organization?.addEventListener('change', () => form.requestSubmit());
     tournament?.addEventListener('change', () => form.requestSubmit());
     stage?.addEventListener('change', () => {
       renderMatches();
       readPreset();
     });
-    let shownView = view?.value;
+    let previousView = view?.value ?? '';
     view?.addEventListener('change', () => {
+      // An overlay starts with nothing pinned: a pin from a kiosk view does not carry into it, but moving
+      // between two overlay modes keeps the match the operator chose.
+      const entering = !isOverlayView(previousView) && isOverlayView(view.value);
+      previousView = view.value;
+      if (match && entering) match.value = '';
+      if (!backgroundPicked && background) background.value = defaultBackgroundFor(view.value);
+      showFields();
+      showDescription();
       renderMatches();
-      // Arriving at the overlay starts it on its first choice: a court when there are any.
-      if (match && view.value === 'overlay' && shownView !== 'overlay')
-        match.value = [...match.options].find((option) => !option.disabled)?.value ?? '';
-      shownView = view.value;
+      readPreset();
+    });
+    background?.addEventListener('change', () => {
+      backgroundPicked = true;
+      readPreset();
+    });
+    // A pinned match and a followed court are alternatives: choosing one clears the other.
+    match?.addEventListener('change', () => {
+      if (court && match.value !== '') court.value = '';
+      readPreset();
+    });
+    court?.addEventListener('change', () => {
+      if (match && court.value !== '') match.value = '';
+      readPreset();
     });
     language?.addEventListener('change', () => {
       applyLabels();
+      showDescription();
       // The address keeps the language, so a reload or a shared link opens in it.
       const url = new URL(window.location.href);
       url.searchParams.set('lang', language.value);
       window.history.replaceState(null, '', url);
+      readPreset();
     });
     form.addEventListener('change', readPreset);
     launch?.addEventListener('click', (event) => {
       if (launch.getAttribute('aria-disabled') === 'true') event.preventDefault();
     });
+    // Without a secure context there is no clipboard: the address is selected for a manual copy instead.
+    const selectAddress = (message: string): void => {
+      if (!urlField) return;
+      const range = document.createRange();
+      range.selectNodeContents(urlField);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      if (copied) copied.textContent = message;
+    };
+    copy?.addEventListener('click', () => {
+      const shown = urlField?.value ?? '';
+      if (shown === '') return;
+      if (!navigator.clipboard?.writeText) {
+        selectAddress(labelsFor().copyUnavailable ?? '');
+        return;
+      }
+      void navigator.clipboard
+        .writeText(shown)
+        .then(() => {
+          // A link changed while the copy was pending is not the one that was copied.
+          if (copied && urlField?.value === shown)
+            copied.textContent = labelsFor().linkCopied ?? '';
+        })
+        // Permission denied or no focus: the address is selected for a manual copy instead.
+        .catch(() => selectAddress(labelsFor().copySelect ?? ''));
+    });
+    // The preview is a 1920x1080 frame, scaled to the width the panel gives it.
+    if (previewStage && preview) {
+      const scale = (): void => {
+        const width = previewStage.clientWidth;
+        preview.style.setProperty('--scale', String(width / FRAME_WIDTH));
+      };
+      preview.style.setProperty('--frame-width', `${FRAME_WIDTH}px`);
+      preview.style.setProperty('--frame-height', `${FRAME_HEIGHT}px`);
+      if (typeof ResizeObserver !== 'undefined') new ResizeObserver(scale).observe(previewStage);
+      scale();
+    }
     restore();
+    // The restore changed the view select without an event: the next change is compared against what is shown.
+    previousView = view?.value ?? '';
+    showFields();
+    showDescription();
     readPreset();
   }
 </script>
@@ -696,7 +938,7 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
     outline: 3px solid var(--cl-focus-ring);
     outline-offset: 2px;
   }
-  @media (max-width: 600px) {
+  @media (width < 768px) {
     .tv-launcher {
       padding: 0.75rem;
     }
@@ -711,5 +953,19 @@ const backdropDiscipline = selectedTournament?.discipline.descriptorId ?? 'footb
     .tv-launcher__notice {
       grid-column: auto;
     }
+  }
+
+  .tv-launcher__wide {
+    grid-column: 1 / -1;
+  }
+  .tv-launcher__hint {
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-body);
+    font-size: var(--cl-font-size-sm);
+    letter-spacing: normal;
+    text-transform: none;
+  }
+  .tv-launcher__nothing {
+    color: var(--cl-text-secondary);
   }
 </style>

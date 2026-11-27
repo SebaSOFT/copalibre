@@ -535,7 +535,10 @@ export async function readStageSeriesByPosition(
       ...(record.awayEntrantId === undefined ? {} : { awayEntrantId: record.awayEntrantId }),
       games,
     });
-    if (state !== undefined) states.set(`${record.round}:${record.position}`, state);
+    if (state !== undefined) {
+      states.set(`${record.round}:${record.position}`, state);
+      states.set(record.fixtureId, state);
+    }
   }
   return states;
 }

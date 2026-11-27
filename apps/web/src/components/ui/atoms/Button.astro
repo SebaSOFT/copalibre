@@ -45,17 +45,15 @@ const classes = [
   .join(' ');
 ---
 
-{
-  href ? (
-    <a class={classes} href={href} title={title}>
-      <slot />
-    </a>
-  ) : (
-    <button {...attributes} class={classes} type={type} title={title}>
-      <slot />
-    </button>
-  )
-}
+{href ? (
+  <a class={classes} href={href} title={title}>
+    <slot />
+  </a>
+) : (
+  <button {...attributes} class={classes} type={type} title={title}>
+    <slot />
+  </button>
+)}
 
 <style>
   /*

@@ -8,12 +8,12 @@ venues — as one advancement decision made from several recorded results.
 ## Requirements
 
 ### Requirement: A fixture is settled by one match or by a declared series
-A fixture between two entrants SHALL be settled either by a single match, which remains the default, or
-by a series of matches when the effective configuration declares one. A fixture that declares no series
-SHALL generate exactly one match and behave identically to a fixture generated before series existed.
-The matches of a series SHALL be identified as belonging to it by the fixture carried explicitly on
-every recorded outcome the accounting engine reads; membership SHALL NOT be inferred from the shape,
-formatting or any substring of a match identifier.
+
+A fixture between two entrants SHALL be settled by a single match by default, or by a series when
+the effective configuration declares one. A fixture that declares no series SHALL generate exactly
+one match and behave as before series existed. A series' matches SHALL be identified by the fixture
+carried on every recorded outcome the accounting engine reads, and SHALL NOT be inferred from any
+match identifier's shape, formatting or substring.
 
 #### Scenario: A fixture with no declared series is unchanged
 - **WHEN** fixtures are generated for a stage whose configuration declares no series
@@ -37,12 +37,11 @@ formatting or any substring of a match identifier.
   carried on the outcome rather than parsed out of the identifier
 
 ### Requirement: Resolution classes are core-owned, with a scripted escape
-The engine SHALL own a closed set of series resolution classes and SHALL evaluate them itself:
-`best-of`, where the first side to a declared majority of matches wins; `aggregate`, where the summed
-score across every played match decides; and `points-per-leg`, where each match awards points by the
-stage's points rule and the higher total wins. A series whose rule none of these classes expresses
-SHALL declare a script instead, evaluated through the rules engine's series-resolution hook. A series
-SHALL declare exactly one of a class or a script.
+
+The engine SHALL own and evaluate a closed set of series resolution classes: `best-of`, `aggregate`
+and `points-per-leg`. A series whose rule none of these expresses SHALL declare a script, evaluated
+through the rules engine's series-resolution hook. A series SHALL declare exactly one of a class or
+a script.
 
 #### Scenario: A best-of series is decided by majority
 - **WHEN** one side has won more than half the matches of a `best-of` series
@@ -67,13 +66,19 @@ SHALL declare exactly one of a class or a script.
 - **THEN** the script is evaluated with each match's result, sides and statistics available in its
   context, and its declared outcome resolves the series
 
+#### Scenario: How each class decides
+
+- **WHEN** a series resolves by class
+- **THEN** `best-of` goes to the first side to a declared majority of matches, `aggregate` to the
+  higher summed score across every played match, and `points-per-leg` to the higher total of points
+  each match awards by the stage's points rule
+
 ### Requirement: A series states when it is decided, and the matches it no longer needs are anulled
-A series SHALL be evaluated after every match finalization and SHALL report whether it is decided. When
-a series is decided while matches remain unplayed, those matches SHALL be moved to a terminal
-not-required state rather than deleted, and the slot each occupied SHALL be freed — its assignment
-removed, the slot and its schedule otherwise untouched and available to any other match. The transition
-SHALL be a recorded fact naming both the series result that caused it and the slot each match vacated, so
-a surface can still state where a match would have been played after it no longer holds it.
+
+A series SHALL be evaluated after every match finalization and SHALL report whether it is decided.
+Matches left unplayed by a decided series SHALL move to a terminal not-required state rather than be
+deleted, and each one's slot SHALL be freed. The transition SHALL be a recorded fact naming the
+series result that caused it and the slot each match vacated.
 
 #### Scenario: A best-of-five decided in three anulls the remaining two
 - **WHEN** one side wins the first three matches of a best-of-five series
@@ -99,6 +104,17 @@ a surface can still state where a match would have been played after it no longe
 - **THEN** the slot and its schedule are unchanged apart from being empty, and another match may be placed
   in it
 
+#### Scenario: What freeing a slot means
+
+- **WHEN** a match is anulled
+- **THEN** its assignment is removed, and the slot and its schedule are otherwise untouched and
+  available to any other match
+
+#### Scenario: Where it would have been played
+
+- **WHEN** a surface shows an anulled match
+- **THEN** it can still state the slot the match vacated
+
 ### Requirement: Sides alternate across the matches of a series
 Which side is at home in each match of a series SHALL be generated rather than operator-entered,
 alternating from the first match onward, so that the home indication in a series carries the meaning it
@@ -119,18 +135,12 @@ its matches SHALL carry no home side at all rather than an arbitrary one.
   absent rather than inventing either
 
 ### Requirement: The ruleset declares what a resolved series contributes to accounting
-The effective ruleset SHALL declare whether a series contributes one outcome to standings and statistic
-accounting or one outcome per played match. Neither SHALL be assumed: a play-off series that decides a
-bracket edge while still producing per-match player statistics and a two-legged tie that produces a
-single aggregate result are both intended uses. A declaration that names no grain SHALL account per
-match, and every surface that displays such a table SHALL state the grain it is showing rather than
-leave a reader to infer it.
 
-Under series-grain accounting a statistic the discipline declares with `count` aggregation SHALL be
-folded once per resolved series, so that a table's counted total and its win/draw/loss totals are in the
-same unit. Under match-grain accounting it SHALL be folded once per played match. Statistics the
-discipline declares with any other aggregation SHALL fold every played match's value under either grain,
-because a goal scored in game two was scored whatever a standings row is counted in.
+The effective ruleset SHALL declare whether a series contributes one outcome or one per played match
+to standings and statistic accounting; neither SHALL be assumed. A declaration naming no grain SHALL
+account per match, and every surface displaying such a table SHALL state its grain. Under series
+grain a `count` statistic SHALL fold once per resolved series, under match grain once per played
+match; any other aggregation SHALL fold every played match under either grain.
 
 #### Scenario: A series declared to contribute one outcome
 - **WHEN** a five-match series is resolved under a ruleset declaring series-grain accounting
@@ -160,6 +170,17 @@ because a goal scored in game two was scored whatever a standings row is counted
 - **WHEN** standings are computed for a stage whose series declaration names no accounting grain
 - **THEN** accounting proceeds per match and the calculation reports that it did, so the choice is
   visible to every surface reading it
+
+#### Scenario: Both grains are intended uses
+
+- **WHEN** a play-off series decides a bracket edge while producing per-match player statistics, or
+  a two-legged tie produces a single aggregate result
+- **THEN** each is a legitimate declaration
+
+#### Scenario: Why other aggregations fold every match
+
+- **WHEN** a goal is scored in game two
+- **THEN** it counts whatever unit the standings row is counted in
 
 ### Requirement: Series resolution is explainable
 A resolved series SHALL carry an explanation trace on the same contract standings and win conditions

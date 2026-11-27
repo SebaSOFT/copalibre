@@ -1,6 +1,14 @@
-import { Controller, Get, Header, Inject, Param, Req } from '@nestjs/common';
-import { NotFoundException } from '../http/error-contract.js';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Header, Inject, Param, Query, Req } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '../http/error-contract.js';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiProduces,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { escapeCsvFormulaCell, stringifyCsv } from '@copalibre/domain/import-export';
 import {
   OrganizationRepository,
@@ -15,6 +23,8 @@ import { DATABASE } from '../database.token.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
 import { recordSensitiveRead } from '../http/sensitive-read-audit.js';
 
+const PERSONAL_EXPORT_COLUMNS = new Set(['displayName', 'naturalKeyKind', 'naturalKey']);
+
 @ApiTags('data-import-export')
 @Controller('organizations/:organizationAlias/tournaments/:tournamentAlias/exports')
 export class DataExportController {
@@ -27,6 +37,13 @@ export class DataExportController {
   @ApiBearerAuth()
   @ApiProduces('text/csv')
   @ApiOperation({ summary: 'Export re-importable participant CSV by stable alias' })
+  @ApiQuery({
+    name: 'excludePersonalData',
+    required: false,
+    description: 'Comma-separated individual participant columns to omit from the export',
+    enum: [...PERSONAL_EXPORT_COLUMNS],
+  })
+  @ApiBadRequestResponse({ description: 'Unknown personal-data column exclusion' })
   @ApiOkResponse({
     description: 'CSV participant export',
     schema: { type: 'string', format: 'binary' },
@@ -35,6 +52,7 @@ export class DataExportController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('target') target: string,
+    @Query('excludePersonalData') excludePersonalData: string | undefined,
     @Req() request: RequestWithSubject,
   ): Promise<string> {
     const { organizationId, tournamentId } = await this.resolve(
@@ -42,7 +60,8 @@ export class DataExportController {
       tournamentAlias,
       request,
     );
-    const csv = await this.participantsCsv(tournamentId, target);
+    const excludedColumns = this.excludedPersonalColumnsOf(excludePersonalData);
+    const csv = await this.participantsCsv(tournamentId, target, excludedColumns);
     await recordSensitiveRead(this.db, {
       organizationId,
       entityType: 'tournament',
@@ -53,7 +72,23 @@ export class DataExportController {
     return csv;
   }
 
-  private async participantsCsv(tournamentId: string, target: string): Promise<string> {
+  private excludedPersonalColumnsOf(value: string | undefined): ReadonlySet<string> {
+    if (value === undefined || value.trim() === '') return new Set();
+    const columns = value.split(',').map((column) => column.trim());
+    const unknown = columns.filter((column) => !PERSONAL_EXPORT_COLUMNS.has(column));
+    if (unknown.length > 0 || new Set(columns).size !== columns.length) {
+      throw new BadRequestException('Unknown or duplicate personal-data column exclusion', {
+        errorCode: 'data-export-bad-request',
+      });
+    }
+    return new Set(columns);
+  }
+
+  private async participantsCsv(
+    tournamentId: string,
+    target: string,
+    excludedColumns: ReadonlySet<string>,
+  ): Promise<string> {
     if (target === 'individual') {
       const rows = await this.db
         .selectFrom('entrants')
@@ -68,13 +103,23 @@ export class DataExportController {
         .where('entrants.entrant_kind', '=', 'person')
         .orderBy('persons.alias')
         .execute();
+      const columns = [
+        'alias',
+        ...(['displayName', 'naturalKeyKind', 'naturalKey'] as const).filter(
+          (column) => !excludedColumns.has(column),
+        ),
+      ];
       return stringifyCsv(
-        ['alias', 'displayName', 'naturalKeyKind', 'naturalKey'],
+        columns,
         rows.map((row) => ({
           alias: escapeCsvFormulaCell(row.alias ?? ''),
-          displayName: escapeCsvFormulaCell(row.displayName ?? ''),
-          naturalKeyKind: row.naturalKeyKind,
-          naturalKey: escapeCsvFormulaCell(row.naturalKey ?? ''),
+          ...(excludedColumns.has('displayName')
+            ? {}
+            : { displayName: escapeCsvFormulaCell(row.displayName ?? '') }),
+          ...(excludedColumns.has('naturalKeyKind') ? {} : { naturalKeyKind: row.naturalKeyKind }),
+          ...(excludedColumns.has('naturalKey')
+            ? {}
+            : { naturalKey: escapeCsvFormulaCell(row.naturalKey ?? '') }),
         })),
       );
     }

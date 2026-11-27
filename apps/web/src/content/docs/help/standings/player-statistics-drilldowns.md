@@ -25,6 +25,7 @@ leaders" tables) via a labeled selector, without leaving the profile.
   composite or computed ratio depends on more than one match, so it never appears on a match row.
   Match rows are ordered chronologically by stage then match number, and identify the match by its
   public stage/match number, never an internal identifier.
+- Each match row also names the opponent, the side the player was on, the kickoff and both scores.
 
 ## When a Player Has No Recorded Statistics
 

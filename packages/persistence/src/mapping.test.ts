@@ -156,6 +156,9 @@ describe('snake_case row → camelCase domain mapping', () => {
       archived_at: null,
       emblem_object_id: null,
       featured: false,
+      includes_minors: false,
+      show_youth_profiles: false,
+      minimum_rest_minutes: null,
     };
     expect(toTournament(row)).toEqual({
       tournamentId: 't-1',
@@ -166,7 +169,12 @@ describe('snake_case row → camelCase domain mapping', () => {
       rulesetId: undefined,
       status: 'draft',
       featured: false,
+      includesMinors: false,
+      showYouthProfiles: false,
     });
+    expect(toTournament({ ...row, minimum_rest_minutes: 120 }).minimumRestMinutes).toBe(120);
+    // SQLite stores a boolean as an integer.
+    expect(toTournament({ ...row, featured: 1 as unknown as boolean }).featured).toBe(true);
   });
 
   it('maps nullable columns to undefined, never null', () => {
@@ -303,6 +311,7 @@ describe('snake_case row → camelCase domain mapping', () => {
       number: 1,
       status: 'scheduled',
       result: null,
+      stream_url: null,
       created_at: CREATED,
     };
     expect(toMatch(scheduled).result).toBeUndefined();
@@ -413,6 +422,9 @@ describe('mapping edge cases', () => {
       archived_at: null,
       emblem_object_id: null,
       featured: false,
+      includes_minors: false,
+      show_youth_profiles: false,
+      minimum_rest_minutes: null,
     };
     expect(toTournament(row).rulesetId).toBe('rs-1');
     expect(toTournament({ ...row, archived_at: CREATED }).archivedAt).toBe(
@@ -443,6 +455,14 @@ describe('mapping edge cases', () => {
         group_id: null,
         round: 2,
         role: null,
+        node_key: null,
+        bracket: null,
+        position: null,
+        branch: null,
+        label: null,
+        home_source: null,
+        away_source: null,
+        contingency: null,
         home_entrant_id: null,
         away_entrant_id: null,
         scheduled_at: null,
@@ -475,6 +495,7 @@ describe('scheduling rows', () => {
       address: null,
       details: null,
       created_at: CREATED,
+      deleted_at: null,
     };
 
     expect(toVenue(row)).toEqual({
@@ -496,6 +517,7 @@ describe('scheduling rows', () => {
       address: 'Av. Libertador 1200',
       details: null,
       created_at: CREATED,
+      deleted_at: null,
     };
 
     expect(toVenue(row).address).toBe('Av. Libertador 1200');
@@ -511,6 +533,7 @@ describe('scheduling rows', () => {
       address: null,
       details: { region: 'sa-east-1', map: 'de_dust2' },
       created_at: CREATED,
+      deleted_at: null,
     };
 
     expect(toVenue(row).details).toEqual({ region: 'sa-east-1', map: 'de_dust2' });

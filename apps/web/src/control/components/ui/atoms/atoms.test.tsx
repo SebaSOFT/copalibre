@@ -22,6 +22,16 @@ import { RadioGroup, RadioGroupItem } from './radio.js';
 import { FilePicker } from './file-picker.js';
 import { Form } from './form.js';
 
+const FILE_PICKER_COPY = {
+  clearLabel: 'Clear selected file',
+  promptText: 'Choose a file or drag it here.',
+  promptDraggingText: 'Drop file here',
+  acceptedFormatsLabel: 'Accepted formats: .png,.jpg',
+  maxSizeLabel: 'Max size: 1 MB',
+  clearButtonText: 'Clear',
+  formatFilesSelected: (count: number) => `${count} files selected`,
+};
+
 describe('form-control atoms', () => {
   it('renders the default and error state classes for Input', () => {
     const { rerender } = render(<Input aria-label="Email" value="" onChange={() => {}} />);
@@ -71,7 +81,24 @@ describe('form-control atoms', () => {
 
   it('renders the disabled state class for Checkbox', () => {
     render(<Checkbox aria-label="Active" checked={false} disabled onCheckedChange={() => {}} />);
-    expect(screen.getByRole('checkbox').className).toContain('cl-checkbox--disabled');
+    const box = screen.getByRole('checkbox').querySelector('.cl-checkbox__box');
+    expect(box?.className).toContain('cl-checkbox--disabled');
+  });
+
+  it('keeps the state class off the Checkbox target, which paints nothing', () => {
+    render(<Checkbox aria-label="Active" checked={false} onCheckedChange={() => {}} />);
+    const target = screen.getByRole('checkbox');
+    expect(target.className).not.toContain('cl-checkbox--');
+    expect(target.querySelector('.cl-checkbox__box')?.className).toContain('cl-checkbox--default');
+  });
+
+  it('draws the Checkbox mark only while checked', () => {
+    const { rerender } = render(
+      <Checkbox aria-label="Active" checked={false} onCheckedChange={() => {}} />,
+    );
+    expect(screen.getByRole('checkbox').querySelector('.cl-checkbox__indicator')).toBeNull();
+    rerender(<Checkbox aria-label="Active" checked onCheckedChange={() => {}} />);
+    expect(screen.getByRole('checkbox').querySelector('.cl-checkbox__indicator')).not.toBeNull();
   });
 
   it('renders a Select trigger with the caller-supplied options', () => {
@@ -127,6 +154,73 @@ describe('form-control atoms', () => {
     expect(trigger?.textContent).toBe('Admin▾');
   });
 
+  it('shows the placeholder when a Select has no value', () => {
+    const { container } = render(
+      <Select
+        aria-label="Group"
+        onValueChange={() => {}}
+        options={[{ value: 'a', label: 'Group A' }]}
+        placeholder="Select…"
+        value=""
+      />,
+    );
+    const value = container.querySelector('button.cl-select .cl-select__value');
+    expect(value?.textContent).toBe('Select…');
+    expect(value?.className).toContain('cl-select__value--placeholder');
+    expect(screen.getByRole('combobox', { name: 'Group' })).toHaveProperty('value', '');
+  });
+
+  it('shows the label of an empty-value option as a real choice, not as a placeholder', () => {
+    const { container } = render(
+      <Select
+        aria-label="Staff"
+        onValueChange={() => {}}
+        options={[
+          { value: '', label: 'No attribution' },
+          { value: 'p1', label: 'Referee' },
+        ]}
+        placeholder="Select…"
+        value=""
+      />,
+    );
+    const value = container.querySelector('button.cl-select .cl-select__value');
+    expect(value?.textContent).toBe('No attribution');
+    expect(value?.className).not.toContain('cl-select__value--placeholder');
+  });
+
+  it('falls back to the placeholder when the empty-value option has no label', () => {
+    const { container } = render(
+      <Select
+        aria-label="Segment"
+        onValueChange={() => {}}
+        options={[
+          { value: '', label: '' },
+          { value: '1', label: 'First half' },
+        ]}
+        placeholder="Select…"
+        value=""
+      />,
+    );
+    const value = container.querySelector('button.cl-select .cl-select__value');
+    expect(value?.textContent).toBe('Select…');
+    expect(value?.className).toContain('cl-select__value--placeholder');
+  });
+
+  it('keeps the whole label of a Select in the title, so a clipped value stays readable', () => {
+    const { container } = render(
+      <Select
+        aria-label="Series"
+        disabled
+        onValueChange={() => {}}
+        options={[{ value: 'best-of', label: 'Best of — first side to win the majority' }]}
+        value="best-of"
+      />,
+    );
+    expect(container.querySelector('button.cl-select')?.getAttribute('title')).toBe(
+      'Best of — first side to win the majority',
+    );
+  });
+
   it('renders the error and disabled state classes for Select', () => {
     const { rerender } = render(
       <Select aria-label="Role" invalid onValueChange={() => {}} options={[]} value="" />,
@@ -154,9 +248,12 @@ describe('form-control atoms', () => {
     const r3 = screen.getByLabelText('Option 3');
 
     expect(r1.className).toContain('cl-radio');
-    expect(r1.className).toContain('cl-radio--default');
+    expect(r1.className).not.toContain('cl-radio--');
+    expect(r1.querySelector('.cl-radio__box')?.className).toContain('cl-radio--default');
+    expect(r1.querySelector('.cl-radio__indicator')).not.toBeNull();
     expect(r1.getAttribute('aria-checked')).toBe('true');
-    expect(r3.className).toContain('cl-radio--disabled');
+    expect(r2.querySelector('.cl-radio__indicator')).toBeNull();
+    expect(r3.querySelector('.cl-radio__box')?.className).toContain('cl-radio--disabled');
 
     fireEvent.click(r2);
     expect(onValueChange).toHaveBeenCalledWith('opt2');
@@ -170,6 +267,7 @@ describe('form-control atoms', () => {
         label="Avatar image"
         accept=".png,.jpg"
         maxSizeBytes={1024 * 1024}
+        {...FILE_PICKER_COPY}
         onChange={onChange}
       />,
     );
@@ -187,6 +285,7 @@ describe('form-control atoms', () => {
         label="Avatar image"
         accept=".png,.jpg"
         error="Invalid file type"
+        {...FILE_PICKER_COPY}
         onChange={onChange}
       />,
     );
@@ -201,7 +300,8 @@ describe('form-control atoms', () => {
         label="Imagen de perfil"
         accept=".png,.jpg"
         maxSizeBytes={1024 * 1024}
-        promptText="Elegí un archivo o arrastralo aquí"
+        clearLabel="Quitar archivo seleccionado"
+        promptText="Elegí un archivo o arrastralo aquí."
         promptDraggingText="Soltá el archivo aquí"
         acceptedFormatsLabel="Formatos aceptados: .png,.jpg"
         maxSizeLabel="Tamaño máximo: 1 MB"
@@ -211,14 +311,31 @@ describe('form-control atoms', () => {
       />,
     );
 
-    expect(screen.getByText('Elegí un archivo o arrastralo aquí')).toBeDefined();
+    expect(screen.getByText('Elegí un archivo o arrastralo aquí.')).toBeDefined();
     expect(screen.getByText('Formatos aceptados: .png,.jpg • Tamaño máximo: 1 MB')).toBeDefined();
-    expect(screen.queryByText('Choose a file or drag here')).toBeNull();
+    expect(screen.queryByText('Choose a file or drag it here.')).toBeNull();
     expect(screen.queryByText(/Accepted formats/)).toBeNull();
   });
 
+  it('keeps image-format guidance readable after the upload prompt', () => {
+    const { container } = render(
+      <FilePicker
+        id="image-picker"
+        label="Organization emblem"
+        accept="image/*"
+        {...FILE_PICKER_COPY}
+        acceptedFormatsLabel="PNG, JPG, SVG or WebP."
+      />,
+    );
+
+    expect(container.querySelector('.cl-file-picker__prompt')?.textContent).toBe(
+      'Choose a file or drag it here. PNG, JPG, SVG or WebP.',
+    );
+    expect(screen.queryByText(/image\/\*/)).toBeNull();
+  });
+
   it('handles keyboard activation on FilePicker drop zone', () => {
-    render(<FilePicker id="keyboard-file" label="Upload document" />);
+    render(<FilePicker id="keyboard-file" label="Upload document" {...FILE_PICKER_COPY} />);
     const input = screen.getByLabelText('Upload document') as HTMLInputElement;
     const clickSpy = jest.spyOn(input, 'click').mockImplementation(() => {});
     const zone = input.closest('.cl-file-picker')?.querySelector('.cl-file-picker__zone');
@@ -238,6 +355,7 @@ describe('form-control atoms', () => {
         label="Upload test"
         hint="Help text"
         required
+        {...FILE_PICKER_COPY}
         onChange={onChange}
         onClear={onClear}
       />,
@@ -278,7 +396,13 @@ describe('form-control atoms', () => {
 
     // Disabled state
     rerender(
-      <FilePicker id="file-interactions" label="Upload test" disabled onChange={onChange} />,
+      <FilePicker
+        id="file-interactions"
+        label="Upload test"
+        disabled
+        {...FILE_PICKER_COPY}
+        onChange={onChange}
+      />,
     );
     clickSpy.mockClear();
     if (zone) {
@@ -305,6 +429,21 @@ describe('form-control atoms', () => {
     const trigger = container.querySelector('button.cl-select');
     expect(trigger).not.toBeNull();
     expect(within(trigger as HTMLElement).getByText('EN')).toBeDefined();
+  });
+
+  it('keeps the active option badge off the trigger when asked to', () => {
+    const { container } = render(
+      <Select
+        aria-label="Slot"
+        badgeInTrigger={false}
+        onValueChange={() => {}}
+        options={[{ value: 'a', label: '19:00 · Cancha', badge: '1/2' }]}
+        value="a"
+      />,
+    );
+    const trigger = container.querySelector('button.cl-select') as HTMLElement;
+    expect(within(trigger).queryByText('1/2')).toBeNull();
+    expect(within(trigger).getByText('19:00 · Cancha')).toBeDefined();
   });
 
   it('exercises Select DOM interop shims for innerHTML, querySelectorAll, and option change', () => {
@@ -350,6 +489,18 @@ describe('Form', () => {
     expect(form?.className).toContain('cl-form');
     fireEvent.submit(form as HTMLFormElement);
     expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('adds no wrapper, so it starts at its parent’s left edge', () => {
+    const { container } = render(
+      <Form>
+        <span>x</span>
+      </Form>,
+    );
+    const form = container.querySelector('form');
+    expect(form?.parentElement).toBe(container);
+    expect(container.querySelector('.cl-container')).toBeNull();
+    expect(form?.getAttribute('style')).toBeNull();
   });
 
   it('passes noValidate through to the native element', () => {
@@ -409,12 +560,16 @@ describe('governance rules: atoms hold no state/data access', () => {
   });
 });
 
-describe('form-control dark theming contract', () => {
-  const cssPath = join(dirname(fileURLToPath(import.meta.url)), '../../../../styles/control.css');
+describe('form-control native theme contract', () => {
+  const cssPath = join(
+    dirname(fileURLToPath(import.meta.url)),
+    '../../../../styles/control/04-forms-settings-and-seeding.css',
+  );
   const css = readFileSync(cssPath, 'utf8');
 
-  it('declares color-scheme dark for form inputs, selects, and textareas', () => {
-    expect(css).toContain('color-scheme: dark;');
+  it('lets the document theme select the native form-control palette', () => {
+    expect(css).not.toContain('color-scheme: dark;');
+    expect(css).not.toContain('filter: invert(0.8);');
   });
 
   it('declares custom dark appearance for checkboxes', () => {

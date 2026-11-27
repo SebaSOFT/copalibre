@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -83,7 +83,7 @@ async function capturedRequests(page: Page): Promise<readonly CapturedRequest[]>
   );
 }
 
-test('shows a pending dispute with its evidence in the operator queue (7.1)', async ({ page }) => {
+test('shows a pending dispute with its evidence in the operator queue', async ({ page }) => {
   await mockReportsApi(page);
   await seedLoginTransaction(page, REPORTS_PATH);
   await page.goto(loginCallbackUrl());
@@ -94,7 +94,7 @@ test('shows a pending dispute with its evidence in the operator queue (7.1)', as
   await expect(page.getByText('captura.png')).toBeVisible();
 });
 
-test('dismisses a dispute without ever calling a correction endpoint (7.2)', async ({ page }) => {
+test('dismisses a dispute without ever calling a correction endpoint', async ({ page }) => {
   await mockReportsApi(page);
   await seedLoginTransaction(page, REPORTS_PATH);
   await page.goto(loginCallbackUrl());

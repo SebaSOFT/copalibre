@@ -1,6 +1,6 @@
 {
   "name": "@copalibre/object-storage",
-  "version": "1.2.6",
+  "version": "2.0.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -16,12 +16,13 @@
     "test:integration": "node --env-file-if-exists=../../.env.test --experimental-vm-modules ../../node_modules/.bin/jest --config jest.integration.config.cjs --runInBand"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1104.0"
+    "@aws-sdk/client-s3": "^3.1152.0",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "jest": "^30.5.2",
-    "ts-jest": "^29.4.12",
-    "typescript": "^5"
+    "ts-jest": "^29.4.15",
+    "typescript": "^6.0.3"
   }
 }

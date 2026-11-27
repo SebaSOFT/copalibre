@@ -8,9 +8,9 @@ import {
   type HookScriptVocabulary,
 } from '../../lib/api-client.js';
 import type { DisciplineOption } from '../../lib/wizard.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { TournamentSetupWizard } from '../TournamentSetupWizard.js';
 import { messages } from '../../i18n/messages.en.js';
+import { PageHeader } from '../ui/organisms/page-header.js';
 
 type AuthoringStatus =
   | { readonly kind: 'loading' }
@@ -19,6 +19,7 @@ type AuthoringStatus =
   | { readonly kind: 'loadFailed' }
   | { readonly kind: 'creating' }
   | { readonly kind: 'created'; readonly alias: string }
+  | { readonly kind: 'createdWithoutEmblem'; readonly alias: string }
   | { readonly kind: 'createFailed'; readonly message?: string };
 
 /**
@@ -42,7 +43,6 @@ export function TournamentAuthoringTemplate({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );
@@ -86,6 +86,8 @@ export function TournamentAuthoringTemplate({
         return 'warning';
       case 'created':
         return 'success';
+      case 'createdWithoutEmblem':
+        return 'warning';
       default:
         return 'info';
     }
@@ -103,6 +105,8 @@ export function TournamentAuthoringTemplate({
         return intl.formatMessage(messages.authoringCreating);
       case 'created':
         return intl.formatMessage(messages.authoringCreated, { alias: current.alias });
+      case 'createdWithoutEmblem':
+        return intl.formatMessage(messages.authoringEmblemFailed, { alias: current.alias });
       case 'createFailed':
         return current.message ?? intl.formatMessage(messages.authoringCreateFailed);
       case 'ready':
@@ -133,7 +137,12 @@ export function TournamentAuthoringTemplate({
   }
 
   if (disciplines.length === 0) {
-    return statusAlert(status);
+    return (
+      <>
+        <PageHeader title={intl.formatMessage(messages.wizardTitle)} />
+        {statusAlert(status)}
+      </>
+    );
   }
 
   return (
@@ -143,11 +152,26 @@ export function TournamentAuthoringTemplate({
         disciplines={disciplines}
         loadProfiles={api.listCompatibleProfiles}
         vocabulary={vocabulary}
-        onSubmit={(request) => {
+        onSubmit={(request, extras) => {
           setStatus({ kind: 'creating' });
           api
             .createTournament(organizationAlias, request)
-            .then((created) => setStatus({ kind: 'created', alias: created.alias }))
+            .then(async (created) => {
+              if (extras?.emblem === undefined || api.uploadTournamentEmblem === undefined) {
+                setStatus({ kind: 'created', alias: created.alias });
+                return;
+              }
+              // The tournament exists now: it can receive the emblem picked in the first step.
+              try {
+                await api.uploadTournamentEmblem(organizationAlias, created.alias, {
+                  filename: 'emblem.png',
+                  ...extras.emblem,
+                });
+                setStatus({ kind: 'created', alias: created.alias });
+              } catch {
+                setStatus({ kind: 'createdWithoutEmblem', alias: created.alias });
+              }
+            })
             .catch((error: unknown) =>
               setStatus({
                 kind: 'createFailed',

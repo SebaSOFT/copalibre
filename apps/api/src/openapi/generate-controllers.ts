@@ -8,13 +8,13 @@ import { DataImportExportController } from '../controllers/data-import-export.co
 import { InstallationBootstrapController } from '../controllers/installation-bootstrap.controller.js';
 import { MatchControlController } from '../controllers/match-control.controller.js';
 import { OrganizationsController } from '../controllers/organizations.controller.js';
-import {
-  DisciplinesController,
-  EntrantsController,
-  RegistrationsController,
-} from '../controllers/registrations.controller.js';
+import { DisciplinesController } from '../controllers/disciplines.controller.js';
+import { EntrantsController } from '../controllers/entrants.controller.js';
+import { RegistrationsController } from '../controllers/registrations.controller.js';
+import { OrganizationScheduleController } from '../controllers/organization-schedule.controller.js';
 import { SchedulesController } from '../controllers/schedules.controller.js';
 import { SeedingController } from '../controllers/seeding.controller.js';
+import { QualificationController } from '../controllers/qualification.controller.js';
 import { StagesController } from '../controllers/stages.controller.js';
 import { DisplayTokenController } from '../controllers/broadcast.controller.js';
 import { StandingsController } from '../controllers/standings.controller.js';
@@ -39,14 +39,12 @@ import {
   ParticipantReportsController,
   ReportReviewController,
 } from '../controllers/reports.controller.js';
-import {
-  PublicProjectionsController,
-  PublicTournamentListingController,
-} from '../controllers/public-projections.controller.js';
+import { PublicProjectionsController } from '../controllers/public-projections.controller.js';
+import { PublicTournamentListingController } from '../controllers/public-tournament-listing.controller.js';
+import { PublicOrganizationClubController } from '../controllers/public-organization-club.controller.js';
 import {
   NativeAuthController,
   PersonalAccessTokenController,
-  WellKnownController,
 } from '../controllers/auth.controller.js';
 import {
   ClubMediaController,
@@ -75,12 +73,14 @@ export const OPENAPI_CONTROLLERS = [
   EntrantsController,
   DisciplinesController,
   SchedulesController,
+  OrganizationScheduleController,
   MatchControlController,
   DataImportExportController,
   DataExportController,
   StandingsController,
   TableProjectionsController,
   SeedingController,
+  QualificationController,
   StagesController,
   DisplayTokenController,
   OrganizationAccessController,
@@ -92,10 +92,10 @@ export const OPENAPI_CONTROLLERS = [
   ReportReviewController,
   InstallationBootstrapController,
   PublicTournamentListingController,
+  PublicOrganizationClubController,
   PublicProjectionsController,
   PublicObjectsController,
   NativeAuthController,
-  WellKnownController,
   PersonalAccessTokenController,
   AdminStatisticsController,
   AdminModulesController,

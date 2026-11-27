@@ -22,12 +22,9 @@ in the same release images.
 
 ### Requirement: Merging to main is how a release is cut
 
-A release SHALL be cut by opening a pull request from `develop` into `main` and merging it once its CI
-is green — no separate manual release step, tag creation, or image publish command is required of the
-maintainer beyond bumping the version before opening that pull request. When the version carries a
-pre-release suffix (any string containing a hyphen after the numeric core, e.g. `0.6.0-preview`), the
-release SHALL still be cut the same way, but SHALL be marked as a pre-release rather than a stable
-release throughout.
+A release SHALL be cut by opening a pull request from `develop` into `main` and merging it once its
+CI is green, with no maintainer step beyond bumping the version before opening that pull request. A
+pre-release version SHALL be released the same way and marked as a pre-release throughout.
 
 #### Scenario: Merging a version-bumped develop into main publishes a release
 
@@ -48,6 +45,16 @@ release throughout.
 - **WHEN** a version containing a pre-release suffix (e.g. `0.6.0-preview`) is released
 - **THEN** the created GitHub Release is marked as a pre-release (`gh release create ... --prerelease`),
   not a stable release
+
+#### Scenario: No separate release step
+
+- **WHEN** a maintainer releases a bumped version
+- **THEN** no manual tag creation, release step or image publish command is required
+
+#### Scenario: What makes a pre-release
+
+- **WHEN** a version carries a hyphen after its numeric core, for example `0.6.0-preview`
+- **THEN** it is treated as a pre-release
 
 ### Requirement: Release images are published to GHCR
 
@@ -79,7 +86,7 @@ move the `latest` tag, so a self-hoster pulling `latest` never silently receives
 The release workflow `.github/workflows/release.yml` SHALL produce multi-architecture container images supporting both `linux/amd64` and `linux/arm64` architectures via QEMU and Docker Buildx, tagged with the active product release version.
 
 #### Scenario: Running release image on ARM64 / Apple Silicon
-- **WHEN** an operator pulls `ghcr.io/sebasoft/copalibre:1.2.6` on an Apple Silicon or ARM64 Linux host
+- **WHEN** an operator pulls `ghcr.io/sebasoft/copalibre:2.0.0` on an Apple Silicon or ARM64 Linux host
 - **THEN** Docker selects the native `linux/arm64` manifest without platform mismatch warnings or missing image errors.
 
 ### Requirement: Release documentation consistency
@@ -93,7 +100,12 @@ Release preparation SHALL review the changelog, product version references, inst
 - **AND** translated upgrade procedures preserve persistent data and honor installation version checks
 
 ### Requirement: A fresh dependency security audit gates release publication
-Before creating a new release tag or publishing release images, the release workflow SHALL audit all direct and transitive dependencies from every workspace against current package registry security advisories and GitHub Dependabot advisories. An unreviewed open advisory SHALL stop the workflow before any release artifact is published. An explicitly registered unpatched advisory MAY pass only while its upstream fix remains unavailable; once a fix is available, the locked package versions and root resolutions SHALL meet the published patched floor.
+
+Before creating a release tag or publishing release images, the release workflow SHALL audit every
+workspace's direct and transitive dependencies against current registry and GitHub Dependabot
+advisories. An unreviewed open advisory SHALL stop the workflow before any release artifact is
+published. A registered unpatched advisory MAY pass only while its fix is unavailable; once one is,
+the locked versions and root resolutions SHALL meet the patched floor.
 
 #### Scenario: Vulnerable dependency blocks release publication
 - **WHEN** the release workflow is preparing a version that does not have an existing release tag
@@ -113,3 +125,182 @@ Before creating a new release tag or publishing release images, the release work
 #### Scenario: Existing release tag remains an idempotent no-op
 - **WHEN** the version already has a release tag
 - **THEN** the release workflow completes as a no-op without auditing or publishing that version again
+
+### Requirement: A runtime peer mismatch fails the dependency guard
+The repository SHALL keep a reviewed list of packages whose served runtime assets must match an exact peer
+version, and a guard that runs in CI SHALL fail when the locked version of that peer does not satisfy the
+package's declared `peerDependencies` range. The list SHALL start with `@imgly/background-removal` and its peer
+`onnxruntime-web`. Automated dependency updates SHALL move such a pair together or not at all.
+
+#### Scenario: A lone runtime bump is refused
+- **WHEN** a change raises `onnxruntime-web` to a version outside the range `@imgly/background-removal` declares
+- **THEN** the guard fails and names both packages, both versions and the declared range
+
+#### Scenario: A matching pair passes
+- **WHEN** the locked `onnxruntime-web` satisfies the peer range of the locked `@imgly/background-removal`
+- **THEN** the guard passes
+
+#### Scenario: Dependabot groups the pair
+- **WHEN** Dependabot proposes an update to either package
+- **THEN** its configuration groups `onnxruntime-web` with `@imgly/background-removal`, so no pull request bumps
+  the runtime alone
+
+### Requirement: Dependency remediation starts from a current complete inventory
+
+Dependency remediation SHALL enumerate all pages of current open Dependabot alerts and registry advisories at application start, covering all severities, workspaces, development and transitive dependencies. Evidence SHALL identify retrieval time, source revision and default-branch revision. A planning-time snapshot SHALL NOT limit remediation scope. Unavailable or incomplete advisory data SHALL block a clean verdict.
+
+#### Scenario: New advisory appears after planning
+
+- **WHEN** an advisory absent from the proposal snapshot is open when implementation begins
+- **THEN** remediation includes it with the same investigation, fix and verification obligations as earlier advisories
+
+#### Scenario: Incomplete or failed advisory retrieval
+
+- **WHEN** authentication, pagination, response validation or registry access fails
+- **THEN** the assessment reports incomplete evidence rather than zero advisories or success
+
+### Requirement: Every affected dependency instance is remediated
+
+Remediation SHALL verify every affected locked instance and applicable resolution against advisory ranges, including duplicate versions, supported major lines and development tools. Dependency upgrades, removals and replacements SHALL retain required application behavior. Unresolved vulnerabilities SHALL remain explicit blockers; dismissal, suppression or an accepted-risk record SHALL NOT constitute a fix.
+
+#### Scenario: Duplicate vulnerable transitive dependency
+
+- **WHEN** a patched direct dependency coexists with a vulnerable nested copy or resolution
+- **THEN** remediation remains incomplete until each affected instance is patched or safely removed
+
+#### Scenario: No safe published fix exists
+
+- **WHEN** upstream provides no compatible fix and parent upgrade or replacement cannot safely remove the exposure
+- **THEN** the report records the affected paths, investigated alternatives and blocker
+- **AND** it does not claim all advisories solved or create an unapproved exception
+
+#### Scenario: A dependency has been safely removed
+
+- **WHEN** a dependency is removed from all relevant manifests, resolved paths and shipped/tooling artifacts and behavior verification passes
+- **THEN** the report records removal as remediation with evidence rather than treating an absent lock entry as inherently vulnerable or automatically safe
+
+### Requirement: Remediation completion uses refreshed advisory evidence
+
+Before declaring local remediation complete, verification SHALL refresh Dependabot and registry inventories, reconcile additions and reopened alerts, and pass immutable installation, advisory and regression checks for the final source revision. Any later dependency change SHALL invalidate affected evidence. Reports SHALL retain per-alert fix, dependency-path and verification evidence.
+
+#### Scenario: Advisory is disclosed while implementation is in progress
+
+- **WHEN** the final refresh finds a new or reopened applicable advisory
+- **THEN** it enters remediation and blocks a clean local verdict until resolved
+
+#### Scenario: All current affected instances are resolved
+
+- **WHEN** final refreshed inventories show no unresolved applicable vulnerability and all required verification passes
+- **THEN** the report may declare the checkout remediated at its recorded timestamp and source revision
+- **AND** release publication still requires its existing fresh audits
+
+### Requirement: Local remediation and GitHub closure are reported separately
+
+Remediation reports SHALL distinguish vulnerable checkout, verified local fix pending default-branch delivery, removed dependency, unresolved blocker and GitHub-confirmed closure. A passing checkout or merge to a nondefault branch SHALL NOT be reported as GitHub closure. Existing release/merge authorization SHALL remain unchanged.
+
+#### Scenario: Main still contains an older lockfile
+
+- **WHEN** local verification proves a fix but Dependabot reports an open alert against the older default branch
+- **THEN** the report records patched-in-checkout and pending-main status with both revisions
+- **AND** it does not downgrade the dependency, dismiss the alert or claim default-branch closure
+
+#### Scenario: Default branch has received the approved remediation
+
+- **WHEN** the approved release reaches the default branch and GitHub has processed the updated dependency graph
+- **THEN** a fresh API query records each alert's actual state and unresolved or newly opened alerts remain visible
+- **AND** the closure check does not itself authorize merging or publishing
+
+### Requirement: Comprehensive security verdict gates publication
+
+Every new release SHALL pass security assurance for its exact source revision and candidate image digests before any image, tag, release or package artifact is publicly published. Static checks SHALL run on every PR; full runtime checks SHALL run for release candidates and explicit security dispatches. Existing fresh dependency audits and tagged-version no-op behavior SHALL remain in force.
+
+#### Scenario: Candidate security evidence is complete
+
+- **WHEN** a release candidate passes all mandatory security controls with matching revision/image evidence and no blocking findings
+- **THEN** publication may proceed after existing release gates and fresh advisory checks pass
+
+#### Scenario: Gate is skipped, cancelled or incomplete
+
+- **WHEN** a required security job fails, is skipped/cancelled, produces malformed evidence, or lacks a required manual attestation
+- **THEN** publication stops before pushing images, creating tags/releases or publishing packages
+- **AND** failure evidence remains available for review
+
+#### Scenario: Evidence describes another revision or image
+
+- **WHEN** security evidence names another commit or candidate image digest
+- **THEN** the publisher rejects it and requires checks for the artifacts it would publish
+
+#### Scenario: Publishing job is invoked directly
+
+- **WHEN** release publication runs from a push to main or manual dispatch without trustworthy matching security evidence
+- **THEN** it runs the required checks or stops before any public publication
+- **AND** it cannot accept an unrelated PR artifact or a caller-supplied success flag as proof
+
+### Requirement: Every published asset matches verified release evidence
+
+Every published installer, CLI binary, MCP bundle and container image SHALL match trusted security evidence for its exact source revision and final artifact digest. Existing-release uploads SHALL match the release tag's commit. New tags SHALL name the verified revision. Manual dispatch, downstream workflows and asset repair SHALL enforce the same checks; a version string or upstream success alone SHALL NOT authorize publication.
+
+#### Scenario: Manual CLI dispatch selects another commit with the same version
+
+- **WHEN** a manual CLI release selects a source revision different from the target release tag's commit, even with an identical product version
+- **THEN** installer and binary uploads are rejected before any asset changes
+
+#### Scenario: Downstream workflow consumes checked candidates
+
+- **WHEN** the CLI publisher is triggered by an upstream release workflow
+- **THEN** it validates the trusted originating run, source/tag binding and final installer/binary digests before upload
+- **AND** a successful upstream conclusion without matching evidence cannot authorize publication
+
+#### Scenario: Missing asset is rebuilt or repaired
+
+- **WHEN** a release already exists but an installer, binary or bundle must be added or replaced
+- **THEN** the publisher requires fresh advisory checks and valid evidence for the exact source and artifact being uploaded
+- **AND** rebuilt or post-signing bytes require matching verification before publication
+
+#### Scenario: Existing tag with nothing to publish
+
+- **WHEN** a tagged-version run publishes or replaces no image, asset or package
+- **THEN** it remains an idempotent no-op without requiring a new security assessment
+
+### Requirement: Publication tooling is reviewed before credential use
+
+Publication tools and their resolved dependencies SHALL be pinned and included in dependency security audits before publication credentials are exposed to them. Unpinned download-and-execute tooling SHALL NOT run during publication. An unavailable or failing required tooling audit SHALL block publication.
+
+#### Scenario: Publisher would download an unpinned tool
+
+- **WHEN** a publication step would dynamically fetch an unpinned CLI or execute a tool absent from the reviewed dependency graph
+- **THEN** the gate rejects the publication configuration before credentials are provided
+
+#### Scenario: MCP publication uses verified bytes
+
+- **WHEN** an MCP bundle is attached to GitHub and published to its registry
+- **THEN** both destinations receive the bundle matching its verified digest through pinned, audited tooling
+
+### Requirement: Security evidence survives failed release checks
+
+Release security checks SHALL retain redacted JSON and Markdown reports for successful and failed runs, with a job-summary verdict and links to control evidence. Evidence SHALL identify the exact tested deployment and scanner scope. Historical reports SHALL not substitute for a current release verdict.
+
+#### Scenario: Runtime probe finds a vulnerability
+
+- **WHEN** a release security probe fails
+- **THEN** the CI run retains the redacted reproduction and remediation status even though publication is blocked
+- **AND** raw credentials and sensitive runtime data are excluded from retained artifacts
+
+### Requirement: Release notes are grouped by role
+
+Each release section of `CHANGELOG.md` SHALL list breaking changes and upgrade steps first. It SHALL
+then group every other change under the role that acts on it: public visitors, organization
+administrators, system administrators, integrators and contributors. Each pull request SHALL appear
+once in the section.
+
+#### Scenario: A Control panel change
+- **WHEN** a release includes a pull request that changes a Control screen
+- **THEN** its entry is under "Organization administrators"
+
+#### Scenario: A change two roles meet
+- **WHEN** a pull request adds a TV overlay mode that an administrator configures and viewers watch
+- **THEN** it is listed once, under the role that configures it
+
+#### Scenario: Tooling changes
+- **WHEN** a pull request changes CI, tests or a repository check
+- **THEN** its entry is under "Contributors"

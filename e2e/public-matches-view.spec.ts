@@ -1,22 +1,27 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
+import { expectNoVisibleIdentifiers } from './support/visible-identifiers.js';
+import { expectCenteredPageContainer } from './support/public-layout-widths.js';
+import { stagedBracket, withStages } from './support/staged-tournament.js';
 
 /**
  * The public matches view: a flat, filterable card grid of a
  * tournament's matches, server-rendered so the default and every
- * state-filtered view work with scripting off. The deciding-factor line is
- * deliberately a one-line summary here — the full comparator trace only ever
+ * state-filtered view work with scripting off. A card states no standings
+ * tie-break: that criterion describes the table, not the match, and is named
+ * under the standings table instead. The full comparator trace only ever
  * reaches the authorized control-web equivalent, proven separately in
  * `e2e/control-matches-view.spec.ts`.
  */
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const TOURNAMENT = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 
 const overview = {
   organizationAlias: ORGANIZATION,
   organizationName: 'Liga Mendocina',
+  organizationTimeZone: 'America/Argentina/Buenos_Aires',
   tournamentAlias: TOURNAMENT_ALIAS,
   tournamentName: 'Apertura 2026',
   seasonName: 'Apertura 2026',
@@ -39,6 +44,8 @@ const finalizedMatch = {
   groupName: 'Grupo A',
   homePosition: 1,
   awayPosition: 2,
+  decidingFactorCode: 'head-to-head',
+  decidingFactorRule: 2,
   decidingFactor: 'head-to-head goal difference',
 };
 
@@ -58,24 +65,215 @@ const liveMatch = {
   latestEvent: { label: 'Goal — Talleres', occurredAt: '2026-08-28T20:15:00.000Z' },
 };
 
+// The design review's case: a live match with nothing recorded yet beside an undecided cup final.
+const liveAtZeroMatch = {
+  matchId: '00000000-0000-7000-8000-000000000022',
+  stageNumber: 1,
+  matchNumber: 5,
+  status: 'live',
+  round: 2,
+  homeName: 'Palmira',
+  awayName: 'Huracán',
+  zoneName: 'Zona Norte',
+  groupName: 'Grupo B',
+  scheduledAt: '2026-08-28T19:00:00.000Z',
+};
+
+const undecidedFinal = {
+  matchId: '00000000-0000-7000-8000-000000000023',
+  stageNumber: 1,
+  matchNumber: 34,
+  status: 'upcoming',
+  round: 3,
+  branch: 'final',
+  nodeKey: 'SE-R3-M1',
+  homeSource: {
+    kind: 'winner-of',
+    nodeKey: 'SE-R2-M1',
+    matchId: '00000000-0000-7000-8000-000000000031',
+    round: 2,
+    position: 1,
+  },
+  awaySource: {
+    kind: 'winner-of',
+    nodeKey: 'SE-R2-M2',
+    matchId: '00000000-0000-7000-8000-000000000032',
+    round: 2,
+    position: 2,
+  },
+  scheduledAt: '2026-08-28T17:00:00.000Z',
+};
+
 let apiServer: Server;
+let liveAtZero = false;
+let multiDayMode = false;
+let clubMode = false;
+// Set by the cup tests only: a group stage and a cup whose zone is drawn as a bracket.
+let cupMode = false;
+test.beforeEach(() => {
+  liveAtZero = false;
+  multiDayMode = false;
+  clubMode = false;
+  cupMode = false;
+});
+
+const cupMatch = {
+  matchId: '00000000-0000-7000-8000-000000000040',
+  stageNumber: 2,
+  matchNumber: 8,
+  status: 'final',
+  round: 1,
+  homeName: 'Club Andes',
+  homeScore: 2,
+  awayName: 'Deportivo Sur',
+  awayScore: 1,
+  zoneName: 'Copa Oro',
+};
+
+const clubFixtures = [
+  {
+    clubId: '01936f4a-0301-7000-8000-000000000301',
+    name: 'Club Andes',
+    abbreviation: 'AND',
+    alias: 'andes-talleres',
+  },
+  { clubId: '01936f4a-0302-7000-8000-000000000302', name: 'Palmira', alias: 'palmira' },
+  { clubId: '01936f4a-0303-7000-8000-000000000303', name: 'Huracán', alias: 'huracan' },
+  { clubId: '01936f4a-0304-7000-8000-000000000304', name: 'Deportivo Sur', alias: 'deportivo-sur' },
+];
+
+const clubRows = [
+  {
+    matchId: '00000000-0000-7000-8000-000000000301',
+    stageNumber: 1,
+    matchNumber: 1,
+    status: 'upcoming',
+    round: 1,
+    homeName: 'Club Andes',
+    homeClubAlias: 'andes-talleres',
+    awayName: 'Deportivo Sur',
+    awayClubAlias: 'deportivo-sur',
+    scheduledAt: '2026-08-28T18:00:00.000Z',
+  },
+  {
+    matchId: '00000000-0000-7000-8000-000000000302',
+    stageNumber: 1,
+    matchNumber: 2,
+    status: 'upcoming',
+    round: 1,
+    homeName: 'Palmira',
+    homeClubAlias: 'palmira',
+    awayName: 'Club Andes',
+    awayClubAlias: 'andes-talleres',
+    scheduledAt: '2026-08-28T19:00:00.000Z',
+  },
+  {
+    matchId: '00000000-0000-7000-8000-000000000303',
+    stageNumber: 1,
+    matchNumber: 3,
+    status: 'upcoming',
+    round: 1,
+    homeName: 'Huracán',
+    homeClubAlias: 'huracan',
+    awayName: 'Deportivo Sur',
+    awayClubAlias: 'deportivo-sur',
+    scheduledAt: '2026-08-28T20:00:00.000Z',
+  },
+];
+
+function buenosAiresDayKey(offsetDays: number): string {
+  const todayKey = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'America/Argentina/Buenos_Aires',
+  }).format(new Date());
+  const [year = 2026, month = 1, day = 1] = todayKey.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + offsetDays)).toISOString().slice(0, 10);
+}
+
+function multiDayMatches() {
+  const todayKey = buenosAiresDayKey(0);
+  const tomorrowKey = buenosAiresDayKey(1);
+  const laterKey = buenosAiresDayKey(3);
+  return [
+    {
+      matchId: '00000000-0000-7000-8000-000000000101',
+      stageNumber: 1,
+      matchNumber: 1,
+      status: 'upcoming',
+      round: 1,
+      homeName: 'Equipo Hoy',
+      awayName: 'Visita Hoy',
+      venueName: 'Cancha 1',
+      scheduledAt: `${todayKey}T23:00:00.000Z`,
+    },
+    {
+      matchId: '00000000-0000-7000-8000-000000000102',
+      stageNumber: 1,
+      matchNumber: 2,
+      status: 'upcoming',
+      round: 1,
+      homeName: 'Equipo Mañana',
+      awayName: 'Visita Mañana',
+      venueName: 'Cancha 2',
+      scheduledAt: `${tomorrowKey}T15:00:00.000Z`,
+    },
+    {
+      matchId: '00000000-0000-7000-8000-000000000103',
+      stageNumber: 1,
+      matchNumber: 3,
+      status: 'final',
+      round: 2,
+      homeName: 'Equipo Futuro',
+      homeScore: 2,
+      awayName: 'Visita Futuro',
+      awayScore: 0,
+      venueName: 'Cancha 3',
+      scheduledAt: `${laterKey}T15:00:00.000Z`,
+    },
+  ];
+}
 
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     const [path, query] = (req.url ?? '').split('?');
     if (path === `${TOURNAMENT}/overview`) {
-      res.end(JSON.stringify(overview));
+      const base = clubMode ? { ...overview, clubs: clubFixtures } : overview;
+      res.end(JSON.stringify(cupMode ? withStages(base) : base));
+      return;
+    }
+    if (cupMode && path === `${TOURNAMENT}/stages/2/bracket`) {
+      res.end(JSON.stringify(stagedBracket(2)));
+      return;
+    }
+    if (path === `${TOURNAMENT}/stages/1/bracket`) {
+      res.end(
+        JSON.stringify({
+          format: 'round-robin',
+          zones: [
+            { zoneId: 'zone-norte', zoneName: 'Zona Norte', format: 'round-robin', matches: [] },
+          ],
+        }),
+      );
       return;
     }
     if (path === `${TOURNAMENT}/matches-view`) {
       const state = new URLSearchParams(query).get('state');
-      const matches =
-        state === 'live'
-          ? [liveMatch]
-          : state === 'final'
-            ? [finalizedMatch]
-            : [finalizedMatch, liveMatch];
+      const matches = clubMode
+        ? clubRows
+        : cupMode
+          ? [finalizedMatch, cupMatch]
+          : multiDayMode
+            ? multiDayMatches()
+            : liveAtZero
+              ? [undecidedFinal, liveAtZeroMatch]
+              : state === 'live'
+                ? [liveMatch]
+                : state === 'final'
+                  ? [finalizedMatch]
+                  : [finalizedMatch, liveMatch];
       res.end(JSON.stringify({ matches }));
       return;
     }
@@ -93,19 +291,108 @@ const matchesPath = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches`;
 // A short scope is a table by default; the cards are the viewer's choice.
 const cardsPath = `${matchesPath}?view=cards`;
 
-test('shows every match with venue, clock, and a one-line deciding-factor summary — no full trace', async ({
+test('uses the centered public container at reference widths', async ({ page }) => {
+  await expectCenteredPageContainer(page, matchesPath);
+});
+
+test('public entrant names preserve their entered casing', async ({ page }) => {
+  await page.goto(cardsPath);
+
+  await expect(page.getByTestId('entrant-name').first()).toHaveCSS('text-transform', 'none');
+});
+
+test('the German matches view fits a 375px viewport without horizontal scrolling', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 844 });
+  await page.goto(`/de${matchesPath}`);
+
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  // The fixtures are stacked cards on a phone, so no table asks to be scrolled sideways.
+  const scrolls = await page
+    .locator('.cl-data-table')
+    .evaluateAll((tables) => tables.filter((t) => t.scrollWidth > t.clientWidth).length);
+  expect(scrolls).toBe(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+});
+
+test('lists each match as a two-line day row on a phone in German, with whole team names', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 844 });
+  await page.goto(`/de${matchesPath}`);
+
+  // A phone lists days, not the stacked tables, which stay the wider layout.
+  await expect(page.locator('.cl-match-schedule__nested')).toBeHidden();
+  const days = page.locator('.cl-match-day');
+  // The live match's day, then the undated one, which the German catalogue names.
+  await expect(days).toHaveCount(2);
+  await expect(days.first()).toHaveAttribute('open', '');
+  await expect(days.first().locator('summary')).toContainText('1 Spiel');
+  await days.last().locator('summary').click();
+  const name = days.last().locator('.cl-match-day-row__name', { hasText: 'Club Andes' });
+  await expect(name).toBeVisible();
+  // Whole: the name is not cut short by its two-line clamp.
+  expect(await name.evaluate((element) => element.scrollHeight <= element.clientHeight)).toBe(true);
+});
+
+test('shows every match with venue and clock, and no standings tie-break or trace on a card', async ({
   page,
 }) => {
   await page.goto(cardsPath);
 
-  await expect(page.getByText('Club Andes', { exact: true })).toBeVisible();
-  await expect(page.getByText('Talleres', { exact: true })).toBeVisible();
-  await expect(page.getByText('Estadio Central')).toBeVisible();
-  await expect(page.getByText('Decided by: head-to-head goal difference')).toBeVisible();
+  const schedule = page.locator('.cl-match-schedule');
+  const featured = page.getByRole('region', { name: 'Featured match' });
+  await expect(featured.getByText('Talleres', { exact: true })).toBeVisible();
+
+  // A single featured match keeps the width of a schedule card, and the section keeps its own
+  // space above, instead of stretching across the page.
+  const cardWidth = await featured
+    .locator('.cl-featured-match__card')
+    .evaluate((element) => element.getBoundingClientRect().width);
+  expect(cardWidth).toBeLessThanOrEqual(384);
+  const gap = await featured.evaluate((element) =>
+    Number.parseFloat(getComputedStyle(element).marginBlockStart),
+  );
+  expect(gap).toBeGreaterThan(0);
+  // The wide layout; a phone's day list beside it is hidden at this width.
+  const wide = schedule.locator('.cl-match-schedule__nested');
+  await expect(wide.getByText('Club Andes', { exact: true })).toBeVisible();
+  await expect(wide.getByText('Estadio Central')).toBeVisible();
+  await expect(wide.getByText(/Decided by/)).toHaveCount(0);
 
   // The public card never carries the internal comparator trace lines.
   await expect(page.getByText(/ahead by|behind by/)).toHaveCount(0);
-  await expect(page.getByText('Full standings comparator trace')).toHaveCount(0);
+  await expect(page.locator('.cl-match-card__trace')).toHaveCount(0);
+});
+
+test('features the live match at 0–0 over an undecided final, titled by its group', async ({
+  page,
+}) => {
+  liveAtZero = true;
+  await page.goto(cardsPath);
+
+  const featured = page.getByRole('region', { name: 'Featured match' });
+  await expect(featured.getByText('Palmira', { exact: true })).toBeVisible();
+  await expect(featured.locator('.cl-match-card__heading')).toHaveText(/^Grupo B\s*Match 5$/);
+  await expect(featured.locator('.cl-match-card__side .cl-stat-tile__value')).toHaveText([
+    '0',
+    '0',
+  ]);
+  // The undecided final is listed by its round's name, and never featured.
+  const schedule = page.locator('.cl-match-schedule');
+  await expect(schedule.locator('.cl-match-card__heading', { hasText: /^Final/ })).toBeVisible();
+  await expect(featured.getByText('Final', { exact: true })).toHaveCount(0);
+});
+
+test('shows a live match at 0–0 in its schedule row as 0 – 0, not vs', async ({ page }) => {
+  liveAtZero = true;
+  await page.goto(matchesPath);
+
+  const row = page.locator('.cl-match-schedule tr', { hasText: 'Palmira' });
+  await expect(row.locator('td[data-column="score"]')).toHaveText('0 – 0');
 });
 
 test('lists the matches as table rows by default, with the score linking to its match', async ({
@@ -126,22 +413,147 @@ test('lists the matches as table rows by default, with the score linking to its 
   ]);
   const finished = table.getByRole('row').filter({ hasText: 'Club Andes' });
   await expect(finished.getByRole('cell').nth(3)).toHaveText('Deportivo Sur');
-  await expect(finished.getByRole('link', { name: '2 – 1' })).toHaveAttribute(
+  await expect(finished.getByRole('link', { name: /Club Andes vs Deportivo Sur/ })).toHaveAttribute(
     'href',
     /\/stages\/1\/matches\/3$/,
   );
-  await expect(page.locator('.cl-match-card')).toHaveCount(0);
+  await expect(page.locator('.cl-match-schedule .cl-match-card')).toHaveCount(0);
+  await expect(
+    page.getByRole('region', { name: 'Featured match' }).locator('.cl-match-card'),
+  ).toHaveCount(1);
+});
+
+test('formats schedule dates and times in English and German using the organization time zone @visible-identifier-lint', async ({
+  page,
+}) => {
+  const instant = new Date(liveMatch.scheduledAt);
+  const timeZone = 'America/Argentina/Buenos_Aires';
+
+  for (const locale of ['en', 'de'] as const) {
+    await page.goto(`${locale === 'en' ? '' : `/${locale}`}${matchesPath}`);
+    await expectNoVisibleIdentifiers(page, [ORGANIZATION, TOURNAMENT_ALIAS]);
+
+    const scheduledRow = page.getByRole('row').filter({ hasText: 'Talleres' });
+    const parts = new Intl.DateTimeFormat(locale, {
+      day: 'numeric',
+      month: 'short',
+      timeZone,
+    }).formatToParts(instant);
+    const day = parts.find((part) => part.type === 'day')?.value ?? '';
+    const month = parts.find((part) => part.type === 'month')?.value ?? '';
+    const time = new Intl.DateTimeFormat(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      timeZone,
+    }).format(instant);
+    await expect(scheduledRow.getByRole('cell').first()).toHaveText(`${day}-${month} ${time}`);
+  }
+});
+
+test('a stage page card shows the same local time as the matches page for the same match', async ({
+  page,
+}) => {
+  liveAtZero = true;
+  const instant = new Date(liveAtZeroMatch.scheduledAt);
+  const timeZone = 'America/Argentina/Buenos_Aires';
+  const expectedTime = new Intl.DateTimeFormat('en', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZone,
+  }).format(instant);
+
+  await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`);
+  await expect(page.locator(`[data-match="${liveAtZeroMatch.matchId}"]`)).toContainText(
+    expectedTime,
+  );
+
+  await page.goto(matchesPath);
+  await expect(
+    page.getByRole('row').filter({ hasText: 'Palmira' }).getByRole('cell').first(),
+  ).toContainText(expectedTime);
 });
 
 test('every filter row carries a visible title, and only the rows that apply appear', async ({
   page,
 }) => {
   await page.goto(matchesPath);
+  await page.locator('.cl-match-schedule-filters > summary').click();
 
-  await expect(page.locator('.cl-filter-row__title')).toHaveText(['State', 'View']);
+  await expect(page.locator('.cl-filter-row__title')).toHaveText(['Day', 'State', 'View']);
   await expect(
     page.getByRole('navigation', { name: 'Choose how matches are shown' }),
   ).toBeVisible();
+});
+
+test('at 1440px the Day filter row filters to one calendar day, writes day= to the URL, and shows the time-zone note once', async ({
+  page,
+}) => {
+  multiDayMode = true;
+  const tomorrowKey = buenosAiresDayKey(1);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`/es${matchesPath}`);
+
+  const note = page.locator('.cl-time-zone-note');
+  await expect(note).toHaveCount(1);
+  await expect(note).toContainText('Horarios:');
+  await expect(note).toContainText(/GMT-3|Argentina/);
+
+  await page.locator('.cl-match-schedule-filters > summary').click();
+  await expect(page.locator('.cl-filter-row__title')).toContainText(['Día']);
+
+  const dayNav = page.getByRole('navigation', { name: 'Día' });
+  await expect(dayNav).toBeVisible();
+  await dayNav.getByRole('link', { name: 'Mañana', exact: true }).click();
+
+  const url = new URL(page.url());
+  expect(url.searchParams.get('day')).toBe(tomorrowKey);
+
+  const wide = page.locator('.cl-match-schedule__nested');
+  await expect(wide.getByText('Equipo Mañana', { exact: true })).toBeVisible();
+  await expect(wide.getByText('Equipo Hoy', { exact: true })).toHaveCount(0);
+  await expect(wide.getByText('Equipo Futuro', { exact: true })).toHaveCount(0);
+});
+
+test('day filter works with JavaScript disabled, preserves day= across other filters, and shows the English time-zone note once', async ({
+  browser,
+}) => {
+  multiDayMode = true;
+  const tomorrowKey = buenosAiresDayKey(1);
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(matchesPath);
+
+  const note = page.locator('.cl-time-zone-note');
+  await expect(note).toHaveCount(1);
+  await expect(note).toContainText('Times:');
+  await expect(note).toContainText(/GMT-3|Argentina/);
+
+  await page.locator('.cl-match-schedule-filters > summary').click();
+  await page
+    .getByRole('navigation', { name: 'Day' })
+    .getByRole('link', { name: 'Tomorrow', exact: true })
+    .click();
+
+  const afterDay = new URL(page.url());
+  expect(afterDay.searchParams.get('day')).toBe(tomorrowKey);
+  const wide = page.locator('.cl-match-schedule__nested');
+  await expect(wide.getByText('Equipo Mañana', { exact: true })).toBeVisible();
+  await expect(wide.getByText('Equipo Hoy', { exact: true })).toHaveCount(0);
+  await expect(wide.getByText('Equipo Futuro', { exact: true })).toHaveCount(0);
+
+  // Combining day= with another filter (view=cards) keeps day= in the URL.
+  await page.getByRole('link', { name: 'Cards', exact: true }).click();
+  const afterCards = new URL(page.url());
+  expect(afterCards.searchParams.get('day')).toBe(tomorrowKey);
+  expect(afterCards.searchParams.get('view')).toBe('cards');
+  await expect(wide.getByText('Equipo Mañana', { exact: true })).toBeVisible();
+  await expect(wide.getByText('Equipo Hoy', { exact: true })).toHaveCount(0);
+
+  await context.close();
 });
 
 test('the view toggle switches between the table and the cards and keeps the filter', async ({
@@ -165,11 +577,18 @@ test('the Live filter link narrows the server-rendered list with scripting off',
   await context.route('**/*.js', (route) => route.abort());
   await page.goto(matchesPath);
 
-  await expect(page.getByText('Club Andes', { exact: true })).toBeVisible();
-  await page.getByRole('link', { name: 'Live' }).click();
+  const schedule = page.locator('.cl-match-schedule .cl-match-schedule__nested');
+  await expect(schedule.getByText('Club Andes', { exact: true })).toBeVisible();
+  await page.locator('.cl-match-schedule-filters > summary').click();
+  await page
+    .getByRole('navigation', { name: 'Filter by match state' })
+    .getByRole('link', { name: 'Live' })
+    .click();
 
-  await expect(page.getByText('Talleres', { exact: true })).toBeVisible();
-  await expect(page.getByText('Club Andes', { exact: true })).toHaveCount(0);
+  await expect(schedule.getByText('Talleres', { exact: true })).toBeVisible();
+  await expect(
+    page.locator('.cl-match-schedule').getByText('Club Andes', { exact: true }),
+  ).toHaveCount(0);
 });
 
 test('the state filter renders as discrete pills with a visible active state', async ({
@@ -179,6 +598,7 @@ test('the state filter renders as discrete pills with a visible active state', a
   // Scripting off: the treatment is server-rendered, like the filter itself.
   await context.route('**/*.js', (route) => route.abort());
   await page.goto(matchesPath);
+  await page.locator('.cl-match-schedule-filters > summary').click();
 
   // Scoped by its own aria-label (the compact match card added a second
   // `nav.cl-pill-group` for the density toggle): a bare `nav.cl-pill-group`
@@ -202,7 +622,10 @@ test('the state filter renders as discrete pills with a visible active state', a
   // Each pill is its own bounded control, not inline text.
   expect(first.height).toBeGreaterThanOrEqual(40);
 
-  await page.getByRole('link', { name: 'Live' }).click();
+  await page
+    .getByRole('navigation', { name: 'Filter by match state' })
+    .getByRole('link', { name: 'Live' })
+    .click();
   // Scoped to this nav (the density toggle is its own
   // `cl-pill` group with its own always-current selection, so a bare,
   // page-wide `a.cl-pill[aria-current]` now matches two elements).
@@ -224,7 +647,9 @@ test.describe('density toggle', () => {
     await expect(page.locator('.cl-match-card--compact').first()).toBeVisible();
     await expect(page.locator('.cl-matches-view__grid--compact').first()).toBeVisible();
     // The full card's own structure is gone, not just visually collapsed.
-    await expect(page.locator('.cl-match-card__sides')).toHaveCount(0);
+    await expect(page.locator('.cl-matches-view__grid--compact .cl-match-card__sides')).toHaveCount(
+      0,
+    );
   });
 
   test('preserves the active state filter when toggling density, and vice versa', async ({
@@ -234,7 +659,10 @@ test.describe('density toggle', () => {
     await context.route('**/*.js', (route) => route.abort());
     await page.goto(cardsPath);
 
-    await page.getByRole('link', { name: 'Live' }).click();
+    await page
+      .getByRole('navigation', { name: 'Filter by match state' })
+      .getByRole('link', { name: 'Live' })
+      .click();
     expect(new URL(page.url()).searchParams.get('state')).toBe('live');
 
     await page.getByRole('link', { name: 'Compact' }).click();
@@ -264,6 +692,35 @@ test.describe('density toggle', () => {
   });
 });
 
+test.describe('cup zones in the schedule filter', () => {
+  test.beforeEach(() => {
+    cupMode = true;
+  });
+  test.afterEach(() => {
+    cupMode = false;
+  });
+
+  test('a cup-zone scope shows no Vista or density control', async ({ page }) => {
+    await page.goto(
+      `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches?stageNumber=2&zone=Copa%20Oro`,
+    );
+    await expect(page.getByRole('link', { name: 'Cards' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Compact' })).toHaveCount(0);
+  });
+
+  test('choosing a zone selects its stage in the stage row', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches`);
+    await page.locator('details.cl-match-schedule-filters > summary').click();
+    await page.locator('a.cl-pill', { hasText: /^Copa Oro$/ }).click();
+    await expect(page).toHaveURL(/stageNumber=2/);
+    await expect(page).toHaveURL(/zone=Copa(%20|\+)Oro/);
+    await expect(page.locator('a.cl-pill', { hasText: /^Stage 2$/ }).first()).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+  });
+});
+
 test.describe('match card timestamp locale', () => {
   // A browser locale deliberately different from the page's own /es/ route
   // and from any plausible server ICU default. Before the fix,
@@ -277,11 +734,16 @@ test.describe('match card timestamp locale', () => {
   // byte-identical to each other (no hydration-time re-render).
   test.use({ locale: 'fr-FR' });
 
-  test('renders and hydrates in the route locale, not the browser locale', async ({ page }) => {
+  test('renders and hydrates in the route locale, not the browser locale', async ({
+    browser,
+    page,
+  }) => {
     const consoleErrors: string[] = [];
+    const pageErrors: string[] = [];
     page.on('console', (msg) => {
       if (msg.type() === 'error') consoleErrors.push(msg.text());
     });
+    page.on('pageerror', (error) => pageErrors.push(error.message));
     const spanishMonth = new Intl.DateTimeFormat('es', { month: 'short' }).format(
       new Date(liveMatch.scheduledAt),
     );
@@ -289,15 +751,21 @@ test.describe('match card timestamp locale', () => {
       new Date(liveMatch.scheduledAt),
     );
 
-    await page.route('**/*.js', (route) => route.abort());
-    await page.goto(`/es${cardsPath}`);
-    const ssrText = await page
+    const scriptless = await browser.newContext({ javaScriptEnabled: false, locale: 'fr-FR' });
+    const serverPage = await scriptless.newPage();
+    await serverPage.goto(`/es${cardsPath}`);
+    const ssrText = await serverPage
       .locator('.cl-match-card__venue time.cl-responsive-timestamp')
       .first()
       .textContent();
+    await scriptless.close();
 
-    await page.unroute('**/*.js');
     await page.goto(`/es${cardsPath}`);
+    // Astro removes `ssr` as each island hydrates. A production React build
+    // reports a mismatch as an uncaught numbered error, not a console message.
+    await expect(page.locator('astro-island').first()).toBeAttached();
+    await expect(page.locator('astro-island[ssr]')).toHaveCount(0);
+    await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)));
     const hydratedText = await page
       .locator('.cl-match-card__venue time.cl-responsive-timestamp')
       .first()
@@ -309,5 +777,45 @@ test.describe('match card timestamp locale', () => {
     expect(
       consoleErrors.filter((text) => /hydrat/i.test(text) || /did not match/i.test(text)),
     ).toEqual([]);
+    expect(pageErrors).toEqual([]);
   });
+});
+
+test('the club filter narrows the schedule to one club by alias with JavaScript disabled', async ({
+  browser,
+}) => {
+  clubMode = true;
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${matchesPath}?club=andes-talleres`);
+
+  const body = page.locator('.cl-match-schedule__nested');
+  await expect(body).toContainText('Palmira');
+  await expect(body).toContainText('Club Andes');
+  await expect(body).not.toContainText('Huracán');
+
+  await context.close();
+});
+
+test('the club select with the Apply button narrows the schedule with JavaScript disabled', async ({
+  browser,
+}) => {
+  clubMode = true;
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(matchesPath);
+  await page.locator('.cl-match-schedule-filters > summary').click();
+  await page.locator('select[name="club"]').selectOption('andes-talleres');
+  await page.getByRole('button', { name: 'Apply', exact: true }).click();
+
+  await expect(page).toHaveURL(/club=andes-talleres/);
+  const body = page.locator('.cl-match-schedule__nested');
+  await expect(body).toContainText('Palmira');
+  await expect(body).not.toContainText('Huracán');
+
+  await context.close();
 });

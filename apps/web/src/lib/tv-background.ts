@@ -8,7 +8,7 @@ export const TV_BACKGROUNDS = [
 ] as const;
 
 export type TvBackground = (typeof TV_BACKGROUNDS)[number];
-export type TvOverlayMode = 'lower' | 'full';
+export type TvOverlayMode = 'scorebug' | 'lower' | 'full';
 
 export interface TvBackgroundSelection {
   readonly background: TvBackground;
@@ -22,8 +22,10 @@ function isTvBackground(value: string | null): value is TvBackground {
   return value !== null && TV_BACKGROUNDS.some((background) => background === value);
 }
 
+/** Six hex digits, with or without a leading `#`; the result is always lowercase `#rrggbb`. */
 function validChromaKey(value: string | null | undefined): string | undefined {
-  return value && /^#[\da-f]{6}$/i.test(value) ? value.toLowerCase() : undefined;
+  const match = value ? /^#?([\da-f]{6})$/i.exec(value) : null;
+  return match?.[1] === undefined ? undefined : `#${match[1].toLowerCase()}`;
 }
 
 /**
@@ -40,12 +42,13 @@ export function resolveTvBackground(input: {
   const queryBackground = [input.searchParams.get('bg'), input.searchParams.get('background')].find(
     isTvBackground,
   );
+  const isCorner = input.overlayMode === 'scorebug' || input.overlayMode === 'lower';
   const legacyOverlayChroma =
-    input.overlayMode === 'lower' && validChromaKey(input.searchParams.get('chroma')) !== undefined;
+    isCorner && validChromaKey(input.searchParams.get('chroma')) !== undefined;
   const background =
     queryBackground ??
     input.background ??
-    (legacyOverlayChroma ? 'chroma' : input.overlayMode === 'lower' ? 'transparent' : 'discipline');
+    (legacyOverlayChroma ? 'chroma' : isCorner ? 'transparent' : 'discipline');
   const chromaKey =
     validChromaKey(input.searchParams.get('chroma')) ??
     validChromaKey(input.chromaKey) ??

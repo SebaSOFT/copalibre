@@ -78,9 +78,20 @@ export function applyMatchCommand(
     );
   }
 
-  // A completed segment is a played half. Reopening one is a correction of the
-  // record, which belongs to the audited correction workflow, not to a button
-  // an official can press twice by accident on a busy touchline.
+  // A start or resume sets a segment's clock running. With no segment to set running, the match
+  // would become in progress with nothing to operate, and no later command could repair that.
+  if ((command === 'start' || command === 'resume') && segment === undefined) {
+    return err(
+      new MatchOperationError(`Match "${match.matchId}" has no segment to ${command}`, {
+        matchId: match.matchId,
+        command,
+      }),
+    );
+  }
+
+  // A completed segment is a played half. No ordinary command leaves that state:
+  // reopening one is the separate, reasoned command in `reopenSegment`, so a
+  // button pressed twice by accident on a busy touchline cannot undo a half.
   if (segment?.state === 'completed' && command !== 'finalize') {
     return err(
       new MatchOperationError(
@@ -111,6 +122,46 @@ export function applyMatchCommand(
     case 'finalize':
       return ok({ command, status: 'finalized', clockRunning: false, segmentState: 'pending' });
   }
+}
+
+/** What reopening an ended segment leaves behind: stopped, with its time kept. */
+export interface SegmentReopening {
+  readonly status: MatchStatus;
+  readonly clockRunning: false;
+  readonly segmentState: 'pending';
+}
+
+/**
+ * Whether an ended segment may be reopened, and what it becomes.
+ *
+ * Reopening is the only path out of `completed`. It is limited to a match in
+ * progress: a finalized result is a fact, and it changes only through the
+ * audited correction workflow. The segment comes back stopped, with its time
+ * kept, because running the clock again is a separate, deliberate command.
+ */
+export function reopenSegment(
+  match: Pick<Match, 'matchId' | 'status'>,
+  segment: Pick<Segment, 'state'>,
+): Result<SegmentReopening, MatchOperationError> {
+  if (match.status !== 'in-progress') {
+    return err(
+      new MatchOperationError(
+        `Match "${match.matchId}" is ${match.status}; a segment can be reopened only while it is in progress`,
+        { matchId: match.matchId, status: match.status, command: 'reopen' },
+      ),
+    );
+  }
+
+  if (segment.state !== 'completed') {
+    return err(
+      new MatchOperationError(`Match "${match.matchId}" has no ended segment to reopen`, {
+        matchId: match.matchId,
+        command: 'reopen',
+      }),
+    );
+  }
+
+  return ok({ status: 'in-progress', clockRunning: false, segmentState: 'pending' });
 }
 
 /**

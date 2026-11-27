@@ -5,6 +5,7 @@ import { refuseForKubernetesMode } from '../compose-target.js';
 import { runCommand } from '../command-support.js';
 import { hybridEnvironment } from './dev-command.js';
 import { parseComposePs, type ComposeServiceRow } from './status-command.js';
+import { createOrganizationAdminInvitationFromEnv } from '../organization-admin.js';
 
 const DEV_COMPOSE_FILE = 'docker-compose.dev.yml';
 
@@ -22,8 +23,12 @@ export const DEV_OBJECT_STORAGE: Readonly<Record<string, string>> = {
   COPALIBRE_OBJECT_STORAGE_REGION: 'garage',
 };
 
-/** Services the loader needs: the database, and the object store with its bucket initialised. */
-const REQUIRED_SERVICES = ['postgres', 'object-storage', 'object-storage-init'] as const;
+/**
+ * Services the loader needs running: the database and the object store. The store's bucket and key are made once by
+ * `object-storage-init`, which `copalibre dev --hybrid` removes after the infrastructure is healthy, so that
+ * container is not required to exist.
+ */
+const REQUIRED_SERVICES = ['postgres', 'object-storage'] as const;
 
 function isUp(service: ComposeServiceRow | undefined): boolean {
   return (
@@ -33,7 +38,7 @@ function isUp(service: ComposeServiceRow | undefined): boolean {
 }
 
 /**
- * `copalibre dev demo [--list] [<dataset>]`: loads a committed demo dataset into the running development stack
+ * `copalibre dev demo [--list] [<dataset>] [--anchor <date>] [--played-until <instant>]`: loads a committed demo dataset into the running development stack
  * from the host, through the seed application's `demo` subcommand. It only ever targets
  * `docker-compose.dev.yml` in a checkout, never an installation.
  */
@@ -41,6 +46,15 @@ export class DevDemoCommand extends Command<CliContext> {
   static override paths = [['dev', 'demo']];
 
   list = Option.Boolean('--list', false);
+  anchor = Option.String('--anchor', {
+    description: 'Move the first game day to a YYYY-MM-DD date, or to today',
+  });
+  playedUntil = Option.String('--played-until', {
+    description: 'Play only the games finished by an ISO-8601 instant, or by now',
+  });
+  withAdmin = Option.String('--with-admin', {
+    description: 'Create an administrator invitation for the loaded demo organization',
+  });
   dataset = Option.String({ required: false });
 
   async execute(): Promise<number> {
@@ -65,13 +79,38 @@ export class DevDemoCommand extends Command<CliContext> {
       };
       const seed = ['workspace', '@copalibre/seed', 'start', 'demo'];
 
-      if (this.list) return this.context.processes.run('yarn', [...seed, '--list'], environment);
+      if (this.list) {
+        if (this.withAdmin) throw new Error('--with-admin cannot be used with --list');
+        return this.context.processes.run('yarn', [...seed, '--list'], environment);
+      }
       if (!this.dataset) {
         throw new Error('name a dataset to load, or pass --list to see what is available');
       }
+      const organizationAlias = this.withAdmin ? demoOrganizationAlias(this.dataset) : undefined;
 
       await this.requireInfrastructure();
-      return this.context.processes.run('yarn', [...seed, this.dataset], environment);
+      // The seed application validates both values before connecting; they pass through verbatim.
+      const result = await this.context.processes.run(
+        'yarn',
+        [
+          ...seed,
+          this.dataset,
+          ...(this.anchor === undefined ? [] : ['--anchor', this.anchor]),
+          ...(this.playedUntil === undefined ? [] : ['--played-until', this.playedUntil]),
+        ],
+        environment,
+      );
+      if (result !== 0 || !this.withAdmin || !organizationAlias) return result;
+
+      const invitation = await createOrganizationAdminInvitationFromEnv(
+        organizationAlias,
+        this.withAdmin,
+        environment,
+      );
+      process.stdout.write(
+        `Administrator invitation created for ${this.withAdmin}. Setup link (shown once): ${invitation.setupUrl}\n`,
+      );
+      return 0;
     });
   }
 
@@ -99,4 +138,9 @@ export class DevDemoCommand extends Command<CliContext> {
       );
     }
   }
+}
+
+function demoOrganizationAlias(dataset: string): string {
+  if (dataset === 'panamericano-clubes-2025') return 'panamericano-demo';
+  throw new Error(`--with-admin is not supported for demo dataset "${dataset}"`);
 }

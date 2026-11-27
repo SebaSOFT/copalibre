@@ -142,9 +142,12 @@ describeIfBuilt('packaged binary parity with node dist/main.js (integration)', (
 
         const nodeEnv = await readFile(join(nodeDirectory, '.env'), 'utf8');
         const binaryEnv = await readFile(join(binaryDirectory, '.env'), 'utf8');
-        // GARAGE_RPC_SECRET is generated randomly per-run (32-byte hex); everything else in .env must match.
+        // The generated secrets are random per run (32-byte hex); everything else in .env must match.
         const normalizeEnv = (env: string) =>
-          env.replace(/^GARAGE_RPC_SECRET=[0-9a-f]{64}$/m, 'GARAGE_RPC_SECRET=<random>');
+          env.replace(
+            /^(GARAGE_RPC_SECRET|COPALIBRE_DATABASE_OWNER_PASSWORD|COPALIBRE_DATABASE_APP_PASSWORD)=[0-9a-f]{64}$/gm,
+            '$1=<random>',
+          );
         expect(normalizeEnv(binaryEnv)).toBe(normalizeEnv(nodeEnv));
         expect(binaryEnv).toMatch(/^GARAGE_RPC_SECRET=[0-9a-f]{64}$/m);
         expect(nodeEnv).toMatch(/^GARAGE_RPC_SECRET=[0-9a-f]{64}$/m);

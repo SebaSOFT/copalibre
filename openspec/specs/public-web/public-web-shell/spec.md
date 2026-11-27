@@ -7,15 +7,13 @@ site that stays usable without JavaScript and is indexable only on its intended 
 ## Requirements
 
 ### Requirement: Organization-scoped tournament overview page
-The public site SHALL serve a tournament overview page at `/{organization}/tournaments/{tournament}`
-showing tournament identity, schedule/format facts, a standings preview, and rules access, matching
-the B1 reference layout. This page SHALL be rendered per request from the current backend state for
-the requested organization/tournament alias pair, rather than pre-rendered ahead of time from a fixed
-set of aliases — any published tournament reachable through the public-read API SHALL be reachable
-through this page without a site rebuild. All rendered surfaces on this page (and child match/stage pages)
-SHALL adhere strictly to the "Broadcast Command Precision" token design system: match lists, tickers,
-and standings SHALL use `.cl-card`, `.cl-match-card`, and `.cl-data-table` classes rather than unstyled
-HTML lists, and the accessible skip link SHALL be visually hidden until focused.
+
+The public site SHALL serve a tournament overview page at
+`/{organization}/tournaments/{tournament}`, matching the B1 reference layout, rendered per request
+from current backend state so that any published tournament reachable through the public-read API is
+reachable without a site rebuild. The page and its child match and stage pages SHALL adhere strictly
+to the "Broadcast Command Precision" token design system, and the accessible skip link SHALL be
+visually hidden until focused.
 
 #### Scenario: Visiting a published tournament's overview
 - **WHEN** an anonymous visitor requests `/{organization}/tournaments/{tournament}` for a published tournament
@@ -42,6 +40,18 @@ HTML lists, and the accessible skip link SHALL be visually hidden until focused.
 #### Scenario: Accessible skip link is visually hidden until focused
 - **WHEN** a sighted visitor views any public page
 - **THEN** the skip-to-content link is visually hidden off-screen until keyboard focus navigates to it.
+
+#### Scenario: What the overview shows
+
+- **WHEN** a spectator opens a tournament overview
+- **THEN** it shows tournament identity, schedule and format facts, a standings preview, and rules
+  access
+
+#### Scenario: Design-system classes, not raw lists
+
+- **WHEN** match lists, tickers and standings render
+- **THEN** they use `.cl-card`, `.cl-match-card` and `.cl-data-table` rather than unstyled HTML
+  lists
 
 ### Requirement: Public pages function without JavaScript
 Core public content (tournament identity, schedule, standings, rules) SHALL be present in the
@@ -98,7 +108,11 @@ route even if the old alias string collides.
 
 ### Requirement: Public routes carry a locale prefix, primary locale excepted
 
-Every public canonical route SHALL be available in each of the platform's supported interface languages that have populated content, as a `/{locale}/{organization}/...` prefixed variant, except the primary locale (English), which SHALL remain unprefixed at `/{organization}/tournaments/{tournament}` and its public children. Interface chrome (navigation, footer, section headings, status labels) SHALL render in the variant's own language; organizer-entered content (tournament names, participant names, organization names) is never translated. A route's locale variant is resolved from the request path at the time it is served — for a route that is rendered per request against live backend data, this resolution SHALL happen on every request rather than being limited to a fixed, pre-generated set of locale/alias combinations. The root public home page SHALL also be reachable under non-primary locale prefixes (e.g. `/{locale}`) serving the localized home landing page. When switching languages, the system SHALL replace the active locale prefix cleanly without accumulating duplicated or nested locale segments.
+Every public canonical route, the home page included, SHALL be available under a `/{locale}/` prefix
+in each supported language with populated content, except English, which SHALL remain unprefixed.
+Interface chrome SHALL render in the variant's language; organizer-entered content is never
+translated. A route rendered per request SHALL resolve its locale on every request. Switching
+languages SHALL replace the locale prefix without duplicated or nested segments.
 
 #### Scenario: English is served unprefixed
 - **WHEN** an anonymous visitor requests `/{organization}/tournaments/{tournament}`
@@ -119,6 +133,23 @@ Every public canonical route SHALL be available in each of the platform's suppor
 #### Scenario: Switching language replaces locale prefix without segment duplication
 - **WHEN** a visitor on a localized route (e.g. `/es/org/tournaments/t1`) selects another language (e.g. French or English)
 - **THEN** the target URL cleanly swaps the prefix (e.g. `/fr/org/tournaments/t1` or `/org/tournaments/t1`), never producing duplicated segments like `/es/es/...`
+
+#### Scenario: What chrome and content are
+
+- **WHEN** a localized page renders
+- **THEN** navigation, footer, section headings and status labels follow the locale, while
+  tournament, participant and organization names stay as entered
+
+#### Scenario: The localized home page
+
+- **WHEN** a visitor opens `/{locale}`
+- **THEN** the localized home landing page is served
+
+#### Scenario: Any alias in any locale
+
+- **WHEN** a newly published tournament is visited under a locale prefix
+- **THEN** the page is served without being limited to a pre-generated set of locale and alias
+  combinations
 
 ### Requirement: Sitemap advertises every locale variant of a public route
 
@@ -165,13 +196,9 @@ Public spectator pages SHALL render standings and leaderboards according to the 
 ### Requirement: Per-match public report page
 
 The public site SHALL serve a per-match report page at
-`/{organization}/tournaments/{tournament}/stages/{stageNumber}/matches/{matchNumber}`, where
-`matchNumber` is a genuinely stage-unique 1-based ordinal — never a value that can be shared by more
-than one fixture within the same stage — keyed by the stage number and that ordinal, showing the match
-header (competition/stage/round identity, both entrants, current score, status, scheduled date/time and
-venue when a schedule exists), the officials assigned to it, each side's roster as recorded, and the
-full event timeline in match order. This page SHALL be rendered per request from current backend state,
-matching the existing overview page's "reachable without a site rebuild" guarantee.
+`/{organization}/tournaments/{tournament}/stages/{stageNumber}/matches/{matchNumber}`, keyed by the
+stage number and a stage-unique 1-based ordinal that no two fixtures of the stage share, rendered
+per request from current backend state so that it is reachable without a site rebuild.
 
 #### Scenario: Visiting a finished match's report
 - **WHEN** an anonymous visitor requests the report page for a finalized match
@@ -181,8 +208,9 @@ matching the existing overview page's "reachable without a site rebuild" guarant
 #### Scenario: Visiting an upcoming match's report
 - **WHEN** an anonymous visitor requests the report page for a scheduled match that has not started
 - **THEN** the page renders the header with scheduled date/time and venue and any assigned officials,
-  and shows the roster and event timeline sections as not yet available, rather than 404ing or omitting
-  them from the page entirely
+  lists each known team side's registered squad, labelled as such, where no match-day roster is
+  recorded yet, and shows the event timeline section as not yet available, rather than 404ing or
+  omitting the sections from the page entirely
 
 #### Scenario: An unknown stage or match number 404s
 - **WHEN** an anonymous visitor requests a stage number or stage-scoped match number that does not
@@ -201,6 +229,14 @@ matching the existing overview page's "reachable without a site rebuild" guarant
   fixture is a multi-game series — the common case)
 - **THEN** the page renders that specific match's own data, never another fixture's data substituted
   for it
+
+#### Scenario: What the report shows
+
+- **WHEN** a spectator opens a match report
+- **THEN** it shows the match header (competition, stage and round identity, both entrants with their
+  crests when their clubs have one, current score, status, and scheduled date, time and venue when
+  scheduled), the assigned officials, each side's roster as recorded or its registered squad before
+  one is recorded, and the full event timeline in match order
 
 ### Requirement: Officials assigned to a fixture are shown on its match report
 
@@ -274,46 +310,40 @@ only).
 ### Requirement: A table projection may be filtered to one club's entrants
 
 Both the public tournament-wide table route and the existing public stage-scoped table route SHALL
-accept an optional `clubId` query parameter; when present, the response SHALL include only rows for
-entrants resolved to that club, and SHALL NOT alter the layout's declared columns, sort order, or
-ranking computation.
+accept an optional `club` query parameter naming a club alias, and the legacy `clubId` parameter;
+when either is present, the response SHALL include only rows for entrants resolved to that club,
+and SHALL NOT alter the layout's declared columns, sort order, or ranking computation. `club` SHALL
+win when both are given.
 
 #### Scenario: Filtering a leaderboard to one club
-- **WHEN** a table projection is requested with `clubId` naming a club fielding three of the
+- **WHEN** a table projection is requested with `club` naming a club fielding three of the
   tournament's registered entrants
 - **THEN** the response's rows are limited to those three entrants' players, ranked exactly as they
   would be within the unfiltered table (rank numbers reflect standing in the full table, not
   renumbered within the filtered subset)
 
 #### Scenario: An absent clubId returns every entrant
-- **WHEN** a table projection is requested with no `clubId` parameter
+- **WHEN** a table projection is requested with neither `club` nor `clubId`
 - **THEN** the response is unchanged from this route's behavior before the parameter existed
 
 #### Scenario: A clubId matching no entrant returns an empty row set, not an error
-- **WHEN** a table projection is requested with a `clubId` that fields no entrant in this tournament
+- **WHEN** a table projection is requested with a `club` or `clubId` that fields no entrant in this
+  tournament
 - **THEN** the response carries the layout's columns and an empty `rows` array, rather than a 404 or
   other error
 
+#### Scenario: The legacy identifier still filters
+- **WHEN** a client that predates the alias parameter requests a table with `clubId`
+- **THEN** the response is filtered to that club exactly as before
+
 ### Requirement: Public player profile popup
 
-The public site SHALL serve a per-person competition profile, reachable from wherever a player's
-name is rendered on a public page, showing display name, nationality flag, photo or placeholder,
-computed age when set, competition history (every tournament and team the person has been entered
-under, within the person's organization), and career statistic totals aggregated across every
-tournament, per discipline. The photo, or its placeholder, SHALL render inside the platform's
-standard 4:5 framed-image presentation.
-
-Within the current published tournament, a profile SHALL also expose every effective
-person-granularity player-ranking layout through a labeled selector. For the selected layout, it
-SHALL show that player's tournament total and a match-by-match table for finalized matches where
-the player appears in a recorded roster, ordered chronologically by stage and match number. The
-tournament-total table SHALL show every declared column, including composite and computed ones; the
-match-by-match table SHALL show only the layout's collector-kind (atomic) columns, since composite
-and computed columns are ratios or expressions that depend on more than one match. Both tables SHALL
-use the layout's declared localized labels, values, and zero-value display rules. The selected
-layout identifier SHALL be a query parameter on the profile URL, defaulting to the tournament's
-first effective person-granularity layout when omitted, and a player link from a ranking SHALL open
-the matching layout when one exists.
+The public site SHALL serve a per-person competition profile, reachable wherever a player's name is
+rendered, with the photo or placeholder in the standard 4:5 framed image. Within the current
+published tournament it SHALL expose every effective person-granularity player-ranking layout
+through a labeled selector, kept as a query parameter, defaulting to the first such layout, and
+showing the player's total and match-by-match tables in the layout's localized labels, values and
+zero-value rules.
 
 #### Scenario: Visiting a player's public profile
 - **WHEN** an anonymous visitor opens a player's name on a public page
@@ -355,21 +385,33 @@ the matching layout when one exists.
   belongs to a different organization than the requested public path
 - **THEN** the public site returns a not-found response
 
+#### Scenario: What the profile shows
+
+- **WHEN** a spectator opens a player's profile
+- **THEN** it shows display name, nationality flag, photo or placeholder, computed age when set,
+  competition history (every tournament and team within the person's organization), and career
+  statistic totals across tournaments, per discipline
+
+#### Scenario: The two tables
+
+- **WHEN** a layout is selected
+- **THEN** the total table shows every declared column, including composite and computed ones, and
+  the match table shows only collector columns for finalized matches where the player is on a
+  recorded roster, ordered by stage and match number, because composite and computed columns depend
+  on more than one match
+
+#### Scenario: A ranking opens its own layout
+
+- **WHEN** a spectator follows a player link from a ranking
+- **THEN** the profile opens with that ranking's layout selected, when it exists
+
 ### Requirement: Organization-scoped tournament listing page
 
-The public site SHALL serve an organization page at `/{organization}`, showing the organization's name
-and emblem, a **Live** section listing every currently-live tournament, a **Featured** section for
-organizer-flagged tournaments (or, when none are flagged, the existing live-or-most-recent fallback),
-every published tournament for that organization — name, discipline, status, and season/dates — and a
-grid of the organization's clubs. The Live section SHALL render before the Featured section. The page
-SHALL be reachable without already knowing a specific tournament's alias, and SHALL be rendered per
-request from current backend state, matching the existing overview page's "reachable without a site
-rebuild" guarantee. Every emblem shown on this page, and every placeholder shown in its place, SHALL
-render inside the platform's standard 4:5 framed-image presentation. Reserved system route prefixes
-(`organizations`, `objects`, `control`, `tv`, `events`, `api`, `docs`) SHALL NOT be treated as
-organization aliases and requests matching them SHALL NOT be processed as public organization listings.
-
-The previously served path `/{organization}/tournaments` SHALL NOT be served.
+The public site SHALL serve an organization page at `/{organization}`, reachable without knowing a
+tournament alias and rendered per request, with a Live section before a Featured section, every
+published tournament and the club grid. Every emblem or placeholder SHALL render in the standard 4:5
+framed image. Reserved system prefixes SHALL NOT be treated as organization aliases, and the former
+path `/{organization}/tournaments` SHALL NOT be served.
 
 #### Scenario: Visiting an organization's tournament listing
 - **WHEN** an anonymous visitor requests `/{organization}`
@@ -425,6 +467,20 @@ The previously served path `/{organization}/tournaments` SHALL NOT be served.
 - **WHEN** a request arrives for a top-level path matching a reserved system prefix (`organizations`, `objects`, `control`, `tv`, `events`, `api`, `docs`)
 - **THEN** the organization-scoped route handler aborts without issuing backend organization queries or rendering an organization-not-found error page
 
+#### Scenario: What the page shows
+
+- **WHEN** a spectator opens an organization page
+- **THEN** it shows the organization's name and emblem, a Live section of every currently-live
+  tournament, a Featured section of organizer-flagged tournaments (or the live-or-most-recent
+  fallback when none are flagged), every published tournament with name, discipline, status and
+  season or dates, and a grid of the organization's clubs
+
+#### Scenario: The reserved prefixes
+
+- **WHEN** a request path starts with `organizations`, `objects`, `control`, `tv`, `events`, `api`
+  or `docs`
+- **THEN** it is not processed as a public organization listing
+
 ### Requirement: A finished tournament's listing card shows its winner and runner-up, per zone
 
 A finished tournament's entry on the listing page SHALL show its champion and runner-up, one pair per
@@ -458,21 +514,28 @@ formats), not a separately stored value.
 
 ### Requirement: A table projection's club filter is reachable from the page and addressable in the URL
 
-The public table surfaces SHALL provide a control that applies the club filter the table routes already
-accept, and SHALL carry the selected club in the page URL so a filtered table is linkable. Where a club
-emblem is rendered beside a row, activating it SHALL apply that club's filter. Selecting all clubs SHALL
-clear the filter.
+The public table surfaces SHALL provide a control that applies the club filter. The control SHALL
+offer every club fielding an entrant in the tournament, and SHALL carry the selected club in the page
+URL as `club={clubAlias}`, never as an identifier. Where a club emblem is shown beside a row,
+activating it SHALL apply that club's filter. Selecting all clubs SHALL clear the filter. A page URL
+with the legacy `clubId` SHALL redirect to its `club` form.
 
 #### Scenario: Filtering a leaderboard from the page
 - **WHEN** a visitor selects a club on a public table view
-- **THEN** the table shows only that club's rows, and the page URL carries the selected club
+- **THEN** the table shows only that club's rows, and the page URL carries `club=` with the club's
+  alias
+
+#### Scenario: Every club is offered
+- **WHEN** a visitor opens the club filter of a tournament whose clubs include one whose alias was
+  backfilled on upgrade
+- **THEN** that club is offered like every other club
 
 #### Scenario: A linked filtered table renders filtered
 - **WHEN** a visitor opens a public table URL that names a club
 - **THEN** the table renders filtered to that club without further interaction
 
 #### Scenario: Activating a club emblem filters to that club
-- **WHEN** a visitor activates a club emblem rendered beside a table row
+- **WHEN** a visitor activates a club emblem shown beside a table row
 - **THEN** the table filters to that club
 
 #### Scenario: Clearing the filter restores every entrant
@@ -486,11 +549,29 @@ clear the filter.
 
 #### Scenario: A club with no entrants renders an empty state
 - **WHEN** a visitor filters to a club fielding no entrant in this tournament
-- **THEN** the page renders an explicit empty state rather than an error
+- **THEN** the page shows an explicit empty state rather than an error
+
+#### Scenario: A legacy filtered link
+- **WHEN** a visitor opens a table page with `clubId` naming a club
+- **THEN** the site answers a permanent redirect to the same page with `club={clubAlias}` in place of
+  `clubId`, keeping every other query parameter
+
+#### Scenario: A legacy link to a club without an alias
+- **WHEN** a legacy `clubId` link was shared while its club had no alias, and the upgrade has since
+  backfilled one
+- **THEN** the site answers a permanent redirect to the same page with `club={backfilledAlias}` in place
+  of `clubId`, keeping every other query parameter
+
+#### Scenario: The CSV export names the club by alias
+- **WHEN** a filtered table offers its CSV download
+- **THEN** the download link carries `club={clubAlias}` and no club identifier
 
 ### Requirement: The public site root is a real, indexable landing page
-The public site SHALL serve real content at `/` — an organization directory or equivalent landing
-content reflecting the installation's actual data — rather than a static placeholder. When an installation has zero published organizations, the page SHALL render an inviting orientation hub featuring a hero presentation, tactical coordinate ground (`.cl-tactical-grid`), platform provenance badges, and distinct actionable pathways directing tournament organizers to the Control Panel (`/control/`) and developers/evaluators to documentation (`/help/`), alongside clear guidance for spectators. The root path SHALL remain listed in `sitemap.xml` and `Allow`ed in `robots.txt` only while it serves real content.
+
+The public site SHALL serve real content at `/` reflecting the installation's actual data rather
+than a static placeholder, and SHALL render an inviting orientation hub when no organization is
+published. The root SHALL stay listed in `sitemap.xml` and allowed in `robots.txt` only while it
+serves real content.
 
 #### Scenario: The homepage reflects real installation data
 - **WHEN** an anonymous visitor requests `/`
@@ -505,6 +586,18 @@ content reflecting the installation's actual data — rather than a static place
 #### Scenario: A fresh installation with no published organizations renders an inviting orientation hub
 - **WHEN** an anonymous visitor requests `/` on an installation with zero published organizations
 - **THEN** the page renders a structured orientation experience with a hero header, platform capability badges, direct action pathways for operators to launch the Control Panel, and developer links to documentation
+
+#### Scenario: The content with organizations
+
+- **WHEN** organizations are published
+- **THEN** the root shows an organization directory or equivalent landing content
+
+#### Scenario: The orientation hub
+
+- **WHEN** no organization is published
+- **THEN** the root shows a hero, the tactical coordinate ground (`.cl-tactical-grid`), platform
+  provenance badges, a pathway for organizers to the Control Panel (`/control/`), one for developers
+  and evaluators to `/help/`, and guidance for spectators
 
 ### Requirement: Public pages carry Open Graph, Twitter Card, and structured data
 Every public canonical page SHALL emit Open Graph (`og:title`, `og:description`, `og:type`, `og:url`,
@@ -613,11 +706,23 @@ The public product showcase page for CopaLibre on `sebasoft.app` SHALL accuratel
 ### Requirement: Organization home tournament status sections
 The organization home page SHALL present tournaments grouped by their real status (Live, Upcoming,
 Final), using the same status determination as the tournament's own overview page, and SHALL include a
-Final section for finished tournaments rather than omitting one.
+Final section for finished tournaments rather than omitting one. A tournament card SHALL name its
+matches being played, with their score, and SHALL offer the live page as its primary action only
+while a match is being played.
 
 #### Scenario: A finished tournament on organization home
 - **WHEN** a tournament has completed all its stages with a recorded result
 - **THEN** organization home SHALL list it under a Final section and SHALL NOT badge it "LIVE"
+
+#### Scenario: A match is being played
+
+- **WHEN** a tournament in progress has one match in progress
+- **THEN** its card shows both sides and the current score, and "En vivo" is the card's primary action
+
+#### Scenario: Nothing is being played right now
+
+- **WHEN** a tournament is in progress and none of its matches is
+- **THEN** its card shows no live match and no live button
 
 ### Requirement: Champion presentation for a finished tournament
 A finished tournament SHALL receive a visually distinct champion presentation, not an ordinary
@@ -648,11 +753,11 @@ link-blue as its only visual treatment.
   visible
 
 ### Requirement: Public-web CTAs implement the accepted CTA treatments
+
 Every primary and secondary call-to-action on a public-web page SHALL be rendered by an owned
-public-web Button component built on the same `.cl-btn` token classes, with the same variant treatments
-(`state-live` primary with dark text, raised neutral secondary with a muted border) and the same
-chamfered control geometry that `control-web/admin-interface-components` requires of the Control-web
-Button atom. The button element SHALL enforce inline-flex alignment (`display: inline-flex; align-items: center; justify-content: center;`) such that label text and icons remain optically centered both vertically and horizontally across all element types (whether `<button>` or `<a>`). A public-web CTA SHALL NOT carry hand-written, non-token color values.
+public-web Button component sharing the Control-web Button atom's `.cl-btn` token classes, variant
+treatments and chamfered geometry. The button SHALL keep its label and icon optically centered both
+ways, as a `<button>` or an `<a>`, and a CTA SHALL NOT carry hand-written, non-token color values.
 
 #### Scenario: Primary and secondary public CTAs are visually distinct
 - **WHEN** a public tournament card renders a primary action alongside a secondary one
@@ -662,6 +767,17 @@ Button atom. The button element SHALL enforce inline-flex alignment (`display: i
 #### Scenario: Primary and secondary public CTAs are vertically centered
 - **WHEN** a public CTA renders as a button or anchor link
 - **THEN** its label text is vertically and horizontally centered with balanced internal padding, without sagging or top-heavy clipping
+
+#### Scenario: The variant treatments
+
+- **WHEN** a CTA renders
+- **THEN** the primary is `state-live` with dark text and the secondary is raised neutral with a
+  muted border, as `control-web/admin-interface-components` requires of the Control-web atom
+
+#### Scenario: How centering is enforced
+
+- **WHEN** a CTA renders
+- **THEN** it uses `display: inline-flex; align-items: center; justify-content: center;`
 
 ### Requirement: Public tabular data renders through a shared Table component
 Every tabular data view on a public-web page — tournament standings, per-match rosters, and the match
@@ -700,13 +816,19 @@ no dedicated backdrop treatment SHALL render a neutral fallback rather than a mi
 
 ### Requirement: Public tournament pages present a tournament ticker
 A public tournament page SHALL present a ticker carrying that tournament's live and most recently
-finished matches, its leaders, and its next scheduled matches. Statistic-bearing items SHALL read from
-the tournament's declared discipline rather than a hardcoded metric, and an item kind with no data for
-that tournament SHALL be omitted rather than rendered empty.
+finished matches, its leaders, and its next scheduled matches. Live matches SHALL come first, each
+with its current score. Statistic-bearing items SHALL read from the tournament's declared discipline
+rather than a hardcoded metric, and an item kind with no data for that tournament SHALL be omitted
+rather than rendered empty.
 
 #### Scenario: A live tournament's ticker carries current results
 - **WHEN** a visitor opens a tournament page while a match is live
 - **THEN** the ticker includes that match with its current score
+
+#### Scenario: Live matches lead the ticker
+
+- **WHEN** a tournament has one live match and dozens of finished ones
+- **THEN** the live match is the ticker's first item, with its score and not "vs"
 
 #### Scenario: Every format yields a leader item
 - **WHEN** the ticker renders for a tournament whose format has no group phase
@@ -721,12 +843,11 @@ that tournament SHALL be omitted rather than rendered empty.
 - **THEN** the ticker does not scroll continuously, and every item still becomes readable
 
 ### Requirement: Every surface is held to the component library
-The ownership rule SHALL apply to every surface the application renders — the operator panel, the
-public site, and the broadcast overlays — rather than to one of them. A file on any surface SHALL NOT
-use a raw element the owned library replaces, and SHALL NOT hand-write a class an owned component
-applies, on the same terms and with the same recorded, one-directional backlog the operator surface is
-held to. The check SHALL read every file format these surfaces are written in, not only the format one
-surface happens to use.
+
+The ownership rule SHALL apply to every surface the application renders. A file on any surface SHALL
+NOT use a raw element the owned library replaces, and SHALL NOT hand-write a class an owned
+component applies, under the same recorded, one-directional backlog as the operator surface. The
+check SHALL read every file format these surfaces are written in.
 
 #### Scenario: A public page bypasses an owned component
 - **WHEN** a public page or layout writes a class an owned component applies, or uses a raw element the
@@ -748,6 +869,11 @@ surface happens to use.
 - **WHEN** a surface is written in a format the check did not previously read
 - **THEN** its violations are reported, because being unreadable by the tool was never a decision that
   the rule did not apply
+
+#### Scenario: The surfaces
+
+- **WHEN** the check runs
+- **THEN** it covers the operator panel, the public site and the broadcast overlays
 
 ### Requirement: Public document chrome and presentation are token-backed
 Public Astro document chrome, navigation, cards, badges, and image presentation SHALL resolve their
@@ -873,13 +999,17 @@ public page's JSON-LD structured-data `<script>` tag SHALL be escaped so it cann
   any name that needed no escaping
 
 ### Requirement: Public pages carry baseline security response headers
-Every response the public site serves SHALL include `X-Content-Type-Options: nosniff`,
-`X-Frame-Options: DENY`, and `Referrer-Policy: strict-origin-when-cross-origin`.
+Every response the public site serves, prerendered or server-rendered, SHALL include `X-Content-Type-Options: nosniff`,
+`X-Frame-Options: SAMEORIGIN`, and `Referrer-Policy: strict-origin-when-cross-origin`.
 
 #### Scenario: A visitor requests any public page
 - **WHEN** an anonymous visitor requests any public route, prerendered or server-rendered
-- **THEN** the response includes `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and
+- **THEN** the response includes `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, and
   `Referrer-Policy: strict-origin-when-cross-origin`
+
+#### Scenario: Control previews a TV overlay
+- **WHEN** the Broadcaster Studio frames a server-rendered TV overlay URL of the same origin
+- **THEN** the overlay renders inside the frame
 
 ### Requirement: The public overview's ruleset section shows the tournament's effective configuration
 The tournament overview page's ruleset section SHALL show each field's effective value — the
@@ -920,7 +1050,12 @@ directory. It SHALL NOT render as an unstyled, pure-white browser document.
   seamlessly
 
 ### Requirement: Public-web header layout and interaction integrity
-The public-web header (`.cl-public-header`) SHALL attach flush to the top edge of the browser viewport without unintended margin or padding leakage from parent document body styles. The language selection popover (`.cl-public-header__locale-list`) SHALL render endonyms without horizontal squishing, sizing to its own content (`min-width: max-content`) with `white-space: nowrap` so language names do not break across individual syllables or characters. The header navigation links SHALL focus cleanly on public spectator destinations, omitting operator-oriented help and API Reference links from primary public chrome.
+
+The public-web header (`.cl-public-header`) SHALL attach flush to the top of the viewport with no
+margin or padding leaking from the document body. The language popover
+(`.cl-public-header__locale-list`) SHALL size to its content (`min-width: max-content`,
+`white-space: nowrap`) so endonyms never break. The header navigation SHALL focus on public
+spectator destinations, omitting operator help and API Reference links.
 
 #### Scenario: Public header attaches flush to top edge
 - **WHEN** any public page is rendered
@@ -962,11 +1097,19 @@ A tournament listing card on the organization page SHALL lay its winners out by 
 - **THEN** its winners render side by side
 
 ### Requirement: Public pages below the organization carry a localized breadcrumb
-Every public page below the organization page — tournament, matches, live, stage and match — SHALL render one breadcrumb landmark listing its ancestors from the organization down, each ancestor a link within the current locale and the current page plain text marked as the current page. Labels SHALL be localized and SHALL use the organization, tournament, stage and zone names. The match page SHALL NOT print a separate English position tag for stage, round and match.
+Every public page below the organization page — tournament, matches, live, stage and match — SHALL render one breadcrumb landmark listing its ancestors from the organization down in containment order (organization, tournament, stage, match), each ancestor a link within the current locale and the current page plain text marked as current. Labels SHALL be localized and use the organization, tournament display, stage and zone names. A wrapped line SHALL NOT start with a separator.
 
 #### Scenario: A match page links back up
 - **WHEN** a viewer opens a match page
-- **THEN** the breadcrumb links to the organization, the tournament, the stage and the matches list, and marks the match as current
+- **THEN** the breadcrumb links to the organization, the tournament and the stage in that order, and marks the match as current
+
+#### Scenario: The schedule is not an ancestor of a stage
+- **WHEN** a viewer opens a stage page
+- **THEN** the breadcrumb reads organization › tournament › stage, with no schedule item between the tournament and the stage
+
+#### Scenario: The tournament crumb matches the page title
+- **WHEN** a tournament has a season name that its page title shows
+- **THEN** the tournament crumb shows the same name with the season
 
 #### Scenario: Links keep the locale
 - **WHEN** the page is shown in Spanish
@@ -975,6 +1118,10 @@ Every public page below the organization page — tournament, matches, live, sta
 #### Scenario: Narrow viewports collapse the middle
 - **WHEN** the viewport is narrow
 - **THEN** the first and last two items remain visible and the rest collapse behind an ellipsis link
+
+#### Scenario: A wrapped breadcrumb starts with a label
+- **WHEN** the breadcrumb wraps onto a second line at a desktop width
+- **THEN** the second line starts with a crumb label, never with a separator
 
 ### Requirement: Public tables draw a subtle vertical rule between columns
 Every public table SHALL draw a low-contrast vertical rule on the left edge of each column from the second onward, taken from a design token defined for every theme the site ships.
@@ -1009,3 +1156,314 @@ A public page inside a tournament SHALL draw the tournament discipline's backgro
 #### Scenario: The hero stays legible without its own image
 - **WHEN** the tournament overview renders
 - **THEN** the hero's title, emblem and live-count remain legible over the page backdrop at desktop and phone widths
+
+### Requirement: Public overviews lead with the tournament's current state
+
+A public tournament overview SHALL open with a hero panel holding a breadcrumb, a title and fact chips
+from the read model. It SHALL then show a now strip of live matches, then delayed matches, then the next
+match only when none is live, for a tournament in progress, or an honour board per placement tier for a
+completed one. Its upcoming and latest lists SHALL group their matches by day. It SHALL render
+completely without JavaScript.
+
+#### Scenario: In-progress overview
+
+- **WHEN** a spectator opens an in-progress tournament at 375px
+- **THEN** the first content after the hero is the now strip, with the live match first
+
+#### Scenario: The now strip holds no finished match
+
+- **WHEN** one match is live and the latest match is final
+- **THEN** the now strip shows the live match, and the final appears first under the latest results instead
+
+#### Scenario: Completed overview
+
+- **WHEN** a spectator opens a completed tournament with Gold, Silver and Bronze cups
+- **THEN** an honour-board card per cup shows the champion, runner-up and third place before the
+  standings
+
+#### Scenario: Without JavaScript
+
+- **WHEN** the overview loads with JavaScript disabled
+- **THEN** the hero, the lead section and the standings render completely
+
+### Requirement: Public reading pages use reading-page casing
+
+On public pages, only display and headline levels SHALL be uppercase. Entrant names, card titles and
+long-form subheadings SHALL render in sentence case. Control and TV keep their uppercase titles.
+
+#### Scenario: Entrant names on public and control
+
+- **WHEN** the same entrant name renders on a public match card and on a control match card
+- **THEN** it computes `text-transform: none` on public, and uppercase on control
+
+### Requirement: Public pages show no fabricated chrome
+
+Public pages SHALL show no telemetry strip, no footer link to a service that does not exist, and no
+fact that the read model does not provide. The 404 page SHALL be a centred panel with "404", "Page not
+found" and two actions.
+
+#### Scenario: 404
+
+- **WHEN** a missing public route is requested
+- **THEN** a centred panel shows "404", "Page not found", "Return to tournaments" and "View live
+  matches", with no telemetry or trace text
+
+### Requirement: Public typography applies documented line-height roles
+
+Public reading pages SHALL apply the line-height value declared for each typography role in
+`DESIGN.md`, including body, headings, labels and figures.
+
+#### Scenario: Mixed-size content
+
+- **WHEN** a public match card combines a heading, a state label and score figures
+- **THEN** each element computes the line-height assigned to its typography role
+
+### Requirement: Public markup passes the accessibility rules
+
+Public pages SHALL use valid list, description-list and ARIA semantics.
+
+#### Scenario: axe on public routes
+
+- **WHEN** axe runs on home, overview and stage
+- **THEN** it reports no critical or serious semantic violation
+
+### Requirement: Unknown paths show the page-not-found composition
+
+A path of more than one unknown segment SHALL show the adopted 404 page.
+
+#### Scenario: Deep unknown path
+
+- **WHEN** a visitor opens `/es/a/b/c`
+- **THEN** the page shows 404 and its two actions
+
+#### Scenario: Unknown organization
+
+- **WHEN** a visitor opens `/es/nope`
+- **THEN** the page says the organization was not found
+
+#### Scenario: Unknown prefix before a tournament path
+
+- **WHEN** a visitor opens `/es/nope/{org}/tournaments/{tournament}` for a tournament that exists
+- **THEN** the page shows 404 and its two actions
+
+### Requirement: Public tournament cards name the discipline in the page language
+
+A public tournament card on the organization page or the site home SHALL show the tournament's discipline by its localized name in the page language through the supported-language fallback chain, the same name the tournament overview shows.
+
+#### Scenario: A Spanish organization page
+
+- **WHEN** a Spanish organization page lists a rink hockey tournament whose discipline is named "Hockey sobre patines" in Spanish
+- **THEN** the card reads "Hockey sobre patines", not "Rink Hockey"
+
+### Requirement: A tournament listing card states its stage and schedule window
+
+An in-progress or upcoming tournament's listing card SHALL show its first and last match days in the organization's time zone, its venue count, and, while in progress, the name of the stage in play and its played and total match counts. A field the tournament lacks SHALL be omitted, never shown empty.
+
+#### Scenario: In progress
+
+- **WHEN** a tournament with matches from 18 to 24 November at seven venues is in its cup stage with 48 of 72 matches played
+- **THEN** its card shows 18–24 November, seven venues, the cup stage's name and 48 of 72 matches
+
+#### Scenario: No schedule yet
+
+- **WHEN** an upcoming tournament has no scheduled match
+- **THEN** its card shows no date range and no progress
+
+### Requirement: The tournament ticker lists matches in time order
+
+The tournament ticker SHALL list live matches first, then delayed matches, then upcoming matches by ascending kickoff, then finished matches by descending kickoff, on public and TV surfaces alike.
+
+#### Scenario: Results from several days
+
+- **WHEN** the tournament has finals on 18 and 22 November and fixtures on 23 and 24 November
+- **THEN** the ticker lists the 23 November fixtures before the 24 November ones, then the 22 November finals before the 18 November ones
+
+### Requirement: The player profile header names the player's club and number
+
+Within a published tournament, a player's public profile header SHALL name the club the player
+represents in that tournament, linked to that club's public page when one is served, and SHALL show
+the shirt number from the player's most recent finalized match roster in that tournament when a
+roster records one.
+
+#### Scenario: A player with recorded rosters
+- **WHEN** a spectator opens the profile of a player whose latest finalized roster in the tournament
+  gives number 3 for Club Hispano
+- **THEN** the header shows "Club Hispano" and number 3
+
+#### Scenario: No recorded number
+- **WHEN** no finalized roster of the tournament gives the player a number
+- **THEN** the header shows the club and no number, with no placeholder such as "—"
+
+### Requirement: The player profile shows the player's next match
+
+A player's public profile SHALL show the next live or scheduled match of the entrant the player
+represents in the current tournament, with its date and time in the organization's time zone, the
+opponent or the undecided side's source, the venue when assigned, and a link to its report. It SHALL
+show nothing in that place when no such match exists.
+
+#### Scenario: A semi-final is scheduled
+- **WHEN** the player's club has a scheduled semi-final against Lomas de Rivadavia
+- **THEN** the profile shows that match as the next match, linked to its report
+
+#### Scenario: The club is out of the tournament
+- **WHEN** the player's entrant has no live or scheduled match left
+- **THEN** the profile shows no next-match block
+
+### Requirement: Each profile match row identifies its match
+
+Each row of a player's match-by-match table SHALL show the match's date, opponent and final score,
+and SHALL link to that match's public report.
+
+#### Scenario: Reading a group game row
+- **WHEN** a spectator reads a row of the match-by-match table
+- **THEN** it shows the date, the opponent and the score, and following it opens that match's report
+
+### Requirement: Career totals keep zero-valued statistics
+
+A player's career totals SHALL list every organization-granularity statistic the discipline
+declares, in declaration order, showing 0 for one the player has not recorded.
+
+#### Scenario: A player who has not scored
+- **WHEN** a spectator opens the profile of a player with 4 appearances and no goal
+- **THEN** the career totals show both "Goles 0" and "Partidos jugados 4"
+
+### Requirement: Ticker top-performer items name the person
+
+A tournament ticker's top-performer item SHALL name the ranked person and carry the person's entrant
+abbreviation as secondary text, falling back to the entrant name only when the row carries no person
+name.
+
+#### Scenario: Top scorer item
+- **WHEN** the ticker renders the top scorer, Mateo Moreno of Casa de Italia with 10 goals
+- **THEN** the item reads Mateo Moreno with 10 goals and "CIT" as secondary text, not "Casa de Italia"
+
+### Requirement: Team names link to their club page
+
+A team name SHALL link to its club's page in that tournament on these public surfaces:
+- standings tables;
+- regular match cards;
+- schedule tables;
+- the match report's scoreboard and roster headings;
+- the overview's standings preview.
+
+A team with no club SHALL be shown as plain text.
+
+#### Scenario: From a standings row
+- **WHEN** a visitor activates "Club Hispano" in the standings table
+- **THEN** Club Hispano's club page for that tournament opens
+
+#### Scenario: A match card keeps its report link
+- **WHEN** a visitor activates the match title of a regular card that also links its team names
+- **THEN** the match report opens, and each team name still opens its own club page
+
+#### Scenario: A team without a club
+- **WHEN** a team belongs to no club
+- **THEN** its name is shown as text with no link styling
+
+#### Scenario: A club without an alias
+- **WHEN** a team's club reaches the page without an alias, which the API contract no longer allows
+- **THEN** its name is shown as text with no link styling rather than failing the page
+
+### Requirement: The tournament's teams tab opens the club index
+
+The public tournament navigation's teams tab SHALL open the tournament's club index page and SHALL be
+marked active on the club index and on every club page.
+
+#### Scenario: Teams tab
+- **WHEN** a visitor activates "Equipos" on a tournament page
+- **THEN** the club index opens and "Equipos" is the active tab
+
+### Requirement: Organization club cards link to the club's current tournament page
+
+On the organization page, a club card SHALL link to the club's page in the organization's in-progress
+published tournament that has an entrant from that club, and a club with no such tournament SHALL be
+shown without card affordance.
+
+#### Scenario: A club playing now
+- **WHEN** a visitor activates Club Hispano's card on the organization page while the Panamericano is
+  in progress
+- **THEN** Club Hispano's page in that tournament opens
+
+#### Scenario: A club not playing
+- **WHEN** a club has no entrant in any in-progress published tournament
+- **THEN** its entry shows crest and name with no border, hover state or link
+
+### Requirement: Club alias rename preserves inbound club links
+A public club page requested by an alias the club previously held SHALL answer `301` to the same path
+with the club's current alias, keeping the locale prefix and the query string. A `club` filter
+parameter naming a former alias SHALL answer `301` to the same page with the current alias. Resolution
+SHALL stay within the requesting organization.
+
+#### Scenario: Old club page URL redirects after rename
+- **WHEN** a club's alias is changed from `club-hispano` to `hispano`
+- **AND** a visitor requests `/es/{organization}/tournaments/{tournament}/clubs/club-hispano`
+- **THEN** the response is a 301 redirect to `/es/{organization}/tournaments/{tournament}/clubs/hispano`
+
+#### Scenario: Old club filter redirects after rename
+- **WHEN** a club's alias is changed from `club-hispano` to `hispano`
+- **AND** a visitor requests `/{organization}/tournaments/{tournament}/matches?club=club-hispano&state=final`
+- **THEN** the response is a 301 redirect to the same page with `club=hispano` and `state=final`
+
+#### Scenario: A former club alias does not leak across organizations
+- **WHEN** a club of organization A renamed its alias from `talleres` to `talleres-mendoza`
+- **AND** a visitor requests organization B's club page for `talleres`
+- **THEN** organization B answers from its own clubs only, never with a redirect to organization A's club
+
+### Requirement: Tournament sections open distinct destinations
+The tournament section navigation SHALL give the overview, schedule, live page, standings view and brackets sections their own destinations, the brackets section opening the first stage drawn as a bracket. No two sections SHALL open the same page or an anchor of another section's page. A section with no destination in the tournament SHALL be omitted.
+
+#### Scenario: Standings is not an anchor of the overview
+- **WHEN** a visitor opens the Posiciones section of a tournament with a group stage and cups
+- **THEN** the standings view opens rather than an anchor on the overview page
+
+#### Scenario: Cuadros opens a bracket
+- **WHEN** the tournament's first stage is a round-robin group stage and its second stage is drawn as brackets
+- **THEN** the Cuadros section opens the second stage
+
+#### Scenario: A league without brackets has no Cuadros section
+- **WHEN** no published stage of the tournament is drawn as a bracket
+- **THEN** the section navigation shows no Cuadros entry
+
+### Requirement: The current tournament section matches the page
+The section navigation SHALL mark as current only the section the page belongs to: the live page marks En vivo, a stage drawn as a bracket and its match pages mark Cuadros, and a stage not drawn as a bracket marks Posiciones. No page SHALL mark a section whose destination it is not part of; a player page SHALL NOT mark Posiciones, Cuadros or Partidos.
+
+#### Scenario: The live page marks En vivo
+- **WHEN** a visitor opens the tournament's live page
+- **THEN** En vivo is marked as the current page and Partidos is not
+
+#### Scenario: The group stage is not called Cuadros
+- **WHEN** a visitor opens a round-robin group stage page
+- **THEN** Posiciones is marked current and Cuadros is not
+
+### Requirement: Stage and match pages link to the tournament's other stages
+A stage page and a match page SHALL offer a stage switcher listing every published stage of the tournament by name with the current stage marked, when the tournament has two or more published stages. A stage page that has a following stage SHALL end with a link to it.
+
+#### Scenario: Moving from groups to cups
+- **WHEN** a visitor finishes reading the group stage page of a tournament whose next stage is the cups
+- **THEN** the page offers a link to the cups stage and the switcher lists both stages
+
+#### Scenario: A single-stage tournament shows no switcher
+- **WHEN** the tournament has one published stage
+- **THEN** no stage switcher is rendered
+
+### Requirement: Only interactive elements look interactive
+Public pages SHALL draw link and button affordances (underline, border, chip shape, pointer) only on elements that navigate or act. Static data such as officials and feature tags SHALL render as text. A control that toggles state SHALL look like a toggle and expose its pressed state, not look like a link.
+
+#### Scenario: Officials are text
+- **WHEN** a match page lists its officials
+- **THEN** each official is plain text with their role and is not drawn as a button or chip
+
+#### Scenario: A bracket path toggle is not a link
+- **WHEN** a bracket offers to highlight a team's path
+- **THEN** the team name is a toggle button with a pressed state and no link underline
+
+### Requirement: The public header presents operator tools as secondary
+The public header SHALL label the link to the TV display launcher as screens, never as a stream, and place it after the spectator links. The Control Panel link SHALL use the secondary button treatment so no operator entry point is the most prominent action on a public page.
+
+#### Scenario: The TV launcher is not presented as a video stream
+- **WHEN** the public header renders in Spanish
+- **THEN** the link to the TV display launcher reads "Pantallas TV" and comes after the spectator links
+
+#### Scenario: The Control Panel link is secondary
+- **WHEN** any public page is rendered
+- **THEN** the Control Panel link uses the secondary button treatment, not the primary one

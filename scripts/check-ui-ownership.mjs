@@ -63,6 +63,22 @@ const DIALOG_OWNER_FILES = new Set(['components/ui/organisms/Modal.astro']);
 
 const FIELDSET_OWNER_FILES = new Set(['control/components/ui/molecules/field-set.tsx']);
 
+/** Only the registry and renderer atoms may import the pinned icon packages. */
+const ICON_PACKAGE_OWNER_FILES = new Set([
+  'lib/icon-registry.ts',
+  'control/components/ui/atoms/icon.tsx',
+  'components/ui/atoms/Icon.astro',
+]);
+
+/** Raw vectors that carry a logo, data geometry, or bracket connector lines. */
+const RAW_SVG_OWNER_FILES = new Set([
+  ...ICON_PACKAGE_OWNER_FILES,
+  'components/ui/atoms/Logo.astro',
+  'control/components/ui/organisms/clock-ring.tsx',
+  'control/components/BracketCanvas.tsx',
+  'components/ui/organisms/BracketGraph.astro',
+]);
+
 export const KNOWN_RAW_ELEMENTS = new Map([
   // `StandingsTable.astro`'s and `MatchRosters.astro`'s tables: `DataTable`'s
   // `render` callback returns a plain value per cell, with no way to produce
@@ -70,7 +86,7 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   // adopted at the cost of losing working navigation (each file's own
   // docstring carries the same reasoning). `StandingsTable.astro`'s count
   // also carries its player-profile `<dialog>`/close `<button>`: a native
-  // dialog populated by a client script's `innerHTML`, not `Modal.astro`'s
+  // dialog populated by a client script, not `Modal.astro`'s
   // shape, and not adopted here for the same reason the icon-only buttons
   // below are recorded rather than fixed.
   //
@@ -81,11 +97,12 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   ['components/ui/organisms/StandingsTable.astro', 9],
   ['components/ui/organisms/MatchRosters.astro', 13],
   // Public broadcast pages render on the server through Astro and have no
-  // public-surface Form/Field/Select primitives yet. Importing the operator
-  // React controls here would add hydration and cross-surface coupling to a
-  // kiosk setup page, so retain these 15 native SSR form elements until the
-  // public Astro library provides matching atoms and a Field molecule.
-  ['pages/tv/index.astro', 15],
+  // public-surface Label/Field primitive yet, and the grouped match select
+  // needs optgroups the owned Select atom does not render. The launcher's
+  // selects and copy control use the owned Select and Button atoms. The 11
+  // recorded native elements are nine labels, the grouped select and the form;
+  // they stay until the public Astro library provides a Field molecule.
+  ['pages/tv/index.astro', 11],
   // `TvDashboard.tsx`'s entry is gone: its four
   // private sub-components and its table/button ownership moved into their
   // own files, `TvStandingsTable.tsx` and `TvRailTab.tsx`, both named in
@@ -105,38 +122,33 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   ['components/ui/organisms/Modal.astro', 1],
   ['components/ui/organisms/PublicHeader.astro', 1],
   ['components/ui/organisms/ScoreTicker.astro', 1],
-  // `form-screen-layout.tsx`'s own `<form>` is the templates tier's full-page
-  // form shape, not a smaller composed form the `Form` atom already covers —
-  // recorded alongside the other un-adopted `<form>`s below rather than
-  // forced onto an atom built for a different shape.
-  ['control/components/ui/layouts/form-screen-layout.tsx', 1],
   // Raw `<input>`s were replaced with `<Input>` atom in SeedingBuilderPage.tsx.
   // The per-override-field raw JSON `<input>`s were replaced with
   // `RulesetFieldControl` (typed, owned atoms); only the "add a new field by
   // dot-path" name input remains raw.
   ['control/components/screens/TournamentRulesetTemplate.tsx', 1],
-  // Form-structure elements: `<form>`, `<label>`, `<fieldset>`,
-  // `<legend>` and table parts outside the table owners, now governed by
-  // `Form`, `Field`/`Label`, `FieldSet` and `DataTable`.
-  // Recorded as debt, not fixed here — adoption is a later task.
+  // Remaining form-structure and table parts outside the table owners.
+  // Adopted the owned primitives where their existing APIs preserve the
+  // screen layout; remaining debt is recorded until separately migrated.
   //
   // `Form` was adopted for every raw `<form>` that was a safe,
   // no-visual-change swap: bare `<form id=… onSubmit=…>` inside a modal
   // (`RegistrationReviewTemplate.tsx`, `RolesPermissionsTemplate.tsx`) and
   // `<form className="cl-platform-form-grid" …>` (`PlatformAdministrationPage.tsx`,
-  // `TournamentRulesetTemplate.tsx`, `TournamentSettingsTemplate.tsx` — that
+  // `TournamentRulesetTemplate.tsx` — that
   // class's own `gap` already equals `Form`'s, so the two compose without a
   // visual change). `PreferencesTemplate.tsx` now composes `Form` with its
   // `Inline` layout atom; `AcceptInvitationForm.tsx` and `NativeAuthRoutes.tsx`
   // remain recorded because their inline layouts need a separate migration.
   ['control/components/AcceptInvitationForm.tsx', 1],
-  ['control/components/DescriptorBuilderWizard.tsx', 5],
+  ['control/components/DescriptorBuilderWizard.tsx', 3],
+  ['control/components/DescriptorBuilderLists.tsx', 2],
   ['control/components/screens/LoadMatchDataTemplate.tsx', 3],
   ['control/components/NativeAuthRoutes.tsx', 3],
   ['control/components/RosterSelectionStep.tsx', 3],
   ['control/components/screens/ScheduleBuilderTemplate.tsx', 3],
-  ['control/components/screens/TournamentSettingsTemplate.tsx', 1],
-  ['control/components/TournamentSetupWizard.tsx', 5],
+  ['control/components/tournament-setup/TournamentSetupFormatSteps.tsx', 2],
+  ['control/components/tournament-setup/TournamentSetupRulesStep.tsx', 3],
 ]);
 
 /**
@@ -215,31 +227,23 @@ const OWNED_CLASS_RULES = [
  * of these files fails, as does one in a file not listed, and improving below
  * the recorded number fails until it is lowered. Delete an entry at zero.
  *
- * `TournamentSummaryCard.tsx`'s single `cl-btn` is a genuine library gap rather than
- * an oversight: it styles an `<a>` as a button, and the `Button` atom renders a
- * `<button>`, which cannot be a link. It is recorded here so the gap stays
- * counted until the library has something for it.
  */
 export const KNOWN_HANDWRITTEN_CLASSES = new Map([
   // Operator surface — an owned atom exists for every one of these.
   // ActivityLog.tsx's and DeviceHeartbeat.tsx's raw
   // cl-badge spans moved onto the Badge atom — both entries removed at zero.
   ['control/components/BracketCanvas.tsx', 2],
-  ['control/components/screens/LiveConsoleTemplate.tsx', 3],
+  ['control/components/screens/LiveConsoleTemplate.tsx', 2],
   ['control/components/screens/LoadMatchDataTemplate.tsx', 1],
-  ['control/components/screens/RegistrationReviewTemplate.tsx', 3],
+  ['control/components/screens/RegistrationReviewTemplate.tsx', 2],
   ['control/components/RosterRoleSelector.tsx', 2],
   // cl-card was replaced with Card in SeedingBuilderTemplate.tsx.
   // `StageSettingsSection`'s hand-written `cl-card` moved to
   // `StageHubTemplate.tsx`, lowering this file's count from 2 to 1.
   ['control/components/pages/SeedingBuilderPage.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 2],
-  // A second `cl-btn`-as-anchor was added (the Tournament hub
-  // entry point), the same genuine gap this file's first one is recorded
-  // for above — the `Button` atom renders a `<button>`, which cannot link.
-  ['control/components/TournamentSummaryCard.tsx', 2],
-  // Same gap as `TournamentSummaryCard.tsx` above: an `<a>` styled as a
-  // button, which the `Button` atom cannot render
+  // A callout action is an `<a>` styled as a button, which the `Button` atom
+  // cannot render
   // (surfaced by narrowing the `ui/` directory skip to the atom tier).
   ['control/components/ui/molecules/callout-banner.tsx', 1],
   // Public and broadcast surfaces.
@@ -302,13 +306,12 @@ export function withoutStyleBlocks(content) {
 /**
  * Blanks `<script>` blocks, preserving offsets like `withoutStyleBlocks`.
  *
- * A vanilla client-side `<script>` sometimes builds markup with a JS template
- * string (`` `<table>...</table>` `` assigned to `innerHTML`) for content a
- * server-rendered Astro template cannot express — dynamically fetched data
- * inserted after the page has already loaded. That string is not this file
- * composing a raw element; it is JavaScript text that happens to look like
- * one, and no `DataTable`/`Modal` organism could replace it, since neither
- * renders outside Astro's own template syntax
+ * A vanilla client-side `<script>` can hold JavaScript text that looks like
+ * markup, for content a server-rendered Astro template cannot express —
+ * dynamically fetched data inserted after the page has already loaded. That
+ * text is not this file composing a raw element, and no `DataTable`/`Modal`
+ * organism could replace it, since neither renders outside Astro's own
+ * template syntax
  * (found while narrowing the `ui/` directory skip this replaces).
  */
 export function withoutScriptBlocks(content) {
@@ -340,6 +343,28 @@ export function checkFileOwnership(filename, content) {
   const key = filename;
   const baseName = filename.split('/').pop() ?? filename;
   const source = withoutScriptBlocks(withoutStyleBlocks(withoutComments(content)));
+
+  const iconImportPattern = /(?:from\s*|import\s*\()(['"])(lucide-[^'"]+|@tabler\/[^'"]+)\1/g;
+  let iconImport;
+  while ((iconImport = iconImportPattern.exec(source)) !== null) {
+    if (!ICON_PACKAGE_OWNER_FILES.has(key)) {
+      violations.push({
+        line: lineOf(source, iconImport.index),
+        message: `Icon package import in ${baseName} is outside the registry and Icon atoms.`,
+      });
+    }
+  }
+
+  if (!RAW_SVG_OWNER_FILES.has(key)) {
+    const svgPattern = /<svg[\s>/]/g;
+    let svg;
+    while ((svg = svgPattern.exec(source)) !== null) {
+      violations.push({
+        line: lineOf(source, svg.index),
+        message: `Raw <svg> detected in ${baseName}. Render icons through the owned Icon atom.`,
+      });
+    }
+  }
 
   for (const rule of RAW_ELEMENT_RULES) {
     if (rule.allowed?.has(key)) continue;

@@ -3520,21 +3520,6 @@
       ]
     },
     {
-      "alias": "copa-bronce",
-      "name": "Copa Bronce",
-      "kind": "cup",
-      "teamAliases": [
-        "atletico-union",
-        "ciudad-de-buenos-aires",
-        "corazonistas-bogota",
-        "estudiantil-san-miguel",
-        "impsa",
-        "olimpia-patin-club",
-        "recreativo-bochas-club",
-        "super-patin"
-      ]
-    },
-    {
       "alias": "copa-oro",
       "name": "Copa Oro",
       "kind": "cup",
@@ -3562,6 +3547,21 @@
         "san-jorge",
         "san-martin",
         "thomas-bata"
+      ]
+    },
+    {
+      "alias": "copa-bronce",
+      "name": "Copa Bronce",
+      "kind": "cup",
+      "teamAliases": [
+        "atletico-union",
+        "ciudad-de-buenos-aires",
+        "corazonistas-bogota",
+        "estudiantil-san-miguel",
+        "impsa",
+        "olimpia-patin-club",
+        "recreativo-bochas-club",
+        "super-patin"
       ]
     }
   ],

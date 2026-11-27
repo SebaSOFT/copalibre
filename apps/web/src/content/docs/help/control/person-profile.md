@@ -3,6 +3,7 @@ title: Person profile
 description: A person's photo, display name, nationality, and natural key, reached from the registration review screen.
 capabilities:
   - control-web/identity-visuals
+  - platform/personal-data-publication
 roles:
   - admin
   - club-admin
@@ -22,8 +23,14 @@ expanded row.
 - **Nationality**: the flag for the person's recorded ISO 3166-1 alpha-2 country code, when set.
 - **Natural key**: the identifying document (e.g. a national identity number) recorded for this
   person, when one exists.
+- **Public visibility**: an administrator can hide this person's profile from public pages. The
+  choice is audited; match and tournament results do not change.
 
-## What this screen does NOT do
+## Public profile privacy
 
-It does not let you edit anything — nationality and photo are set from the registration review
-screen's expanded row, not here. There is no separate "edit person" screen.
+When a profile is hidden, public pages show a translated “hidden at their request” label and omit the
+photo, profile link, and career information. Tournament-wide youth-profile rules are managed in the
+[tournament's Privacy settings](/help/control/tournament-authoring#participant-public-profiles).
+
+This screen does not edit the person's name, nationality, photo or natural key. Those details remain
+read-only here.

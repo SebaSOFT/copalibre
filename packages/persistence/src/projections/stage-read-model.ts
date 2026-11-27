@@ -5,6 +5,7 @@ import {
   type TournamentFormat,
 } from '@copalibre/domain';
 import type { Kysely } from 'kysely';
+import { isPersistedGraph, sourceOf, type FixtureGraphSlotSource } from '../fixture-graph.js';
 import type { Database } from '../schema.js';
 
 /**
@@ -43,6 +44,18 @@ export interface StageSeriesMatchRecord {
   readonly status: string;
   readonly scores?: readonly (number | undefined)[];
   readonly resultReasons?: readonly (ResultReason | undefined)[];
+  readonly winnerEntrantId?: string;
+}
+
+/** The stored identity of a persisted graph's node; absent on every legacy fixture. */
+export interface StageGraphNodeRecord {
+  readonly nodeKey: string;
+  readonly bracket: string;
+  readonly branch?: string;
+  readonly label?: string;
+  /** Home then away: each side's source, kept after its entrant is known. */
+  readonly sources: readonly [FixtureGraphSlotSource, FixtureGraphSlotSource];
+  readonly contingency?: string;
 }
 
 export interface StageMatchRecord {
@@ -52,13 +65,16 @@ export interface StageMatchRecord {
   readonly round: number;
   /** A placement game's part in its zone (`place-3`); absent for the generated graph's own matches. */
   readonly role?: string;
-  /** 1-based position within the round, in fixture order. */
+  /** 1-based position within the round: stored for a persisted graph, fixture order otherwise. */
   readonly position: number;
+  /** Present only for a fixture of a persisted graph (`isPersistedGraph`). */
+  readonly node?: StageGraphNodeRecord;
   readonly status: string;
   readonly homeEntrantId?: string;
   readonly awayEntrantId?: string;
   readonly scores?: readonly (number | undefined)[];
   readonly resultReasons?: readonly (ResultReason | undefined)[];
+  readonly winnerEntrantId?: string;
   /**
    * Every game of this fixture in play order — one entry for an ordinary fixture, one per game
    * for a series. Present always, so a reader never has to decide whether absence means "not a
@@ -131,8 +147,17 @@ export class StageReadModel {
       .leftJoin('matches', 'matches.fixture_id', 'fixtures.fixture_id')
       .select([
         'fixtures.fixture_id',
+        'fixtures.zone_id',
         'fixtures.round',
         'fixtures.role',
+        'fixtures.node_key',
+        'fixtures.bracket',
+        'fixtures.position',
+        'fixtures.branch',
+        'fixtures.label',
+        'fixtures.home_source',
+        'fixtures.away_source',
+        'fixtures.contingency',
         'fixtures.home_entrant_id',
         'fixtures.away_entrant_id',
         'fixtures.created_at',
@@ -156,34 +181,61 @@ export class StageReadModel {
       byFixture.set(row.fixture_id, [...(byFixture.get(row.fixture_id) ?? []), row]);
     }
 
+    // A zone is a persisted graph only when every one of its fixtures carries a node key.
+    const keysByZone = new Map<string | null, { nodeKey: string | null }[]>();
+    for (const fixtureRows of byFixture.values()) {
+      const first = fixtureRows[0] as (typeof rows)[number];
+      keysByZone.set(first.zone_id, [
+        ...(keysByZone.get(first.zone_id) ?? []),
+        { nodeKey: first.node_key },
+      ]);
+    }
+    const persistedZones = new Set(
+      [...keysByZone].filter(([, keys]) => isPersistedGraph(keys)).map(([zoneId]) => zoneId),
+    );
+
     const positions = new Map<number, number>();
     return [...byFixture.values()].map((fixtureRows) => {
       const first = fixtureRows[0] as (typeof rows)[number];
-      const position = (positions.get(first.round) ?? 0) + 1;
-      positions.set(first.round, position);
+      const node = persistedZones.has(first.zone_id) ? graphNodeOf(first) : undefined;
+      const position = node ? (first.position as number) : (positions.get(first.round) ?? 0) + 1;
+      if (!node) positions.set(first.round, position);
 
       const games = fixtureRows
         .filter((row) => row.match_id !== null)
-        .map((row, index) => ({
-          matchId: row.match_id as string,
-          number: row.number ?? index + 1,
-          status: row.status ?? 'scheduled',
-          ...resultFieldsOf(row.result),
-        }));
+        .map((row, index) => {
+          const gameStatus = row.status ?? 'scheduled';
+          return {
+            matchId: row.match_id as string,
+            number: row.number ?? index + 1,
+            status: gameStatus,
+            ...resultFieldsOf(row.result, gameStatus),
+          };
+        });
 
+      const status = first.status ?? 'scheduled';
       return {
         matchId: first.match_id ?? first.fixture_id,
         fixtureId: first.fixture_id,
         round: first.round,
         ...(first.role === null ? {} : { role: first.role }),
         position,
-        status: first.status ?? 'scheduled',
+        ...(node === undefined ? {} : { node }),
+        status,
         ...(first.home_entrant_id === null ? {} : { homeEntrantId: first.home_entrant_id }),
         ...(first.away_entrant_id === null ? {} : { awayEntrantId: first.away_entrant_id }),
-        ...resultFieldsOf(first.result),
+        ...resultFieldsOf(first.result, status),
         games,
       };
     });
+  }
+
+  /**
+   * Public 1-based stage ordinals keyed by matchId, derived from the stage's
+   * full, unscoped match list — never `matches.number`.
+   */
+  async matchOrdinals(stageId: string): Promise<ReadonlyMap<string, number>> {
+    return stageMatchOrdinals(await this.matches(stageId));
   }
 
   /** Finalized results as the accounting engine reads them. */
@@ -237,18 +289,33 @@ function scoresOf(
  * The scoreline fields a persisted result contributes, or nothing at all when there is no
  * result. Written once because every game of a series needs it as much as the cross does.
  */
-function resultFieldsOf(raw: unknown): {
+export function resultFieldsOf(
+  raw: unknown,
+  status?: string,
+): {
   readonly scores?: readonly (number | undefined)[];
   readonly resultReasons?: readonly (ResultReason | undefined)[];
+  readonly winnerEntrantId?: string;
 } {
   const result = raw as {
+    readonly winnerEntrantId?: unknown;
     readonly sides?: readonly {
       readonly statistics?: Record<string, number>;
       readonly resultReason?: ResultReason;
     }[];
   } | null;
   if (result?.sides === undefined) return {};
-  return { scores: scoresOf(result.sides), resultReasons: resultReasonsOf(result.sides) };
+  const winnerEntrantId =
+    status === 'finalized' &&
+    typeof result.winnerEntrantId === 'string' &&
+    result.winnerEntrantId.length > 0
+      ? result.winnerEntrantId
+      : undefined;
+  return {
+    scores: scoresOf(result.sides),
+    resultReasons: resultReasonsOf(result.sides),
+    ...(winnerEntrantId === undefined ? {} : { winnerEntrantId }),
+  };
 }
 
 /** Parallel to `scoresOf` — why a side's result is what it is. */
@@ -271,4 +338,23 @@ export function stageMatchOrdinals(
   records: readonly StageMatchRecord[],
 ): ReadonlyMap<string, number> {
   return new Map(records.map((record, index) => [record.matchId, index + 1]));
+}
+
+function graphNodeOf(row: {
+  readonly node_key: string | null;
+  readonly bracket: string | null;
+  readonly branch: string | null;
+  readonly label: string | null;
+  readonly home_source: unknown;
+  readonly away_source: unknown;
+  readonly contingency: string | null;
+}): StageGraphNodeRecord {
+  return {
+    nodeKey: row.node_key as string,
+    bracket: row.bracket as string,
+    ...(row.branch === null ? {} : { branch: row.branch }),
+    ...(row.label === null ? {} : { label: row.label }),
+    sources: [sourceOf(row.home_source), sourceOf(row.away_source)],
+    ...(row.contingency === null ? {} : { contingency: row.contingency }),
+  };
 }

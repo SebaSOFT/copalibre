@@ -1,3 +1,4 @@
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
 import { jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { LoadMatchDataPage } from '../pages/LoadMatchDataPage.js';
@@ -26,6 +27,7 @@ const CANDIDATES: Record<string, readonly RosterCandidate[]> = {
 
 function scheduledProjection(overrides: Partial<MatchConsoleResponse> = {}): MatchConsoleResponse {
   return {
+    segmentPlan: { addable: [] },
     matchId: 'match-1',
     stageNumber: 1,
     status: 'scheduled',
@@ -69,6 +71,12 @@ function client(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsoleApi
     setMatchRoster: async () => scheduledProjection(),
     adjustMatchClock: async () => scheduledProjection(),
     resolveMatchTimer: async () => scheduledProjection(),
+    addMatchSegment: async () => {
+      throw new Error('not used in this test');
+    },
+    reopenMatchSegment: async () => {
+      throw new Error('not used in this test');
+    },
     sendMatchCommand: async () => ({
       matchId: 'match-1',
       status: 'in-progress',
@@ -266,7 +274,7 @@ describe('LoadMatchDataPage', () => {
   it('renders a loading state before the projection resolves', () => {
     const api = client({ fetchMatchConsole: () => new Promise(() => {}) });
     renderRoute(api);
-    expect(screen.getByText('Loading…')).toBeDefined();
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
   });
 
   it('shows a load-failed message when fetchMatchConsole rejects', async () => {
@@ -276,7 +284,7 @@ describe('LoadMatchDataPage', () => {
       },
     });
     await act(async () => renderRoute(api));
-    expect(await screen.findByText(/Could not load this match/i)).toBeDefined();
+    await expectFirstReadFailure();
   });
 
   it('labels entrants with no resolvable name everywhere it lists them, never their ids', async () => {

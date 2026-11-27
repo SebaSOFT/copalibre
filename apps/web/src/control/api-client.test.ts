@@ -20,7 +20,6 @@ describe('the control API client', () => {
   it('uses installation-wide organization and module administration endpoints', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({
-      accessToken: () => 'super-token',
       fetch: async (input, init) => {
         calls.push({
           url: String(input),
@@ -49,16 +48,16 @@ describe('the control API client', () => {
     await client.verifyModules();
 
     expect(calls).toEqual([
-      { url: '/organizations', method: 'POST', body: { alias: 'liga-sur', name: 'Liga Sur' } },
-      { url: '/admin/modules', method: 'GET' },
-      { url: '/admin/modules?outdated=true', method: 'GET' },
+      { url: '/api/organizations', method: 'POST', body: { alias: 'liga-sur', name: 'Liga Sur' } },
+      { url: '/api/admin/modules', method: 'GET' },
+      { url: '/api/admin/modules?outdated=true', method: 'GET' },
       {
-        url: '/admin/modules',
+        url: '/api/admin/modules',
         method: 'POST',
         body: { alias: 'football', allowUnsatisfiedCapabilities: false },
       },
-      { url: '/admin/modules/football', method: 'DELETE' },
-      { url: '/admin/modules/verify', method: 'POST' },
+      { url: '/api/admin/modules/football', method: 'DELETE' },
+      { url: '/api/admin/modules/verify', method: 'POST' },
     ]);
   });
 
@@ -88,17 +87,21 @@ describe('the control API client', () => {
         supportedFormats: ['round-robin'],
       },
     ]);
-    expect(calls).toEqual(['/disciplines']);
+    expect(calls).toEqual(['/api/disciplines']);
   });
 
   it('creates a tournament with the descriptor version and explicit registration toggles', async () => {
     let body = '';
-    let authorization = '';
+    let authorization: string | null = '';
+    let csrf: string | null = '';
+    let credentials: RequestCredentials | undefined;
+    document.cookie = 'copalibre_csrf=csrf-value-1';
     const client = createControlApiClient({
-      accessToken: () => 'token-1',
       fetch: async (_url, init) => {
         body = String(init?.body);
-        authorization = new Headers(init?.headers).get('authorization') ?? '';
+        authorization = new Headers(init?.headers).get('authorization');
+        csrf = new Headers(init?.headers).get('x-copalibre-csrf');
+        credentials = init?.credentials;
         return response({
           tournamentId: 't-1',
           alias: 'copa-verano',
@@ -119,7 +122,11 @@ describe('the control API client', () => {
       customScripts: [],
     });
 
-    expect(authorization).toBe('Bearer token-1');
+    // The session cookie authenticates; the unsafe method echoes the CSRF cookie.
+    expect(authorization).toBeNull();
+    expect(csrf).toBe('csrf-value-1');
+    expect(credentials).toBe('same-origin');
+    document.cookie = 'copalibre_csrf=; max-age=0';
     expect(JSON.parse(body)).toMatchObject({
       descriptorVersion: '1.0.0',
       stages: [{ number: 1, format: 'round-robin' }],
@@ -156,7 +163,7 @@ describe('the control API client', () => {
     );
 
     expect(url).toBe(
-      '/organizations/liga-mendocina/tournaments/apertura-2026/matches/match-1/commands/pause',
+      '/api/organizations/liga-mendocina/tournaments/apertura-2026/matches/match-1/commands/pause',
     );
     expect(JSON.parse(body)).toEqual({ segmentId: 'segment-1' });
     expect(idempotencyKey).toBe('key-1');
@@ -177,7 +184,7 @@ describe('the control API client', () => {
     });
 
     expect(url).toBe(
-      '/organizations/liga-mendocina/tournaments/copa-verano/registrations/bulk-review',
+      '/api/organizations/liga-mendocina/tournaments/copa-verano/registrations/bulk-review',
     );
   });
 
@@ -207,7 +214,7 @@ describe('the control API client', () => {
     );
 
     expect(url).toBe(
-      '/organizations/liga-mendocina/tournaments/copa-verano/registrations/01800000-0000-7000-8000-000000000001/review',
+      '/api/organizations/liga-mendocina/tournaments/copa-verano/registrations/01800000-0000-7000-8000-000000000001/review',
     );
     expect(JSON.parse(body)).toEqual({
       decision: 'withdrawn',
@@ -224,10 +231,9 @@ describe('the control API client', () => {
       sourceHash: 'source-hash',
     };
     const client = createControlApiClient({
-      accessToken: () => 'token-1',
       fetch: async (url, init) => {
         calls.push({ url: String(url), init });
-        if (String(url).endsWith('/exports/standings')) return textResponse('stageId,standings\n');
+        if (String(url).includes('/exports/')) return textResponse('stageId,standings\n');
         if (String(url).endsWith('/export')) {
           return response({
             kind: 'copalibre-tournament-configuration',
@@ -269,26 +275,34 @@ describe('the control API client', () => {
       client.downloadCsvExport('liga-mendocina', 'copa-verano', 'standings'),
     ).resolves.toBe('stageId,standings\n');
     await expect(
+      client.downloadCsvExport('liga-mendocina', 'copa-verano', 'participants/individual', [
+        'displayName',
+        'naturalKeyKind',
+        'naturalKey',
+      ]),
+    ).resolves.toBe('stageId,standings\n');
+    await expect(
       client.downloadTournamentConfiguration('liga-mendocina', 'copa-verano'),
     ).resolves.toMatchObject({ kind: 'copalibre-tournament-configuration' });
 
     expect(calls.map((call) => call.url)).toEqual([
-      '/organizations/liga-mendocina/tournaments/copa-verano/imports',
-      '/organizations/liga-mendocina/tournaments/copa-verano/imports/01800000-0000-7000-8000-000000000002',
-      '/organizations/liga-mendocina/tournaments/copa-verano/imports/01800000-0000-7000-8000-000000000002/commit',
-      '/organizations/liga-mendocina/tournaments/copa-verano/exports/standings',
-      '/organizations/liga-mendocina/tournaments/copa-verano/export',
+      '/api/organizations/liga-mendocina/tournaments/copa-verano/imports',
+      '/api/organizations/liga-mendocina/tournaments/copa-verano/imports/01800000-0000-7000-8000-000000000002',
+      '/api/organizations/liga-mendocina/tournaments/copa-verano/imports/01800000-0000-7000-8000-000000000002/commit',
+      '/api/organizations/liga-mendocina/tournaments/copa-verano/exports/standings',
+      '/api/organizations/liga-mendocina/tournaments/copa-verano/exports/participants/individual?excludePersonalData=displayName%2CnaturalKeyKind%2CnaturalKey',
+      '/api/organizations/liga-mendocina/tournaments/copa-verano/export',
     ]);
     expect(JSON.parse(String(calls[0]?.init?.body))).toMatchObject({ target: 'team' });
     expect(JSON.parse(String(calls[2]?.init?.body))).toEqual({ sourceHash: 'source-hash' });
-    expect(new Headers(calls[3]?.init?.headers).get('authorization')).toBe('Bearer token-1');
-    expect(new Headers(calls[4]?.init?.headers).get('authorization')).toBe('Bearer token-1');
+    expect(new Headers(calls[3]?.init?.headers).get('authorization')).toBeNull();
+    expect(calls[3]?.init?.credentials).toBe('same-origin');
+    expect(calls[4]?.init?.credentials).toBe('same-origin');
   });
 
   it('fetches storage usage for an organization', async () => {
     let requestedUrl = '';
     const client = createControlApiClient({
-      accessToken: () => 'token-admin',
       fetch: async (input) => {
         requestedUrl = String(input);
         return response({ totalBytes: 104857600, objectCount: 12 });
@@ -300,14 +314,13 @@ describe('the control API client', () => {
     }
 
     const usage = await client.getStorageUsage('liga-orbital');
-    expect(requestedUrl).toBe('/organizations/liga-orbital/storage-usage');
+    expect(requestedUrl).toBe('/api/organizations/liga-orbital/storage-usage');
     expect(usage).toEqual({ totalBytes: 104857600, objectCount: 12 });
   });
 
-  it('calls the competition-structure-editing and object-cleanup endpoints', async () => {
+  it('calls competition, privacy, resource-removal, and object-cleanup endpoints', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({
-      accessToken: () => 'token-admin',
       fetch: async (input, init) => {
         calls.push({
           url: String(input),
@@ -323,15 +336,21 @@ describe('the control API client', () => {
       !client.updateTournamentSettings ||
       !client.listStages ||
       !client.updateStage ||
+      !client.previewDeleteStage ||
       !client.deleteStage ||
       !client.renameZone ||
       !client.deleteZone ||
+      !client.restoreZone ||
       !client.renameGroup ||
       !client.deleteGroup ||
+      !client.restoreGroup ||
+      !client.setPersonPublicVisibility ||
+      !client.deleteVenue ||
+      !client.restoreVenue ||
       !client.listUnreferencedObjects ||
       !client.deleteObject
     ) {
-      throw new Error('competition structure editing client methods must be available');
+      throw new Error('the tested control client methods must be available');
     }
 
     await client.fetchTournamentSettings('liga-orbital', 'copa-verano');
@@ -339,74 +358,164 @@ describe('the control API client', () => {
     await client.updateTournamentSettings('liga-orbital', 'copa-verano', { region: 'Europe' });
     await client.listStages('liga-orbital', 'copa-verano');
     await client.updateStage('liga-orbital', 'copa-verano', 1, { name: 'Fase 1' });
-    await client.deleteStage('liga-orbital', 'copa-verano', 1);
+    await client.previewDeleteStage('liga-orbital', 'copa-verano', 1);
+    await client.deleteStage('liga-orbital', 'copa-verano', 1, 'Fase 1');
     await client.renameZone('liga-orbital', 'copa-verano', 1, 1, { name: 'Zona 1' });
     await client.deleteZone('liga-orbital', 'copa-verano', 1, 1);
+    await client.restoreZone('liga-orbital', 'copa-verano', 1, 1);
     await client.renameGroup('liga-orbital', 'copa-verano', 1, 1, 1, { name: 'Grupo A' });
     await client.deleteGroup('liga-orbital', 'copa-verano', 1, 1, 1);
+    await client.restoreGroup('liga-orbital', 'copa-verano', 1, 1, 1);
+    await client.setPersonPublicVisibility('liga-orbital', 'person-1', true);
+    await client.deleteVenue('liga-orbital', 'venue-1');
+    await client.restoreVenue('liga-orbital', 'venue-1');
     await client.listUnreferencedObjects('liga-orbital');
     await client.deleteObject('liga-orbital', 'object-1');
 
     expect(calls).toEqual([
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/settings',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/settings',
         method: 'GET',
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/settings/preview',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/settings/preview',
         method: 'POST',
         body: { region: 'Europe' },
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/settings',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/settings',
         method: 'PUT',
         body: { region: 'Europe' },
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/stages',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/stages',
         method: 'GET',
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/stages/1',
         method: 'PATCH',
         body: { name: 'Fase 1' },
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/stages/1?dryRun=true',
         method: 'DELETE',
+        body: {},
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1/zones/1',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/stages/1',
+        method: 'DELETE',
+        body: { confirmationName: 'Fase 1' },
+      },
+      {
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/stages/1/zones/1',
         method: 'PATCH',
         body: { name: 'Zona 1' },
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1/zones/1',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/stages/1/zones/1',
         method: 'DELETE',
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1/zones/1/groups/1',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/stages/1/zones/1/restore',
+        method: 'POST',
+      },
+      {
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/stages/1/zones/1/groups/1',
         method: 'PATCH',
         body: { name: 'Grupo A' },
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1/zones/1/groups/1',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/stages/1/zones/1/groups/1',
         method: 'DELETE',
       },
       {
-        url: '/organizations/liga-orbital/storage-usage/objects',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/stages/1/zones/1/groups/1/restore',
+        method: 'POST',
+      },
+      {
+        url: '/api/organizations/liga-orbital/persons/person-1/public-visibility',
+        method: 'PATCH',
+        body: { hiddenFromPublic: true },
+      },
+      {
+        url: '/api/organizations/liga-orbital/venues/venue-1',
+        method: 'DELETE',
+      },
+      {
+        url: '/api/organizations/liga-orbital/venues/venue-1/restore',
+        method: 'POST',
+      },
+      {
+        url: '/api/organizations/liga-orbital/storage-usage/objects',
         method: 'GET',
       },
       {
-        url: '/organizations/liga-orbital/storage-usage/objects/object-1',
+        url: '/api/organizations/liga-orbital/storage-usage/objects/object-1',
         method: 'DELETE',
+      },
+    ]);
+  });
+
+  it('previews schedule removal without a body and sends exact-name confirmation on deletion', async () => {
+    const calls: Array<{ url: string; method: string; body?: unknown }> = [];
+    const client = createControlApiClient({
+      fetch: async (input, init) => {
+        calls.push({
+          url: String(input),
+          method: init?.method ?? 'GET',
+          ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}),
+        });
+        return response({});
+      },
+    });
+    if (!client.deleteSchedule) throw new Error('deleteSchedule must be available');
+
+    await client.deleteSchedule('liga-orbital', 'schedule-1', true);
+    await client.deleteSchedule('liga-orbital', 'schedule-1', false, 'Horario de verano');
+
+    expect(calls).toEqual([
+      {
+        url: '/api/organizations/liga-orbital/schedules/schedule-1?dryRun=true',
+        method: 'DELETE',
+      },
+      {
+        url: '/api/organizations/liga-orbital/schedules/schedule-1',
+        method: 'DELETE',
+        body: { confirmationName: 'Horario de verano' },
+      },
+    ]);
+  });
+
+  it('publishes a tournament through the lifecycle endpoint', async () => {
+    const calls: Array<{ url: string; method: string }> = [];
+    const client = createControlApiClient({
+      fetch: async (input, init) => {
+        calls.push({ url: String(input), method: init?.method ?? 'GET' });
+        return response({
+          tournamentId: 'tournament-1',
+          organizationId: 'organization-1',
+          alias: 'copa-verano',
+          name: 'Copa Verano',
+          status: 'published',
+        });
+      },
+    });
+    if (!client.publishTournament) throw new Error('publishTournament must be available');
+
+    await expect(client.publishTournament('liga-orbital', 'copa-verano')).resolves.toMatchObject({
+      status: 'published',
+    });
+
+    expect(calls).toEqual([
+      {
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/publish',
+        method: 'POST',
       },
     ]);
   });
 
   it("parses a stage's availableFormats/formatDescriptions through unresolved", async () => {
     const client = createControlApiClient({
-      accessToken: () => 'token-admin',
       fetch: async () =>
         response([
           {
@@ -438,7 +547,6 @@ describe('the control API client', () => {
   it('calls the ruleset-override and stage-configuration editing endpoints', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({
-      accessToken: () => 'token-admin',
       fetch: async (input, init) => {
         calls.push({
           url: String(input),
@@ -476,30 +584,30 @@ describe('the control API client', () => {
 
     expect(calls).toEqual([
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/ruleset-overrides',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/ruleset-overrides',
         method: 'GET',
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/ruleset-overrides/preview',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/ruleset-overrides/preview',
         method: 'POST',
         body: { overrides: { 'scoring.pointsPerWin': 4 } },
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/ruleset-overrides',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/ruleset-overrides',
         method: 'PUT',
         body: { overrides: { 'scoring.pointsPerWin': 4 } },
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1/configuration',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/stages/1/configuration',
         method: 'GET',
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1/configuration/preview',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/stages/1/configuration/preview',
         method: 'POST',
         body: { overrides: { 'segments.overtimeEnabled': true } },
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/stages/1/configuration',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/stages/1/configuration',
         method: 'PUT',
         body: { overrides: { 'segments.overtimeEnabled': true } },
       },
@@ -509,7 +617,6 @@ describe('the control API client', () => {
   it('calls the invitation-rescission, identity-unlink and person/team removal endpoints', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({
-      accessToken: () => 'token-admin',
       fetch: async (input, init) => {
         calls.push({
           url: String(input),
@@ -541,28 +648,28 @@ describe('the control API client', () => {
 
     expect(calls).toEqual([
       {
-        url: '/organizations/liga-orbital/invitations',
+        url: '/api/organizations/liga-orbital/invitations',
         method: 'GET',
       },
       {
-        url: '/organizations/liga-orbital/invitations/invite-1',
+        url: '/api/organizations/liga-orbital/invitations/invite-1',
         method: 'DELETE',
       },
       {
-        url: '/organizations/liga-orbital/participants/person-1/identity-link',
+        url: '/api/organizations/liga-orbital/participants/person-1/identity-link',
         method: 'POST',
         body: { email: 'person@example.test' },
       },
       {
-        url: '/organizations/liga-orbital/participants/person-1/identity-link',
+        url: '/api/organizations/liga-orbital/participants/person-1/identity-link',
         method: 'DELETE',
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/registrations/persons/person-1',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/registrations/persons/person-1',
         method: 'DELETE',
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/registrations/teams/team-1',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/registrations/teams/team-1',
         method: 'DELETE',
       },
     ]);
@@ -571,7 +678,6 @@ describe('the control API client', () => {
   it('builds the internal matches-view query string from whichever filters are given', async () => {
     const calls: string[] = [];
     const client = createControlApiClient({
-      accessToken: () => 'token',
       fetch: async (input) => {
         calls.push(String(input));
         return response({ matches: [] });
@@ -590,16 +696,55 @@ describe('the control API client', () => {
     });
 
     expect(calls).toEqual([
-      '/organizations/liga-orbital/tournaments/copa-verano/internal-matches-view',
-      '/organizations/liga-orbital/tournaments/copa-verano/internal-matches-view?state=live',
-      '/organizations/liga-orbital/tournaments/copa-verano/internal-matches-view?stageNumber=2&groupId=group-1&state=final',
+      '/api/organizations/liga-orbital/tournaments/copa-verano/internal-matches-view',
+      '/api/organizations/liga-orbital/tournaments/copa-verano/internal-matches-view?state=live',
+      '/api/organizations/liga-orbital/tournaments/copa-verano/internal-matches-view?stageNumber=2&groupId=group-1&state=final',
     ]);
+  });
+
+  it('maps decidingFactorCode, decidingFactorRule, and localized latestEvent without deprecated decidingFactor', async () => {
+    const client = createControlApiClient({
+      fetch: async () =>
+        response({
+          matches: [
+            {
+              matchId: 'm-1',
+              stageNumber: 1,
+              matchNumber: 1,
+              round: 1,
+              status: 'final',
+              decidingFactor: 'Rule 2 (Goal average)',
+              decidingFactorCode: 'goal-average',
+              decidingFactorRule: 2,
+              latestEvent: {
+                definitionCode: 'goal',
+                label: 'Goal',
+                labels: { en: 'Goal', es: 'Gol' },
+                occurredAt: '2026-08-01T20:15:00.000Z',
+              },
+            },
+          ],
+        }),
+    });
+    const result = await client.fetchMatchesView?.('liga-orbital', 'copa-verano');
+    expect(result?.matches[0]).toMatchObject({
+      matchId: 'm-1',
+      state: 'final',
+      decidingFactorCode: 'goal-average',
+      decidingFactorRule: 2,
+      latestEvent: {
+        definitionCode: 'goal',
+        label: 'Goal',
+        labels: { en: 'Goal', es: 'Gol' },
+        occurredAt: '2026-08-01T20:15:00.000Z',
+      },
+    });
+    expect('decidingFactor' in (result?.matches[0] ?? {})).toBe(false);
   });
 
   it('manages tournament emblems and formats tournament emblem URLs', async () => {
     const calls: Array<{ url: string; method: string; body?: unknown }> = [];
     const client = createControlApiClient({
-      accessToken: () => 'token',
       fetch: async (input, init) => {
         calls.push({
           url: String(input),
@@ -624,7 +769,7 @@ describe('the control API client', () => {
 
     expect(calls).toEqual([
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/emblem',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/emblem',
         method: 'POST',
         body: {
           filename: 'emblem.png',
@@ -633,28 +778,28 @@ describe('the control API client', () => {
         },
       },
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/emblem',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/emblem',
         method: 'DELETE',
       },
     ]);
 
     expect(tournamentEmblemUrl('liga-orbital', 'copa-verano')).toBe(
-      '/organizations/liga-orbital/tournaments/copa-verano/emblem',
+      '/api/organizations/liga-orbital/tournaments/copa-verano/emblem',
     );
     expect(tournamentEmblemUrl('liga-orbital', 'copa-verano', 'https://api.copalibre.test')).toBe(
-      'https://api.copalibre.test/organizations/liga-orbital/tournaments/copa-verano/emblem',
+      'https://api.copalibre.test/api/organizations/liga-orbital/tournaments/copa-verano/emblem',
     );
     expect(
       tournamentEmblemUrl('liga-orbital', 'copa-verano', 'https://api.copalibre.test', 'obj-v7'),
     ).toBe(
-      'https://api.copalibre.test/organizations/liga-orbital/tournaments/copa-verano/emblem?v=obj-v7',
+      'https://api.copalibre.test/api/organizations/liga-orbital/tournaments/copa-verano/emblem?v=obj-v7',
     );
   });
 
-  it('fetches tournament completion with authorization token', async () => {
-    const calls: Array<{ url: string; method: string; token?: string }> = [];
+  it('fetches tournament completion with the session cookie and no Authorization header', async () => {
+    const calls: Array<{ url: string; method: string; token?: string; csrf?: string }> = [];
+    document.cookie = 'copalibre_csrf=csrf-value-2';
     const client = createControlApiClient({
-      accessToken: () => 'control-token',
       fetch: async (input, init) => {
         const headers =
           init?.headers instanceof Headers ? init.headers : new Headers(init?.headers);
@@ -662,6 +807,7 @@ describe('the control API client', () => {
           url: String(input),
           method: init?.method ?? 'GET',
           token: headers.get('authorization') ?? undefined,
+          csrf: headers.get('x-copalibre-csrf') ?? undefined,
         });
         return response({
           totalMatches: 10,
@@ -683,10 +829,13 @@ describe('the control API client', () => {
     });
     expect(calls).toEqual([
       {
-        url: '/organizations/liga-orbital/tournaments/copa-verano/completion',
+        url: '/api/organizations/liga-orbital/tournaments/copa-verano/completion',
         method: 'GET',
-        token: 'Bearer control-token',
+        token: undefined,
+        // A safe method never carries the CSRF header.
+        csrf: undefined,
       },
     ]);
+    document.cookie = 'copalibre_csrf=; max-age=0';
   });
 });

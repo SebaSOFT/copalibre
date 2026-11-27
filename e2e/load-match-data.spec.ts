@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import Papa from 'papaparse';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
@@ -42,7 +42,7 @@ function buildMatchDataCsv(
  */
 
 const matchId = '00000000-0000-7000-8000-000000000005';
-const orgPath = `/organizations/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+const orgPath = `/api/organizations/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
 const controlPath = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}/load`;
 
 interface CapturedRequest {
@@ -76,6 +76,7 @@ function scheduledProjection() {
     rosters: [],
     rosterRoles: [],
     eligibleStaffIds: [],
+    segmentPlan: { addable: [] },
     entrants: [
       { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
       { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },

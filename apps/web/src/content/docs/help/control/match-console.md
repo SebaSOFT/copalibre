@@ -30,18 +30,21 @@ tournament's public screen.
 
 ## Running the clock
 
-Each segment has its own clock, and you drive it with three buttons under the segment you selected:
+Each segment has its own clock. The buttons under the segment you selected depend on where it stands:
 
-- **Start** begins that segment's clock, and stops whichever segment was running — only one runs at
-  a time.
-- **Pause** stops it where it stands. A paused match is still in progress: pausing stops a clock,
-  not the competition.
-- **End period** closes that segment. It accepts no further Start or Pause afterwards, and it does
-  not end the match — finalizing the result is its own separate action.
+- **Start match** begins a scheduled match and starts its first segment.
+- **Start segment** starts a segment that has not run yet.
+- **Pause** and **End segment** appear while a segment runs. Pause stops the clock where it stands; a paused match is still in progress.
+- **Resume** and **End segment** appear while a stopped segment has time on it.
+- **Reopen segment…** appears on a segment that has ended. It asks for a reason, returns the segment to paused with its time kept, and does not start the clock: press Resume to run it again.
 
-These record the moment you actually blew the whistle. The elapsed-seconds field beside them stays
-what it always was: the way to correct a value that was recorded wrong, after the fact. Both land in
-the same audit trail, with who did it, when, and what the clock read before and after.
+Only one segment runs at a time. Start segment and Resume are withheld while another segment runs, and the console names it: pause or end that one first.
+
+The segment selector shows a stopped segment with time on it as paused. A closed match (finalized, forfeited or not-required) offers no clock action.
+
+**Correct** sets the selected segment's time. Type it in the field labelled **Time (mm:ss)**, as minutes and seconds (`20:50`) or as whole minutes (`45`). It keeps the segment's state: a running segment keeps running, and a paused one stays paused. It is unavailable on a closed match (finalized, forfeited or not-required).
+
+These buttons record the moment you actually blew the whistle. Use **Correct** to fix a value recorded wrong. Every change lands in the same audit trail, with who did it, when, and the state and clock before and after. A reopen also records its reason.
 
 ## Reading the event ledger
 

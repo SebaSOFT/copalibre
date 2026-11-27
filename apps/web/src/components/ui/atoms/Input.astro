@@ -1,0 +1,19 @@
+---
+/**
+ * A form field: a search box the viewer types into, or a hidden field that carries a value without
+ * showing it. Public filters pass the view's current state through hidden fields, so submitting one
+ * control keeps the others.
+ */
+import type { HTMLAttributes } from 'astro/types';
+
+interface Props extends HTMLAttributes<'input'> {
+  readonly name: string;
+  readonly value: string;
+  readonly type?: 'hidden' | 'search';
+  readonly class?: string;
+}
+
+const { name, value, type = 'hidden', class: extraClass = '', ...attributes } = Astro.props;
+---
+
+<input type={type} name={name} value={value} class:list={[extraClass]} {...attributes} />

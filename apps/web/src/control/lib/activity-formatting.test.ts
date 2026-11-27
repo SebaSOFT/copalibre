@@ -1,6 +1,52 @@
-import { formatActivityAction, formatActivityReason } from './activity-formatting.js';
+import {
+  formatActivityAction,
+  formatActivityReason,
+  groupConsecutiveActivity,
+} from './activity-formatting.js';
 
 describe('activity-formatting', () => {
+  describe('groupConsecutiveActivity', () => {
+    const entry = (
+      auditId: string,
+      occurredAt: string,
+      overrides: Partial<{ action: string; actor: string }> = {},
+    ) => ({
+      auditId,
+      action: overrides.action ?? 'event.recorded',
+      actor: overrides.actor ?? 'system:demo-dataset',
+      occurredAt,
+    });
+
+    it('groups adjacent identical actions and actors inside one five-minute window', () => {
+      const grouped = groupConsecutiveActivity([
+        entry('newest', '2026-10-29T12:05:00.000Z'),
+        entry('older', '2026-10-29T12:00:00.000Z'),
+        entry('outside', '2026-10-29T11:55:00.000Z'),
+      ]);
+
+      expect(grouped.map((group) => group.entries.map((one) => one.auditId))).toEqual([
+        ['newest', 'older'],
+        ['outside'],
+      ]);
+    });
+
+    it('keeps different actors, actions and non-consecutive entries separate', () => {
+      const grouped = groupConsecutiveActivity([
+        entry('first', '2026-10-29T12:05:00.000Z'),
+        entry('other-actor', '2026-10-29T12:04:00.000Z', { actor: 'admin' }),
+        entry('other-action', '2026-10-29T12:03:00.000Z', { action: 'match.finalized' }),
+        entry('same-again', '2026-10-29T12:02:00.000Z'),
+      ]);
+
+      expect(grouped.map((group) => group.entries.map((one) => one.auditId))).toEqual([
+        ['first'],
+        ['other-actor'],
+        ['other-action'],
+        ['same-again'],
+      ]);
+    });
+  });
+
   describe('formatActivityAction', () => {
     it('handles match finalization events in both Spanish and English', () => {
       expect(formatActivityAction('match.finalized', 'es')).toBe('Partido finalizado');
@@ -29,9 +75,9 @@ describe('activity-formatting', () => {
       expect(formatActivityAction('player.role-updated', 'es')).toBe('Rol de miembro actualizado');
     });
 
-    it('falls back to humanized action when encountering an unknown action', () => {
-      expect(formatActivityAction('custom-domain.action-performed')).toBe('Action performed');
-      expect(formatActivityAction('simple_action')).toBe('Simple action');
+    it('falls back to a translated generic label for an unknown action', () => {
+      expect(formatActivityAction('custom-domain.action-performed', 'en')).toBe('Other activity');
+      expect(formatActivityAction('simple_action', 'es')).toBe('Otra actividad');
     });
 
     it('uses the default locale when omitted', () => {
@@ -61,6 +107,92 @@ describe('activity-formatting', () => {
       expect(formatActivityAction('tournament.published', 'de')).toBe('Turnier veröffentlicht');
       expect(formatActivityAction('entrant.accepted', 'ru')).toBe('Регистрация одобрена');
       expect(formatActivityAction('club.created', 'zh')).toBe('俱乐部已创建');
+    });
+
+    it('localizes recorded match events in all supported languages', () => {
+      const labels = {
+        en: 'Event recorded',
+        es: 'Evento registrado',
+        pt: 'Evento registrado',
+        fr: 'Événement enregistré',
+        it: 'Evento registrato',
+        de: 'Ereignis erfasst',
+        ru: 'Событие записано',
+        zh: '事件已记录',
+      };
+      for (const [language, label] of Object.entries(labels)) {
+        expect(formatActivityAction('event.recorded', language)).toBe(label);
+      }
+    });
+
+    // Every action the Panamericano demo records, read from its audit trail. The dashboard and
+    // the audit trail showed "Other activity" for 15 of these 42 before they were named.
+    const DEMO_RECORDED_ACTIONS = [
+      'authorization.refused',
+      'club.created',
+      'club.updated',
+      'descriptor.published',
+      'display-token.issued',
+      'entrant.accepted',
+      'entrant.registered',
+      'event.recorded',
+      'fixtures.generated',
+      'group.created',
+      'group.renamed',
+      'groups.manually-assigned',
+      'identity.principal-registered',
+      'match.created',
+      'match.finalized',
+      'match-roster.set',
+      'match.start',
+      'module.installed',
+      'official.created',
+      'organization.created',
+      'organization.invitation-created',
+      'organization.role-assigned',
+      'organization.settings_updated',
+      'person.nationality-set',
+      'person.registered',
+      'player.enlisted',
+      'promotion-plan.saved',
+      'ruleset.versioned',
+      'schedule.created',
+      'schedule.published',
+      'season.created',
+      'segment.clock-adjusted',
+      'segment.completed',
+      'segment.created',
+      'stage.created',
+      'team.created',
+      'tournament.created',
+      'tournament.emblem_updated',
+      'tournament.published',
+      'venue.created',
+      'zone.renamed',
+      'zones.manually-assigned',
+    ] as const;
+
+    it.each(['en', 'es', 'pt', 'fr', 'it', 'de', 'ru', 'zh'])(
+      'names every action the demo records in %s',
+      (language) => {
+        const generic = formatActivityAction('future.machine-action', language);
+        const unnamed = DEMO_RECORDED_ACTIONS.filter((action) => {
+          const label = formatActivityAction(action, language);
+          return label === generic || label === action;
+        });
+        expect(unnamed).toEqual([]);
+      },
+    );
+
+    it('names the newly mapped actions in Spanish', () => {
+      expect(formatActivityAction('descriptor.published', 'es')).toBe('Disciplina publicada');
+      expect(formatActivityAction('schedule.published', 'es')).toBe('Programación publicada');
+      expect(formatActivityAction('groups.manually-assigned', 'es')).toBe(
+        'Grupos asignados manualmente',
+      );
+      expect(formatActivityAction('tournament.emblem_updated', 'es')).toBe(
+        'Escudo del torneo actualizado',
+      );
     });
   });
 
@@ -94,6 +226,21 @@ describe('activity-formatting', () => {
       expect(formatActivityReason(undefined, 'es')).toBe('');
     });
 
+    it('translates the API refusal the audit trail used to show in English', () => {
+      expect(formatActivityReason('Requested organization does not exist', 'es')).toBe(
+        'La organización solicitada no existe',
+      );
+      expect(formatActivityReason('Requested organization does not exist', 'de')).toBe(
+        'Die angeforderte Organisation existiert nicht',
+      );
+    });
+
+    it('translates a reason that carries a suffix through its known prefix', () => {
+      expect(
+        formatActivityReason('Subject has no participant identity in this organization', 'es'),
+      ).toBe('La cuenta no está vinculada a un participante');
+    });
+
     it('localizes a refusal reason into a non-es/en language', () => {
       expect(formatActivityReason('Subject is not scoped to this organization', 'fr')).toBe(
         "L'utilisateur n'appartient pas à cette organisation",
@@ -101,6 +248,22 @@ describe('activity-formatting', () => {
       expect(formatActivityReason('Token is missing required scope: org.admin', 'zh')).toBe(
         '令牌缺少所需的权限范围',
       );
+    });
+
+    it('localizes the reason a match was finalized from recorded facts', () => {
+      const labels = {
+        en: 'Match finalized from recorded facts',
+        es: 'Partido finalizado a partir de los hechos registrados',
+        pt: 'Partida finalizada com base nos fatos registrados',
+        fr: 'Match finalisé à partir des faits enregistrés',
+        it: 'Partita finalizzata sulla base dei fatti registrati',
+        de: 'Spiel anhand der erfassten Fakten abgeschlossen',
+        ru: 'Матч завершён по зафиксированным фактам',
+        zh: '比赛已根据记录的事实结束',
+      };
+      for (const [language, label] of Object.entries(labels)) {
+        expect(formatActivityReason('match finalized from recorded facts', language)).toBe(label);
+      }
     });
   });
 });

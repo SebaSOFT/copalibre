@@ -20,39 +20,53 @@ colors:
   green-500: "#22C55E"
   red-500: "#EF4444"
   team-accent: "#FF2E88"
+  light-ink-950: "#E3E8EF"
+  light-ink-900: "#F8FAFC"
+  light-ink-930: "#EDF1F6"
+  light-ink-850: "#D3DAE4"
+  light-ink-700: "#8C9AB5"
+  light-control-border: "#5B6884"
+  light-text-950: "#05070D"
+  light-text-900: "#263049"
+  light-text-800: "#46536B"
+  light-cyan-800: "#00586B"
+  light-cyan-100: "#C4EEF8"
+  light-amber-900: "#6B3A00"
+  light-green-800: "#116B32"
+  light-red-800: "#B01818"
 typography:
   display:
-    fontFamily: "'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif"
-    fontSize: "2.25rem"
+    fontFamily: "'Barlow Condensed', 'Barlow Condensed Fallback', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif"
+    fontSize: "clamp(1.602rem, 1.436rem + 0.7088vw, 2.074rem)"
     fontWeight: "700"
     lineHeight: "1.1"
     letterSpacing: "0.04em"
   headline:
-    fontFamily: "'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif"
-    fontSize: "1.5rem"
+    fontFamily: "'Barlow Condensed', 'Barlow Condensed Fallback', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif"
+    fontSize: "clamp(1.266rem, 1.204rem + 0.262vw, 1.44rem)"
     fontWeight: "600"
     lineHeight: "1.2"
     letterSpacing: "0.04em"
   title:
-    fontFamily: "'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif"
-    fontSize: "1.25rem"
+    fontFamily: "'Barlow Condensed', 'Barlow Condensed Fallback', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif"
+    fontSize: "clamp(1.125rem, 1.099rem + 0.1127vw, 1.2rem)"
     fontWeight: "600"
     lineHeight: "1.3"
     letterSpacing: "0.04em"
   body:
-    fontFamily: "'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif"
+    fontFamily: "'Barlow', 'Barlow Fallback', 'Roboto Variable', 'Noto Sans SC Variable', system-ui, -apple-system, 'Segoe UI', sans-serif"
     fontSize: "1rem"
     fontWeight: "400"
     lineHeight: "1.5"
     letterSpacing: "0"
   label:
-    fontFamily: "'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace"
+    fontFamily: "'JetBrains Mono Variable', 'JetBrains Mono Fallback', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace"
     fontSize: "0.75rem"
     fontWeight: "500"
     lineHeight: "1.4"
     letterSpacing: "0.05em"
   figure:
-    fontFamily: "'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace"
+    fontFamily: "'JetBrains Mono Variable', 'JetBrains Mono Fallback', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace"
     fontSize: "1.25rem"
     fontWeight: "500"
     lineHeight: "1.2"
@@ -79,6 +93,20 @@ spacing:
   "10": "40px"
   "12": "48px"
   "16": "64px"
+layout:
+  container:
+    public: "75rem"
+    reading: "45rem"
+    control: "90rem"
+    form: "45rem"
+  gutter:
+    sm: "1rem"
+    md: "1.5rem"
+    lg: "2rem"
+  split:
+    main-rail: "minmax(0, 8fr) minmax(0, 4fr)"
+    chart-panel: "minmax(0, 7fr) minmax(0, 5fr)"
+    media-form: "minmax(0, 4fr) minmax(0, 8fr)"
 components:
   button-primary:
     backgroundColor: "{colors.cyan-400}"
@@ -159,8 +187,10 @@ components:
     padding: "4px 12px"
     height: "44px"
   pill-active:
-    backgroundColor: "{colors.cyan-400}"
-    textColor: "{colors.ink-950}"
+    backgroundColor: "{colors.cyan-950}"
+    textColor: "{colors.cyan-400}"
+  public-theme-preference:
+    height: "44px"
   table-header:
     backgroundColor: "{colors.ink-850}"
     textColor: "{colors.text-400}"
@@ -186,6 +216,26 @@ components:
     rounded: "{rounded.none}"
     padding: "16px"
     width: "480px"
+icon:
+  size:
+    inline: "16px"
+    control: "20px"
+    header: "24px"
+  stroke: "1.5"
+  tablerOpticalScale: "1.1"
+chart:
+  1-dark: "#796CE0"
+  1-light: "#6351CA"
+  2-dark: "#00D4FF"
+  2-light: "#0094C3"
+  3-dark: "#11A68B"
+  3-light: "#007E57"
+  4-dark: "#FF9C1E"
+  4-light: "#CF7100"
+  5-dark: "#C959A9"
+  5-light: "#B43694"
+  other-dark: "#8C9AB5"
+  other-light: "#46536B"
 ---
 
 # Design System: CopaLibre
@@ -202,11 +252,12 @@ components:
 **Creative North Star: "Broadcast Command Precision"**
 
 CopaLibre looks like the gallery behind a live broadcast, not the broadcast itself. Deep ink surfaces
-recede so that one signal colour — cyan — can mean exactly one thing: this is live, this is the action,
-this is where you look. Everything else on screen is instrumentation: condensed uppercase labels,
-monospaced tabular figures that do not shift width as a score changes, hairline borders that make
-structure countable rather than decorative. The system is built for an operator working a bracket under
-time pressure, and for a venue screen read from twelve metres away, with the same tokens serving both.
+recede in the dark theme; L3 Sunlight uses a cool-grey ground and near-white panels while keeping the
+same semantic roles. In both, one signal colour — cyan — means live, action, or focus. Everything else
+on screen is instrumentation: condensed uppercase labels, monospaced tabular figures that do not shift
+width as a score changes, and hairline borders that make structure countable rather than decorative.
+The system is built for an operator working a bracket under time pressure, and for a venue screen read
+from twelve metres away, with the same tokens serving both.
 
 Density is deliberate and unapologetic. The spacing scale steps in 4px rather than 8px because operator
 tables are tight and a scale nobody can honour is a scale that gets bypassed. Surfaces alternate through
@@ -218,14 +269,15 @@ bottom-left, cut through `corner-shape` and never through a polygon mask.
 The identity is defined as much by refusal as by choice. It is not SebaSOFT's cyberpunk-wireframe world:
 no Cyberpunk Yellow, no `#C5003C`, no TRON grids, no scanlines, no ornamental glow standing in for state.
 That refusal is scanned in CI against generated output rather than left to brand review. Nor is it a
-generic SaaS card grid — there are no soft shadows, no rounded-everything cards, no pastel status chips.
-Colour is never the only cue for anything: every state token carries a required non-colour companion, and
-the token contract throws at build time when a badge arrives without a label.
+generic SaaS card grid — there are no soft shadows, no rounded-everything cards, and no state colour used
+as decoration. Colour is never the only cue for anything: every state token carries a required
+non-colour companion, and the token contract throws at build time when a badge arrives without a label.
 
 **Key Characteristics:**
 
-- Flat, near-black ink surfaces layered by opaque tonal steps, never by translucency or shadow
-- One accent — Signal Cyan — reserved for live, active, primary action, and focus
+- Flat opaque surfaces: near-black ink in the dark theme and a cool-grey ground with near-white panels in L3
+- One accent — Signal Cyan — reserved for live, primary action, and focus; active filters use its cyan well
+- Public and Control follow the system or an explicit light/dark choice; broadcast remains dark
 - Condensed uppercase display face for identity; monospace for every figure and label
 - Asymmetric chamfer (top-right / bottom-left) as the sole shape signature
 - 4px spacing scale, 44px minimum interactive target, tabular figures everywhere numbers appear
@@ -234,14 +286,13 @@ the token contract throws at build time when a badge arrives without a label.
 
 ## Colors
 
-A near-black ink field, three steps of cool grey text, and four saturated signal colours that appear only
+An ink field for the dark theme, cool-grey daylight surfaces for L3, and signal colours that appear only
 where something is true about the state of the tournament.
 
 ### Primary
 
-- **Signal Cyan** (`cyan-400`): Live and active state, primary action fills, links, focus rings, the
-  match clock, the active pill in a filter group. This is the system's only voice; it is why the ink is
-  as dark as it is.
+- **Signal Cyan** (`cyan-400`): Live state, primary action fills, links, focus rings and the match
+  clock. Active filters use its cyan-well surface with Signal Cyan text and border.
 - **Signal Cyan Bright** (`cyan-300`): The primary control under the pointer. The reference lightens the
   fill rather than applying a brightness filter, so hover reads as a step toward live rather than as a
   rendering artifact.
@@ -281,12 +332,47 @@ where something is true about the state of the tournament.
 - **Paper White** (`text-50`): Body text and headings.
 - **Cool Grey** (`text-200`): Secondary text — alert bodies, series detail, broadcast org lines.
 - **Muted Steel** (`text-400`): Labels, table headers, metadata, help text, and emphasised structure.
-  Never body copy.
+  Never body copy, and never on the raised well, where it reaches 4.04:1: labels there use `text-secondary`.
+
+### Light Theme (L3 Sunlight)
+
+Public and Control can follow the device's light preference or an explicit per-device choice. TV stays
+on the dark palette for kiosks and broadcast overlays. L3 keeps the same semantic roles and changes
+their values: a mid-grey ground, near-white panels, darker structure and legible signal colours.
+
+| Role | L3 token | Value | Contrast |
+| --- | --- | --- | --- |
+| Base ground | `surface-base` | `#E3E8EF` | — |
+| Panel and row | `surface-panel`, `surface-row` | `#F8FAFC` | — |
+| Alternate row | `surface-row-alt` | `#EDF1F6` | — |
+| Chrome | `surface-chrome` | `#D3DAE4` | — |
+| Emblem frame | `surface-emblem-frame` | `#1A2236` | Monogram `#F2F6FB` |
+| Decorative structure | `border-muted` | `#8C9AB5` | 2.71:1 on panel |
+| Form-control boundary | `border-control` | `#5B6884` | At least 3:1 on chrome |
+| Body text | `text-primary` | `#05070D` | 19.25:1 on panel |
+| Secondary text | `text-secondary` | `#263049` | 12.53:1 on panel |
+| Muted labels | `text-muted` | `#46536B` | 5.5:1 on chrome |
+| Primary action fill | `primary` | `#00D4FF` | 10.9:1 with `#05070D` text |
+| Accent text, links, live and focus | `text-accent`, `state-live`, `focus-ring` | `#00586B` | 7.7:1 on panel |
+| Selected container | `surface-raised` | `#C4EEF8` | — |
+| Upcoming | `state-upcoming` | `#6B3A00` | 6.69:1 on chrome |
+| Positive result | `state-positive` | `#116B32` | 4.7:1 on chrome; 5.07:1 in positive badge tint |
+| Destructive result | `state-destructive` | `#B01818` | 6.71:1 on panel |
+
+Charts use violet `#6351CA`, cyan `#0094C3`, teal `#007E57`, amber `#CF7100` and magenta `#B43694`
+on near-white plot panels. The primary action's light-theme glow is a 2px deep-cyan outline, not a
+blur. Discipline imagery fades to 35% of its dark-theme opacity; the neutral radial ground is lighter.
+Organizer emblems keep their opaque chrome-ink frame in both themes. Fallback monograms retain
+light text on that frame; frameless emblems follow the active body-text colour.
+
+Positive-result badges blend 15% state green into the near-white panel surface, keeping the label above
+4.5:1 contrast while preserving a restrained green tint.
 
 ### Named Rules
 
-**The One Signal Rule.** Cyan means live, active, primary, or focused — nothing else. A second accent
-introduced for decoration destroys the only cue an operator scans for across a dense screen.
+**The One Signal Rule.** Cyan means live, active, primary, or focused — nothing else outside a chart
+plot; inside a plot, it means data-series slot 2. A second accent introduced for decoration destroys
+the only cue an operator scans for across a dense screen.
 
 **The Never-Colour-Alone Rule.** Every state token declares a required non-colour companion: `state-live`
 carries a LIVE label, `state-upcoming` a scheduled time, `state-positive` a result marker,
@@ -314,17 +400,35 @@ on the rendering machine.
 
 ### Hierarchy
 
-- **Display** (Barlow Condensed 700, 2.25rem, 1.1, tracked `0.04em`, uppercase): Page and screen titles,
-  the broadcast tournament name.
-- **Headline** (Barlow Condensed 600, 1.5rem, 1.2, tracked `0.04em`, uppercase): Section headings, card
-  titles, toolbar titles, modal titles.
-- **Title** (Barlow Condensed 600, 1.25rem, 1.3, uppercase): Entrant names on a match card, activity feed
-  headings, sub-section headings.
+- **Display** (Barlow Condensed 700, fluid `3xl`, 1.1, tracked `0.04em`, uppercase): Page and screen
+  titles, the broadcast tournament name.
+- **Headline** (Barlow Condensed 600, fluid `xl`, 1.2, tracked `0.04em`, uppercase): Section headings,
+  card titles, toolbar titles, modal titles.
+- **Title** (Barlow Condensed 600, fluid `lg`, 1.3, uppercase): Entrant names on a match card, activity
+  feed headings, sub-section headings.
 - **Body** (Barlow 400, 1rem, 1.5): Prose, form values, alert bodies, descriptions.
 - **Label** (JetBrains Mono 500, 0.75rem, tracked `0.05em`, uppercase): Field labels, table headers,
   action codes, timestamps, scope and venue metadata, trace summaries.
-- **Figure** (JetBrains Mono 500, 1.25rem–1.875rem, `tabular-nums`): Scores, clocks, ranks, stat tile
+- **Figure** (JetBrains Mono 500, fixed `1.25rem`–`1.875rem`, `tabular-nums`): Scores, clocks, ranks, stat tile
   values, any right-aligned numeric column.
+
+**Fluid heading scale.** The `lg`–`3xl` tokens use `clamp()` with a `rem` intercept so headings grow
+with viewport width while still responding to text-only resizing. Each step follows the same
+geometric scale from 1.125 at 375px to 1.2 at 1440px; endpoints equal `16 × 1.125ⁿ` and `16 × 1.2ⁿ`
+pixels respectively:
+
+| Token | 375px | Fluid rule | 1440px |
+| --- | ---: | --- | ---: |
+| `lg` | 18px | `clamp(1.125rem, 1.099rem + 0.1127vw, 1.2rem)` | 19.2px |
+| `xl` | 20.256px | `clamp(1.266rem, 1.204rem + 0.262vw, 1.44rem)` | 23.04px |
+| `2xl` | 22.781px | `clamp(1.424rem, 1.317rem + 0.457vw, 1.728rem)` | 27.648px |
+| `3xl` | 25.629px | `clamp(1.602rem, 1.436rem + 0.7088vw, 2.074rem)` | 33.178px |
+
+The fixed steps remain `xs` 0.75rem, `sm` 0.875rem, `base` 1rem and `md` 1.125rem. Numeric figures
+keep fixed `lg` (1.25rem), `xl` (1.5rem) and `2xl` (1.875rem) sizes so a changing score does not shift
+the visual scale of the readout. **The Floor Rule:** application font sizes never fall below 0.75rem.
+**The Text Unit Rule:** font sizes use `rem` or a token; pixel font sizes are forbidden. The TV
+broadcast typography system keeps its separately documented font sizing.
 
 ### Named Rules
 
@@ -332,28 +436,42 @@ on the rendering machine.
 clock, a rank, a stat tile — renders in the mono face with `font-variant-numeric: tabular-nums`. A score
 that shifts width as it changes is a score nobody can read.
 
-**The Bare Heading Rule.** Every `h1`–`h6` resolves to the display family without a component asking for
-it. A heading rendered in the body face is the identity silently not being applied.
+**The Bare Heading Rule.** Every `h1`–`h6` resolves to the display family and the semantic scale without
+a component asking for it: `h1` uses `3xl`, `h2` `2xl`, `h3` `xl`, `h4` `lg`, `h5` `md` and `h6` `base`.
+A heading rendered in the body face or at a browser-default size is the identity silently not being
+applied. A component with a named typography role may select its own token.
 
 **The Tracked Uppercase Rule.** Uppercase text carries tracking from the named scale — `wide` (0.04em)
 for metadata and headings, `wider` (0.05em) for buttons and emphasised labels, `widest` (0.06em) for the
-display face set large. Uppercase at `normal` tracking is a bug, not a choice.
+display face set large. Uppercase at `normal` tracking is a bug, not a choice. Chinese (`:lang(zh)`) is
+the exception: tracked values resolve to `normal`, because CJK has no case and added letter spacing
+harms it.
 
 ## Layout
 
 Three surfaces share one token set and diverge only in density and container behaviour.
 
-**Control (Operate).** A two-column shell: a fixed navigation rail of `minmax(180px, 240px)` against a
-fluid main column, full viewport height, main padded at `32px`. Below the `md` breakpoint (768px) the
-rail collapses into a slide-in drawer of `min(320px, 85vw)` behind a sticky mobile header, main padding
-drops to `16px`, and below 375px to `12px` — the width that 200% zoom exposes. Control composes on a
-denser mapping of the same 4px scale: `24px` between sections, `12px` between fields, `8px` between rows,
-`4px` inline. No second scale is introduced; each value is an existing step chosen for density.
+**Control (Operate).** A two-column shell: a fixed navigation rail of `minmax(11.25rem, 15rem)` against a
+fluid main column, full viewport height. Main content is centered in a `90rem` container; each form or
+settings panel is capped at `45rem`. Horizontal gutters are `1rem`, `1.5rem`, and `2rem` from the `sm`,
+`md`, and `lg` breakpoints; vertical main padding is `2rem` on desktop and `1rem` below `md`. Below
+the `md` breakpoint (768px) the rail collapses into a slide-in drawer of `min(20rem, 85vw)` behind a
+sticky mobile header. Buttons keep their content width, except primary actions in single-column mobile
+forms, which fill the available width. Control composes on a denser mapping of the same 4px scale:
+`24px` between sections, `12px` between fields, `8px` between rows, `4px` inline. No second scale is
+introduced; each value is an existing step chosen for density.
+Control uses the named split tokens `layout.split.main-rail` (8/4), `layout.split.chart-panel` (7/5)
+and `layout.split.media-form` (4/8), each composed from `minmax(0, nfr)` columns. List-plus-rail and
+workspace layouts stack at container widths below `1024px`; the container, not the viewport, decides
+when the second column fits.
 
-**Public (Persuade / Read).** A centred `960px` container over a fixed, low-opacity discipline background
-image — or, when a discipline ships no imagery, a token-drawn neutral radial ground rather than another
-discipline's picture. Card grids are `repeat(auto-fill, minmax(min(100%, 280px), 1fr))`. Output is
-durable and JavaScript-independent.
+**Public (Persuade / Read).** Full-width header and footer bands align their contents to a centered
+`75rem` container. Public page content uses that same `75rem` maximum; reading pages use a `45rem`
+column. Both use `1rem`, `1.5rem`, and `2rem` horizontal gutters from the `sm`, `md`, and `lg`
+breakpoints. Content sits over a fixed, low-opacity discipline background image — or, when a discipline
+ships no imagery, a token-drawn neutral radial ground rather than another discipline's picture. Card
+grids are `repeat(auto-fill, minmax(min(100%, 17.5rem), 1fr))`. Output is durable and
+JavaScript-independent.
 
 **Broadcast (Experience).** Viewport-relative throughout: type sized in `clamp()` against `vmin` so a
 scorebug reads at any venue-screen resolution, and a single alternation step instead of the full
@@ -363,7 +481,8 @@ surface ladder.
 because operator tables are dense and an 8px floor forces every tight layout to opt out.
 
 **Breakpoints.** `375px` (small phone), `768px` (tablet), `1024px` (small laptop), `1440px` (desktop) —
-exactly the four widths the screenshot acceptance gate requires, with no undocumented extras.
+exactly the four widths the screenshot acceptance gate requires, with no undocumented extras. Media
+queries use only these declared width values and the `BREAKPOINTS` tokens; do not add a one-off width.
 
 ### Named Rules
 
@@ -376,6 +495,13 @@ is readable without a single border being required to carry it.
 
 **The No-Sideways-Page Rule.** Wide content scrolls inside its own box (`.cl-table-scroll`,
 `overflow-x: auto`). The page body never scrolls horizontally; every layout child carries `min-width: 0`.
+
+**The Shared Container Rule.** Public content uses a centered `75rem` (`1200px`) container and
+reading pages use `45rem` (`720px`); Control uses `90rem` (`1440px`) and its forms use `45rem`
+(`720px`). At 1920px and wider, each surface stays at its maximum and centered. Below that, horizontal
+gutters follow the shared `1rem`, `1.5rem`, and `2rem` scale. Full-width bands may break out, but their
+contents return to the matching container. Pages compose the owned container instead of setting a raw
+`max-width`.
 
 **The 44px Rule.** Every interactive target — button, pill, nav link, form control, pagination step —
 is at least `44px` in its constrained axis.
@@ -439,6 +565,10 @@ tables, stat tiles and pills are square.
 
 The framed-image treatment (`.cl-image-frame`) matches the chamfer cut visually: `4/5` aspect ratio,
 `512px` maximum height, a `1px` structure border, and a chrome-ink ground behind the placeholder.
+An emblem frame is the one size-scaled cut: it keeps the diagonal pair at every size, but its cut and
+padding follow the emblem's displayed size — `4px` and `1px` at `16`–`20px`, `8px` and `4px` at `32px`,
+the full `14px` (`8px` on Control) and `8px` from `48px`. A fixed `14px` cut collapses a list-sized
+emblem into a diagonal sliver with no room for the image.
 
 ### Named Rules
 
@@ -475,6 +605,8 @@ uppercase display face, 44px targets, state always spelled out in words as well 
 - **Style:** Barlow Condensed 600, uppercase, padded `4px 8px`, inline-flex with a `4px` gap for an
   optional icon.
 - **Contract:** A label is required. `assertBadge` throws `BadgeContractError` on an empty one.
+- **Tinted state badges:** Text must clear 4.5:1 on the tint over the lightest surface beneath it. Red does
+  not on the TV live badge, so its text is `text-primary` and the border and tint carry the state.
 
 ### Cards / Containers
 
@@ -486,20 +618,36 @@ uppercase display face, 44px targets, state always spelled out in words as well 
   paired with the card's own label. This rail is the card's state cue.
 - **Internal Padding:** `16px`; header gap `4px` with `12px` beneath, content gap `12px`, footer gap `8px`
   with `16px` above.
+- **Header strip:** Runs to the card's top and right edges and to the state rail, takes the corner cut it
+  reaches, and pads its content `16px` on every side, so the title shares the body's left edge. A header
+  below other content in the card stays inside the card's padding.
 - **Title:** Display face, uppercase, `overflow-wrap: anywhere`.
 
 ### Inputs / Fields
 
-- **Style:** Chrome Ink fill, `1px` structure border, control chamfer (`8px` top-right / bottom-left),
-  `44px` minimum height, `8px 12px` padding, `color-scheme: dark` so native pickers match.
+- **Style:** Chrome fill, `1px` control border, control chamfer (`8px` top-right / bottom-left),
+  `44px` minimum height, `8px 12px` padding. Native pickers follow the active theme's `color-scheme`.
+- **Font size:** `--cl-font-size-base` (`1rem`, `16px`) on Input, Select and Textarea, on every surface.
+  One size, not a denser one for Control: under `16px` iOS zooms the page when a field takes focus.
 - **Focus:** Border shifts to the focus ring colour and the two-layer ring draws outside the box.
 - **Error:** Border and ring both become Dispute Red; the error message renders in the same red at
   `0.75rem` beneath the field.
 - **Disabled:** Panel Ink fill with Muted Steel text.
 - **Labels:** Mono, uppercase, `0.75rem`. Help text and decision hints in Muted Steel at `0.75rem`.
-- **Checkbox / radio:** `1.25rem` square with all four corners cut, base-ink fill, structure border;
-  hover moves the border toward cyan; checked fills Signal Cyan with a Deep Ink glyph — a polygon
-  checkmark or a `0.5rem` dot.
+- **Stable height:** A field keeps one height in every state. One message line is always reserved under
+  the control, and a message clips to it with an ellipsis. A message that overflows opens whole from an
+  information icon, beside the label for help and in the line for an error. A page never sets its own
+  message size or field layout.
+- **Select:** Reads like Input: the value sits left on one line, and a long value clips with an ellipsis
+  instead of growing past `44px`, with the whole text in the title. With no value it shows placeholder
+  text in Muted Steel, supplied by the page. An option with an empty value and a label is a real choice
+  and shows that label in normal text.
+- **Checkbox / radio:** `1.25rem` square with all four corners cut, centred in a `44px` target that
+  paints nothing. Base-ink fill and an emphasised-structure border, because at this size the outline
+  alone has to carry the control; hover moves the border toward cyan; checked fills Signal Cyan with a
+  Deep Ink glyph — a polygon checkmark or a `0.5rem` square; disabled takes the panel fill. The focus ring
+  follows the box, not the target. Beside a label the box aligns with the fields around it and the
+  target overhangs.
 - **File picker:** A dashed-border drop zone on panel ink; drag-active takes the hovered surface with a
   cyan border, selection-present takes the raised cyan well with emphasised structure.
 
@@ -518,10 +666,24 @@ uppercase display face, 44px targets, state always spelled out in words as well 
   flex row at `44px` minimum height. Below 768px it becomes a drawer — a 65% ink scrim with a `4px` blur,
   a 200ms `cubic-bezier(0.16, 1, 0.3, 1)` slide-in, and a `44px` hamburger with a structure border.
 - **Pills / filters:** Chrome Ink with a structure border, Barlow 600 at `0.875rem`, `44px` minimum
-  height. Hover takes the hovered surface; `--active` or `aria-current` fills Signal Cyan with Deep Ink
-  text.
+  height. Hover takes the hovered surface; `--active` or `aria-current` uses the cyan well with Signal
+  Cyan text and border, keeping selected filters distinct from primary actions.
+- **Public theme preference:** Compact disclosure with the current System/Light/Dark choice visible.
+  Its options remain a `44px` target and the selected choice uses the theme-aware accent tokens.
 - **Public shell:** A single logo lock-up in the header and a one-line footer. A skip link sits offscreen
   until focused, then lands at `8px / 8px` on panel ink.
+
+### Popovers
+
+- **Use:** A short explanation behind a `1rem` information icon: a field message that overflows, or a
+  column's full name. Text only; anything with controls is a dialog.
+- **Trigger:** Muted Steel, Signal Cyan on hover and while open, Dispute Red for an error. The target
+  overhangs to `44px` in the constrained axis. In a table header it overhangs vertically only, so it never
+  covers the label that sorts.
+- **Surface:** The dialog surface with the control chamfer, in body type at `0.875rem`, at most `20rem` wide.
+  It repositions to stay inside the viewport.
+- **Opening:** Click, tap or keyboard, and mouse hover where the caller asks for it. Escape or an outside
+  click closes it, and focus returns to the icon. A click keeps a hover-opened popover open.
 
 ### Dialogs / Modals
 
@@ -546,6 +708,14 @@ deciding-factor line when the outcome turned on a rule; and a collapsible trace 
 mono label and whose lines are `0.75rem` mono in Muted Steel. It is the whole system in one box —
 condensed identity, mono figures, state rails, no ornament.
 
+### Signature: The TV Match Spotlight
+
+The featured broadcast matchup gives home and away the same square emblem frame and the same reading
+order: emblem, entrant name, then a localized role tag. The frame is `clamp(14vmin, 18vmin, 22vmin)`
+at landscape sizes and `64px` in narrow or portrait layouts. The centered score separates the two
+equal columns. The tag uses a neutral surface, structure border and secondary text; neither side is
+enlarged or identified by the signal accent.
+
 ### Signature: The Tactical Grid
 
 A background of 1px cyan lines at 6% opacity on a `24px × 32px` cell. It is the system's only decorative
@@ -556,6 +726,8 @@ never a layer that competes with content.
 
 ### Do:
 
+- **Do** give both sides of the TV match spotlight equal emblem frames and place each localized role
+  tag beneath its entrant name.
 - **Do** name a state, never a colour. Components consume `state-live`, not `cyan-400`, so retheming
   "live" is one line in `semantic.ts` rather than a search across three rendering technologies.
 - **Do** pair every state colour with its declared non-colour cue — a LIVE label, a scheduled time, a
@@ -573,7 +745,10 @@ never a layer that competes with content.
 ### Don't:
 
 - **Don't** introduce a second accent colour. Cyan is the only voice, and its scarcity is what makes it
-  scannable.
+  scannable. Data-visualization plot areas are the named exception: they may use only the five declared
+  series colours; chart chrome remains in ink and text tokens.
+- **Don't** use emblem size, accent colour or placement to imply that either side of the TV match is
+  more important.
 - **Don't** use `clip-path` for corner geometry. It clips the focus ring and the glow.
 - **Don't** let an organizer's team accent reach `state-live`, `state-upcoming`, `state-positive`,
   `state-destructive` or `focus-ring`, or appear in core chrome — navigation, primary buttons, system
@@ -588,3 +763,190 @@ never a layer that competes with content.
   them.
 - **Don't** introduce a spacing, radius, font-size, tracking or breakpoint value outside the named
   scales. A hardcoded literal at a call site is how a scale becomes an accident.
+
+## Surfaces and Devices
+
+Judge the live match console as a tablet-first, touch-first surface at 768–1024px. Its event actions
+must be reachable by finger and thumb, and common events must take one tap. Judge public pages at 375px
+and 960px or wider with equal weight. Judge TV and broadcast surfaces at 1280px and 1920px. The review
+matrix covers Spanish and German at 375px, 768px, 1024px and 1440px; use 188px and all eight interface
+languages on pages flagged by overflow detection. Review TV at both specified widths.
+
+## References
+
+Use external products and broadcasts to assess hierarchy, pace and information density only. TV
+scorebugs are compared with FIFA and UEFA broadcasts; public match centres with ESPN and FotMob; control
+surfaces with a broadcast vision mixer and Bloomberg-dense tables. Do not reproduce trade dress.
+
+The owner adopted eleven compositions as guidance for layout, spacing, information order, density and
+intended user journey. The operator-workflow study is marked **not run**; rail grouping and hierarchy
+remain unvalidated design hypotheses. These prose descriptions are the complete source for the
+compositions:
+
+| Composition | Layout and behavior |
+| --- | --- |
+| Context rail header | Show the current organization or tournament, emblem or monogram, name, available discipline and category, lifecycle state, and at most one action the current role may use. Order navigation by tournament lifecycle and keep help and preferences in the rail footer. |
+| Page header | Place breadcrumb, display title, one-sentence description, and a right-aligned action group in that order. Put optional status badges beside the title; keep secondary actions before the primary action. |
+| KPI strip | Place up to four compact tiles below the page header. Each tile has a label, tabular value and context line, all bound to available API data. Omit a tile when its source field is unavailable. |
+| List plus form | Use an 8/4 main-list and right-rail split from the shared token. Stack the form below the list when the containing layout is narrower than `1024px`. |
+| Entity identity cell | Place emblem or monogram before the name, with a monospace metadata line for available role, scope, country or rating data. |
+| Filter bar | Put search, segmented state filters with counts, and result count in one row above the list. |
+| Tournament card | Show lifecycle state, display-face name, available metadata, API-backed progress and facts, then an action row with one primary action appropriate to that state. |
+| Unsaved-changes bar | When a form is dirty, pin a bottom bar with the number and names of changed fields, a reset action and a save action. Hide it while clean. |
+| Section tabs | Place categories in one segmented tab row at the start of their section. |
+| Wizard stepper | Show ordered steps with number, label and active, done or pending state. Keep back, save-draft and next-step actions in a sticky footer. |
+| Dashed drop zone | Pair a dashed upload area with a preview. Include an icon, instruction, file constraints and a browse action; size the preview to its rendered context. |
+
+Adopted compositions never supply palette, icons, shadows, tokens or technical guidance. `DESIGN.md`
+and the token source govern every conflict. Reject fabricated system chrome such as ports, latency,
+FPS, telemetry, clusters, nodes or links to unrelated system services. Reject invented domain features,
+including disciplinary tribunals, court temperature, federation certification, VAR, cryptographic
+ledgers, storage telemetry and password entropy meters. Sport-specific widgets such as possession
+meters appear only when declared by the discipline. Text must never overlap, overflow or clip. Do not
+use bilingual headings, slash separators or scanline digit treatments.
+
+## Interaction States
+
+- **Loading:** The `Skeleton` atom renders opaque `ink-850` blocks, lines and table rows shaped like
+  the final layout, with `aria-busy` and hidden loading text. Do not shimmer; keep the layout stable
+  when data arrives. The `ReadState` template preserves the page heading during loading and failure.
+- **Empty:** Show an `ink-850` icon well, a heading, a one-sentence explanation and a primary action
+  that resolves the empty state. Use the `EmptyState` molecule in React and its server-rendered Astro
+  counterpart on public pages. An explicit no-permission state replaces the action with who can act.
+- **Error with prior data:** Keep the last good data visible, mark it stale and show its age. A toast
+  states what failed and offers Retry. `StaleMark` includes a relative age; after five minutes
+  `ReadState` also offers Retry beside the retained data. Never render a failed refresh as empty.
+- **Error without prior data:** Keep the skeleton, show a Retry toast and retry automatically with
+  backoff. `useResilientRead` owns the 2, 4, 8, 16, 30-second schedule, holding at 30 seconds, and
+  resets it on manual retry. Its in-memory cache is scoped to the authenticated session and resource;
+  it never persists across a document reload. Mutation results update the cached value.
+- **Offline console:** Show connection status, queued count and last sync in the header. Use amber while
+  work is queued and red only after rejection. The `ConnectionStatus` organism announces changes
+  politely. The `EventSyncMark` molecule shows queued, sent, confirmed or refused, with the server's
+  refusal reason in an alert. Confirmed requires a server acknowledgement, never an optimistic write.
+
+## Iconography
+
+Use Lucide as the primary icon set. Use Tabler only for missing glyphs and scale each Tabler glyph to
+110% around its centre inside the same 16px, 20px or 24px box, so its smaller optical drawing matches
+Lucide. Use custom inline SVG only as a last fallback. Icons use a 1.5px stroke and `currentColor`.
+Reserve 16px for inline icons, 20px for controls and 24px for headers.
+Every call site requests a semantic key from `apps/web/src/lib/icon-registry.ts`; it never imports an
+icon package. React and Astro render through `apps/web/src/control/components/ui/atoms/icon.tsx` and
+`apps/web/src/components/ui/atoms/Icon.astro`, respectively, so public and TV pages keep their SVGs
+without JavaScript. Keys are `activity`, `calendar`, `check`, `club`, `clock`, `copy`, `download`,
+`event`, `export`, `external-link`, `language`, `menu`, `more`, `pause`, `play`, `retry`, `start-clock`,
+`team`, `trophy`, `upload`, `user`, `venue`, `warning`, `offline`, `close`, `zoom-in`, `zoom-out`,
+`pause-clock`, `basketball`, `football`, `tennis`, `podium`, `scoreboard`, `cards` and `unknown`.
+Unknown runtime keys resolve to a neutral custom event glyph. Decorative icons are hidden from
+assistive technology; a standalone meaningful icon has an accessible label. State always has a text or
+shape cue as well.
+
+## Data Visualization
+
+Use this fixed plot-series order: violet `#796CE0`, cyan `#00D4FF`, teal `#11A68B`, amber `#FF9C1E`,
+magenta `#C959A9`. Fold a sixth and later series into “Other”. On light surfaces, use the corresponding
+steps violet `#6351CA`, cyan `#0094C3`, teal `#007E57`, amber `#CF7100` and magenta `#B43694`; never use
+the dark cyan or amber on a light ground. Keep chart axes, grid, labels and legend text in ink and text
+tokens. On light themes, place the plot on the panel surface, not the base, because cyan and amber fall
+below 3:1 on the base.
+
+The dark palette passes the 3:1 contrast floor and colour-separation checks. Its closest adjacent
+colour-blind pair is amber–teal at ΔE 12.9; its closest normal-vision pair is teal–cyan at ΔE 18.6.
+The accepted lightness warning is that cyan (L 0.80) and amber (L 0.78) sit above the tested 0.48–0.67
+band, so those series read heavier and can share a hue with a nearby live or upcoming badge. The light
+palette's closest adjacent colour-blind pair is amber–teal at ΔE 8.0, and its closest normal-vision
+pair is teal–cyan at ΔE 16.4. Every light slot remains at least 3:1 on white, `#F4F6FA` and the L3
+panel. On the L3 base, cyan (2.83:1) and amber (2.84:1) fall below 3:1. Reordering the fixed slots can
+also fail colour separation; magenta beside teal measures ΔE 4.9 for deutan vision. For two or more
+series, provide a legend; directly label up to four series, pair status colours with their text labels,
+and offer the same values in a table view.
+
+The One Signal Rule has one scoped exception: a plot area may use these five series colours. The
+exception does not extend to chart chrome or other interface areas.
+
+## Motion
+
+Use a cyan-well flash for 600ms when a score changes, a one-time translate-and-opacity entry for a new
+event over 200ms, and a LIVE dot whose opacity fades and returns over successive 2000ms phases (a
+4000ms round trip). The words carry each state; its motion only draws attention. Live dots start in
+phase, with one dot per match card. State cues animate only `transform`, `opacity` and
+`background-color`; nothing enters on page load. The drawer and feedback for user actions may also move.
+Under `prefers-reduced-motion`, collapse every duration to `0s`; hold the score's cyan-well fill for
+600ms, show new events in place, and keep the live dot steady. Preserve meaning through text, icons,
+borders and layout.
+
+## Imagery
+
+Contain crests in a square chamfered frame. When a crest is missing, show a monogram tile built from the
+entrant's existing abbreviation in the mono face. Render stored abbreviations of one to four
+characters at figure size and five to six at one step smaller; absent or longer abbreviations use the
+shield. Never derive initials or truncate while rendering. Keep the tile in neutral chrome ink with a
+structure border and paper text. Player photos use a 4:5 cover crop.
+
+## Voice
+
+Button labels name the action and its object: “Publish schedule”, “Save settings”, or “Rename stage”,
+not a bare “Publish”, “Save”, or “Rename”. A success toast repeats the action verb: “Publish schedule”
+leads to “Schedule published”. Error messages state what failed and give the next step, without
+apologizing. Catalogue strings use sentence case; CSS supplies uppercase styling.
+
+## Public Casing
+
+Use uppercase for display and headline levels. Keep page titles, entrant names and long-form subheadings
+in sentence case on public reading pages.
+
+## Non-Latin Scripts
+
+Declare script-specific fallbacks through `unicode-range`. Barlow and Barlow Condensed remain the
+Latin faces; Roboto Condensed handles Cyrillic display text and Roboto handles Cyrillic body text.
+Noto Sans SC handles Chinese display and body text, and Chinese glyphs in mono content; figures keep
+`tabular-nums`. Latin-only pages do not download Cyrillic or CJK font files because each face is
+split into script-specific subsets.
+
+Every face is served from the application's own origin, bundled from pinned font packages. Never load
+a face from a third-party host: a page must finish loading, in its brand faces, with no internet
+egress.
+
+## Reading Width
+
+Do not cap prose by character count. Set a readable measure through the page container and its column
+widths; review the layout itself rather than imposing a `ch` limit.
+
+## Accessibility Target
+
+Meet WCAG 2.2 AA. Keep the existing 44px minimum interactive target rule.
+
+## Hierarchy and Scanning
+
+Every screen has one focal point in its first viewport, placed top-left or top-centre. Public
+tournament overviews lead with live matches, then the next fixtures and latest results; control
+dashboards lead with tournaments that need action. Figures use the figure token at a minimum of
+1.875rem; labels use 0.75rem.
+
+Each view region has one primary action. Supporting actions use secondary or tertiary treatment.
+Active filters use the cyan well token, not a cyan-filled action style. Keep the signal colour for
+actions, selections and state.
+
+Progressively disclose detail: tournament overviews show up to four upcoming fixtures and four latest
+results, then link to the complete match list; the overview shows full entrant names and keeps
+abbreviations for tickers. Schedules group matches by day and venue, with collapsible days and filters;
+standings reveal tie-break detail for one position at a time; activity feeds group consecutive
+identical actions while preserving the complete audit trail.
+
+Use LIVE and its live colour only for a match in play. A tournament that is underway uses a neutral
+“In progress” badge. A featured tournament that is also live appears once, with both state badges.
+
+For linked cards, make the title the link and use a single overlay hit target for the remaining card
+area. Keep non-link text visually unadorned. Sort fixtures chronologically within rounds, order cups
+by their promotion tier, and name bracket rounds by their meaning.
+
+Do not use cyan for decoration, including taglines, rails or resting glows. Upcoming matches have no
+score; show a dash instead of zeroes, and pair an empty live state with the next kickoff time. Charts
+identify series by entity name and also provide the same values in a table. Forms show validation only
+after a field is blurred or submitted, never on first render.
+
+## Deliberate Choices
+
+These are deliberate CopaLibre brand choices, not generic-UI findings: the ink ground with one cyan
+accent, tracked uppercase labels, monospace data labels and middle-dot metadata strings.

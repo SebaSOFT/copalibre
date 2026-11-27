@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
 
 /**
  * A5 and A6 in a real browser.
@@ -11,7 +12,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
  * server's own words.
  */
 
-const TOURNAMENT = '/organizations/liga-mendocina/tournaments/apertura-2026';
+const TOURNAMENT = '/api/organizations/liga-mendocina/tournaments/apertura-2026';
 const STAGE = `${TOURNAMENT}/stages/1`;
 
 /** The declared layouts a tab bar reads — one 'group-phase' layout is enough for this spec. */
@@ -93,6 +94,12 @@ const traceByEntrant: Record<
 const seedingFixture = {
   stageId: 'stage-001',
   format: 'double-elimination',
+  names: {
+    'Deportivo Norte': 'Deportivo Norte',
+    'Atlético Sur': 'Atlético Sur',
+    'Club Cometa': 'Club Cometa',
+    'Unión Andina': 'Unión Andina',
+  },
   seeds: [
     { seed: 1, entrantId: 'Deportivo Norte' },
     { seed: 2, entrantId: 'Atlético Sur' },
@@ -179,6 +186,7 @@ const matchConsoleFixture = {
   rosters: [],
   rosterRoles: [],
   eligibleStaffIds: [],
+  segmentPlan: { addable: [] },
   entrants: [],
   capabilities: [],
   projectionVersion: 1,
@@ -225,8 +233,22 @@ async function mockControlApi(
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
 
+        if (url === '/api/organizations?mine=true' && method === 'GET') {
+          return Response.json([
+            {
+              organizationId: 'org-1',
+              organizationAlias: 'liga-mendocina',
+              organizationName: 'Liga Mendocina',
+              role: 'admin',
+            },
+          ]);
+        }
+        if (url === `${tournament}/settings` && method === 'GET') {
+          return Response.json({ name: 'Apertura 2026', featured: false });
+        }
         if (url === `${tournament}/tables`) return Response.json(layouts);
         if (url === `${stage}/tables/group-standings-default`) return Response.json(projection);
+        if (url === `${stage}/zones` && method === 'GET') return Response.json([]);
         if (url.startsWith(`${stage}/standings/entrants/`) && url.endsWith('/trace')) {
           const withoutTrace = url.slice(0, -'/trace'.length);
           const entrantId = decodeURIComponent(
@@ -237,6 +259,12 @@ async function mockControlApi(
         if (url === `${stage}/seeding` && method === 'GET') {
           const current = readCurrent();
           return Response.json({ ...current, zones: [{ matches: current.matches }] });
+        }
+        if (url === `${stage}/configuration` && method === 'GET') {
+          return Response.json({ overrides: {} });
+        }
+        if (url === `${stage}/promotion-plans` && method === 'GET') {
+          return Response.json([]);
         }
         if (url === `${tournament}/matches/persisted-wb-r1-m1/console`) {
           return Response.json(matchConsole);
@@ -285,8 +313,17 @@ test('expands a tied standings row and shows the engine’s trace', async ({ pag
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await expect(page.getByText('Proyección v12')).toBeVisible();
-  await page.locator('tr', { hasText: 'Deportivo Norte' }).locator('+ tr summary').click();
+  const breadcrumbs = page.locator('.cl-page-header__breadcrumb');
+  await expect(
+    breadcrumbs.getByRole('link', { name: 'Liga Mendocina', exact: true }),
+  ).toHaveAttribute('href', '/control/liga-mendocina');
+  await expect(
+    breadcrumbs.getByRole('link', { name: 'Apertura 2026', exact: true }),
+  ).toHaveAttribute('href', '/control/liga-mendocina/tournaments/apertura-2026');
+  await expect(page.getByRole('heading', { level: 1, name: 'Posiciones' })).toBeVisible();
+  // The projection version is a server counter; the page does not print it.
+  await expect(page.getByText(/Proyección v/)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Desempate — Deportivo Norte' }).click();
 
   const trace = page.getByLabel('Traza de desempate');
   await expect(trace).toBeVisible();
@@ -297,7 +334,7 @@ test('expands a tied standings row and shows the engine’s trace', async ({ pag
   // The row nobody had to break a tie for fetches its own real (empty) trace
   // — every row is a candidate to expand now, not only the ones a
   // precomputed flag marked in advance.
-  await page.locator('tr', { hasText: 'Club Cometa' }).locator('+ tr summary').click();
+  await page.getByRole('button', { name: 'Desempate — Club Cometa' }).click();
   await expect(page.getByText('El motor no registró comparadores.')).toBeVisible();
 });
 
@@ -338,7 +375,7 @@ test('keeps locked seeds through a randomize', async ({ page }) => {
   await expect(seedList.getByRole('listitem').nth(1)).toContainText('Atlético Sur');
 });
 
-test('renders both halves of a double-elimination bracket with named placeholders', async ({
+test('renders both halves of a double-elimination bracket with named placeholders @visible-identifier-lint', async ({
   page,
 }) => {
   await mockControlApi(page);
@@ -349,14 +386,18 @@ test('renders both halves of a double-elimination bracket with named placeholder
   await page.waitForURL(`**${target}`);
 
   const canvas = page.getByLabel('Llave');
+  await expectNoVisibleIdentifiers(page, FIXTURE_ALIASES);
   await expect(canvas.locator('[data-bracket="winners"]')).toHaveCount(3);
   await expect(canvas.locator('[data-bracket="losers"]')).toHaveCount(1);
   await expect(canvas.locator('[data-bracket="grand-final"]')).toHaveCount(1);
 
   // A slot nobody has qualified for names what has to happen first.
-  await expect(canvas.getByText('Perdedor del WB-R1-M1')).toBeVisible();
-  await expect(canvas.getByText('Ganador del LB-R1-M1')).toBeVisible();
-  await expect(canvas.getByText('BO5').first()).toBeVisible();
+  await expect(canvas.getByText('Perdedor de Ronda 1, partido 1')).toBeVisible();
+  // Winners- and losers-bracket rounds share wording, so the grand final's own seat is asserted.
+  await expect(
+    canvas.locator('[data-match="GF-R1-M1"]').getByText('Ganador de Ronda 1, partido 1'),
+  ).toBeVisible();
+  await expect(canvas.getByText('Al mejor de 5').first()).toBeVisible();
 });
 
 test('opens a resolved bracket node in the match console', async ({ page }) => {
@@ -368,7 +409,7 @@ test('opens a resolved bracket node in the match console', async ({ page }) => {
   await page.waitForURL(`**${target}`);
 
   const canvas = page.getByLabel('Llave');
-  await canvas.getByText('WB-R1-M1', { exact: true }).click();
+  await canvas.locator('[data-match="WB-R1-M1"] a').click();
 
   await page.waitForURL(
     '**/control/liga-mendocina/tournaments/apertura-2026/matches/persisted-wb-r1-m1',
@@ -388,8 +429,8 @@ test('a not-yet-materialized bracket node has no link and does nothing when acti
   const canvas = page.getByLabel('Llave');
   // `WB-R2-M1` names two winner-of placeholders, not a persisted match — no fixture row
   // exists for it yet, so the canvas renders it with no anchor at all.
-  const pendingNode = canvas.getByText('WB-R2-M1', { exact: true });
-  await expect(pendingNode.locator('xpath=ancestor::a')).toHaveCount(0);
+  const pendingNode = canvas.locator('[data-match="WB-R2-M1"]');
+  await expect(pendingNode.locator('xpath=ancestor-or-self::a')).toHaveCount(0);
 
   await pendingNode.click();
   await expect(page).toHaveURL(new RegExp(`${target}$`));
@@ -655,18 +696,4 @@ test('captures screenshots of bracket series progress at DESIGN.md breakpoints',
   await expect(
     canvas.locator('[data-match="WB-R1-M2"] [data-series-status="decided"]'),
   ).toBeVisible();
-
-  for (const width of [375, 768, 1024, 1440]) {
-    await page.setViewportSize({ width, height: 900 });
-    await page.waitForTimeout(200);
-    await canvas.screenshot({
-      path: `docs/assets/screenshots/control-series-progress-${width}.png`,
-    });
-  }
-
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.screenshot({
-    fullPage: true,
-    path: 'docs/assets/screenshots/control-series-progress-seeding-builder.png',
-  });
 });

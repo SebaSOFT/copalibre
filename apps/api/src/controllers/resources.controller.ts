@@ -1,4 +1,16 @@
-import { Controller, Get, Inject, Param, Patch, Post, Delete, Body, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Delete,
+  Body,
+  Query,
+  Req,
+} from '@nestjs/common';
 import {
   BadRequestException,
   ConflictException,
@@ -6,6 +18,7 @@ import {
 } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
@@ -15,6 +28,7 @@ import type { Kysely } from 'kysely';
 import { ResourceError, ScheduleError, type Official } from '@copalibre/domain';
 import {
   InvariantViolationError,
+  NotFoundError,
   OrganizationRepository,
   ScheduleRepository,
   withTransaction,
@@ -28,11 +42,14 @@ import {
   CreateOfficialRequest,
   CreateScheduleRequest,
   CreateVenueRequest,
+  DeleteScheduleRequest,
   OfficialResponse,
   ScheduleDetailResponse,
+  ScheduleDeletionResponse,
   UpdateOfficialRequest,
   UpdateScheduleRequest,
   UpdateVenueRequest,
+  VenueRemovalResponse,
   VenueResponse,
 } from '../dto/resources.dto.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
@@ -136,6 +153,73 @@ export class ResourcesController {
         throw new ConflictException(error.message, { errorCode: 'resource-conflict' });
       if (error instanceof ResourceError)
         throw new BadRequestException(error.message, { errorCode: 'resource-bad-request' });
+      throw error;
+    }
+  }
+
+  @Delete('venues/:venueId')
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-resources')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remove an unused venue with a 10-second undo window' })
+  @ApiOkResponse({ type: VenueRemovalResponse })
+  async deleteVenue(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('venueId') venueId: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<VenueRemovalResponse> {
+    const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
+    const schedules = new ScheduleRepository(this.db);
+    const existing = await schedules.findVenue(venueId);
+    if (!existing || existing.organizationId !== organizationId) {
+      throw new NotFoundException(`No venue "${venueId}" in this organization`, {
+        errorCode: 'resource-not-found',
+      });
+    }
+    const subject = request.subject;
+    try {
+      await withTransaction(this.db, (uow) =>
+        schedules.deleteVenue(uow, {
+          venueId,
+          organizationId,
+          actor: `user:${subject?.subjectId ?? 'unknown'}`,
+          authorizationContext: (subject?.scopes ?? []).join(' '),
+        }),
+      );
+      return { success: true };
+    } catch (error) {
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'resource-conflict' });
+      throw error;
+    }
+  }
+
+  @Post('venues/:venueId/restore')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @RequireOrganizationCapability('org.manage-resources')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Restore a recently removed venue' })
+  @ApiOkResponse({ type: VenueResponse })
+  async restoreVenue(
+    @Param('organizationAlias') organizationAlias: string,
+    @Param('venueId') venueId: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<VenueResponse> {
+    const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
+    const subject = request.subject;
+    try {
+      return await withTransaction(this.db, (uow) =>
+        new ScheduleRepository(this.db).restoreVenue(uow, {
+          venueId,
+          organizationId,
+          actor: `user:${subject?.subjectId ?? 'unknown'}`,
+          authorizationContext: (subject?.scopes ?? []).join(' '),
+        }),
+      );
+    } catch (error) {
+      if (error instanceof NotFoundError)
+        throw new NotFoundException(error.message, { errorCode: 'resource-not-found' });
       throw error;
     }
   }
@@ -355,13 +439,25 @@ export class ResourcesController {
   @SecurityPlaneTag('admin-control')
   @RequireOrganizationCapability('org.manage-resources')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Remove a schedule grid' })
-  @ApiOkResponse({ schema: { type: 'object', properties: { success: { type: 'boolean' } } } })
+  @ApiOperation({
+    summary: 'Preview or remove a schedule grid',
+    description:
+      '`dryRun=true` reports slot and match counts without changing records. Removal requires the exact schedule name in `confirmationName`.',
+  })
+  @ApiBody({ type: DeleteScheduleRequest, required: false })
+  @ApiOkResponse({ type: ScheduleDeletionResponse })
   async deleteSchedule(
     @Param('organizationAlias') organizationAlias: string,
     @Param('scheduleId') scheduleId: string,
+    @Body() body: DeleteScheduleRequest = new DeleteScheduleRequest(),
+    @Query('dryRun') dryRun: string | undefined,
     @Req() request: RequestWithSubject,
-  ): Promise<{ success: boolean }> {
+  ): Promise<ScheduleDeletionResponse> {
+    if (dryRun !== undefined && dryRun !== 'true' && dryRun !== 'false') {
+      throw new BadRequestException('dryRun must be true or false', {
+        errorCode: 'bad-request',
+      });
+    }
     const organizationId = await resolveAdminOrganization(this.db, organizationAlias, request);
     const schedules = new ScheduleRepository(this.db);
     const existing = await schedules.findSchedule(scheduleId);
@@ -370,17 +466,25 @@ export class ResourcesController {
         errorCode: 'schedule-not-found',
       });
     }
+    if (dryRun === 'true') {
+      return {
+        dryRun: true,
+        success: false,
+        ...(await schedules.previewRemoveSchedule(scheduleId)),
+      };
+    }
     const subject = request.subject;
     try {
-      await withTransaction(this.db, (uow) =>
+      const result = await withTransaction(this.db, (uow) =>
         schedules.removeSchedule(uow, {
           scheduleId,
           organizationId,
+          confirmationName: body.confirmationName ?? '',
           actor: `user:${subject?.subjectId ?? 'unknown'}`,
           authorizationContext: (subject?.scopes ?? []).join(' '),
         }),
       );
-      return { success: true };
+      return { dryRun: false, success: true, ...result };
     } catch (error) {
       if (error instanceof InvariantViolationError)
         throw new ConflictException(error.message, { errorCode: 'schedule-conflict' });

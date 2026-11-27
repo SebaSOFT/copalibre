@@ -41,7 +41,7 @@ describe('mapBracketResponse', () => {
       ],
     };
 
-    const mapped = mapBracketResponse(response);
+    const mapped = mapBracketResponse(response, 'A definir');
     expect(mapped.format).toBe('single-elimination');
     expect(mapped.zones).toHaveLength(1);
     const [zone] = mapped.zones;
@@ -107,7 +107,7 @@ describe('mapBracketResponse', () => {
       ],
     };
 
-    const mapped = mapBracketResponse(response);
+    const mapped = mapBracketResponse(response, 'A definir');
     const dependentSlot = mapped.zones[0]?.matches[1]?.slots[0];
     expect(dependentSlot).toMatchObject({
       kind: 'winner-of',
@@ -135,7 +135,7 @@ describe('mapBracketResponse', () => {
       ],
     };
 
-    const mapped = mapBracketResponse(response);
+    const mapped = mapBracketResponse(response, 'A definir');
     expect(mapped.zones[0]?.matches[0]?.slots[0]).toMatchObject({
       kind: 'loser-of',
       matchId: 'not-a-position-reference',
@@ -143,7 +143,7 @@ describe('mapBracketResponse', () => {
     expect(mapped.zones[0]?.matches[0]?.slots[0]).not.toHaveProperty('matchNumber');
   });
 
-  it('names an entrant with no published name as TBD rather than an empty label', () => {
+  it('names an entrant with no published name in the page language', () => {
     const response: PublicBracketResponse = {
       zones: [
         {
@@ -162,7 +162,37 @@ describe('mapBracketResponse', () => {
       ],
     };
 
-    const mapped = mapBracketResponse(response);
-    expect(mapped.zones[0]?.matches[0]?.slots[0]).toMatchObject({ kind: 'entrant', name: 'TBD' });
+    const mapped = mapBracketResponse(response, 'A definir');
+    expect(mapped.zones[0]?.matches[0]?.slots[0]).toMatchObject({
+      kind: 'entrant',
+      name: 'A definir',
+    });
+  });
+
+  it('preserves overallPlaceOffset on banded zones including 0', () => {
+    const response: PublicBracketResponse = {
+      zones: [
+        {
+          zoneId: 'oro',
+          zoneName: 'Copa Oro',
+          format: 'single-elimination',
+          overallPlaceOffset: 0,
+          matches: [],
+        },
+        {
+          zoneId: 'bronce',
+          zoneName: 'Copa Bronce',
+          format: 'single-elimination',
+          overallPlaceOffset: 16,
+          matches: [],
+        },
+        { zoneId: 'legacy', zoneName: 'Copa Única', format: 'single-elimination', matches: [] },
+      ],
+    };
+
+    const mapped = mapBracketResponse(response, 'A definir');
+    expect(mapped.zones[0]?.overallPlaceOffset).toBe(0);
+    expect(mapped.zones[1]?.overallPlaceOffset).toBe(16);
+    expect(mapped.zones[2]?.overallPlaceOffset).toBeUndefined();
   });
 });

@@ -33,9 +33,14 @@ ENV NODE_ENV=production \
     COPALIBRE_DATA_DIR=/var/lib/copalibre
 WORKDIR /app
 
+# npm, npx and corepack come with the base image and nothing at runtime uses
+# them: every role runs with node. Removing them takes their bundled
+# dependencies, and the advisories against those, out of the shipped image.
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+        /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
     && mkdir --parents /var/lib/copalibre \
     && chown --recursive node:node /var/lib/copalibre
 
@@ -43,6 +48,8 @@ COPY --from=build --chown=node:node /app/package.json ./
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/apps ./apps
 COPY --from=build --chown=node:node /app/packages ./packages
+# The database-setup role runs this; operators of an external database run the same file with psql.
+COPY --chown=node:node deploy/postgres/roles.sql ./deploy/postgres/roles.sql
 
 USER node
 

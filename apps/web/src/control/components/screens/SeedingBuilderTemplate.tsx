@@ -9,26 +9,20 @@ import { canRedo, canUndo, initHistory, push, redo, undo } from '../../lib/histo
 import { isDirty, randomizeUnlocked, toggleLock, type SeedAssignment } from '../../lib/seeding.js';
 import { mutationFeedback } from '../../lib/mutation-feedback.js';
 import { messages } from '../../i18n/messages.en.js';
-import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
-import { Card } from '../ui/atoms/card.js';
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { WorkspaceTemplate } from './WorkspaceTemplate.js';
+import { Input } from '../ui/atoms/input.js';
+import { SectionTabList } from '../ui/organisms/section-tabs.js';
+import { GenerateAheadPanel } from '../ui/organisms/generate-ahead-panel.js';
+import type { SeedingQualifierZoneResponse } from '../../lib/api-client.js';
+import { aheadPreviewMatches } from '../../lib/generate-ahead.js';
+import { formatEntrant } from '../../lib/presentation-formatting.js';
 
 function resolveEntrantDisplayName(
   entrantId: string,
   names: Readonly<Record<string, string>>,
   intl: ReturnType<typeof useIntl>,
 ): string {
-  const resolved = names[entrantId];
-  if (resolved) {
-    return resolved;
-  }
-  if (UUID_PATTERN.test(entrantId)) {
-    return intl.formatMessage(messages.seedingUnresolvedEntrant, {
-      id: entrantId.slice(0, 8),
-    });
-  }
-  return entrantId;
+  return formatEntrant(intl, { displayName: names[entrantId] }).fullName;
 }
 
 /**
@@ -50,6 +44,7 @@ export function SeedingBuilderTemplate({
   organizationAlias,
   tournamentAlias,
   tournamentName,
+  stageName,
   stageNumber,
   seeds,
   zones,
@@ -58,6 +53,7 @@ export function SeedingBuilderTemplate({
   onPublish,
   random,
   configurationSection,
+  ahead,
 }: {
   readonly organizationAlias: string;
   /**
@@ -66,8 +62,10 @@ export function SeedingBuilderTemplate({
    * name that happens to differ from the alias never leaks into a route.
    */
   readonly tournamentAlias?: string;
-  readonly tournamentName: string;
+  readonly tournamentName?: string;
   /** Present when the caller knows it — used only to link the breadcrumb back to the stage hub. */
+  /** The stage's own name; the numbered fallback shows until it is known. */
+  readonly stageName?: string;
   readonly stageNumber?: number;
   readonly seeds: readonly SeedAssignment[];
   /**
@@ -80,11 +78,22 @@ export function SeedingBuilderTemplate({
   readonly onPublish?: (seeds: readonly SeedAssignment[]) => Promise<void> | void;
   readonly random?: () => number;
   readonly configurationSection?: React.ReactNode;
+  /**
+   * Present when promotion plans route qualifiers to this stage: the stage can then be generated
+   * ahead of its prior stage, with qualifier positions instead of entrants.
+   */
+  readonly ahead?: {
+    readonly zones: readonly SeedingQualifierZoneResponse[];
+    readonly generated: boolean;
+    readonly onGenerate?: () => Promise<void> | void;
+  };
 }): React.JSX.Element {
   const intl = useIntl();
   const [history, setHistory] = useState(() => initHistory<readonly SeedAssignment[]>(seeds));
   const [zoom, setZoom] = useState(1);
   const [highlightEntrantId, setHighlightEntrantId] = useState<string>();
+  const [seedFilter, setSeedFilter] = useState('');
+  const [activeZoneIndex, setActiveZoneIndex] = useState(0);
   const current = history.present;
 
   // A courtesy, not the authority: the API classifies the same change and
@@ -98,24 +107,30 @@ export function SeedingBuilderTemplate({
     tournamentAlias !== undefined && stageNumber !== undefined
       ? `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}`
       : undefined;
-  const breadcrumbNode = (
-    <span>
-      {organizationAlias} &gt; {tournamentName}
-      {stageHubHref !== undefined && (
-        <>
-          {' · '}
-          <a className="cl-focusable" href={stageHubHref} onClick={controlLinkClick(stageHubHref)}>
-            <FormattedMessage {...messages.stageHubBreadcrumbLink} values={{ stageNumber }} />
-          </a>
-        </>
-      )}
-    </span>
-  );
+  const breadcrumbs = [
+    ...(tournamentName?.trim() && tournamentAlias !== undefined
+      ? [
+          {
+            label: tournamentName.trim(),
+            href: `/control/${organizationAlias}/tournaments/${tournamentAlias}`,
+          },
+        ]
+      : []),
+    ...(stageHubHref !== undefined
+      ? [
+          {
+            label:
+              stageName ?? intl.formatMessage(messages.stageHubBreadcrumbLink, { stageNumber }),
+            href: stageHubHref,
+          },
+        ]
+      : []),
+  ];
 
   const titleNode = <FormattedMessage {...messages.seedingTitle} />;
 
-  const toolbarNode = (
-    <div className="cl-role-user">
+  const actionsNode = (
+    <div className="cl-tournament-settings__header-actions">
       <Button
         disabled={!canUndo(history)}
         onClick={() => setHistory(undo)}
@@ -150,90 +165,142 @@ export function SeedingBuilderTemplate({
     </div>
   );
 
-  const listingNode = (
-    <div className="cl-screen-sections">
+  const normalizedFilter = seedFilter.trim().toLocaleLowerCase();
+  const visibleSeeds = current.filter(
+    (assignment) =>
+      normalizedFilter === '' ||
+      resolveEntrantDisplayName(assignment.entrantId, names, intl)
+        .toLocaleLowerCase()
+        .includes(normalizedFilter),
+  );
+
+  const seedPane = (
+    <div className="cl-seeding__list">
+      <h2>
+        <FormattedMessage {...messages.seedingOrder} />
+      </h2>
       {blocked && feedback.kind === 'blocked' && (
         <Alert tone="destructive">{intl.formatMessage(feedback.descriptor, feedback.values)}</Alert>
       )}
+      {current.length > 0 && (
+        <Input
+          aria-label={intl.formatMessage(messages.seedingFilter)}
+          onChange={(event) => setSeedFilter(event.target.value)}
+          placeholder={intl.formatMessage(messages.seedingFilter)}
+          type="search"
+          value={seedFilter}
+        />
+      )}
+      <ol aria-label={intl.formatMessage(messages.seedingOrder)} className="cl-seeding__seeds">
+        {visibleSeeds.map((assignment) => {
+          const displayName = resolveEntrantDisplayName(assignment.entrantId, names, intl);
+          return (
+            <li className="cl-seeding__seed" key={assignment.seed}>
+              <span className="cl-seeding__seed-tag">{assignment.seed}</span>
+              <span className="cl-seeding__seed-name">{displayName}</span>
+              <Button
+                aria-label={intl.formatMessage(messages.seedingToggleLockAriaLabel, {
+                  locked: assignment.locked,
+                  seed: assignment.seed,
+                })}
+                aria-pressed={assignment.locked}
+                disabled={blocked}
+                onClick={() => apply(toggleLock(current, assignment.seed))}
+                type="button"
+                variant="secondary"
+              >
+                <FormattedMessage
+                  {...(assignment.locked ? messages.seedingLocked : messages.seedingUnlocked)}
+                />
+              </Button>
+            </li>
+          );
+        })}
+      </ol>
+      {current.length === 0 && (
+        <p className="cl-card__description">
+          <FormattedMessage {...messages.seedingNoParticipants} />
+        </p>
+      )}
+    </div>
+  );
 
-      <div className="cl-platform-form-grid">
-        <Card
-          aria-label={intl.formatMessage(messages.seedingOrder)}
-          className="cl-chamfer cl-chamfer--control"
+  const canvasZones = zones.length > 0 ? zones : [{ matches: [] as readonly CanvasMatch[] }];
+  const shownZoneIndex = Math.min(activeZoneIndex, canvasZones.length - 1);
+  const canvasPane = (
+    <div className="cl-seeding__canvas">
+      <h2>
+        <FormattedMessage {...messages.seedingGeneratedBracket} />
+      </h2>
+      {canvasZones.length > 1 && (
+        <SectionTabList
+          ariaLabel={intl.formatMessage(messages.zoneGroupSelectZone)}
+          currentTabId={String(shownZoneIndex)}
+          idPrefix="seeding-zone"
+          onSelect={(id) => setActiveZoneIndex(Number(id))}
+          tabs={canvasZones.map((zone, index) => ({
+            id: String(index),
+            label: ('zoneName' in zone && zone.zoneName) || String(index + 1),
+          }))}
+        />
+      )}
+      {/* At least one canvas always renders, even for a not-yet-generated stage, so
+          `BracketCanvas`'s own "no structure yet" empty state still shows. */}
+      {canvasZones.map((zone, index) => (
+        <div
+          aria-labelledby={canvasZones.length > 1 ? `seeding-zone-${index}-tab` : undefined}
+          hidden={index !== shownZoneIndex}
+          id={`seeding-zone-${index}-panel`}
+          key={('zoneId' in zone && zone.zoneId) || index}
+          role={canvasZones.length > 1 ? 'tabpanel' : undefined}
         >
-          <header className="cl-card__header">
-            <h2 className="cl-card__title">
-              <FormattedMessage {...messages.seedingOrder} />
-            </h2>
-          </header>
-          <div className="cl-card__content">
-            <ol aria-label={intl.formatMessage(messages.seedingOrder)}>
-              {current.map((assignment) => {
-                const displayName = resolveEntrantDisplayName(assignment.entrantId, names, intl);
-                return (
-                  <li key={assignment.seed} className="cl-role-user">
-                    <span className="cl-label">{assignment.seed}</span>
-                    <span>{displayName}</span>
-                    <Button
-                      aria-label={intl.formatMessage(messages.seedingToggleLockAriaLabel, {
-                        locked: assignment.locked,
-                        seed: assignment.seed,
-                      })}
-                      aria-pressed={assignment.locked}
-                      disabled={blocked}
-                      onClick={() => apply(toggleLock(current, assignment.seed))}
-                      type="button"
-                      variant="secondary"
-                    >
-                      <FormattedMessage
-                        {...(assignment.locked ? messages.seedingLocked : messages.seedingUnlocked)}
-                      />
-                    </Button>
-                  </li>
-                );
-              })}
-            </ol>
-            {current.length === 0 && (
-              <p className="cl-card__description">
-                <FormattedMessage {...messages.seedingNoParticipants} />
-              </p>
-            )}
-          </div>
-        </Card>
+          <BracketCanvas
+            matches={zone.matches}
+            highlightEntrantId={highlightEntrantId}
+            onHighlightEntrant={setHighlightEntrantId}
+            names={names}
+            organizationAlias={organizationAlias}
+            matchUrl={
+              tournamentAlias === undefined
+                ? undefined
+                : (persistedMatchId) =>
+                    `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${persistedMatchId}`
+            }
+            onZoomChange={setZoom}
+            zoom={zoom}
+          />
+        </div>
+      ))}
 
-        <Card className="cl-chamfer cl-chamfer--control">
-          <header className="cl-card__header">
-            <h2 className="cl-card__title">
-              <FormattedMessage {...messages.seedingGeneratedBracket} />
-            </h2>
-          </header>
-          <div className="cl-card__content">
-            {/* At least one canvas always renders, even for a not-yet-generated stage, so
-                `BracketCanvas`'s own "no structure yet" empty state still shows. */}
-            {(zones.length > 0 ? zones : [{ matches: [] as readonly CanvasMatch[] }]).map(
-              (zone, index) => (
-                <div key={('zoneId' in zone && zone.zoneId) || index}>
-                  {zones.length > 1 && 'zoneName' in zone && <h3>{zone.zoneName}</h3>}
-                  <BracketCanvas
-                    matches={zone.matches}
-                    highlightEntrantId={highlightEntrantId}
-                    onHighlightEntrant={setHighlightEntrantId}
-                    names={names}
-                    matchUrl={
-                      tournamentAlias === undefined
-                        ? undefined
-                        : (persistedMatchId) =>
-                            `/control/${organizationAlias}/tournaments/${tournamentAlias}/matches/${persistedMatchId}`
-                    }
-                    onZoomChange={setZoom}
-                    zoom={zoom}
-                  />
-                </div>
-              ),
-            )}
-          </div>
-        </Card>
-      </div>
+      {ahead !== undefined && (
+        <GenerateAheadPanel
+          confirmHref={
+            tournamentAlias === undefined || stageNumber === undefined
+              ? undefined
+              : `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/qualification`
+          }
+          confirmLabel={intl.formatMessage(messages.seedingAheadConfirmLink)}
+          description={intl.formatMessage(messages.seedingAheadDescription)}
+          disabled={hasRecordedResults}
+          generateLabel={intl.formatMessage(messages.seedingAheadGenerate)}
+          generated={ahead.generated}
+          generatedMessage={intl.formatMessage(messages.seedingAheadGenerated)}
+          onGenerate={ahead.onGenerate}
+          previewHeading={intl.formatMessage(messages.seedingAheadPreview)}
+          title={intl.formatMessage(messages.seedingAheadTitle)}
+        >
+          {ahead.zones.map((zone, index) => (
+            <div key={zone.zoneId ?? index}>
+              {ahead.zones.length > 1 && zone.zoneName !== undefined && <h4>{zone.zoneName}</h4>}
+              <BracketCanvas
+                matches={aheadPreviewMatches(zone)}
+                onZoomChange={setZoom}
+                zoom={zoom}
+              />
+            </div>
+          ))}
+        </GenerateAheadPanel>
+      )}
 
       {configurationSection}
 
@@ -254,11 +321,15 @@ export function SeedingBuilderTemplate({
   );
 
   return (
-    <ListScreenLayout
-      breadcrumb={breadcrumbNode}
-      listing={listingNode}
+    <WorkspaceTemplate
+      actions={actionsNode}
+      breadcrumbs={breadcrumbs}
+      primaryLabel={intl.formatMessage(messages.seedingOrder)}
+      primaryPane={seedPane}
+      secondaryLabel={intl.formatMessage(messages.seedingTitle)}
+      secondaryPane={canvasPane}
+      split="media-form"
       title={titleNode}
-      toolbar={toolbarNode}
     />
   );
 }

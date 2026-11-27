@@ -6,7 +6,7 @@ const SAMPLE_LABELS: CompletionFigureLabels = {
   heading: 'Tournament Progress',
   summary: '18 of 32 matches played',
   stateLabel: 'In progress',
-  stateGlyph: '◐',
+  stateIcon: 'start-clock',
   unmeasuredLabel: 'No matches scheduled',
 };
 
@@ -14,7 +14,7 @@ const COMPLETE_LABELS: CompletionFigureLabels = {
   heading: 'Tournament Progress',
   summary: '32 of 32 matches played',
   stateLabel: 'Complete',
-  stateGlyph: '✓',
+  stateIcon: 'check',
   unmeasuredLabel: 'No matches scheduled',
 };
 
@@ -22,33 +22,42 @@ const UNMEASURED_LABELS: CompletionFigureLabels = {
   heading: 'Tournament Progress',
   summary: '0 of 0 matches played',
   stateLabel: 'No matches scheduled',
-  stateGlyph: '—',
+  stateIcon: 'minus',
   unmeasuredLabel: 'No matches scheduled',
 };
 
 describe('the CompletionFigure component', () => {
-  it('renders partially complete state with non-colour cue (glyph and label)', () => {
-    render(<CompletionFigure totalMatches={32} resolvedMatches={18} labels={SAMPLE_LABELS} />);
+  it('renders partially complete state with non-colour cue (icon and label)', () => {
+    const { container } = render(
+      <CompletionFigure totalMatches={32} resolvedMatches={18} labels={SAMPLE_LABELS} />,
+    );
 
     expect(screen.getByText('Tournament Progress')).not.toBeNull();
     expect(screen.getByText('18 of 32 matches played')).not.toBeNull();
-    expect(screen.getByText('In progress')).not.toBeNull();
-    expect(screen.getByText('◐')).not.toBeNull();
+    const badge = container.querySelector('.cl-completion-figure__badge');
+    expect(badge?.textContent).toBe('In progress');
+    expect(badge?.querySelector('svg.lucide-timer[aria-hidden="true"]')).not.toBeNull();
   });
 
-  it('renders fully complete state with checkmark glyph and complete label', () => {
-    render(<CompletionFigure totalMatches={32} resolvedMatches={32} labels={COMPLETE_LABELS} />);
+  it('renders fully complete state with a check icon and complete label', () => {
+    const { container } = render(
+      <CompletionFigure totalMatches={32} resolvedMatches={32} labels={COMPLETE_LABELS} />,
+    );
 
     expect(screen.getByText('32 of 32 matches played')).not.toBeNull();
-    expect(screen.getByText('Complete')).not.toBeNull();
-    expect(screen.getByText('✓')).not.toBeNull();
+    const badge = container.querySelector('.cl-completion-figure__badge');
+    expect(badge?.textContent).toBe('Complete');
+    expect(badge?.querySelector('svg.lucide-check[aria-hidden="true"]')).not.toBeNull();
   });
 
   it('renders zero-match/unmeasured state with unmeasured label instead of bare numbers', () => {
-    render(<CompletionFigure totalMatches={0} resolvedMatches={0} labels={UNMEASURED_LABELS} />);
+    const { container } = render(
+      <CompletionFigure totalMatches={0} resolvedMatches={0} labels={UNMEASURED_LABELS} />,
+    );
 
     expect(screen.getAllByText('No matches scheduled').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('—')).not.toBeNull();
+    const badge = container.querySelector('.cl-completion-figure__badge');
+    expect(badge?.querySelector('svg.lucide-minus[aria-hidden="true"]')).not.toBeNull();
   });
 
   it('renders per-stage breakdown when multiple stages are provided', () => {

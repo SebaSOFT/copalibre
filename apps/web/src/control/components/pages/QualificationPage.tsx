@@ -1,0 +1,134 @@
+import { useCallback, useMemo, useState } from 'react';
+import { useIntl } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
+import {
+  ControlApiError,
+  createControlApiClient,
+  type ControlApiClient,
+} from '../../lib/api-client.js';
+import { useToast } from '../ToastProvider.js';
+import {
+  QualificationTemplate,
+  type QualificationScreenState,
+} from '../screens/QualificationTemplate.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
+
+/** Refusals the screen answers by showing the fresh preview, which says why. */
+const PREVIEW_REFUSALS: ReadonlySet<string> = new Set([
+  'qualification-stage-incomplete',
+  'qualification-tie-unresolved',
+]);
+
+/**
+ * Loads a stage's qualification preview and confirms it. Confirmation sends the positions the
+ * organizer reviewed, so a result landing in between is refused instead of silently confirmed.
+ */
+export function QualificationPage({
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  client,
+}: {
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly client?: ControlApiClient;
+}): React.JSX.Element {
+  const intl = useIntl();
+  const { push, pushError } = useToast();
+  const api = useMemo(
+    () =>
+      client ??
+      createControlApiClient({
+        fetch: globalThis.fetch.bind(globalThis),
+      }),
+    [client],
+  );
+  const [busy, setBusy] = useState(false);
+
+  /** The screen state the current preview yields; never rejects. */
+  const fetchState = useCallback(async (): Promise<QualificationScreenState> => {
+    try {
+      if (!api.previewQualification) throw new Error('Qualification preview is unavailable');
+      const preview = await api.previewQualification(
+        organizationAlias,
+        tournamentAlias,
+        stageNumber,
+      );
+      return { kind: 'loaded', preview };
+    } catch (error) {
+      if (error instanceof ControlApiError && error.errorCode === 'qualification-plan-missing')
+        return { kind: 'empty' };
+      throw error;
+    }
+  }, [api, organizationAlias, tournamentAlias, stageNumber]);
+
+  const read = useResilientRead(
+    `control-qualification:${organizationAlias}:${tournamentAlias}:${stageNumber}`,
+    fetchState,
+    {
+      thing: intl.formatMessage(messages.qualificationTitle),
+      isEmpty: (value) => value.kind === 'empty',
+    },
+  );
+  const state = read.data ?? { kind: 'loading' as const };
+  const setState = read.update;
+  const load = read.retry;
+
+  async function confirm(): Promise<void> {
+    if (state.kind !== 'loaded' || !api.confirmQualification) return;
+    setBusy(true);
+    try {
+      const confirmed = await api.confirmQualification(
+        organizationAlias,
+        tournamentAlias,
+        stageNumber,
+        {
+          expected: state.preview.positions.flatMap((entry) =>
+            entry.entrantId === undefined
+              ? []
+              : [
+                  {
+                    promotionPlanId: entry.promotionPlanId,
+                    position: entry.position,
+                    entrantId: entry.entrantId,
+                  },
+                ],
+          ),
+        },
+      );
+      setState({ kind: 'loaded', preview: confirmed });
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.qualificationConfirmSucceeded, {
+          count: confirmed.changedSides,
+        }),
+      });
+    } catch (error) {
+      if (error instanceof ControlApiError && error.errorCode === 'qualification-preview-stale') {
+        push({ severity: 'info', message: intl.formatMessage(messages.qualificationPreviewMoved) });
+        await load();
+      } else if (error instanceof ControlApiError && PREVIEW_REFUSALS.has(error.errorCode ?? '')) {
+        await load();
+      } else {
+        pushError(error);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <ReadState {...read} title={intl.formatMessage(messages.qualificationTitle)}>
+      <QualificationTemplate
+        busy={busy}
+        onConfirm={confirm}
+        organizationAlias={organizationAlias}
+        stageNumber={stageNumber}
+        state={state}
+        tournamentAlias={tournamentAlias}
+      />
+    </ReadState>
+  );
+}

@@ -117,15 +117,14 @@ supported languages, and SHALL render its authentication card with balanced view
   rather than pinned against the left edge
 
 ### Requirement: Native session silent renewal
-The API SHALL provide `POST /auth/refresh`, which accepts a native session's `HttpOnly`
-`copalibre_refresh_token` cookie, validates it as unexpired and unconsumed, issues a fresh
-short-lived access JWT, and rotates the refresh cookie (the presented token can never be presented
-again). The refresh token SHALL be transported only via that `HttpOnly`, `SameSite=Strict` cookie —
-never in a JSON response body, and never written to any browser storage a script can read.
+The API SHALL provide `POST /auth/refresh`, which accepts an unexpired, unconsumed native
+`copalibre_refresh_token` cookie, issues a fresh access JWT into the session cookie, refreshes the CSRF cookie
+and rotates the refresh cookie. The body SHALL carry session metadata only. The refresh token SHALL travel only
+in that `HttpOnly`, `SameSite=Strict` cookie, never in a body or script-readable storage.
 
 #### Scenario: Successful native session renewal
 - **WHEN** a client sends `POST /auth/refresh` with a valid, unexpired, unconsumed refresh cookie
-- **THEN** the API returns a new access JWT in the response body
+- **THEN** the API sets a new session cookie with a fresh access JWT and returns its metadata, without the token
 - **AND** sets a new refresh cookie, rotated
 - **AND** the previously-presented refresh token can no longer be used
 
@@ -134,18 +133,27 @@ never in a JSON response body, and never written to any browser storage a script
   consumed by an earlier refresh
 - **THEN** the API rejects the request with 401 Unauthorized and issues no new token
 
+#### Scenario: A script cannot mint a readable token
+- **WHEN** a script on the origin calls `POST /auth/refresh` with the browser's cookies
+- **THEN** the response body contains no access token
+
 ### Requirement: Native session logout revokes the refresh cookie
 The API SHALL provide `POST /auth/logout`, which revokes the presented refresh token (if any) and
-clears the refresh cookie, regardless of whether a cookie was presented.
+clears the refresh cookie, the session cookie and the CSRF cookie, regardless of whether a cookie was presented
+and for native and OIDC sessions alike.
 
 #### Scenario: Logout revokes an active refresh token
 - **WHEN** a client sends `POST /auth/logout` with a valid refresh cookie
 - **THEN** the API revokes that token, so a later `POST /auth/refresh` with it fails
-- **AND** the response clears the refresh cookie
+- **AND** the response clears the refresh, session and CSRF cookies
 
 #### Scenario: Logout with no cookie still succeeds
 - **WHEN** a client sends `POST /auth/logout` with no refresh cookie present
 - **THEN** the API returns success rather than an error
+
+#### Scenario: Logout ends an OIDC browser session
+- **WHEN** an operator signed in through an external provider signs out of Control
+- **THEN** the session and CSRF cookies are cleared and the next Control request is unauthenticated
 
 ### Requirement: OIDC session silent renewal
 An OIDC-authenticated control-web session SHALL renew itself with no stored refresh token and no
@@ -173,3 +181,120 @@ behavior unchanged: no background renewal, and a page reload requires reauthenti
 - **WHEN** `runtime-config.json` has no `sessionMode` field, or a value other than
   `"pragmatic-persistent"`
 - **THEN** the client schedules no background renewal timer and attempts no renewal on a 401
+
+### Requirement: Native tokens verify against the API's own key and refresh survives rate limiting
+
+The API SHALL verify tokens carrying the native issuer with its own signing key in-process, and SHALL
+verify other issuers through the configured remote JWKS, checking audience, expiry and algorithm in
+both paths. It SHALL refuse to start when native login is enabled and a signed probe token fails
+verification. The refresh endpoint SHALL have its own rate limit, separate from login. A 429 on
+refresh SHALL make the client retry after `Retry-After` without ending the session.
+
+#### Scenario: Native login then API call
+
+- **WHEN** a user signs in with email and password and calls an organization endpoint
+- **THEN** the call succeeds, with no request to any external JWKS host
+
+#### Scenario: Forged native kid
+
+- **WHEN** a token carries the native `kid` but is signed with another key
+- **THEN** verification fails with 401
+
+#### Scenario: Refresh rate-limited
+
+- **WHEN** the refresh endpoint answers 429 with `Retry-After: 10`
+- **THEN** the control panel shows a reconnecting status, retries after 10 seconds, and does not
+  redirect to login
+
+#### Scenario: Misconfigured verifier
+
+- **WHEN** the API starts with native login enabled and the probe token fails verification
+- **THEN** the API exits with an error naming the verifier configuration
+
+### Requirement: Invitation acceptance keeps its token until submission
+
+The invitation acceptance screen SHALL NOT offer a form before the form can submit its token, and SHALL explain that JavaScript is needed when it is unavailable.
+
+#### Scenario: Scripts still loading
+
+- **WHEN** a person opens an invitation link and the client scripts have not loaded
+- **THEN** no form can be submitted and the link keeps its token
+
+#### Scenario: Scripts loaded
+
+- **WHEN** the person submits the form
+- **THEN** the request carries the token from the link
+
+#### Scenario: JavaScript unavailable
+
+- **WHEN** a person opens an invitation link with JavaScript disabled
+- **THEN** the page states that accepting the invitation requires JavaScript
+
+### Requirement: Native login sets the session cookie
+`POST /auth/login` SHALL, on success, set the session cookie and the CSRF cookie defined in
+`platform/api-auth-contract`, and answer with session metadata only: subject, scopes, expiry and authentication
+method `native`. The response body SHALL NOT contain the access token.
+
+#### Scenario: A successful native login
+- **WHEN** a person signs in with a correct email and password
+- **THEN** the response sets the session cookie, the CSRF cookie and the refresh cookie
+- **AND** the body carries the subject, scopes, expiry and method, and no `accessToken`
+
+### Requirement: An OIDC browser session hands its token to the API
+The API SHALL provide `POST /auth/session`, which accepts an access token from the configured external identity
+provider in `Authorization: Bearer`, verifies it exactly as the API verifies any Bearer token (signature against
+the configured JWKS, issuer, audience, expiry), and on success sets the session cookie and the CSRF cookie and
+answers with session metadata, method `oidc`. It SHALL refuse a personal access token and a native token.
+
+#### Scenario: A valid provider token becomes a cookie session
+- **WHEN** Control posts a valid provider access token to `POST /auth/session`
+- **THEN** the API sets the session cookie with that token and the CSRF cookie, and returns metadata without the
+  token
+
+#### Scenario: An invalid token sets nothing
+- **WHEN** the posted token has a bad signature, a wrong issuer or audience, or has expired
+- **THEN** the API answers 401 and sets no cookie
+
+#### Scenario: Silent renewal replaces the cookie
+- **WHEN** an OIDC silent renewal obtains a fresh provider token and posts it to `POST /auth/session`
+- **THEN** the session cookie is replaced with the new token and its new lifetime
+
+#### Scenario: An oversized token is refused clearly
+- **WHEN** the provider's token would make the cookie exceed 4096 bytes
+- **THEN** the API answers with the standard error envelope naming the limit, and sets no cookie
+
+### Requirement: Session metadata is readable without the token
+The API SHALL provide `GET /auth/session`, authenticated by the session cookie, which answers with subject,
+scopes, expiry and authentication method, and never the token. With no valid cookie it SHALL answer 401.
+
+#### Scenario: Metadata after a reload
+- **WHEN** Control calls `GET /auth/session` with a valid session cookie
+- **THEN** it receives subject, scopes, expiry and method, and no token
+
+#### Scenario: No session
+- **WHEN** the request carries no session cookie or an expired one
+- **THEN** the API answers 401
+
+### Requirement: Accepting an invitation lands on a working screen
+
+After accepting an invitation, a person SHALL reach the same destination as after signing in, and SHALL NOT see an error caused by the landing address.
+
+#### Scenario: One organization
+
+- **WHEN** a person accepts an invitation and belongs to one organization
+- **THEN** they land on that organization's panel, and no request names an organization called `app`
+
+#### Scenario: Several organizations
+
+- **WHEN** a person accepts an invitation and belongs to several organizations
+- **THEN** they land on the list of their organizations
+
+#### Scenario: Platform administrator with no organization
+
+- **WHEN** a platform administrator with no organization accepts an invitation
+- **THEN** they land on platform administration
+
+#### Scenario: Session ended before landing
+
+- **WHEN** a person opens `/control/app` with no session
+- **THEN** they are sent to login, and after signing in they reach the same destination

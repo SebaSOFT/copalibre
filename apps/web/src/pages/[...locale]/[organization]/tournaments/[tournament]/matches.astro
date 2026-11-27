@@ -1,20 +1,46 @@
 ---
+import {
+  groupFilterOverrides,
+  zoneFilterOverrides,
+} from '../../../../../lib/schedule-filter-links.ts';
+import type { MatchCardData } from '../../../../../lib/matches-view.ts';
+import { defaultStandingsLayoutCode } from '../../../../../lib/public-tournament-navigation.ts';
+import { fetchPublicTableLayouts } from '../../../../../lib/public-api-client.ts';
 import Breadcrumb from '../../../../../components/ui/organisms/Breadcrumb.astro';
+import Container from '../../../../../components/ui/atoms/layout/Container.astro';
+import PageHeader from '../../../../../components/ui/organisms/PageHeader.astro';
 import { publicTrail, trailBaseOf } from '../../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../../layouts/PublicLayout.astro';
+import FeaturedMatchCard from '../../../../../components/ui/organisms/FeaturedMatchCard.astro';
+import TimeZoneNote from '../../../../../components/ui/molecules/TimeZoneNote.astro';
 import MatchSchedule from '../../../../../components/ui/organisms/MatchSchedule.astro';
 import MatchScheduleFilters, {
   type MatchScheduleState,
   type MatchScheduleView,
 } from '../../../../../components/ui/organisms/MatchScheduleFilters.astro';
-import { fetchOverview, mapOverviewResponse } from '../../../../../lib/public-api-client.ts';
+import {
+  fetchLive,
+  fetchOverview,
+  mapLiveResponse,
+  mapOverviewResponse,
+} from '../../../../../lib/public-api-client.ts';
 import { buildOverview, displayName } from '../../../../../lib/overview.ts';
-import { publicIntl, matchCardLabels } from '../../../../../lib/i18n/public-intl.ts';
+import {
+  publicIntl,
+  matchCardLabels,
+  timeZoneNoteLabels,
+} from '../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
-import { distinctFacetValues } from '../../../../../lib/matches-view.ts';
+import { distinctFacetValues, featuredMatchForSchedule } from '../../../../../lib/matches-view.ts';
+import { calendarDayKey, formatTimestamp } from '../../../../../lib/format-timestamp.ts';
+import { availableMatchDays } from '../../../../../lib/match-days.ts';
 import { offersViewChoice } from '../../../../../lib/match-schedule.ts';
 import { loadSchedule } from '../../../../../lib/schedule-loader.ts';
+import { matchReportUrl } from '../../../../../lib/bracket.ts';
+import { findClubByFormerAlias } from '../../../../../lib/club-page.ts';
+import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../../lib/locale.ts';
+import { isPublicLocaleSegment } from '../../../../../lib/public-route-guards.ts';
 
 /**
  * The matches view: a tournament's schedule as tables grouped by stage, zone or group and round,
@@ -26,6 +52,9 @@ import { loadSchedule } from '../../../../../lib/schedule-loader.ts';
 export const prerender = false;
 
 const { locale, organization, tournament } = Astro.params;
+if (!isPublicLocaleSegment(locale)) {
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvePathLocale(Astro.url.pathname)));
+}
 const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
 const intl = publicIntl(resolvedLocale);
 const labels = matchCardLabels(intl);
@@ -33,9 +62,20 @@ const localePrefix = locale ? `/${locale}` : '';
 
 const overviewData = await fetchOverview(organization!, tournament!);
 if (!overviewData) {
-  return Astro.rewrite('/404');
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
-const model = buildOverview(mapOverviewResponse(overviewData));
+const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const tableLayouts = await fetchPublicTableLayouts(organization!, tournament!).catch(
+  () => undefined,
+);
+const standingsLayoutCode = defaultStandingsLayoutCode(tableLayouts?.layouts ?? []);
+const referenceDate = Date.now();
+const scheduleTimeZone = model.organizationTimeZone ?? 'UTC';
+const todayKey = calendarDayKey(referenceDate, scheduleTimeZone);
+const [todayYear = 0, todayMonth = 1, todayDay = 1] = todayKey.split('-').map(Number);
+const tomorrowKey = new Date(Date.UTC(todayYear, todayMonth - 1, todayDay + 1))
+  .toISOString()
+  .slice(0, 10);
 
 const stateParam = Astro.url.searchParams.get('state');
 const state: MatchScheduleState =
@@ -44,6 +84,29 @@ const stageParam = Astro.url.searchParams.get('stageNumber');
 const stageNumber = stageParam ? Number(stageParam) : undefined;
 const zoneParam = Astro.url.searchParams.get('zone') ?? undefined;
 const groupParam = Astro.url.searchParams.get('group') ?? undefined;
+// The club choice is honoured only when it names one of the tournament's clubs. A blank value or an
+// alias of another club is no filter, and does not open the filter disclosure.
+const clubOptions = (model.clubs ?? []).map((club) => ({ alias: club.alias, name: club.name }));
+const requestedClub = Astro.url.searchParams.get('club')?.trim() ?? '';
+const clubParam = clubOptions.some((club) => club.alias === requestedClub)
+  ? requestedClub
+  : undefined;
+// A club filter naming an alias the club held before a rename moves permanently to the current one.
+const renamedClub =
+  clubParam === undefined && requestedClub !== ''
+    ? findClubByFormerAlias(model.clubs, requestedClub)
+    : undefined;
+if (renamedClub) {
+  const next = new URLSearchParams(Astro.url.searchParams);
+  next.set('club', renamedClub.alias);
+  return new Response(null, {
+    status: 301,
+    headers: { Location: `${Astro.url.pathname}?${next.toString()}` },
+  });
+}
+const rawDayParam = Astro.url.searchParams.get('day');
+const dayParam =
+  rawDayParam !== null && /^\d{4}-\d{2}-\d{2}$/.test(rawDayParam) ? rawDayParam : undefined;
 const cardsRequested = Astro.url.searchParams.get('view') === 'cards';
 const compact = Astro.url.searchParams.get('compact') === 'true';
 
@@ -51,33 +114,97 @@ const schedule = await loadSchedule({
   organization: organization!,
   tournament: tournament!,
   state,
+  hiddenPlayerLabel: intl.formatMessage(messages.personHiddenAtRequest),
+  undecidedSide: intl.formatMessage(messages.resultStateTbd),
+  language: resolvedLocale,
+  timeZone: scheduleTimeZone,
   ...(stageNumber === undefined ? {} : { stageNumber }),
   ...(zoneParam === undefined ? {} : { zone: zoneParam }),
   ...(groupParam === undefined ? {} : { group: groupParam }),
+  ...(clubParam === undefined ? {} : { club: clubParam }),
+  ...(dayParam === undefined ? {} : { day: dayParam }),
 });
 if (!schedule) {
-  return Astro.rewrite('/404');
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
 
-// Zone/group facets are derived from the rows the active stage(s) and state filter already
-// returned: a stage the filter narrows to zero rows simply shows no zone/group pills.
-const zones = distinctFacetValues(schedule.stageRows, 'zoneName');
+const liveDashboard = schedule.stageRows.some((row) => row.state === 'live')
+  ? await fetchLive(organization!, tournament!).then((data) =>
+      data ? mapLiveResponse(data) : undefined,
+    )
+  : undefined;
+const liveSeeds = (liveDashboard?.matches ?? []).map((live) => ({
+  matchId: live.matchId,
+  projectionVersion: live.projectionVersion,
+  state: live.state,
+  ...(live.clock === undefined ? {} : { clock: live.clock }),
+  ...(live.segments === undefined ? {} : { segments: live.segments }),
+  homeScore: live.sides[0]?.score,
+  awayScore: live.sides[1]?.score,
+  homeEntrantId: live.sides[0]?.entrantId,
+  awayEntrantId: live.sides[1]?.entrantId,
+}));
+
+// Zone/group facets come from every match in the active stage(s), so a state filter does not
+// make structural choices disappear when no match in that state belongs to one facet.
+const zones = distinctFacetValues(schedule.stageRows, 'zoneName', schedule.zoneOrder);
 const zoneFiltered =
   zoneParam === undefined
     ? schedule.stageRows
     : schedule.stageRows.filter((row) => row.zoneName === zoneParam);
 const groups = distinctFacetValues(zoneFiltered, 'groupName');
+const days = availableMatchDays(schedule.stageRows, scheduleTimeZone).map((day) => ({
+  key: day.key,
+  label: formatTimestamp(day.instant, {
+    locale: resolvedLocale,
+    format: 'date-only',
+    timeZone: scheduleTimeZone,
+  }),
+}));
 
 // A large scope is only ever a table; a short one may be shown as cards.
-const offerView = offersViewChoice(schedule.rows.length);
+// A zone is a bracket here only where the schedule draws it as one: a state, day or club filter lists
+// its matches instead, and a list does change with the view choice.
+const bracketZoneKeys = new Set(
+  schedule.stages.flatMap((stage) =>
+    stage.zones
+      .filter((zone) => zone.kind === 'bracket')
+      .map((zone) => `${stage.stageNumber}|${zone.name ?? ''}`),
+  ),
+);
+const isBracketRow = (row: Pick<MatchCardData, 'stageNumber' | 'zoneName'>): boolean =>
+  bracketZoneKeys.has(`${row.stageNumber}|${row.zoneName ?? ''}`);
+const offerView = offersViewChoice(schedule.rows, isBracketRow);
+// A zone or a group chosen from its row also selects the stage that contains it, when that is unambiguous.
+const zoneOverrides = Object.fromEntries(
+  zones.map((zone) => [zone, zoneFilterOverrides(schedule.stageRows, zone)]),
+);
+const groupOverrides = Object.fromEntries(
+  groups.map((group) => [group, groupFilterOverrides(zoneFiltered, group, zoneParam)]),
+);
 const view: MatchScheduleView = offerView && cardsRequested ? 'cards' : 'rows';
 const presentation = view === 'rows' ? 'rows' : compact ? 'compact-cards' : 'cards';
+const featuredMatch = featuredMatchForSchedule(
+  schedule.stageRows,
+  schedule.stageOptions.map((one) => one.stageNumber),
+  stageNumber,
+);
+const filtersOpen =
+  stageNumber !== undefined ||
+  zoneParam !== undefined ||
+  groupParam !== undefined ||
+  clubParam !== undefined ||
+  dayParam !== undefined ||
+  state !== 'all' ||
+  (offerView && view !== 'rows');
 
 function buildUrl(
   overrides: Partial<{
     stageNumber: number | undefined;
     zone: string | undefined;
     group: string | undefined;
+    club: string | undefined;
+    day: string | undefined;
     state: MatchScheduleState;
     view: MatchScheduleView;
     compact: boolean;
@@ -88,6 +215,8 @@ function buildUrl(
     stageNumber,
     zone: zoneParam,
     group: groupParam,
+    club: clubParam,
+    day: dayParam,
     state,
     view,
     compact,
@@ -99,6 +228,10 @@ function buildUrl(
   else params.set('zone', next.zone);
   if (next.group === undefined) params.delete('group');
   else params.set('group', next.group);
+  if (next.club === undefined) params.delete('club');
+  else params.set('club', next.club);
+  if (next.day === undefined) params.delete('day');
+  else params.set('day', next.day);
   if (next.state === 'all') params.delete('state');
   else params.set('state', next.state);
   if (next.view === 'cards') params.set('view', 'cards');
@@ -128,57 +261,114 @@ const trail = publicTrail(trailBase, [
 ---
 
 <PublicLayout
+  tournamentHasClubs={(model.clubs ?? []).length > 0}
+  tournamentStages={model.stages}
+  standingsLayoutCode={standingsLayoutCode}
   title={`${intl.formatMessage(messages.matchesViewPageTitle)} — ${displayName(model)}`}
   canonicalPath={canonicalPath}
   intl={intl}
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
-  <Breadcrumb
-    items={trail}
-    ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
-    collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
-  />
-  <h1>{intl.formatMessage(messages.matchesViewPageTitle)}</h1>
+  <Container variant="public">
+    <PageHeader
+      title={`${displayName(model)} — ${intl.formatMessage(messages.matchesViewPageTitle)}`}
+      loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
+    >
+      <Breadcrumb
+        slot="breadcrumb"
+        items={trail}
+        ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+        collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+      />
+    </PageHeader>
 
-  <MatchScheduleFilters
-    stages={schedule.stageOptions.map((one) => ({
-      stageNumber: one.stageNumber,
-      stageName:
-        one.stageName || intl.formatMessage(messages.breadcrumbStage, { stage: one.stageNumber }),
-    }))}
-    activeStageNumber={stageNumber}
-    zones={zones}
-    activeZone={zoneParam}
-    groups={groups}
-    activeGroup={groupParam}
-    state={state}
-    view={view}
-    offerView={offerView}
-    labels={{
-      stageFilterAriaLabel: intl.formatMessage(messages.matchesViewStageFilterAriaLabel),
-      zoneFilterAriaLabel: intl.formatMessage(messages.matchesViewZoneFilterAriaLabel),
-      groupFilterAriaLabel: intl.formatMessage(messages.matchesViewGroupFilterAriaLabel),
-      stateFilterAriaLabel: intl.formatMessage(messages.matchesViewStateFilterAriaLabel),
-      viewFilterAriaLabel: intl.formatMessage(messages.matchesViewViewFilterAriaLabel),
-      titles: {
-        stage: intl.formatMessage(messages.matchesViewStageFilterTitle),
-        zone: intl.formatMessage(messages.matchesViewZoneFilterTitle),
-        group: intl.formatMessage(messages.matchesViewGroupFilterTitle),
-        state: intl.formatMessage(messages.matchesViewStateFilterTitle),
-        view: intl.formatMessage(messages.matchesViewViewFilterTitle),
-      },
-      viewOptions: {
-        rows: intl.formatMessage(messages.matchesViewViewRows),
-        cards: intl.formatMessage(messages.matchesViewViewCards),
-      },
-      filters: labels.filters,
-    }}
-    buildUrl={buildUrl}
-  />
+    <TimeZoneNote
+      locale={resolvedLocale}
+      referenceDate={referenceDate}
+      timeZone={model.organizationTimeZone}
+      {...timeZoneNoteLabels(intl)}
+    />
 
-  {
-    view === 'cards' && (
+    <MatchScheduleFilters
+      filtersOpen={filtersOpen}
+      stages={schedule.stageOptions.map((one) => ({
+        stageNumber: one.stageNumber,
+        stageName:
+          one.stageName || intl.formatMessage(messages.breadcrumbStage, { stage: one.stageNumber }),
+      }))}
+      activeStageNumber={stageNumber}
+      zones={zones}
+      activeZone={zoneParam}
+      zoneOverrides={zoneOverrides}
+      groups={groups}
+      activeGroup={groupParam}
+      groupOverrides={groupOverrides}
+      clubs={clubOptions}
+      activeClub={clubParam}
+      days={days}
+      activeDay={dayParam}
+      todayKey={todayKey}
+      tomorrowKey={tomorrowKey}
+      state={state}
+      view={view}
+      offerView={offerView}
+      labels={{
+        disclosureLabel: intl.formatMessage(messages.matchesViewFiltersDisclosureLabel),
+        stageFilterAriaLabel: intl.formatMessage(messages.matchesViewStageFilterAriaLabel),
+        zoneFilterAriaLabel: intl.formatMessage(messages.matchesViewZoneFilterAriaLabel),
+        groupFilterAriaLabel: intl.formatMessage(messages.matchesViewGroupFilterAriaLabel),
+        clubFilterAriaLabel: intl.formatMessage(messages.matchesViewFilterClub),
+        dayFilterAriaLabel: intl.formatMessage(messages.matchesViewFilterDay),
+        stateFilterAriaLabel: intl.formatMessage(messages.matchesViewStateFilterAriaLabel),
+        viewFilterAriaLabel: intl.formatMessage(messages.matchesViewViewFilterAriaLabel),
+        titles: {
+          stage: intl.formatMessage(messages.matchesViewStageFilterTitle),
+          zone: intl.formatMessage(messages.matchesViewZoneFilterTitle),
+          group: intl.formatMessage(messages.matchesViewGroupFilterTitle),
+          club: intl.formatMessage(messages.matchesViewFilterClub),
+          day: intl.formatMessage(messages.matchesViewFilterDay),
+          state: intl.formatMessage(messages.matchesViewStateFilterTitle),
+          view: intl.formatMessage(messages.matchesViewViewFilterTitle),
+        },
+        clubAll: intl.formatMessage(messages.matchesViewFilterClubAll),
+        clubApply: intl.formatMessage(messages.matchesViewFilterClubApply),
+        dayOptions: {
+          all: intl.formatMessage(messages.matchesViewFilterDayAll),
+          today: intl.formatMessage(messages.matchesViewFilterDayToday),
+          tomorrow: intl.formatMessage(messages.matchesViewFilterDayTomorrow),
+        },
+        viewOptions: {
+          rows: intl.formatMessage(messages.matchesViewViewRows),
+          cards: intl.formatMessage(messages.matchesViewViewCards),
+        },
+        filters: labels.filters,
+      }}
+      buildUrl={buildUrl}
+    />
+
+    {featuredMatch && (
+      <FeaturedMatchCard
+        heading={intl.formatMessage(messages.overviewFeaturedMatchHeading)}
+        match={featuredMatch}
+        href={matchReportUrl({
+          organizationAlias: organization!,
+          tournamentAlias: tournament!,
+          stageNumber: featuredMatch.stageNumber,
+          matchNumber: featuredMatch.matchNumber,
+          localePrefix,
+        })}
+        labels={labels}
+        locale={resolvedLocale}
+        localePrefix={localePrefix}
+        referenceDate={referenceDate}
+        timeZone={model.organizationTimeZone}
+        organizationAlias={organization!}
+        tournamentAlias={tournament!}
+      />
+    )}
+
+    {view === 'cards' && (
       <nav
         class="cl-pill-group"
         aria-label={intl.formatMessage(messages.matchesViewDensityToggleAriaLabel)}
@@ -198,16 +388,39 @@ const trail = publicTrail(trailBase, [
           {intl.formatMessage(messages.matchesViewCompactToggle)}
         </a>
       </nav>
-    )
-  }
+    )}
 
-  <MatchSchedule
-    emptyLabel={labels.empty}
-    intl={intl}
-    localePrefix={localePrefix}
-    organizationAlias={organization!}
-    presentation={presentation}
-    stages={schedule.stages}
-    tournamentAlias={tournament!}
-  />
+    <MatchSchedule
+      dayRows={schedule.rows}
+      emptyLabel={labels.empty}
+      intl={intl}
+      localePrefix={localePrefix}
+      organizationAlias={organization!}
+      organizationTimeZone={model.organizationTimeZone}
+      presentation={presentation}
+      referenceDate={referenceDate}
+      stages={schedule.stages}
+      tournamentAlias={tournament!}
+    />
+    {liveSeeds.length > 0 && (
+      <div data-live-stream={model.streamPath} hidden>
+        {liveSeeds.map((seed) => (
+          <span data-live-match-seed={JSON.stringify(seed)} />
+        ))}
+      </div>
+    )}
+  </Container>
 </PublicLayout>
+
+<script>
+  import { mountPublicSchedule } from '../../../../../lib/public-schedule-live.ts';
+
+  mountPublicSchedule();
+  if (document.querySelector('[data-live-stream]')) {
+    void import('../../../../../lib/public-live-scoreboards.ts').then(
+      ({ mountPublicLiveScoreboards }) => {
+        mountPublicLiveScoreboards();
+      },
+    );
+  }
+</script>

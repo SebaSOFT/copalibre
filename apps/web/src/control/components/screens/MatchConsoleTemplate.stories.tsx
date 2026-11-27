@@ -22,11 +22,13 @@ const meta = {
     finalizing: false,
     lastSyncedAt: undefined,
     matchId: ids.match,
-    onApplyClock: () => undefined,
+    onCorrectClock: () => undefined,
     onCancelFinalize: () => undefined,
     onDismissMutation: () => undefined,
     onFinalize: async () => true,
+    onAddSegment: () => undefined,
     onIssueClockCommand: () => undefined,
+    onReopenSegment: () => undefined,
     onRecordEvent: () => undefined,
     onResolveTimer: () => undefined,
     onRosterSaved: () => undefined,
@@ -37,6 +39,7 @@ const meta = {
     stale: false,
     status: { kind: 'ready' },
     tournamentAlias: TOURNAMENT,
+    tournamentName: 'Apertura 2026',
   },
 } satisfies Meta<typeof MatchConsoleTemplate>;
 export default meta;
@@ -55,6 +58,25 @@ export const Empty: Story = {
       segments: [],
       events: [],
       rosters: [],
+    },
+  },
+};
+/**
+ * A final whose second semi-final is still being played: the console names what it awaits and
+ * offers no start, event or result control until the projection seats both sides.
+ */
+export const AwaitingEntrants: Story = {
+  args: {
+    projection: {
+      ...consoleProjection,
+      status: 'scheduled',
+      liveScores: [],
+      segments: [],
+      events: [],
+      entrants: consoleProjection.entrants.slice(0, 1),
+      homeEntrantId: consoleProjection.entrants[0]?.entrantId,
+      homeSource: { kind: 'winner-of', nodeKey: 'SE-R1-M1', round: 1, position: 1 },
+      awaySource: { kind: 'winner-of', nodeKey: 'SE-R1-M2', round: 1, position: 2 },
     },
   },
 };

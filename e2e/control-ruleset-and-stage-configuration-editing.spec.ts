@@ -1,5 +1,7 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectCompleteHeadingOutline } from './support/heading-outline.js';
+import { expectNoVisibleIdentifiers } from './support/visible-identifiers.js';
 
 /**
  * Ruleset and stage-configuration editing: a tournament's
@@ -87,8 +89,10 @@ test('edits a ruleset override from the tournament ruleset screen and sees the c
   // The plain-language rule context shows alongside the
   // existing edit field, reflecting the tournament's current override, and
   // its tournament-facts block shows the sibling settings fetch.
+  await page.getByText('Reglamento completo').click();
   await expect(page.getByText('Reglas')).toBeVisible();
-  await expect(page.getByText('Apertura 2026')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Apertura/ })).toBeVisible();
+  await expectCompleteHeadingOutline(page, 'tournament ruleset');
   // Shown twice now: the read-only summary's label, and the editor field's own label.
   await expect(page.getByText('Points per win').first()).toBeVisible();
   await expect(page.getByText('Valor actual: 3')).toBeVisible();
@@ -146,19 +150,28 @@ test('renders typed controls for boolean/format/union-list fields, saves only th
   // A boolean field is a real checkbox, never a JSON-text input.
   await expect(page.getByRole('checkbox').first()).toBeVisible();
   // A union-list field's "current value" already shows the inherited items.
-  await expect(page.getByText('Valor actual: points, score-difference')).toBeVisible();
+  await page.getByText('Reglamento completo').click();
+  await expect(page.getByText('Valor actual: Puntos, Diferencia de marcador')).toBeVisible();
 
   // Adding one tiebreaker sends only that addition, not the inherited list.
-  const tiebreakersRow = page.getByRole('listitem').filter({ hasText: 'Tiebreakers' });
+  const tiebreakersRow = page.getByRole('row').filter({ hasText: 'Tiebreakers' });
   await tiebreakersRow.getByRole('textbox', { name: 'Tiebreakers' }).fill('goals-against');
   await tiebreakersRow.getByRole('button', { name: 'Agregar' }).click();
   await page.getByRole('button', { name: 'Guardar' }).click();
 
   // The plain-language summary now reflects the real merged effective value.
   await expect(
-    page.getByText('Valor actual: points, score-difference, goals-against'),
+    page.getByText('Valor actual: Puntos, Diferencia de marcador, Goles en contra'),
   ).toBeVisible();
   expect(lastPutOverrides).toEqual({ tiebreakers: ['goals-against'] });
+  // Codes and formats read as names; the typed code survives only in the request, not on the page.
+  await expect(page.getByText('Valor actual: Todos contra todos')).toBeVisible();
+  await expectNoVisibleIdentifiers(page, [
+    'score-difference',
+    'goals-against',
+    'round-robin',
+    'lower_wins',
+  ]);
 });
 
 test('refuses a blocked ruleset-override edit before the save request is sent', async ({
@@ -255,6 +268,9 @@ test("edits a stage's configuration override before seeding, then finds it locke
     }
     if (url.endsWith('/stages/1/configuration') && method === 'GET') {
       return { body: { overrides: { segments: { overtimeEnabled } } } };
+    }
+    if (url.endsWith('/stages/1/promotion-plans') && method === 'GET') {
+      return { body: [] };
     }
     if (url.endsWith('/stages/1/configuration') && method === 'PUT') {
       const body = JSON.parse(String(init?.body)) as { overrides: Record<string, unknown> };

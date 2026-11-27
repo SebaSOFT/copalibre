@@ -27,7 +27,7 @@ describe('OpenAPI contract generation (integration)', () => {
     try {
       const published = JSON.parse(readFileSync(PUBLISHED_ARTIFACT, 'utf8')) as OpenAPIObject;
       const publishedWithRetiredRoute = structuredClone(published) as OpenAPIObject;
-      const existingRoute = published.paths['/health'];
+      const existingRoute = published.paths['/api/health'];
       if (!existingRoute) throw new Error('published fixture is missing GET /health');
       publishedWithRetiredRoute.paths['/retired-contract-route'] = existingRoute;
       writeFileSync(artifactPath, `${JSON.stringify(publishedWithRetiredRoute, null, 2)}\n`);

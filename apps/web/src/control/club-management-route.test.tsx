@@ -6,7 +6,13 @@ import type { ClubResponse, ControlApiClient } from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
 
 const oneClub: readonly ClubResponse[] = [
-  { clubId: 'club-1', organizationId: 'org-1', name: 'Casa de Italia', abbreviation: 'C I' },
+  {
+    clubId: 'club-1',
+    organizationId: 'org-1',
+    name: 'Casa de Italia',
+    alias: 'casa-de-italia',
+    abbreviation: 'C I',
+  },
 ];
 
 describe('ClubManagementPage', () => {
@@ -15,13 +21,19 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
-    expect(screen.getByTitle('No emblem uploaded')).toBeTruthy();
+    const clubRow = screen.getByText('Casa de Italia').closest('li');
+    expect(clubRow?.querySelector('.cl-entrant-emblem__monogram')?.textContent).toBe('C I');
   });
 
   it('creates a club and reloads the list', async () => {
     const clubs: ClubResponse[] = [];
     const createClub = jest.fn<NonNullable<ControlApiClient['createClub']>>(async (_org, body) => {
-      const created: ClubResponse = { clubId: 'club-2', organizationId: 'org-1', name: body.name };
+      const created: ClubResponse = {
+        clubId: 'club-2',
+        organizationId: 'org-1',
+        name: body.name,
+        alias: body.alias ?? 'club-2',
+      };
       clubs.push(created);
       return created;
     });
@@ -58,7 +70,7 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit club'));
 
     const nameInput = await screen.findByLabelText('Name');
     fireEvent.change(nameInput, { target: { value: 'Casa de Italia Renombrada' } });
@@ -68,7 +80,7 @@ describe('ClubManagementPage', () => {
 
     expect(updateClub).toHaveBeenCalledWith('liga-mendocina', 'club-1', {
       name: 'Casa de Italia Renombrada',
-      alias: '',
+      alias: 'casa-de-italia',
       abbreviation: 'C I',
     });
     await screen.findByText('Changes saved.');
@@ -85,7 +97,7 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit club'));
     await screen.findByLabelText('Name');
 
     const file = new File(['fake-bytes'], 'emblem.png', { type: 'image/png' });
@@ -104,9 +116,9 @@ describe('ClubManagementPage', () => {
     });
     fireEvent.load(img);
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
-    fireEvent.click(screen.getByText('Use image'));
+    fireEvent.click(screen.getByText('Apply'));
 
     await waitFor(() =>
       expect(uploadClubEmblem).toHaveBeenCalledWith('liga-mendocina', 'club-1', {
@@ -179,6 +191,7 @@ describe('ClubManagementPage', () => {
       clubId: 'club-2',
       organizationId: 'org-1',
       name: body.name,
+      alias: body.alias ?? 'club-2',
     }));
     const client = stubClient({ listClubs: () => Promise.resolve(oneClub), createClub });
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
@@ -195,7 +208,7 @@ describe('ClubManagementPage', () => {
       clubId: 'club-2',
       organizationId: 'org-1',
       name: body.name,
-      alias: body.alias,
+      alias: body.alias ?? 'club-2',
       abbreviation: body.abbreviation,
     }));
     const client = stubClient({ listClubs: () => Promise.resolve(oneClub), createClub });
@@ -203,8 +216,8 @@ describe('ClubManagementPage', () => {
 
     await screen.findByText('Casa de Italia');
     fireEvent.change(screen.getByLabelText('New club name'), { target: { value: 'Club Atenas' } });
-    fireEvent.change(screen.getByLabelText('Alias (optional)'), {
-      target: { value: 'club-atenas' },
+    fireEvent.change(screen.getByLabelText('New club alias'), {
+      target: { value: 'atenas-ca' },
     });
     fireEvent.change(screen.getByLabelText('Abbreviation (optional)'), {
       target: { value: 'CA' },
@@ -215,9 +228,165 @@ describe('ClubManagementPage', () => {
 
     expect(createClub).toHaveBeenCalledWith('liga-mendocina', {
       name: 'Club Atenas',
-      alias: 'club-atenas',
+      alias: 'atenas-ca',
       abbreviation: 'CA',
     });
+  });
+
+  it('prefills the new club alias from the name, avoiding the aliases already taken', async () => {
+    const client = stubClient({
+      listClubs: () => Promise.resolve(oneClub),
+      createClub: jest.fn<NonNullable<ControlApiClient['createClub']>>(),
+    });
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('Casa de Italia');
+    fireEvent.change(screen.getByLabelText('New club name'), {
+      target: { value: 'Casa de Italia' },
+    });
+    expect((screen.getByLabelText('New club alias') as HTMLInputElement).value).toBe(
+      'casa-de-italia-2',
+    );
+
+    fireEvent.change(screen.getByLabelText('New club name'), {
+      target: { value: '北京俱乐部' },
+    });
+    expect((screen.getByLabelText('New club alias') as HTMLInputElement).value).toBe('club-1');
+  });
+
+  it('sends no alias when the organizer did not edit the prefilled one, so the server suggests it', async () => {
+    const createClub = jest.fn<NonNullable<ControlApiClient['createClub']>>(async (_org, body) => ({
+      clubId: 'club-2',
+      organizationId: 'org-1',
+      name: body.name,
+      alias: 'club-atenas',
+    }));
+    const client = stubClient({ listClubs: () => Promise.resolve(oneClub), createClub });
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('Casa de Italia');
+    fireEvent.change(screen.getByLabelText('New club name'), { target: { value: 'Club Atenas' } });
+    expect((screen.getByLabelText('New club alias') as HTMLInputElement).value).toBe('club-atenas');
+    await act(async () => {
+      fireEvent.click(screen.getByText('Add club'));
+    });
+
+    expect(createClub).toHaveBeenCalledWith('liga-mendocina', { name: 'Club Atenas' });
+  });
+
+  it('shows the taken-alias message and sends nothing when a typed create alias is another club', async () => {
+    const createClub = jest.fn<NonNullable<ControlApiClient['createClub']>>();
+    const client = stubClient({ listClubs: () => Promise.resolve(oneClub), createClub });
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('Casa de Italia');
+    fireEvent.change(screen.getByLabelText('New club name'), { target: { value: 'Club Nuevo' } });
+    fireEvent.change(screen.getByLabelText('New club alias'), {
+      target: { value: 'casa-de-italia' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Add club'));
+    });
+
+    expect(createClub).not.toHaveBeenCalled();
+    expect(screen.getByText('Another club already uses this alias.')).toBeTruthy();
+  });
+
+  it('shows the taken-alias message and sends nothing when an edited alias is another club', async () => {
+    const updateClub = jest.fn<NonNullable<ControlApiClient['updateClub']>>();
+    const twoClubs: readonly ClubResponse[] = [
+      ...oneClub,
+      { clubId: 'club-2', organizationId: 'org-1', name: 'Atenas', alias: 'atenas' },
+    ];
+    const client = stubClient({ listClubs: () => Promise.resolve(twoClubs), updateClub });
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('Casa de Italia');
+    fireEvent.click(screen.getAllByText('Edit club')[0] as HTMLElement);
+    fireEvent.change(await screen.findByLabelText('Alias'), { target: { value: 'atenas' } });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save changes'));
+    });
+
+    expect(updateClub).not.toHaveBeenCalled();
+    expect(screen.getByText('Another club already uses this alias.')).toBeTruthy();
+  });
+
+  it('keeps a club’s own alias on save without the taken-alias message', async () => {
+    const updateClub = jest.fn<NonNullable<ControlApiClient['updateClub']>>(async () => ({
+      clubId: 'club-1',
+      organizationId: 'org-1',
+      name: 'Casa de Italia',
+      alias: 'casa-de-italia',
+    }));
+    const client = stubClient({ listClubs: () => Promise.resolve(oneClub), updateClub });
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('Casa de Italia');
+    fireEvent.click(screen.getByText('Edit club'));
+    await act(async () => {
+      fireEvent.click(await screen.findByText('Save changes'));
+    });
+
+    expect(updateClub).toHaveBeenCalled();
+    expect(screen.queryByText('Another club already uses this alias.')).toBeNull();
+  });
+
+  it('shows the taken-alias message on the field when the server answers 409 club-conflict on create', async () => {
+    const createClub = jest.fn<NonNullable<ControlApiClient['createClub']>>(() =>
+      Promise.reject(
+        new ControlApiError(409, 'Another club already uses this alias', 'club-conflict'),
+      ),
+    );
+    const client = stubClient({ listClubs: () => Promise.resolve(oneClub), createClub });
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('Casa de Italia');
+    fireEvent.change(screen.getByLabelText('New club name'), { target: { value: 'Club Nuevo' } });
+    fireEvent.change(screen.getByLabelText('New club alias'), { target: { value: 'nuevo-alias' } });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Add club'));
+    });
+
+    expect(createClub).toHaveBeenCalled();
+    expect(await screen.findByText('Another club already uses this alias.')).toBeTruthy();
+    expect(
+      screen.queryByText(
+        'This change conflicts with current tournament data. Refresh and try again.',
+      ),
+    ).toBeNull();
+  });
+
+  it('blocks creating a club with an empty alias and shows the required message', async () => {
+    const createClub = jest.fn<NonNullable<ControlApiClient['createClub']>>();
+    const client = stubClient({ listClubs: () => Promise.resolve(oneClub), createClub });
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('Casa de Italia');
+    fireEvent.change(screen.getByLabelText('New club name'), { target: { value: 'Club Atenas' } });
+    fireEvent.change(screen.getByLabelText('New club alias'), { target: { value: '' } });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Add club'));
+    });
+
+    expect(createClub).not.toHaveBeenCalled();
+    expect(screen.getByText('Enter an alias.')).toBeTruthy();
+  });
+
+  it('blocks saving a club with an empty alias and shows the required message', async () => {
+    const updateClub = jest.fn<NonNullable<ControlApiClient['updateClub']>>();
+    const client = stubClient({ listClubs: () => Promise.resolve(oneClub), updateClub });
+    render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
+
+    await screen.findByText('Casa de Italia');
+    fireEvent.click(screen.getByText('Edit club'));
+    fireEvent.change(await screen.findByLabelText('Alias'), { target: { value: '  ' } });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save changes'));
+    });
+
+    expect(updateClub).not.toHaveBeenCalled();
+    expect(screen.getByText('Enter an alias.')).toBeTruthy();
   });
 
   it('reports a save-changes failure and does nothing when updateClub is absent', async () => {
@@ -228,7 +397,7 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit club'));
     await screen.findByLabelText('Name');
     await act(async () => {
       fireEvent.click(screen.getByText('Save changes'));
@@ -242,7 +411,7 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit club'));
     await screen.findByLabelText('Name');
     await act(async () => {
       fireEvent.click(screen.getByText('Save changes'));
@@ -259,7 +428,7 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit club'));
     await screen.findByLabelText('Name');
 
     const file = new File(['fake-bytes'], 'emblem.png', { type: 'image/png' });
@@ -273,9 +442,9 @@ describe('ClubManagementPage', () => {
     });
     fireEvent.load(img);
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
-    fireEvent.click(screen.getByText('Use image'));
+    fireEvent.click(screen.getByText('Apply'));
 
     await screen.findByText('The request could not be completed. Try again.');
   });
@@ -286,6 +455,7 @@ describe('ClubManagementPage', () => {
         clubId: 'club-1',
         organizationId: 'org-1',
         name: 'Casa de Italia',
+        alias: 'casa-de-italia',
         emblemObjectId: 'obj-1',
       },
     ];
@@ -293,10 +463,16 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Casa de Italia');
-    expect(screen.getByAltText('Casa de Italia emblem')).toBeTruthy();
+    const clubRow = screen.getByText('Casa de Italia').closest('li');
+    expect(clubRow?.querySelector('.cl-entrant-emblem img')?.getAttribute('src')).toContain(
+      '/api/organizations/liga-mendocina/clubs/club-1/emblem',
+    );
 
-    fireEvent.click(screen.getByText('Edit'));
-    expect(await screen.findAllByAltText('Casa de Italia emblem')).toHaveLength(2);
+    fireEvent.click(screen.getByText('Edit club'));
+    const selectedEmblem = await screen.findByRole('img', { name: 'Casa de Italia' });
+    expect(selectedEmblem.querySelector('img')?.getAttribute('src')).toContain(
+      '/api/organizations/liga-mendocina/clubs/club-1/emblem',
+    );
   });
 
   it('reports a club load it could not complete', async () => {
@@ -304,7 +480,7 @@ describe('ClubManagementPage', () => {
     render(withIntl(<ClubManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await waitFor(() =>
-      expect(screen.getByRole('alert').textContent).toContain('Could not load clubs.'),
+      expect(screen.getByRole('alert').textContent).toContain('Retrying in 2 s.'),
     );
   });
 });

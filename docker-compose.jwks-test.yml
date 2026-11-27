@@ -6,7 +6,7 @@ services:
   # verification against it. Never use this as a real identity provider — an
   # operator's COPALIBRE_JWKS_URI must point at their actual OIDC provider.
   jwks-stub:
-    image: nginx:1.29-alpine
+    image: nginx:1.31-alpine
     profiles: ['jwks-test']
     volumes:
       - ./deploy/test/jwks/jwks.json:/usr/share/nginx/html/jwks.json:ro

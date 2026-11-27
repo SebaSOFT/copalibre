@@ -3,49 +3,292 @@
  * Extracted from the match report page: the
  * badge/scoreboard/venue header, unchanged in markup and styling.
  */
+import { rescheduledStatement } from '../../../lib/reschedule.ts';
+import { AdvancingBadge } from '../atoms/AdvancingBadge.tsx';
 import { Badge } from '../atoms/Badge.tsx';
+import EmblemImage from '../atoms/EmblemImage.astro';
+import Icon from '../atoms/Icon.astro';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
+import { formatTimeZoneParts } from '../../../lib/format-timestamp.ts';
+import { LiveMatchScoreboard } from '../molecules/LiveMatchScoreboard.tsx';
+import { LiveMatchCounters } from './LiveMatchCounters.tsx';
+import type { LiveMatchClock, LiveSegment } from '../../../lib/live-state.ts';
 import type { MatchReportModel } from '../../../lib/match-report.ts';
+import {
+  formatEntrant,
+  liveClockLabels,
+  matchCounterTexts,
+  matchPenaltyTemplate,
+} from '../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../lib/i18n/public-messages.en.ts';
+import { displayedScore } from '../../../lib/matches-view.ts';
+import { activeSegmentLabel } from '../../../lib/segment-label.ts';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import type { IntlShape } from 'react-intl';
+import { optionalClubPageUrl } from '../../../lib/club-url.ts';
 
 export interface Props {
   readonly model: MatchReportModel;
+  readonly intl: IntlShape;
   readonly locale: string;
+  readonly timeZone?: string;
+  readonly organizationAlias?: string;
+  readonly tournamentAlias?: string;
+  readonly localePrefix?: string;
   /** The match state in the page language. The stage/round/match position lives in the breadcrumb. */
   readonly statusLabel: string;
+  readonly rescheduledLabel?: string;
+  readonly liveMatchId?: string;
+  /** The match's 1-based position in its stage, as the page's route addresses it. */
+  readonly matchOrdinal?: number;
+  readonly homeEntrantId?: string;
+  readonly awayEntrantId?: string;
+  readonly liveClock?: LiveMatchClock;
+  readonly liveSegments?: readonly LiveSegment[];
+  readonly stakeLines?: readonly string[];
+  readonly referenceDate?: number;
+  readonly delayed?: boolean;
 }
 
-const { model, locale, statusLabel } = Astro.props;
+const {
+  model,
+  intl,
+  locale,
+  timeZone,
+  organizationAlias,
+  tournamentAlias,
+  localePrefix = '',
+  statusLabel,
+  rescheduledLabel,
+  liveMatchId,
+  matchOrdinal,
+  homeEntrantId,
+  awayEntrantId,
+  liveClock,
+  liveSegments,
+  stakeLines = [],
+  referenceDate,
+  delayed = false,
+} = Astro.props;
+const homeClubHref = optionalClubPageUrl({
+  organizationAlias,
+  tournamentAlias,
+  clubAlias: model.home.clubAlias,
+  localePrefix,
+});
+const awayClubHref = optionalClubPageUrl({
+  organizationAlias,
+  tournamentAlias,
+  clubAlias: model.away.clubAlias,
+  localePrefix,
+});
+const tzParts = formatTimeZoneParts(locale, timeZone ?? 'UTC', referenceDate);
+const home = formatEntrant(intl, model.home);
+const away = formatEntrant(intl, model.away);
+const resolvedLanguage: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
+const effectiveClock = liveClock ?? model.clock;
+const effectiveSegments = liveSegments ?? model.segments;
+const liveSegmentLabel = activeSegmentLabel(effectiveSegments, effectiveClock, resolvedLanguage);
+const clockLabels = liveClockLabels(intl);
+const rescheduled =
+  model.status === 'upcoming'
+    ? rescheduledStatement(model.rescheduledFrom, model.venueName, locale, rescheduledLabel)
+    : '';
+const resolvedHomeEntrantId = homeEntrantId ?? model.home.entrantId;
+const resolvedAwayEntrantId = awayEntrantId ?? model.away.entrantId;
+const isDrawnFinal =
+  model.status === 'final' &&
+  model.home.score !== undefined &&
+  model.away.score !== undefined &&
+  model.home.score === model.away.score &&
+  model.winnerEntrantId !== undefined;
+const homeAdvances =
+  isDrawnFinal &&
+  resolvedHomeEntrantId !== undefined &&
+  model.winnerEntrantId === resolvedHomeEntrantId;
+const awayAdvances =
+  isDrawnFinal &&
+  resolvedAwayEntrantId !== undefined &&
+  model.winnerEntrantId === resolvedAwayEntrantId;
+const homeEliminated = awayAdvances && !homeAdvances;
+const awayEliminated = homeAdvances && !awayAdvances;
+const advancesLabel = intl.formatMessage(messages.bracketAdvances);
+const counterSides = [
+  { entrantId: resolvedHomeEntrantId ?? '', name: home.fullName, place: 'home' as const },
+  { entrantId: resolvedAwayEntrantId ?? '', name: away.fullName, place: 'away' as const },
+];
 ---
 
 <header class="cl-match-hero">
   <div class="cl-match-hero__meta">
-    <Badge className={`cl-badge--${model.status.toLowerCase()}`}>
-      {statusLabel}
-    </Badge>
+    {delayed ? (
+      <Badge className="cl-state--delayed">
+        <Icon name="clock" size={16} />
+        <span>{statusLabel}</span>
+      </Badge>
+    ) : (
+      <Badge className={`cl-badge--${model.status.toLowerCase()}`}>{statusLabel}</Badge>
+    )}
+    {model.streamUrl && (
+      <a
+        class="cl-stream-link cl-focusable"
+        href={model.streamUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <Icon name="external-link" size={16} />
+        <span>{intl.formatMessage(messages.matchReportWatchStream)}</span>
+      </a>
+    )}
+    {model.status === 'live' && (effectiveClock || liveSegmentLabel) && (
+      <LiveMatchScoreboard
+        client:load
+        clock={effectiveClock}
+        labels={clockLabels}
+        locale={locale}
+        matchId={liveMatchId}
+        segmentLabel={liveSegmentLabel}
+        segments={effectiveSegments}
+        timeZone={timeZone}
+      />
+    )}
   </div>
 
-  <h1 class="cl-scoreboard">
-    <div class="cl-scoreboard__side cl-scoreboard__side--home">
-      <span class="cl-team-name">{model.home.abbreviation ?? model.home.name}</span>
-      <span class="cl-team-score">{model.home.score ?? '—'}</span>
+  <div class="cl-scoreboard">
+    <div
+      class:list={[
+        'cl-scoreboard__side',
+        'cl-scoreboard__side--home',
+        homeEliminated && 'cl-scoreboard__side--eliminated',
+      ]}
+    >
+      <span class="cl-team-identity">
+        {model.home.crestSrc && (
+          <span class="cl-team-crest">
+            <EmblemImage
+              src={model.home.crestSrc}
+              alt={home.fullName}
+              placeholderAlt={home.fullName}
+              size={56}
+              eager
+              decorative
+            />
+          </span>
+        )}
+        <span class="cl-team-name">
+          {homeClubHref ? (
+            <a class="cl-team-name__link cl-focusable" href={homeClubHref}>
+              {home.fullName}
+            </a>
+          ) : (
+            home.fullName
+          )}
+        </span>
+        {home.abbreviation && <span class="cl-team-abbreviation">{home.abbreviation}</span>}
+        {homeAdvances && <AdvancingBadge label={advancesLabel} />}
+      </span>
+      <span
+        class="cl-team-score"
+        data-live-score-match={liveMatchId}
+        data-live-score-entrant={homeEntrantId}
+      >
+        {displayedScore(model.status, model.home.score) ?? '—'}
+      </span>
     </div>
     <div class="cl-scoreboard__divider">–</div>
-    <div class="cl-scoreboard__side cl-scoreboard__side--away">
-      <span class="cl-team-score">{model.away.score ?? '—'}</span>
-      <span class="cl-team-name">{model.away.abbreviation ?? model.away.name}</span>
+    <div
+      class:list={[
+        'cl-scoreboard__side',
+        'cl-scoreboard__side--away',
+        awayEliminated && 'cl-scoreboard__side--eliminated',
+      ]}
+    >
+      <span
+        class="cl-team-score"
+        data-live-score-match={liveMatchId}
+        data-live-score-entrant={awayEntrantId}
+      >
+        {displayedScore(model.status, model.away.score) ?? '—'}
+      </span>
+      <span class="cl-team-identity">
+        {model.away.crestSrc && (
+          <span class="cl-team-crest">
+            <EmblemImage
+              src={model.away.crestSrc}
+              alt={away.fullName}
+              placeholderAlt={away.fullName}
+              size={56}
+              eager
+              decorative
+            />
+          </span>
+        )}
+        <span class="cl-team-name">
+          {awayClubHref ? (
+            <a class="cl-team-name__link cl-focusable" href={awayClubHref}>
+              {away.fullName}
+            </a>
+          ) : (
+            away.fullName
+          )}
+        </span>
+        {away.abbreviation && <span class="cl-team-abbreviation">{away.abbreviation}</span>}
+        {awayAdvances && <AdvancingBadge label={advancesLabel} />}
+      </span>
     </div>
-  </h1>
+  </div>
 
-  {
-    model.scheduledAt ? (
-      <p class="cl-match-venue">
-        <ResponsiveTimestamp locale={locale} timestamp={model.scheduledAt} />
-        {model.venueName ? ` · ${model.venueName}` : ''}
-      </p>
-    ) : model.status === 'upcoming' ? (
-      <p class="cl-match-venue cl-text-muted">Schedule not yet available.</p>
-    ) : null
-  }
+  {model.tracksLiveIndicators === true &&
+    (model.status !== 'final' || model.counters !== undefined) &&
+    organizationAlias &&
+    tournamentAlias &&
+    (model.matchId ?? liveMatchId) !== undefined &&
+    matchOrdinal !== undefined && (
+      <LiveMatchCounters
+        client:load
+        finished={model.status === 'final'}
+        initialCounters={model.counters ?? []}
+        initialPenalties={model.activePenalties ?? []}
+        language={resolvedLanguage}
+        live={model.status === 'live'}
+        matchId={model.matchId ?? liveMatchId ?? ''}
+        matchOrdinal={matchOrdinal}
+        organizationAlias={organizationAlias}
+        penaltyTemplate={matchPenaltyTemplate(intl)}
+        sides={counterSides}
+        stageNumber={model.stageNumber}
+        texts={matchCounterTexts(intl)}
+        tournamentAlias={tournamentAlias}
+      />
+    )}
+
+  {model.scheduledAt ? (
+    <p class="cl-match-venue">
+      <ResponsiveTimestamp
+        format="full"
+        locale={locale}
+        referenceDate={referenceDate}
+        timestamp={model.scheduledAt}
+        timeZone={timeZone}
+      />
+      {` (${tzParts.isUtc ? 'UTC' : tzParts.offset || tzParts.zoneName})`}
+      {model.venueName ? ` · ${model.venueName}` : ''}
+    </p>
+  ) : model.status === 'upcoming' ? (
+    <p class="cl-match-venue cl-text-muted">Schedule not yet available.</p>
+  ) : null}
+  {rescheduled && (
+    <p class="cl-match-venue" role="status">
+      {rescheduled}
+    </p>
+  )}
+  {stakeLines.length > 0 && (
+    <ul class="cl-match-stakes">
+      {stakeLines.map((line) => (
+        <li class="cl-match-stakes__item">{line}</li>
+      ))}
+    </ul>
+  )}
 </header>
 
 <style>
@@ -61,30 +304,26 @@ const { model, locale, statusLabel } = Astro.props;
 
   .cl-match-hero__meta {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     justify-content: center;
     gap: 0.75rem;
     margin-bottom: 1rem;
   }
 
   .cl-scoreboard {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-    margin: 1rem 0;
+    gap: var(--cl-space-6);
+    margin: var(--cl-space-4) 0;
   }
 
   .cl-scoreboard__side {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    flex: 1;
-    /* No `min-width: 0` here: that would let this
-       side shrink and squeeze its own content instead of wrapping to its own
-       line, which is what `.cl-scoreboard`'s `flex-wrap` is there to do at
-       the 188px floor. */
-    min-width: max-content;
+    gap: var(--cl-space-4);
+    min-width: 0;
   }
 
   .cl-scoreboard__side--home {
@@ -99,13 +338,68 @@ const { model, locale, statusLabel } = Astro.props;
     font-size: 1.5rem;
     font-weight: 700;
     font-family: var(--cl-font-display);
+    /* A name breaks between words; a single word wider than its column breaks only as a last resort. */
+    overflow-wrap: anywhere;
+  }
+
+  .cl-team-name__link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .cl-team-name__link:hover {
+    color: var(--cl-text-accent);
+    text-decoration: underline;
+  }
+
+  .cl-team-identity {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .cl-team-crest {
+    display: inline-flex;
+    margin-bottom: var(--cl-space-1);
+  }
+
+  .cl-stream-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+    padding: var(--cl-space-1) var(--cl-space-3);
+    border: 1px solid var(--cl-border-accent);
+    color: var(--cl-text-accent);
+    font-size: var(--cl-font-size-sm);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .cl-stream-link:hover {
+    text-decoration: underline;
+  }
+
+  .cl-scoreboard__side--home .cl-team-identity {
+    align-items: flex-end;
+    text-align: end;
+  }
+
+  .cl-scoreboard__side--away .cl-team-identity {
+    align-items: flex-start;
+    text-align: start;
+  }
+
+  .cl-team-abbreviation {
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-sm);
   }
 
   .cl-team-score {
-    font-size: 2.5rem;
+    font-size: var(--cl-font-size-3xl);
     font-weight: 800;
     font-family: var(--cl-font-display);
-    color: var(--cl-primary);
+    color: var(--cl-text-accent);
     min-width: 2ch;
     text-align: center;
   }
@@ -124,5 +418,96 @@ const { model, locale, statusLabel } = Astro.props;
   .cl-text-muted {
     color: var(--cl-text-muted);
     font-size: 0.875rem;
+  }
+
+  .cl-scoreboard__side--eliminated {
+    color: var(--cl-text-muted);
+  }
+
+  .cl-scoreboard__side--eliminated .cl-team-score {
+    color: var(--cl-text-muted);
+  }
+
+  @media (width < 768px) {
+    .cl-team-name {
+      font-size: var(--cl-font-size-lg);
+    }
+
+    .cl-scoreboard {
+      grid-template-rows: auto auto;
+      column-gap: var(--cl-space-3);
+      row-gap: var(--cl-space-1);
+    }
+
+    /* The sides stop being boxes: their identity and score become grid items, so the
+       identity row and the score row line up across both sides. Identity sits above the score. */
+    .cl-scoreboard__side {
+      display: contents;
+    }
+
+    .cl-scoreboard__side > .cl-team-identity {
+      grid-row: 1;
+    }
+
+    .cl-scoreboard__side > .cl-team-score {
+      grid-row: 2;
+    }
+
+    .cl-scoreboard__side--home > * {
+      grid-column: 1;
+      justify-self: end;
+      text-align: end;
+    }
+
+    .cl-scoreboard__side--away > * {
+      grid-column: 3;
+      justify-self: start;
+      text-align: start;
+    }
+
+    /* The divider sits on the score row, between the two scores it separates. */
+    .cl-scoreboard__divider {
+      grid-column: 2;
+      grid-row: 2;
+      align-self: center;
+    }
+  }
+
+  /* The narrowest screens (the 200% text-size floor): three-digit scores and both names still fit. */
+  @media (width < 375px) {
+    .cl-match-hero {
+      padding: var(--cl-space-4);
+    }
+
+    .cl-scoreboard {
+      column-gap: var(--cl-space-2);
+    }
+
+    /* Columns this narrow split words, so a split falls on a syllable with a hyphen. */
+    .cl-team-name {
+      font-size: var(--cl-font-size-md);
+      hyphens: auto;
+    }
+
+    .cl-team-score {
+      font-size: var(--cl-font-size-xl);
+    }
+  }
+
+  .cl-match-stakes {
+    list-style: none;
+    margin: var(--cl-space-3) 0 0;
+    padding: var(--cl-space-3) 0 0;
+    border-top: 1px solid var(--cl-border-muted);
+    display: grid;
+    gap: var(--cl-space-1);
+    justify-items: center;
+  }
+
+  .cl-match-stakes__item {
+    color: var(--cl-text-secondary);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    letter-spacing: var(--cl-tracking-wide);
   }
 </style>

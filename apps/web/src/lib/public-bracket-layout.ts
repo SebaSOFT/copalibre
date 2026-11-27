@@ -6,7 +6,7 @@ import {
   type LayoutMatch,
   type LayoutSlot,
 } from './bracket-layout.ts';
-import type { BracketMatch, SlotSource } from './bracket.ts';
+import { comparePlacementMatches, type BracketMatch, type SlotSource } from './bracket.ts';
 
 /**
  * The public bracket's geometry: the same `placeBracket` the operator canvas uses, with the
@@ -16,21 +16,24 @@ import type { BracketMatch, SlotSource } from './bracket.ts';
 export const PUBLIC_GEOMETRY: BracketGeometry = {
   ...DEFAULT_GEOMETRY,
   nodeWidth: 248,
-  nodeHeight: 140,
+  nodeHeight: 184,
   columnGap: 32,
   rowGap: 28,
   bracketGap: 128,
 };
-const SERIES_NODE_HEIGHT = 200;
+const SERIES_NODE_HEIGHT = 236;
 
 /**
- * The same bracket for a narrow screen: a card that is only abbreviations and scores, so a split bracket's five columns fit a phone's width.
+ * The same bracket for a narrow screen: compact cards that remain well under 60% of
+ * `PUBLIC_GEOMETRY` width inside `.cl-bracket-stage__scroll--compact` while giving pending
+ * feeder labels, advancing badges, and round headings room to read cleanly without clipping
+ * or overlapping.
  */
 export const COMPACT_GEOMETRY: BracketGeometry = {
   ...DEFAULT_GEOMETRY,
-  nodeWidth: 66,
+  nodeWidth: 116,
   nodeHeight: 56,
-  columnGap: 6,
+  columnGap: 12,
   rowGap: 14,
   bracketGap: 96,
 };
@@ -76,17 +79,10 @@ function layoutSlot(slot: SlotSource, idByNumber: ReadonlyMap<number, string>): 
 export const isPlacementGame = (match: BracketMatch): boolean => match.branch === 'placement';
 
 /**
- * The placement games, best-ranked round first (third, fifth and seventh place before the round
- * that sorts the fifth to eighth), the order a results list reads in.
+ * The placement games, ordered by best place settled, then round ascending, then position.
  */
 export function placementGamesOf(matches: readonly BracketMatch[]): readonly BracketMatch[] {
-  return matches
-    .filter(isPlacementGame)
-    .sort(
-      (a, b) =>
-        b.roundNumber - a.roundNumber ||
-        (a.position ?? a.matchNumber) - (b.position ?? b.matchNumber),
-    );
+  return matches.filter(isPlacementGame).sort(comparePlacementMatches);
 }
 
 export function layoutPublicBracket(

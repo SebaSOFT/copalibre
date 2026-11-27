@@ -40,12 +40,14 @@ export function Checkbox({
     <RadixCheckbox.Root
       ref={buttonRef}
       checked={checked}
-      className={`cl-checkbox cl-checkbox--${state} cl-focusable ${className}`}
+      className={`cl-checkbox cl-focusable ${className}`}
       disabled={disabled}
       onCheckedChange={(value) => onCheckedChange(value === true)}
       {...rest}
     >
-      <RadixCheckbox.Indicator className="cl-checkbox__indicator">✓</RadixCheckbox.Indicator>
+      <span className={`cl-checkbox__box cl-checkbox--${state}`}>
+        <RadixCheckbox.Indicator className="cl-checkbox__indicator" />
+      </span>
     </RadixCheckbox.Root>
   );
 }

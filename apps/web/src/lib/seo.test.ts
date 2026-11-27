@@ -222,6 +222,7 @@ describe('SEO and structured data utilities', () => {
 
       // liga-orbital: 1 org root + 7 non-primary org locales = 8
       // + 1 tournament root + 7 non-primary tournament locales = 8
+      // (no clubs, so no club index or club page)
       // liga-vacia: 1 org root + 7 non-primary org locales = 8
       // total = 8 + 8 + 8 = 24 entries
       expect(entries).toHaveLength(24);
@@ -279,6 +280,42 @@ describe('SEO and structured data utilities', () => {
             !e.input.tournamentAlias,
         ),
       ).toBe(true);
+    });
+
+    it('emits club index and every club page across all eight locales', () => {
+      const entries = buildSitemapEntries([
+        {
+          organizationAlias: 'liga-orbital',
+          tournaments: [
+            {
+              alias: 'apertura-2026',
+              clubAliases: ['club-hispano', 'casa-de-italia'],
+            },
+          ],
+        },
+      ]);
+
+      // 8 org + 8 tournament + 8 clubIndex + 8 club-hispano + 8 casa-de-italia = 40
+      expect(entries).toHaveLength(40);
+      expect(
+        entries.some(
+          (e) =>
+            e.input.organizationAlias === 'liga-orbital' &&
+            e.input.tournamentAlias === 'apertura-2026' &&
+            e.input.clubIndex === true &&
+            e.input.locale === 'es',
+        ),
+      ).toBe(true);
+      expect(
+        entries.some(
+          (e) =>
+            e.input.organizationAlias === 'liga-orbital' &&
+            e.input.tournamentAlias === 'apertura-2026' &&
+            e.input.clubAlias === 'club-hispano' &&
+            e.input.locale === 'zh',
+        ),
+      ).toBe(true);
+      expect(entries.some((e) => e.input.clubAlias === 'casa-de-italia')).toBe(true);
     });
   });
 });

@@ -18,6 +18,10 @@ export interface DataEntityCardBadge {
 export interface DataEntityCardMetadataItem {
   readonly label: string;
   readonly value: string;
+  /** Links a metric directly to the screen where an operator can act on it. */
+  readonly href?: string;
+  /** Client-side navigation for `href`; the target remains a real link. */
+  readonly onNavigate?: (event: MouseEvent<HTMLAnchorElement>) => void;
   /**
    * Renders the value as a figure — mono and tabular, like every other number
    * in Control-web — rather than as prose.
@@ -77,14 +81,32 @@ export function DataEntityCard({
       </CardHeader>
       {metadata.length > 0 ? (
         <CardContent className="cl-data-entity-card__metadata">
-          {metadata.map((item) => (
-            <div className="cl-data-entity-card__metadata-item" key={item.label}>
-              <span className="cl-data-entity-card__metadata-label">{item.label}</span>
-              <span className={item.numeric ? 'cl-data-entity-card__metadata-figure' : undefined}>
-                {item.value}
-              </span>
-            </div>
-          ))}
+          {metadata.map((item) => {
+            const content = (
+              <>
+                <span className="cl-data-entity-card__metadata-label">{item.label}</span>
+                <span className={item.numeric ? 'cl-data-entity-card__metadata-figure' : undefined}>
+                  {item.value}
+                </span>
+              </>
+            );
+
+            return item.href === undefined ? (
+              <div className="cl-data-entity-card__metadata-item" key={item.label}>
+                {content}
+              </div>
+            ) : (
+              <a
+                aria-label={`${item.label}: ${item.value}`}
+                className="cl-data-entity-card__metadata-item cl-focusable"
+                href={item.href}
+                key={item.label}
+                onClick={item.onNavigate}
+              >
+                {content}
+              </a>
+            );
+          })}
         </CardContent>
       ) : null}
       {actions ? <CardFooter>{actions}</CardFooter> : null}

@@ -47,15 +47,6 @@ third-party CDN at runtime, so the page renders correctly on an installation wit
 - **THEN** `/help/api-reference/` still renders the full interactive reference correctly, with no
   failed cross-origin script or stylesheet request
 
-### Requirement: Try It is disabled by default
-
-The interactive API reference's "Try It" request-execution feature SHALL be disabled by default.
-
-#### Scenario: No live request is possible without explicit enablement
-
-- **WHEN** a visitor opens `/help/api-reference/` on a default installation
-- **THEN** no mechanism to execute a live API request against any host is available
-
 ### Requirement: No secrets or internal hosts in static documentation
 
 Static documentation and the generated OpenAPI artifact SHALL NOT contain access tokens, internal
@@ -68,7 +59,11 @@ hostnames, private paths, or production example credentials.
 
 ### Requirement: Every control-panel screen links to matching contextual help
 
-Each control-panel screen SHALL render a visible link to a Starlight help page that explains that specific screen's purpose and its key data fields, distinct from a generic link to the help site's homepage. The link SHALL resolve to the Starlight page in the operator's currently active display language, using the same locale-prefix routing the help site itself uses for every other page. All generated contextual help URLs SHALL include a trailing slash to prevent intermediate redirect loops behind reverse proxies. The page SHALL describe the screen as it currently behaves; a page describing a surface the screen no longer presents SHALL be treated as a defect rather than as documentation.
+Each control-panel screen SHALL render a visible link to a Starlight help page explaining that
+screen's purpose and key data fields, not the help site's homepage. The link SHALL resolve to the
+page in the operator's active display language through the help site's locale-prefix routing, and
+SHALL end in a trailing slash. The page SHALL describe the screen as it currently behaves;
+describing a surface the screen no longer presents SHALL be treated as a defect.
 
 #### Scenario: An operator on the seeding screen reaches seeding-specific help
 - **WHEN** an operator viewing the seeding-builder control-panel screen activates its help link
@@ -98,15 +93,18 @@ Each control-panel screen SHALL render a visible link to a Starlight help page t
 - **WHEN** an operator on the organization dashboard opens contextual help
 - **THEN** they reach the dashboard-specific `/help/control/overview/` article in their active help locale, while `/help/control/` remains the general Control panel index
 
+#### Scenario: Why the trailing slash
+
+- **WHEN** a generated help link is followed behind a reverse proxy
+- **THEN** it reaches the page without an intermediate redirect loop
+
 ### Requirement: Help site documents CLI installation, updating, and every command
 
 The help site SHALL provide a `/help/cli/` section covering how to install CopaLibre, how to update
-the framework and its installed modules, and a reference entry for every `copalibre` CLI command —
-generated from or checked against the same command-metadata source the CLI's own `--help` output
-renders from, so the page cannot silently drift out of sync with the real command set. The updating
-page SHALL describe the real, non-destructive upgrade sequence — back up, update the checkout or
-image reference, run `upgrade-check` against the target version, then restart — rather than
-describing `upgrade-check` as a placeholder with no registered checks.
+the framework and its installed modules, and a reference entry for every `copalibre` command,
+generated from or checked against the command metadata the CLI's own `--help` renders from. The
+updating page SHALL describe the real, non-destructive upgrade sequence rather than describing
+`upgrade-check` as a placeholder.
 
 #### Scenario: Every real CLI command has a reference entry
 
@@ -126,14 +124,23 @@ describing `upgrade-check` as a placeholder with no registered checks.
 - **THEN** it names `copalibre upgrade-check --target-version <version>` as a pre-restart gate against
   module incompatibility, not as an unimplemented placeholder
 
+#### Scenario: The upgrade sequence
+
+- **WHEN** an operator reads the updating page
+- **THEN** it says to back up, update the checkout or image reference, run `upgrade-check` against
+  the target version, then restart
+
+#### Scenario: The reference cannot drift
+
+- **WHEN** a command is added, renamed or removed
+- **THEN** the reference fails to match the CLI's metadata rather than silently going out of sync
+
 ### Requirement: Help site publishes llms.txt and llms-full.txt
 
 The help site SHALL publish `/llms.txt` (a summary and links to every documentation page) and
-`/llms-full.txt` (the same pages' content inlined into one file), generated from the real content
-collection at build time so neither can silently list a page that no longer exists or omit one that
-does. Both files SHALL contain English content only, regardless of how many other interface languages
-the help site supports, so documentation intended for LLM consumption stays in one predictable language
-as the site's language coverage grows.
+`/llms-full.txt` (those pages' content inlined), generated from the real content collection at build
+time. Both files SHALL contain English content only, however many interface languages the site
+supports.
 
 #### Scenario: llms.txt links resolve to real pages
 
@@ -153,14 +160,22 @@ as the site's language coverage grows.
 - **THEN** `/llms-full.txt` contains only the English content, with no page from any other locale
   included
 
+#### Scenario: The files follow the pages
+
+- **WHEN** a page is added or removed
+- **THEN** neither file lists a page that no longer exists or omits one that does
+
+#### Scenario: One predictable language
+
+- **WHEN** the site gains another interface language
+- **THEN** the files stay English, for LLM consumption
+
 ### Requirement: Help site content is available in all eight supported interface languages
 
-The help site's `/help/` content (the overview, the CLI section, and the control-panel section)
-SHALL be available in every language in the platform's supported-language contract (English, Spanish,
-French, Portuguese, Italian, German, Russian, Mandarin Chinese) as a prefixed Starlight locale, with
-English remaining the unprefixed default that `llms.txt`/`llms-full.txt` are generated from. Every
-locale SHALL contain the same set of pages as the English default — a build-time check SHALL fail,
-naming each missing locale/page pair, when a locale is missing a page English has.
+The help site's `/help/` content SHALL be available in every language of the supported-language
+contract as a prefixed Starlight locale, with English remaining the unprefixed default that
+`llms.txt` and `llms-full.txt` are generated from. Every locale SHALL contain the same pages as
+English, and a build-time check SHALL fail, naming each missing locale/page pair, when one does not.
 
 #### Scenario: Every supported language has a reachable help site
 
@@ -185,6 +200,12 @@ naming each missing locale/page pair, when a locale is missing a page English ha
 - **WHEN** a new page is added under the English `/help/**` tree
 - **THEN** the build fails for every locale lacking the corresponding translated page, until each adds
   it
+
+#### Scenario: What content and which languages
+
+- **WHEN** the help site is built
+- **THEN** the overview, the CLI section and the control-panel section exist in English, Spanish,
+  French, Portuguese, Italian, German, Russian and Mandarin Chinese
 
 ### Requirement: Help site documents self-hosting across platforms and deployment topologies
 
@@ -288,20 +309,11 @@ page. An empty path SHALL fail the build exactly as a missing one does.
   administration
 
 ### Requirement: An agent-facing authoring contract is published separately from operator help
-The help site SHALL publish an authoring guide addressed to a machine reader, describing the shape and
-meaning of a discipline descriptor and a tournament configuration: every field, what it governs while a
-competition runs, which sets are closed and why, the win-condition script vocabulary, and the boundary
-between what a descriptor fixes and what a tournament ruleset may override.
 
-It SHALL be published with its own retrievable index, distinct from `llms.txt` and `llms-full.txt`, so
-an agent can fetch the authoring contract without also fetching the operator-facing documentation. The
-existing two files SHALL keep their current scope and content unchanged.
-
-The machine-readable descriptor schema SHALL be served at a stable documentation URL, so an agent can
-fetch and validate against the same schema the installation enforces.
-
-Like the existing files intended for machine consumption, the authoring guide and its index SHALL be
-English only.
+The help site SHALL publish an English-only authoring guide for a machine reader describing the
+shape and meaning of a discipline descriptor and a tournament configuration, with its own
+retrievable index distinct from `llms.txt` and `llms-full.txt`, which SHALL keep their current scope
+and content. The machine-readable descriptor schema SHALL be served at a stable documentation URL.
 
 #### Scenario: The authoring index is retrievable on its own
 - **WHEN** the help site is built
@@ -322,6 +334,23 @@ English only.
 - **WHEN** an agent reads the authoring guide's entry for any descriptor field
 - **THEN** the entry states what that field causes during a competition, so a regulation's clause can be
   mapped onto it
+
+#### Scenario: What the guide covers
+
+- **WHEN** an agent reads the guide
+- **THEN** it covers every field, what it governs while a competition runs, which sets are closed
+  and why, the win-condition script vocabulary, and the boundary between what a descriptor fixes and
+  what a ruleset may override
+
+#### Scenario: The contract without the manual
+
+- **WHEN** an agent needs only the authoring contract
+- **THEN** it fetches the authoring index without the operator-facing documentation
+
+#### Scenario: The schema the installation enforces
+
+- **WHEN** an agent validates a candidate
+- **THEN** it can fetch the same schema the installation enforces
 
 ### Requirement: The authoring guide carries worked transcriptions from real regulations
 The authoring guide SHALL include at least two complete transcriptions from published competition
@@ -386,18 +415,22 @@ documented but not granted, SHALL both fail.
 - **THEN** the build fails until that role's page accounts for it
 
 ### Requirement: Comprehensive Documentation of All Tournament Formats
-The help site SHALL provide dedicated guide pages under `/help/formats/` explaining the configuration, seeding, progression, and match mechanics for every supported format:
-1. `single-elimination` & `double-elimination` (including bracket reset).
-2. `round-robin` (single-leg & home/away).
-3. `bracket-groups` (GSL 4-player dual tournament).
-4. `gauntlet` (Stepladder ascending challenge ladder).
-5. `swiss` (Dutch pairing system, score groups, floaters, and byes).
-6. `custom-bracket` (Declarative DAG specification).
-7. `free-for-all`, `heats`, `ffa-bracket`, `ffa-bracket-groups`, and `ffa-league`.
+
+The help site SHALL provide dedicated guide pages under `/help/formats/` explaining the
+configuration, seeding, progression, and match mechanics of every supported format.
 
 #### Scenario: An operator reads the Swiss pairing guide
 - **WHEN** an operator visits `/help/formats/swiss/`
 - **THEN** the guide describes the round generation workflow, how score brackets are paired, and how Strength-of-Schedule tiebreakers rank participants
+
+#### Scenario: The formats covered
+
+- **WHEN** an operator browses `/help/formats/`
+- **THEN** there are guides for `single-elimination` and `double-elimination` (with bracket reset),
+  `round-robin` (single-leg and home/away), `bracket-groups` (GSL 4-player dual tournament),
+  `gauntlet` (stepladder), `swiss` (Dutch pairing, score groups, floaters and byes),
+  `custom-bracket` (declarative DAG), and `free-for-all`, `heats`, `ffa-bracket`,
+  `ffa-bracket-groups` and `ffa-league`
 
 ### Requirement: Standings and Tiebreak Mechanics Guide
 The help site SHALL publish a comprehensive reference under `/help/standings/` detailing:
@@ -409,3 +442,73 @@ The help site SHALL publish a comprehensive reference under `/help/standings/` d
 #### Scenario: All 8 interface languages provide complete help parity
 - **WHEN** the documentation lint runs (`yarn workspace @copalibre/web verify:docs`)
 - **THEN** every newly added format and tiebreak help page exists in all 8 supported languages without fallback gaps
+
+### Requirement: Try It sends only the visitor's own token, only to this installation
+
+The interactive API reference's Try It SHALL be available. It SHALL authenticate only with a personal access token the visitor pastes, send its requests only to the installation serving the page and without the session cookie, and SHALL NOT store the token.
+
+#### Scenario: A pasted token authenticates a request
+
+- **WHEN** a visitor pastes a token and sends a request from the reference
+- **THEN** the request goes to the page's own origin with `Authorization: Bearer` and that token
+
+#### Scenario: A signed-in operator's session does not ride along
+
+- **WHEN** an operator who is signed in to the control panel sends a request from the reference
+- **THEN** the request carries no session cookie
+
+#### Scenario: The token is not kept
+
+- **WHEN** a visitor has sent a request and reloads the page
+- **THEN** the token is gone, and none was written to browser storage
+
+### Requirement: The reference carries CopaLibre's look
+
+The API reference SHALL take its fonts, colours and radii from CopaLibre's design tokens and follow the system colour scheme, and SHALL load its fonts from the installation itself.
+
+#### Scenario: The reference reads as the application
+
+- **WHEN** a visitor opens the reference
+- **THEN** its text uses the application's body face, its headings the display face and its surfaces the design tokens, and no font is requested from another origin
+
+### Requirement: The reference renders under the strict content security policy
+
+The API reference SHALL render under the content security policy the web role enforces, without that policy allowing `unsafe-eval` and with no request to another origin.
+
+#### Scenario: Opened with the policy enforced
+
+- **WHEN** the reference is opened in a browser that enforces the policy
+- **THEN** it renders completely and the browser reports no policy violation
+
+### Requirement: A living document names only help routes that exist
+
+Every `/help/` route that a living repository document cites SHALL be produced by a help page, whether a content page or a standalone page, in English or under a locale prefix, and a build-time check SHALL fail, naming each document and route, when one is not.
+
+#### Scenario: A document cites a page that does not exist
+
+- **WHEN** a living document names `/help/api-reference/` and no page produces it
+- **THEN** the check fails, naming the document and the route
+
+#### Scenario: A pattern is not a claim
+
+- **WHEN** a document writes `/help/**` or `/{locale}/help/`
+- **THEN** the check does not treat it as a route
+
+### Requirement: The updating help gives the path from each starting release
+
+The `/help/cli/` updating page SHALL give, in every supported interface language, the upgrade steps for an installation created by 1.2.5 or 1.2.6, by 1.2.1 or earlier, and for one a 1.2.x CLI already upgraded, and SHALL describe the backup taken, the PostgreSQL major move, the kept old volume and how to return to it.
+
+#### Scenario: An operator on 1.2.6
+
+- **WHEN** an operator whose installation was created by 1.2.6 reads the updating page
+- **THEN** it says to run `copalibre upgrade --self` first and `copalibre upgrade` afterwards, and why running the old CLI's `copalibre upgrade` directly is not enough
+
+#### Scenario: An operator on 1.1.0
+
+- **WHEN** an operator whose CLI has no `upgrade` command reads the updating page
+- **THEN** it says to install the new CLI and run `copalibre upgrade` in the installation directory
+
+#### Scenario: Rolling back
+
+- **WHEN** an operator needs to return to the previous release after the upgrade
+- **THEN** the page gives the way back while the PostgreSQL 17 volume still exists (the kept Compose file and `.env`) and after the upgrade removed it (restoring the pre-upgrade backup packet into the previous release), with the commands for each

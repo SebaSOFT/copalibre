@@ -3,6 +3,7 @@ title: 命令参考
 description: 每个 copalibre CLI 命令、其用法及其选项标志。
 capabilities:
   - platform/cli-tournament-operations
+  - platform/url-routing-contract
 roles:
   - super-admin
   - admin
@@ -37,22 +38,61 @@ file:///var/lib/copalibre/modules-dev/<alias>` 搭配使用，可在无需源代
 - `--release <name>`：要记录的 Helm release 名称（默认：`copalibre`）
 - `--context <ctx>`：要记录的 kube-context（默认：无——需每次显式传入）
 
+身份选项：
+
+- `--oidc-issuer <url>`：通过使用此确切签发者（`iss`）的外部 OIDC 提供方登录。不提供时，CopaLibre 使用内置提供方。`init` 还会把签发者的源写入 `COPALIBRE_CSP_IDENTITY_ORIGIN`，使内容安全策略允许登录。
+- `--oidc-client-id <id>`：在提供方为 CopaLibre 注册的客户端 ID。与 `--oidc-issuer` 一起使用时必填。
+- `--oidc-jwks-uri <url>`：提供方的密钥集（默认：从其 OpenID 发现文档读取）。
+
+在交互模式下，`init` 会询问是否使用外部提供方，然后询问这些值。
+
+会话 cookie 选项：
+
+- `--https`：浏览器通过 HTTPS 访问安装，因此会话 cookie 带有 `Secure` 和 `__Host-` 前缀。
+- `--no-https`：在 `localhost` 以外的主机上使用纯 HTTP；cookie 不带 `Secure`。与 `https` 的 `--app-url` 一起使用时会被拒绝。
+
+两者都未指定时，`init` 根据 `--app-url` 的协议推导 `COPALIBRE_SESSION_COOKIE_SECURE`（`localhost` 视为安全）。在交互模式下，它会询问是否使用 HTTPS。
+
 电子邮件与修复选项：
 
 - `--repair`：备份 `.env` 和 `docker-compose.yml`，补齐缺失的默认值与文件，并保留现有 Compose。缺少默认服务时会显示 YAML 片段，供手动检查和添加。
 - `--email-provider <provider>`：`smtp`、`resend`、`brevo` 或 `mailgun`（默认：本地 SMTP）。
-- `--email-from <address>`：发件地址（默认：`noreply@copalibre.local`）。
+- `--email-from <address>`：发件地址（默认：`noreply@copalibre.local`，没有邮件服务会从该地址发信；在你设置真实地址之前，`doctor` 会一直报告）。
 - `--email-credential <value>`：SMTP 连接 URL 或服务商 API 密钥。
 - `--email-domain <domain>`：Mailgun 必填。
+- `--email-region <us|eu>`：域名所在的 Mailgun 区域（默认：`us`）。
+
+交互模式下，`init` 会像 `doctor` 一样询问邮件设置：按编号列出服务商，不显示地读取 API 密钥或 SMTP 密码，并询问发件人。按 Enter 保留本地测试默认值。已通过选项传入的值不会再询问。
 
 ## doctor
 
-`copalibre doctor [--check-proxy] [--proxy-url <url>]`
+`copalibre doctor [--check-proxy] [--proxy-url <url>] [--smoke] [--fix | --interactive] [--non-interactive] [--send-test-email <address>]`
+或 `copalibre doctor --configure <email|bootstrap-token|public-url> [该设置的选项]`
 
-在启动前验证配置和依赖项。
+在启动前验证配置和依赖项，并提议补全安装缺少的设置。
+
+Doctor 还会对运行时无法识别时区的每个组织发出警告并列出它；该警告不会阻止启动。
 
 - `--check-proxy`：同时验证反向代理配置
 - `--proxy-url <url>`：使用 `--check-proxy` 时用于测试的公开 URL
+- `--smoke`：端到端测试网关、认证 JWKS、组织和 SSE 流
+- `--fix`, `--interactive`：报告后，逐一询问每个处于非规范状态的赛事（选择状态、确认、应用）。需要终端。
+
+### doctor 补全的设置
+
+doctor 会找出安装缺少的设置，并在终端中提议补全。`copalibre upgrade` 最后会运行 doctor，因此升级后的安装也会收到这些问题。
+
+- **电子邮件**（`email`）：各版本默认写入的发件人 `noreply@copalibre.local` 会被报告为警告：没有邮件服务会从 `.local` 地址发信，因此邀请和密码重置邮件永远不会送达。缺少 API 密钥或 SMTP URL 的服务商则报告为失败。doctor 会询问由哪个服务发送邮件（SMTP、Resend、Brevo 或 Mailgun，按编号选择），再询问连接信息：SMTP 为服务器、端口、用户名和密码，或完整的 `smtp://` URL；其他服务商为 API 密钥，Mailgun 还需发信域名及其区域。输入密钥时不会显示。最后询问发件人地址。
+- **引导令牌**（`bootstrap-token`）：确认后，示例 `COPALIBRE_BOOTSTRAP_TOKEN` 会被替换为随机值。没有其他地方保存它，因此不会造成破坏。
+- **公开 URL**（`public-url`）：由 1.0 创建的安装会把浏览器指向 4321 端口上的 Web 服务。doctor 提议把 `COPALIBRE_APP_URL`（以及 `COPALIBRE_API_URL`，和指向同一地址的签发者）改为网关地址（默认 8080 端口）或你的代理地址。
+
+doctor 只写入你配置的键，把原文件保存为 `.env.<日期>.bak`，保持 `.env` 仅所有者可读，并列出已更改的键而不显示其值。配置邮件后会提议发送测试邮件，然后提议重启读取该变更的服务，并再次检查。
+
+doctor 从不改写数据库或运行中服务所保存的密码：对于示例 `POSTGRES_PASSWORD`，它会显示在数据库中修改密码的命令，需在修改 `.env` 之前执行。
+
+- `--non-interactive`：即使在终端中也不提问。没有终端时（脚本或 CI 任务），doctor 从不提问，而是显示下面的选项。
+- `--configure <setting>`：无需提问即可配置 `email`、`bootstrap-token` 或 `public-url`，然后检查。对于 `email`，传入 `--email-provider`、`--email-credential`、`--email-from`，Mailgun 还需 `--email-domain` 和 `--email-region`（与 `init` 相同的选项）。对于 `public-url`，传入 `--app-url <url>`。在命令行中输入的值会留在 shell 历史中；请从文件读取，例如 `--email-credential "$(cat resend-key.txt)"`。
+- `--send-test-email <address>`：从堆栈内部，通过应用使用的服务商和配置发送一封邮件，并报告服务商的回复（API 密钥错误时会显示服务商给出的原因）。
 
 ## dev
 
@@ -61,6 +101,18 @@ file:///var/lib/copalibre/modules-dev/<alias>` 搭配使用，可在无需源代
 运行开发环境，可以是容器化的或混合模式。
 
 - `--hybrid`：基础设施运行在 Docker 中，应用进程运行在主机上
+
+### dev demo
+
+`copalibre dev demo [--list] [<dataset>] [--anchor <YYYY-MM-DD|today>] [--played-until <ISO-8601|now>]`
+
+将一个已提交的演示数据集（例如 `panamericano-clubes-2025`，一个包含 24 个俱乐部的轮滑曲棍球锦标赛，含小组、杯赛、赛程、结果和队徽）加载到正在运行的开发环境中。请在开发环境启动时（`copalibre dev`）从你的 checkout 中运行。`rink-hockey` 项目必须已安装；加载从不安装模块，已加载的数据集保持不变。数据集中的球员姓氏是生成的，并非真实姓名。
+
+- `--list`：列出可用的数据集后退出
+- `--anchor <YYYY-MM-DD|today>`：把第一个比赛日移到该日期；每场比赛保留其当地时间及与第一个比赛日相隔的天数。`today` 指组织所在时区的今天
+- `--played-until <ISO-8601|now>`：只进行在该时刻之前结束的比赛；其余比赛仍按时段安排，参赛者依赖这些比赛的杯赛场次则保持待定。时刻须注明时差，例如 `2026-10-18T15:00:00-03:00`
+- `copalibre dev demo panamericano-clubes-2025 --anchor today --played-until now` 会加载一个正在进行的赛事
+- 使用 `docker compose -f docker-compose.dev.yml down -v` 重置演示数据；已加载的数据集会被跳过，带选项时也一样
 
 ## start
 
@@ -118,7 +170,7 @@ CopaLibre 版本）。应用保留策略：成功备份后，删除超出 `--ret
 - `--dry-run`：打印恢复计划而不实际运行
 - `--allow-newer-backup`：恢复由比当前运行版本更新的 CopaLibre 版本生成的备份包（默认拒绝）
 
-成功执行 `pg_restore` 后，`restore` 会自动运行 `copalibre migrate`，然后建立连接以验证应用后的架构版本是否与本实例的预期完全一致（与 `GET /ready` 所用的检查相同）——因此一次恢复绝不会让代码与数据库悄悄地失去同步。如果迁移失败，`restore` 会通过其退出码报告失败，而不会谎称成功；请重试 `copalibre migrate`，然后运行 `copalibre doctor`。
+成功执行 `pg_restore` 后，`restore` 会自动运行 `copalibre migrate`，然后建立连接以验证应用后的架构版本是否与本实例的预期完全一致（与 `GET /api/ready` 所用的检查相同）——因此一次恢复绝不会让代码与数据库悄悄地失去同步。如果迁移失败，`restore` 会通过其退出码报告失败，而不会谎称成功；请重试 `copalibre migrate`，然后运行 `copalibre doctor`。
 
 如果备份包清单记录的 CopaLibre 版本比当前运行的版本更新，则在触碰数据库之前就会被拒绝，并同时列出两个版本——请先升级本实例，或者如果你确实打算继续，可传入 `--allow-newer-backup`。
 
@@ -132,11 +184,44 @@ CopaLibre 版本）。应用保留策略：成功备份后，删除超出 `--ret
 
 如果任何已安装模块将与目标版本不再兼容，则以非零状态退出。完整流程请参阅[更新](/zh/help/cli/updating/)。
 
+## upgrade
+
+`copalibre upgrade [--check] [--target-version <v>] [--self] [--skip-self-update] [--skip-services] [--skip-modules] [--keep-old-volume] [--yes]`
+
+将当前目录中的安装升级到新版本。它读取安装的实际内容（发布其 Compose 文件的版本、PostgreSQL 版本、
+`.env`），而不只是其标记；拉取新镜像；停止栈并备份数据库；替换某个版本发布的 Compose 和网关文件，并保留
+`.bak` 副本；把数据从 PostgreSQL 17 迁移到 18 并比较每张表的行数；启动新版本；运行 `doctor`；doctor
+通过后删除 PostgreSQL 17 的卷和镜像。您修改过的 Compose 文件会让它在任何更改之前停止。自我更新后的二进制文件会自行继续升级。
+参见[更新](/zh/help/cli/updating/)。
+
+- `--check`：显示升级在此目录中将做什么，不做任何更改
+- `--target-version <v>`：要升级到的 CopaLibre 版本（默认：最新发布版本）
+- `--self`：只更新 CLI 二进制文件，不改动 Compose、镜像或服务
+- `--skip-self-update`：保留当前 CLI 二进制文件，并用它升级安装
+- `--skip-services`：只更新 `.env` 和标记；需要迁移数据库时会被拒绝
+- `--skip-modules`：结束时不列出过时的模块
+- `--keep-old-volume`：数据迁移后保留 PostgreSQL 17 的卷和镜像
+- `--yes`、`-y`：不经确认提示直接运行升级
+
 ## create-admin
 
 `copalibre create-admin --organization-alias <alias> --organization-name <name> --email <email>`
 
 创建某个组织的第一个管理员账户。
+
+别名不能是平台在地址中已经使用的名称，例如 `login`、`platform`、`tv`、`api` 或 `es` 这样的语言代码；
+遇到这种情况，命令会拒绝并说明原因。
+
+## grant-first-super-admin
+
+`copalibre grant-first-super-admin --email <email>`
+
+向一个已存在的账户授予超级管理员，并且仅在安装中没有活跃的超级管理员时才可以。其他授予方式都要求
+已经存在一位超级管理员，所以这是通向第一位超级管理员的途径。
+
+此人需要有账户：已接受邀请，或已登录过一次。该命令读取 `DATABASE_URL`，因此请在能够访问数据库的
+地方运行。授权在其下次登录时生效。如果已有活跃的超级管理员，命令会拒绝并说明，同时在审计日志中记录这次
+尝试；此后，超级管理员在控制面板的平台页面中管理。
 
 ## login
 
@@ -239,3 +324,15 @@ Fork `copalibre-modules`，将本地模块复制到一个新分支，推送该�
 
 启动一个本地 Model Context Protocol（MCP）服务器，使 AI 能够操作 CopaLibre。详情请参阅
 [MCP 工具详情](/zh/help/cli/mcp/)。
+
+## organization add-admin
+
+`copalibre organization add-admin --organization <alias> --email <email>`
+
+为现有组织创建可审计的管理员邀请。此命令会直接连接数据库，因此只能在可信的运维环境中使用，并配置 `DATABASE_URL` 和 `COPALIBRE_APP_URL`。命令不会创建账户或密码；受邀者通过正常邀请接受流程设置密码。设置链接只显示一次。
+
+## dev demo --with-admin
+
+`copalibre dev demo panamericano-clubes-2025 --with-admin <email>`
+
+加载演示数据后，为 `panamericano-demo` 创建可审计的管理员邀请，并仅显示一次设置链接。此选项仅适用于 Panamericano 演示数据集。

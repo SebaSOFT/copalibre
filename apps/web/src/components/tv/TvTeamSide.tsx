@@ -1,54 +1,58 @@
+import type { ReactNode } from 'react';
 import { EntrantName } from '../ui/atoms/EntrantName.js';
-import { TvEmblem } from './ui/atoms/TvEmblem.js';
+import { EntrantEmblem } from '../ui/molecules/EntrantEmblem.js';
 import type { TvClubItem } from './tv-types.js';
 
 /**
- * Extracted from `TvDashboard.tsx` — one side of the
- * spotlight match, matched against the roster's club emblem by name.
+ * Extracted from `TvDashboard.tsx` — one side of the spotlight match.
  */
 export function TvTeamSide({
   name,
   abbreviation,
+  clubId,
   clubs,
-  anchor = false,
+  roleLabel,
+  leading = false,
+  leadingLabel,
+  children,
 }: {
   readonly name: string;
   readonly abbreviation?: string;
+  readonly clubId?: string;
   readonly clubs?: readonly TvClubItem[];
-  /** The home side, on the spotlight's left — the jumbotron's visual anchor. */
-  readonly anchor?: boolean;
+  readonly roleLabel: string;
+  readonly leading?: boolean;
+  readonly leadingLabel?: string;
+  /** Shown below the side's tag, such as the side's match counters. */
+  readonly children?: ReactNode;
 }): React.JSX.Element {
-  const club = clubs?.find((c) => c.name.toLowerCase() === name.toLowerCase());
+  const club = clubId === undefined ? undefined : clubs?.find((c) => c.clubId === clubId);
 
   return (
-    <div className={`tv-team-side ${anchor ? 'tv-team-side--anchor' : ''}`.trim()}>
+    <div className="tv-team-side" data-leading={leading || undefined}>
       <div className="tv-team-side__emblem-wrap">
-        <TvEmblem
+        <EntrantEmblem
           alt={name}
           className="tv-team-side__emblem"
-          fallback={
-            <div className="tv-team-side__monogram">
-              {abbreviation ?? name.substring(0, 2).toUpperCase()}
-            </div>
-          }
+          abbreviation={abbreviation}
+          decorative
+          eager
+          size="100%"
           src={club?.emblemUrl}
         />
       </div>
-      {/* A narrow frame shows the abbreviation instead (the stylesheet swaps them); the name stays the tooltip. */}
-      <EntrantName
-        abbreviation={abbreviation}
-        className={
-          abbreviation === undefined
-            ? 'tv-team-side__name'
-            : 'tv-team-side__name tv-team-side__full'
-        }
-        fullName={name}
-      />
-      {abbreviation !== undefined && (
-        <abbr className="tv-team-side__name tv-team-side__short" title={name}>
-          {abbreviation}
-        </abbr>
+      {/* The full name remains visible; the monogram belongs to the emblem tile. */}
+      <EntrantName className="tv-team-side__name" fullName={name} />
+      {leadingLabel && (
+        <span
+          aria-hidden={!leading || undefined}
+          className={`tv-team-side__leading${leading ? '' : ' tv-team-side__leading--placeholder'}`}
+        >
+          {leading ? leadingLabel : '\u00a0'}
+        </span>
       )}
+      <span className="tv-team-side__role cl-chamfer">{roleLabel}</span>
+      {children}
     </div>
   );
 }

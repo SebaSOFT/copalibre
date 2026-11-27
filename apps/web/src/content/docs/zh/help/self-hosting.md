@@ -4,6 +4,7 @@ description: 在 Windows、macOS 或 Linux 上从源代码运行 CopaLibre，然
 capabilities:
   - platform/self-hosted-deployment
   - platform/email-notifications
+  - platform/security-assurance
 roles:
   - super-admin
 ---
@@ -65,9 +66,17 @@ mkdir my-league && cd my-league
 
 将应用域名转发到 Compose 网络内的 `gateway:80`；若代理运行在主机上，则使用 `127.0.0.1:8080`。网关处理同源 API、认证、SSE 和网页路由；web 容器将动态页面转发到 `web-ssr`。使用 `deploy/proxy/Caddyfile` 或 `deploy/proxy/nginx.conf`，配置 TLS 和公开 URL，并关闭 SSE 缓冲。同源部署不必使用独立的 API/events 域名。
 
+CopaLibre 不从其他来源加载字体、脚本或样式。Web 容器在 `/_astro/` 下以 `font/woff2` 和 `font/woff` 提供字体文件。请保持这些路径经由代理转发并保留其 `Content-Type`：主机面板针对 `.woff2`、`.css` 或 `.js` 的静态文件规则会使应用无法正常工作。
+
+每个页面都执行内容安全策略：只有构建自身的脚本可以运行，浏览器只连接到应用的源。使用外部 OIDC 提供方时，请通过 `copalibre init` 配置（它会询问，或使用 `--oidc-issuer` 和 `--oidc-client-id`）；`init` 会设置 `COPALIBRE_CSP_IDENTITY_ORIGIN` 以允许登录。请让代理原样传递 `Content-Security-Policy` 头；`copalibre doctor --check-proxy` 会检查这一点。
+
+登录 Control 时会设置三个严格必要的 cookie，公开页面上一个都没有：会话 cookie（HTTPS 下为 `__Host-copalibre_session`，纯 HTTP 下为 `copalibre_session`），它把访问令牌保存在任何脚本都读不到的地方；`copalibre_csrf`；以及使用邮箱和密码登录时的 `copalibre_refresh_token`。它们无需征求同意。`copalibre init` 会询问是否使用 HTTPS 并写入 `COPALIBRE_SESSION_COOKIE_SECURE`；请让 `/api` 和 `/events` 保持在 Control 的主机名上，并让代理原样传递 `Set-Cookie`。
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```
+
+API 和事件服务只信任来自回环地址和私有网络的 `X-Forwarded-For`。位于公网地址的代理必须写入 `COPALIBRE_TRUSTED_PROXIES`；覆盖所有地址的范围会被拒绝。同一账户短时间内大量请求被拒绝（默认十分钟内 20 次，见 `COPALIBRE_SECURITY_ALERT_THRESHOLD`）时，会产生一条安全警报：一行日志，并在设置了 `COPALIBRE_SECURITY_ALERT_EMAIL` 时发送一封邮件。
 
 ### 方案 B——Kubernetes（从 K3s 到企业级集群）
 
@@ -75,7 +84,7 @@ mkdir my-league && cd my-league
 Compose 安装相同的镜像、环境约定、健康检查和迁移流程——使用默认值安装它的行为与仅使用基础 chart
 完全一致。
 
-在仓库根目录运行 Helm，事先在 `my-values.yaml` 中配置数据库、身份认证、邮件和公开 URL。两个镜像都必须使用已发布版本；1.2.6 在发布后才可用。
+在仓库根目录运行 Helm，事先在 `my-values.yaml` 中配置数据库、身份认证、邮件和公开 URL。两个镜像都必须使用已发布版本；2.0.0 在发布后才可用。
 
 ```bash
 cd ..
@@ -84,8 +93,8 @@ helm show values deploy/helm/copalibre/ > my-values.yaml
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=2.0.0 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=2.0.0
 ```
 
 按需叠加以下这些默认关闭的可加性 `values.yaml` 分组——都无需 fork 模板：
@@ -118,7 +127,7 @@ k3d cluster create --config deploy/helm/k3s-dev-cluster.yaml
 
 - 新赛事和新俱乐部会通知组织管理员。
 - 新报名以及俱乐部提交名单，会通知组织管理员和该赛事的管理员。触发该事件的人不会收到邮件。
-- 邮件使用组织的主要语言，页眉显示其徽标和名称，并由 Copa Libre 署名，附带指向 [copalibre.app](https://copalibre.app) 的链接。
+- 邮件使用组织的主要语言，页眉显示其徽标和名称，并由 CopaLibre 署名，附带指向 [www.copalibre.app](https://www.copalibre.app) 的链接。
 - CSV 导入和 `copalibre dev demo` 不发送邮件。
 - 同一封邮件绝不会向同一收件人发送两次。如果服务商在确认前超时，该邮件不会重试，因此可能漏发，但不会重复。
 - 运维人员可以看到有多少邮件可能漏发：worker 按结果（已发送、已发送过、被拒绝、未知）统计每一次发送尝试，位于 `/jobs/metrics` 响应的 `emailDelivery` 下，并在记录每个未知结果时不包含收件人地址。`unknown` 不为零时值得设置告警；worker 重启后计数从零开始。

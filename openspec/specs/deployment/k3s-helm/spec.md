@@ -56,12 +56,13 @@ exists in only one of them.
 
 ### Requirement: Health-probe wiring
 Every long-running role's Deployment SHALL configure liveness, readiness, and startup probes against
-that role's `GET /health` endpoint from the bootstrap monorepo toolchain. A role that proxies some of
-its routes to another role SHALL probe a path it serves itself, never one it proxies, so a pod reports
-its own health rather than its upstream's.
+that role's own health endpoint from the bootstrap monorepo toolchain: `GET /api/health` for the `api`
+role, whose readiness probe uses `GET /api/ready`, and `GET /health` for every other role. A role that
+proxies some of its routes to another role SHALL probe a path it serves itself, never one it proxies,
+so a pod reports its own health rather than its upstream's.
 
 #### Scenario: Unhealthy pod is not routed traffic
-- **WHEN** a deployed `api` pod's `/health` endpoint returns a non-2xx status
+- **WHEN** a deployed `api` pod's `/api/health` endpoint returns a non-2xx status
 - **THEN** Kubernetes marks the pod not-ready and the Service stops routing traffic to it
 
 #### Scenario: A proxying role probes its own surface
@@ -121,3 +122,18 @@ containers — before tearing the cluster down.
 - **WHEN** `helm install --wait` times out during validation
 - **THEN** the run's output names the pods that never became ready and includes their events and
   container logs, rather than only the Helm timeout message
+
+### Requirement: Well-known files from a ConfigMap
+
+The chart SHALL accept an optional ConfigMap name in `web.wellKnown.configMap`. When it is set, the web role SHALL publish each
+key of that ConfigMap as one file under `/.well-known/`, read-only. When it is empty, the chart SHALL mount nothing there.
+
+#### Scenario: ConfigMap set
+
+- **WHEN** the chart renders with `web.wellKnown.configMap` naming a ConfigMap with the key `security.txt`
+- **THEN** the web Deployment mounts it read-only at `/srv/.well-known`, so `/.well-known/security.txt` serves that key
+
+#### Scenario: Default values
+
+- **WHEN** the chart renders with default values
+- **THEN** the web Deployment has no well-known volume

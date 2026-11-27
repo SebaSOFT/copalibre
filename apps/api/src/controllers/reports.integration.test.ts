@@ -28,6 +28,7 @@ import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
 import { ParticipantReportsController, ReportReviewController } from './reports.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * The report/dispute submission and review endpoints through the real HTTP
@@ -97,7 +98,7 @@ const CURRENT_ORG = (): string => currentOrganizationId;
 
 class FakeObjectStorage implements ObjectStorageAdapter {
   readonly profile = 'filesystem' as const;
-  private readonly objects = new Map<string, Uint8Array>();
+  readonly objects = new Map<string, Uint8Array>();
 
   async put(key: string, body: Uint8Array): Promise<{ key: string }> {
     this.objects.set(key, body);
@@ -112,6 +113,7 @@ class FakeObjectStorage implements ObjectStorageAdapter {
 }
 
 describe('report/dispute submission and review (integration)', () => {
+  const storage = new FakeObjectStorage();
   let app: INestApplication;
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let db: Kysely<Database>;
@@ -265,7 +267,7 @@ describe('report/dispute submission and review (integration)', () => {
       providers: [
         { provide: DATABASE, useValue: db },
         { provide: TokenVerifier, useClass: FakeTokenVerifier },
-        { provide: OBJECT_STORAGE, useValue: new FakeObjectStorage() },
+        { provide: OBJECT_STORAGE, useValue: storage },
         { provide: APP_FILTER, useClass: ApiExceptionFilter },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         { provide: APP_GUARD, useClass: OrganizationAccessGuard },
@@ -276,6 +278,7 @@ describe('report/dispute submission and review (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
@@ -291,11 +294,11 @@ describe('report/dispute submission and review (integration)', () => {
   }
 
   const reportsPath = () =>
-    `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/reports`;
+    `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/reports`;
   const disputesPath = () =>
-    `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/disputes`;
+    `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/matches/${matchId}/disputes`;
 
-  it("persists a participant's own report, linked to the match, with no standings change (6.1)", async () => {
+  it("persists a participant's own report, linked to the match, with no standings change", async () => {
     const response = await inject({
       method: 'POST',
       url: reportsPath(),
@@ -324,6 +327,47 @@ describe('report/dispute submission and review (integration)', () => {
     expect(match?.result).toBeUndefined();
   });
 
+  it('stores participant evidence under its organization whatever the filename says', async () => {
+    const response = await inject({
+      method: 'POST',
+      url: reportsPath(),
+      headers: { authorization: 'Bearer participant-a' },
+      payload: {
+        proposedResult: { sides: [{ entrantId: 'entrant-a', statistics: { goals: 1 } }] },
+        evidence: [
+          {
+            filename: '../../another-organization/emblem/photo.png',
+            contentType: 'image/png',
+            contentBase64: Buffer.from('evidence').toString('base64'),
+          },
+        ],
+      },
+    });
+    expect(response.statusCode).toBe(201);
+    const keys = [...storage.objects.keys()];
+    expect(keys.some((key) => key.includes('..'))).toBe(false);
+    expect(keys.at(-1)).toMatch(new RegExp(`^${currentOrganizationId}/[0-9a-f-]+-photo\\.png$`));
+  });
+
+  it('refuses evidence whose media type carries anything but type/subtype', async () => {
+    const response = await inject({
+      method: 'POST',
+      url: reportsPath(),
+      headers: { authorization: 'Bearer participant-a' },
+      payload: {
+        proposedResult: { sides: [{ entrantId: 'entrant-a', statistics: { goals: 1 } }] },
+        evidence: [
+          {
+            filename: 'proof.png',
+            contentType: 'text/html; charset=utf-8',
+            contentBase64: Buffer.from('evidence').toString('base64'),
+          },
+        ],
+      },
+    });
+    expect(response.statusCode).toBe(400);
+  });
+
   it('persists a dispute with a reason, leaving the match result untouched (6.1/6.4)', async () => {
     const response = await inject({
       method: 'POST',
@@ -338,7 +382,7 @@ describe('report/dispute submission and review (integration)', () => {
     expect(body.reason).toContain('recorded score');
   });
 
-  it('rejects a submission from a participant not entered in the match (6.2)', async () => {
+  it('rejects a submission from a participant not entered in the match', async () => {
     const response = await inject({
       method: 'POST',
       url: reportsPath(),
@@ -388,7 +432,7 @@ describe('report/dispute submission and review (integration)', () => {
   it('lets an operator list and dismiss a pending report without changing the result (7.2-adjacent, 6.4)', async () => {
     const list = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/reports`,
+      url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/reports`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(list.statusCode).toBe(200);
@@ -401,7 +445,7 @@ describe('report/dispute submission and review (integration)', () => {
 
     const dismiss = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/reports/${target.reportId}/review`,
+      url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/reports/${target.reportId}/review`,
       headers: { authorization: 'Bearer organizer' },
       payload: { status: 'dismissed', reviewNote: 'Duplicate of another submission' },
     });
@@ -417,7 +461,7 @@ describe('report/dispute submission and review (integration)', () => {
     // Sanity: the endpoint is org-scoped even though this suite only builds one.
     const response = await inject({
       method: 'GET',
-      url: `/organizations/no-such-org/tournaments/${tournamentAlias}/reports`,
+      url: `/api/organizations/no-such-org/tournaments/${tournamentAlias}/reports`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(response.statusCode).toBe(403);

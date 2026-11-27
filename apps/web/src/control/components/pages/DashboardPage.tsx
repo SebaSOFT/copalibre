@@ -1,15 +1,79 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
+import { useIntl } from 'react-intl';
 import { RealtimeClient } from '@copalibre/realtime';
 import { capabilitiesForRole, type OrganizationRole } from '@copalibre/domain';
 import { createControlApiClient, type ControlApiClient } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
+import { messages } from '../../i18n/messages.en.js';
+import { useResilientRead } from './use-resilient-read.js';
 import {
   buildDashboard,
   classifyTournamentLifecycle,
-  type ActivityEntry,
+  countKickoffsOnDay,
   type TournamentCard,
 } from '../../lib/dashboard.js';
 import { Dashboard } from '../Dashboard.js';
+import { PageHeaderContext } from '../ui/organisms/page-header.js';
+
+/** The current time, refreshed each minute so a count of "today" turns over at midnight. */
+function useNow(): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
+  return now;
+}
+
+/** How far either side of now the schedule is read: wider than any zone's offset from UTC. */
+const SCHEDULE_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
+
+interface Kickoff {
+  readonly tournamentId: string;
+  readonly startsAt: number;
+}
+
+/**
+ * The published kick-offs around now, across every tournament of the organization, in one request.
+ *
+ * `undefined` is "not known", never "none": the organization schedule is readable only with the
+ * schedule capability, and a failed read is not retried or toasted, because the dashboard is
+ * complete without it. Without the numbers the matches-today count stays off the page, rather
+ * than reading as zero.
+ */
+function useScheduledKickoffs(
+  api: ControlApiClient,
+  organizationAlias: string,
+  enabled: boolean,
+  refreshOn: unknown,
+): readonly Kickoff[] | undefined {
+  const [kickoffs, setKickoffs] = useState<readonly Kickoff[] | undefined>(undefined);
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const readSchedule = api.fetchOrganizationSchedule;
+    if (readSchedule === undefined) return undefined;
+    let current = true;
+    const now = Date.now();
+    readSchedule(organizationAlias, {
+      from: now - SCHEDULE_WINDOW_MS,
+      to: now + SCHEDULE_WINDOW_MS,
+    })
+      .then(({ assignments }) => {
+        if (!current) return;
+        setKickoffs(
+          assignments
+            .filter(({ published }) => published)
+            .map(({ tournamentId, startsAt }) => ({ tournamentId, startsAt })),
+        );
+      })
+      .catch(() => {
+        if (current) setKickoffs(undefined);
+      });
+    return () => {
+      current = false;
+    };
+  }, [api, organizationAlias, enabled, refreshOn]);
+  return enabled ? kickoffs : undefined;
+}
 
 /**
  * The organization dashboard's real tournament list replaces the sample data
@@ -24,39 +88,99 @@ export function DashboardPage({
   readonly organizationAlias: string;
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
+  const intl = useIntl();
   const api = useMemo(
     () =>
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );
-  const [tournaments, setTournaments] = useState<readonly TournamentCard[]>([]);
-  const [organizationId, setOrganizationId] = useState('');
-  const [activity, setActivity] = useState<readonly ActivityEntry[]>([]);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [role, setRole] = useState<OrganizationRole | undefined>(undefined);
-
-  useEffect(() => {
-    let live = true;
-    api
-      .listMyOrganizations()
-      .then((organizations) => {
-        if (!live) return;
-        const mine = organizations.find((one) => one.organizationAlias === organizationAlias);
-        setRole(mine?.role);
-      })
-      .catch(() => {
-        // Same presentation-guard fallback as ControlShellChrome's own
-        // lookup: a failed role read leaves the action visible rather than
-        // blocking the dashboard from rendering.
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias]);
+  const roleRead = useResilientRead(
+    `control-dashboard-role:${organizationAlias}`,
+    async () =>
+      (await api.listMyOrganizations()).find((one) => one.organizationAlias === organizationAlias)
+        ?.role,
+    {
+      thing: intl.formatMessage(messages.navDashboard),
+      isEmpty: (role) => role === undefined,
+    },
+  );
+  const read = useResilientRead(
+    `control-dashboard:${organizationAlias}`,
+    async () => {
+      const listActiveTournaments = api.listActiveTournaments;
+      if (!listActiveTournaments) throw new Error('Tournament listing is unavailable');
+      const fetchTournaments = listActiveTournaments(organizationAlias);
+      const fetchAudit = api.fetchAuditTrail
+        ? api.fetchAuditTrail(organizationAlias, { limit: 10 }).catch(() => undefined)
+        : Promise.resolve(undefined);
+      const [loadedTournaments, auditData] = await Promise.all([fetchTournaments, fetchAudit]);
+      const cards = await Promise.all(
+        loadedTournaments.map(async (tournament): Promise<TournamentCard> => {
+          const pending =
+            (await api.listRegistrations(organizationAlias, tournament.alias, 'pending')) ?? [];
+          return {
+            tournamentId: tournament.tournamentId,
+            organizationId: tournament.organizationId ?? '',
+            alias: tournament.alias,
+            name: tournament.name,
+            ...(tournament.status === undefined
+              ? {}
+              : { lifecycle: classifyTournamentLifecycle({ status: tournament.status }) }),
+            // The dashboard API exposes no schedule count. Omitting it keeps both the card fact
+            // and KPI out of the view until an authoritative value exists.
+            pendingRegistrations: pending.length,
+          };
+        }),
+      );
+      const organizationId =
+        cards[0]?.organizationId || (auditData?.records?.[0]?.organizationId ?? '') || '';
+      const activity = (auditData?.records ?? []).map((record) => ({
+        auditId: record.auditId,
+        organizationId: record.organizationId ?? organizationId,
+        action: record.action,
+        actor: record.actor,
+        occurredAt: record.occurredAt,
+        reason: record.reason,
+      }));
+      return { tournaments: cards, organizationId, activity };
+    },
+    {
+      thing: intl.formatMessage(messages.navDashboard),
+      isEmpty: ({ tournaments }) => tournaments.length === 0,
+    },
+  );
+  const scheduledKickoffs = useScheduledKickoffs(
+    api,
+    organizationAlias,
+    roleRead.data !== undefined &&
+      capabilitiesForRole(roleRead.data).includes('org.manage-schedule'),
+    read.data,
+  );
+  const organizationTimeZone = useContext(PageHeaderContext)?.organizationTimeZone;
+  const now = useNow();
+  // Counted at render, against today's date in the organization's zone, so the day rolls over
+  // without a reload. With no schedule to count, both the card fact and the summary tile stay
+  // out of the view until an authoritative value exists.
+  const tournaments = (read.data?.tournaments ?? []).map((card): TournamentCard =>
+    scheduledKickoffs === undefined
+      ? card
+      : {
+          ...card,
+          matchesToday: countKickoffsOnDay(
+            scheduledKickoffs
+              .filter(({ tournamentId }) => tournamentId === card.tournamentId)
+              .map(({ startsAt }) => startsAt),
+            now,
+            organizationTimeZone,
+          ),
+        },
+  );
+  const organizationId = read.data?.organizationId ?? '';
+  const activity = read.data?.activity ?? [];
+  const role: OrganizationRole | undefined = roleRead.data;
 
   // Client-side guard only — `role === undefined`
   // (not yet resolved) defaults to visible, matching `visibleSidenav`'s own
@@ -69,74 +193,10 @@ export function DashboardPage({
   // per-tournament entry point into it.
   const canManageDisplayTokens =
     role === undefined || capabilitiesForRole(role).includes('org.manage-display-tokens');
+  const canManageTournamentLifecycle =
+    role === undefined || capabilitiesForRole(role).includes('org.manage-tournament-lifecycle');
 
-  const reload = useCallback(() => {
-    setRefreshKey((k) => k + 1);
-  }, []);
-
-  useEffect(() => {
-    let live = true;
-    const listActiveTournaments = api.listActiveTournaments;
-    const fetchTournaments = listActiveTournaments
-      ? listActiveTournaments(organizationAlias)
-      : Promise.resolve([]);
-    const fetchAudit = api.fetchAuditTrail
-      ? api.fetchAuditTrail(organizationAlias, { limit: 10 }).catch(() => undefined)
-      : Promise.resolve(undefined);
-
-    Promise.all([fetchTournaments, fetchAudit])
-      .then(async ([loadedTournaments, auditData]) => {
-        const cards = await Promise.all(
-          loadedTournaments.map(async (tournament): Promise<TournamentCard> => {
-            const pending =
-              (await api.listRegistrations(organizationAlias, tournament.alias, 'pending')) ?? [];
-            return {
-              tournamentId: tournament.tournamentId,
-              organizationId: tournament.organizationId ?? '',
-              alias: tournament.alias,
-              name: tournament.name,
-              lifecycle: classifyTournamentLifecycle({ status: tournament.status }),
-              // No tournament-wide "matches scheduled today" read exists yet;
-              // building one is backend work this change did not plan for — left at zero rather
-              // than guessed, unlike pendingRegistrations below, which an
-              // existing read already answers exactly.
-              matchesToday: 0,
-              pendingRegistrations: pending.length,
-            };
-          }),
-        );
-
-        if (!live) return;
-        const resolvedOrgId =
-          cards[0]?.organizationId || (auditData?.records?.[0]?.organizationId ?? '') || '';
-        setTournaments(cards);
-        setOrganizationId(resolvedOrgId);
-
-        if (auditData?.records) {
-          setActivity(
-            auditData.records.map((r) => ({
-              auditId: r.auditId,
-              organizationId: r.organizationId ?? resolvedOrgId,
-              action: r.action,
-              actor: r.actor,
-              occurredAt: r.occurredAt,
-              reason: r.reason,
-            })),
-          );
-        } else {
-          setActivity([]);
-        }
-      })
-      .catch(() => {
-        if (live) {
-          setTournaments([]);
-          setActivity([]);
-        }
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias, refreshKey]);
+  const reload = read.retry;
 
   useEffect(() => {
     const stream =
@@ -145,7 +205,6 @@ export function DashboardPage({
 
     const realtime = new RealtimeClient({
       url: stream.url,
-      accessToken: stream.accessToken,
       heartbeatTimeoutMs: 15_000,
     });
     void realtime.connect({
@@ -160,9 +219,15 @@ export function DashboardPage({
     <Dashboard
       canCreateTournament={canCreateTournament}
       canManageDisplayTokens={canManageDisplayTokens}
+      canManageTournamentLifecycle={canManageTournamentLifecycle}
       client={api}
+      failed={read.status === 'failed-empty'}
+      loading={read.status === 'loading'}
       model={model}
+      onRetry={read.retry}
+      onPublishComplete={read.retry}
       organizationAlias={organizationAlias}
+      staleSince={read.status === 'stale' ? read.staleSince : undefined}
     />
   );
 }

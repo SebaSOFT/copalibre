@@ -28,6 +28,7 @@ import {
 } from './organization-access.controller.js';
 import { ParticipantIdentityLinksController } from './participants.controller.js';
 import { RegistrationsController } from './registrations.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /** Never actually invoked in these tests — DI just needs something to inject. */
 const noopObjectStorage = {
@@ -130,6 +131,7 @@ describe('participant and access correction (integration)', () => {
       imports: [ParticipantAndAccessCorrectionTestModule],
     }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
   });
@@ -141,7 +143,7 @@ describe('participant and access correction (integration)', () => {
 
   describe('invitation rescission', () => {
     it('lists a pending invitation, then rescinds it, dropping it from the list', async () => {
-      const created = await post('admin', `/organizations/liga-correccion/invitations`, {
+      const created = await post('admin', `/api/organizations/liga-correccion/invitations`, {
         email: 'rescind-me@example.test',
         role: 'viewer',
         status: 'active',
@@ -149,7 +151,7 @@ describe('participant and access correction (integration)', () => {
       expect(created.statusCode).toBe(201);
       const invitationId = created.json().invitationId as string;
 
-      const pending = await get('admin', `/organizations/liga-correccion/invitations`);
+      const pending = await get('admin', `/api/organizations/liga-correccion/invitations`);
       expect(pending.statusCode).toBe(200);
       expect(pending.json()).toContainEqual(
         expect.objectContaining({ invitationId, recipientEmail: 'rescind-me@example.test' }),
@@ -157,11 +159,11 @@ describe('participant and access correction (integration)', () => {
 
       const rescinded = await del(
         'admin',
-        `/organizations/liga-correccion/invitations/${invitationId}`,
+        `/api/organizations/liga-correccion/invitations/${invitationId}`,
       );
       expect(rescinded.statusCode).toBe(200);
 
-      const afterRescind = await get('admin', `/organizations/liga-correccion/invitations`);
+      const afterRescind = await get('admin', `/api/organizations/liga-correccion/invitations`);
       expect(
         (afterRescind.json() as readonly { invitationId: string }[]).some(
           (invitation) => invitation.invitationId === invitationId,
@@ -178,7 +180,7 @@ describe('participant and access correction (integration)', () => {
     });
 
     it('refuses a club-admin from rescinding — the same authority creation required', async () => {
-      const created = await post('admin', `/organizations/liga-correccion/invitations`, {
+      const created = await post('admin', `/api/organizations/liga-correccion/invitations`, {
         email: 'rescind-refused@example.test',
         role: 'viewer',
         status: 'active',
@@ -187,13 +189,13 @@ describe('participant and access correction (integration)', () => {
 
       const response = await del(
         'clubAdmin',
-        `/organizations/liga-correccion/invitations/${invitationId}`,
+        `/api/organizations/liga-correccion/invitations/${invitationId}`,
       );
       expect(response.statusCode).toBe(403);
     });
 
     it('refuses rescinding an already-rescinded invitation', async () => {
-      const created = await post('admin', `/organizations/liga-correccion/invitations`, {
+      const created = await post('admin', `/api/organizations/liga-correccion/invitations`, {
         email: 'already-rescinded@example.test',
         role: 'viewer',
         status: 'active',
@@ -201,13 +203,13 @@ describe('participant and access correction (integration)', () => {
       const invitationId = created.json().invitationId as string;
       const first = await del(
         'admin',
-        `/organizations/liga-correccion/invitations/${invitationId}`,
+        `/api/organizations/liga-correccion/invitations/${invitationId}`,
       );
       expect(first.statusCode).toBe(200);
 
       const second = await del(
         'admin',
-        `/organizations/liga-correccion/invitations/${invitationId}`,
+        `/api/organizations/liga-correccion/invitations/${invitationId}`,
       );
       expect(second.statusCode).toBe(409);
     });
@@ -235,7 +237,7 @@ describe('participant and access correction (integration)', () => {
 
       const response = await del(
         'admin',
-        `/organizations/liga-correccion/invitations/${invitationId}`,
+        `/api/organizations/liga-correccion/invitations/${invitationId}`,
       );
       expect(response.statusCode).toBe(409);
     });
@@ -264,8 +266,8 @@ describe('participant and access correction (integration)', () => {
         .execute();
 
       const [rescindResult, acceptResult] = await Promise.all([
-        del('admin', `/organizations/liga-correccion/invitations/${invitationId}`),
-        post('accepter', '/invitations/accept', { token: plaintextToken }),
+        del('admin', `/api/organizations/liga-correccion/invitations/${invitationId}`),
+        post('accepter', '/api/invitations/accept', { token: plaintextToken }),
       ]);
 
       const outcomes = [rescindResult.statusCode, acceptResult.statusCode].sort();
@@ -288,14 +290,14 @@ describe('participant and access correction (integration)', () => {
       const personId = await seedPerson('Persona Enlazada');
       const linked = await post(
         'admin',
-        `/organizations/liga-correccion/participants/${personId}/identity-link`,
+        `/api/organizations/liga-correccion/participants/${personId}/identity-link`,
         { email: 'wrong@example.test' },
       );
       expect(linked.statusCode).toBe(201);
 
       const unlinked = await del(
         'admin',
-        `/organizations/liga-correccion/participants/${personId}/identity-link`,
+        `/api/organizations/liga-correccion/participants/${personId}/identity-link`,
       );
       expect(unlinked.statusCode).toBe(200);
 
@@ -309,7 +311,7 @@ describe('participant and access correction (integration)', () => {
 
       const relinked = await post(
         'admin',
-        `/organizations/liga-correccion/participants/${personId}/identity-link`,
+        `/api/organizations/liga-correccion/participants/${personId}/identity-link`,
         { email: 'correct@example.test' },
       );
       expect(relinked.statusCode).toBe(201);
@@ -330,7 +332,7 @@ describe('participant and access correction (integration)', () => {
       const personId = await seedPerson('Sin Enlace');
       const response = await del(
         'admin',
-        `/organizations/liga-correccion/participants/${personId}/identity-link`,
+        `/api/organizations/liga-correccion/participants/${personId}/identity-link`,
       );
       expect(response.statusCode).toBe(409);
     });
@@ -348,7 +350,7 @@ describe('participant and access correction (integration)', () => {
       const personId = await seedPerson('Persona Sin Uso');
       const response = await del(
         'admin',
-        `/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/persons/${personId}`,
+        `/api/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/persons/${personId}`,
       );
       expect(response.statusCode).toBe(200);
 
@@ -377,7 +379,7 @@ describe('participant and access correction (integration)', () => {
 
       const response = await del(
         'admin',
-        `/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/persons/${personId}`,
+        `/api/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/persons/${personId}`,
       );
       expect(response.statusCode).toBe(409);
       expect(response.json().message).toContain('entrant');
@@ -405,7 +407,7 @@ describe('participant and access correction (integration)', () => {
 
       const refused = await del(
         'admin',
-        `/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/persons/${personId}`,
+        `/api/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/persons/${personId}`,
       );
       expect(refused.statusCode).toBe(409);
       expect(refused.json().message).toContain('rostered');
@@ -420,20 +422,24 @@ describe('participant and access correction (integration)', () => {
 
       const succeeded = await del(
         'admin',
-        `/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/persons/${personId}`,
+        `/api/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/persons/${personId}`,
       );
       expect(succeeded.statusCode).toBe(200);
     });
 
     it('refuses removing a person with an identity link, naming it', async () => {
       const personId = await seedPerson('Persona Con Enlace');
-      await post('admin', `/organizations/liga-correccion/participants/${personId}/identity-link`, {
-        email: 'blocked@example.test',
-      });
+      await post(
+        'admin',
+        `/api/organizations/liga-correccion/participants/${personId}/identity-link`,
+        {
+          email: 'blocked@example.test',
+        },
+      );
 
       const response = await del(
         'admin',
-        `/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/persons/${personId}`,
+        `/api/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/persons/${personId}`,
       );
       expect(response.statusCode).toBe(409);
       expect(response.json().message).toContain('identity link');
@@ -452,7 +458,7 @@ describe('participant and access correction (integration)', () => {
 
       const response = await del(
         'admin',
-        `/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/teams/${team.teamId}`,
+        `/api/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/teams/${team.teamId}`,
       );
       expect(response.statusCode).toBe(200);
 
@@ -487,7 +493,7 @@ describe('participant and access correction (integration)', () => {
 
       const response = await del(
         'admin',
-        `/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/teams/${team.teamId}`,
+        `/api/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/teams/${team.teamId}`,
       );
       expect(response.statusCode).toBe(409);
       expect(response.json().message).toContain('entrant');
@@ -520,7 +526,7 @@ describe('participant and access correction (integration)', () => {
 
       const refused = await del(
         'admin',
-        `/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/teams/${team.teamId}`,
+        `/api/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/teams/${team.teamId}`,
       );
       expect(refused.statusCode).toBe(409);
 
@@ -534,7 +540,7 @@ describe('participant and access correction (integration)', () => {
 
       const succeeded = await del(
         'admin',
-        `/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/teams/${team.teamId}`,
+        `/api/organizations/liga-correccion/tournaments/${tournamentAlias}/registrations/teams/${team.teamId}`,
       );
       expect(succeeded.statusCode).toBe(200);
     });

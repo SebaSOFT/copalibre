@@ -35,6 +35,29 @@ describe('ImageCropModal', () => {
     expect(screen.getByRole('button', { name: 'Close' })).toBeDefined();
   });
 
+  it('lays the cropper beside a preview and adjustment panel once the background is removed', async () => {
+    const mockRemove: jest.MockedFunction<RemoveBackgroundFn> = jest.fn(() => ({
+      result: Promise.resolve(new Blob(['x'], { type: 'image/png' })),
+      cancel: jest.fn(),
+    }));
+    render(
+      withIntl(
+        <ImageCropModal
+          imageSrc="blob:source"
+          onCancel={jest.fn()}
+          onConfirm={jest.fn()}
+          removeBackground={mockRemove}
+        />,
+      ),
+    );
+
+    const panel = await screen.findByRole('complementary', { name: 'Preview' });
+    expect(panel.querySelector('#crop-zoom')).not.toBeNull();
+    expect(panel.querySelector('#crop-rotation')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDefined();
+  });
+
   it('shows progress while removal is running and frames the cropper once complete', async () => {
     let progressCallback: ((p: BackgroundRemovalProgress) => void) | undefined;
     let resolveResult!: (blob: Blob) => void;
@@ -144,7 +167,7 @@ describe('ImageCropModal', () => {
       ),
     );
 
-    expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('calls onConfirm with the cropped PNG output once Confirm is clicked, and never calls onCancel', async () => {
@@ -156,9 +179,9 @@ describe('ImageCropModal', () => {
 
     await confirmImageLoaded();
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
-    fireEvent.click(screen.getByText('Use image'));
+    fireEvent.click(screen.getByText('Apply'));
 
     await waitFor(() =>
       expect(onConfirm).toHaveBeenCalledWith({
@@ -208,7 +231,7 @@ describe('ImageCropModal', () => {
     await screen.findByText(
       'Background removal failed. Retry or choose to keep the original image.',
     );
-    expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByRole('button', { name: 'Retry' })).toBeDefined();
     expect(screen.getByRole('button', { name: 'Keep original' })).toBeDefined();
     expect(onConfirm).not.toHaveBeenCalled();
@@ -248,7 +271,7 @@ describe('ImageCropModal', () => {
     await waitFor(() => expect(mockRemove).toHaveBeenCalledTimes(2));
     await confirmImageLoaded();
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
   });
 
@@ -279,9 +302,9 @@ describe('ImageCropModal', () => {
 
     await confirmImageLoaded();
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
-    fireEvent.click(screen.getByText('Use image'));
+    fireEvent.click(screen.getByText('Apply'));
 
     await waitFor(() =>
       expect(onConfirm).toHaveBeenCalledWith({

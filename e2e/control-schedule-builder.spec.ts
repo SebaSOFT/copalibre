@@ -1,5 +1,10 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
+import { fork, execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { fileURLToPath } from 'node:url';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectCompleteHeadingOutline } from './support/heading-outline.js';
+import { chooseSlot } from './support/schedule-slot.js';
 
 /**
  * Exercise the schedule builder end to end — create a venue and an
@@ -10,6 +15,19 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 const ORG_ALIAS = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
 const STAGE_ID = 'stage-1';
+
+async function expandAllAgendaDays(page: Page): Promise<void> {
+  const agenda = page.getByRole('region', { name: 'Agenda diaria' });
+  await expect(agenda).toBeVisible();
+  const summaries = agenda.locator('details > summary');
+  await expect(summaries.first()).toBeVisible();
+  for (const summary of await summaries.all()) {
+    const isOpen = await summary.evaluate(
+      (element) => (element.parentElement as HTMLDetailsElement).open,
+    );
+    if (!isOpen) await summary.click();
+  }
+}
 
 interface VenueRecord {
   readonly venueId: string;
@@ -32,6 +50,25 @@ interface ScheduleAssignment {
   readonly officialIds?: readonly string[];
 }
 
+interface ScheduleReason {
+  readonly code?: string;
+  readonly text: string;
+}
+
+/** A batch entry as the builder sends it: a placement, or a withdrawal. */
+interface BatchEntry {
+  readonly matchId: string;
+  readonly slotId?: string;
+  readonly withdraw?: true;
+  readonly officialIds?: readonly string[];
+  readonly reason?: ScheduleReason;
+}
+
+interface BatchBody {
+  readonly assignments: readonly BatchEntry[];
+  readonly reason?: ScheduleReason;
+}
+
 /**
  * A slot is the placeable unit — a venue and a time already reserved — since scheduling moved
  * to match grain. The builder picks one, rather than typing a start time and a duration.
@@ -45,6 +82,11 @@ const SCHEDULES = [
     slots: [
       { slotId: 'slot-1', venueId: 'venue-1', startsAt: '2026-08-01T14:00:00.000Z', matchCount: 0 },
       { slotId: 'slot-2', venueId: 'venue-1', startsAt: '2026-08-01T16:00:00.000Z', matchCount: 0 },
+      { slotId: 'slot-3', venueId: 'venue-1', startsAt: '2026-08-01T18:00:00.000Z', matchCount: 0 },
+      { slotId: 'slot-4', venueId: 'venue-1', startsAt: '2026-08-01T20:00:00.000Z', matchCount: 0 },
+      { slotId: 'slot-5', venueId: 'venue-2', startsAt: '2026-08-01T15:00:00.000Z', matchCount: 0 },
+      { slotId: 'slot-6', venueId: 'venue-2', startsAt: '2026-08-01T17:00:00.000Z', matchCount: 0 },
+      { slotId: 'slot-7', venueId: 'venue-2', startsAt: '2026-08-01T19:00:00.000Z', matchCount: 0 },
     ],
   },
 ];
@@ -52,16 +94,20 @@ const SCHEDULES = [
 let venues: VenueRecord[] = [];
 let officials: OfficialRecord[] = [];
 let published: ScheduleAssignment[] = [];
+let minimumRestMinutes: number | undefined;
+let publishedBodies: BatchBody[] = [];
 let nextVenueId = 1;
 let nextOfficialId = 1;
 
-const fixtures = [
+const BASE_FIXTURES = [
   {
     fixtureId: 'fixture-1',
     matchId: 'match-1',
     round: 1,
     homeEntrantId: 'entrant-a',
+    homeName: 'Club Alfa',
     awayEntrantId: 'entrant-b',
+    awayName: 'Club Bravo',
     matches: [{ matchId: 'match-1', number: 1, status: 'scheduled' }],
   },
   {
@@ -69,23 +115,393 @@ const fixtures = [
     matchId: 'match-2',
     round: 1,
     homeEntrantId: 'entrant-c',
+    homeName: 'Club Cóndor',
     awayEntrantId: 'entrant-d',
+    awayName: 'Club Delta',
     matches: [{ matchId: 'match-2', number: 1, status: 'scheduled' }],
   },
 ];
 
+/** A third and a fourth cross: the fourth shares entrant-a with the first, so rest can bite. */
+const MORE_FIXTURES = [
+  {
+    fixtureId: 'fixture-3',
+    matchId: 'match-3',
+    round: 2,
+    homeEntrantId: 'entrant-e',
+    homeName: 'Club Estrella',
+    awayEntrantId: 'entrant-f',
+    awayName: 'Club Faro',
+    matches: [{ matchId: 'match-3', number: 1, status: 'scheduled' }],
+  },
+  {
+    fixtureId: 'fixture-4',
+    matchId: 'match-4',
+    round: 2,
+    homeEntrantId: 'entrant-a',
+    homeName: 'Club Alfa',
+    awayEntrantId: 'entrant-c',
+    awayName: 'Club Cóndor',
+    matches: [{ matchId: 'match-4', number: 1, status: 'scheduled' }],
+  },
+];
+
+let fixtures = [...BASE_FIXTURES];
+/** Stream links the builder saved, by match, and every write it sent (the link is null when cleared). */
+let streamUrls: Record<string, string> = {};
+let streamUrlWrites: { matchId: string; streamUrl: string | null }[] = [];
+
+test('publishes an undecided eight-entrant final through the real API and retains it after reload', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  // This API-only TypeScript build never writes the web server's build directory.
+  await promisify(execFile)('yarn', ['workspace', '@copalibre/api', 'build']);
+  const child = fork(
+    fileURLToPath(new URL('./support/persisted-bracket-api.mjs', import.meta.url)),
+    {
+      execArgv: ['--import', 'tsx'],
+      env: { ...process.env, COPALIBRE_TEST_DIALECT: 'sqlite' },
+      stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+    },
+  );
+  let errors = '';
+  child.stderr?.on('data', (chunk) => {
+    errors += String(chunk);
+  });
+  try {
+    const api = await new Promise<{ url: string; stageId: string; matchId: string }>(
+      (resolve, reject) => {
+        child.once('message', (message) =>
+          resolve(message as { url: string; stageId: string; matchId: string }),
+        );
+        child.once('error', reject);
+        child.once('exit', (code) => reject(new Error(`Fixture API exited ${code}: ${errors}`)));
+      },
+    );
+    await page.exposeFunction(
+      '__realBracketApi',
+      async (path: string, method: string, body?: string) => {
+        const response = await fetch(`${api.url}${path}`, {
+          method,
+          ...(body === undefined ? {} : { body }),
+          headers: { authorization: 'Bearer organizer-org1', 'content-type': 'application/json' },
+        });
+        return { status: response.status, body: await response.text() };
+      },
+    );
+    await page.addInitScript(
+      ({ tokenEndpoint }) => {
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = async (input, init) => {
+          const path = String(input);
+          if (path === tokenEndpoint)
+            return Response.json({ access_token: 'organizer-org1', expires_in: 3600 });
+          if (!path.startsWith('/api/organizations/')) return originalFetch(input, init);
+          const response = await (
+            window as unknown as {
+              __realBracketApi: (
+                path: string,
+                method: string,
+                body?: string,
+              ) => Promise<{ status: number; body: string }>;
+            }
+          ).__realBracketApi(
+            path,
+            init?.method ?? 'GET',
+            init?.body === undefined ? undefined : String(init.body),
+          );
+          return new Response(response.body, {
+            status: response.status,
+            headers: { 'content-type': 'application/json' },
+          });
+        };
+      },
+      { tokenEndpoint: TOKEN_ENDPOINT },
+    );
+    const target = '/control/liga-orbital/tournaments/undecided-cup/stages/1/schedule';
+    await seedLoginTransaction(page, target);
+    await page.goto(loginCallbackUrl());
+    await page.waitForURL(`**${target}`);
+    await expandAllAgendaDays(page);
+    await expect(
+      page.getByTestId('entrant-name').filter({ hasText: 'Club 1' }).first(),
+    ).toBeVisible();
+    expect(await page.locator('main').innerText()).not.toMatch(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+    );
+    // Address the persisted final directly; the agenda sorts rows by date and venue.
+    const time = page.locator(`#slot-${api.matchId}`);
+    await expect(time).toBeVisible();
+    await chooseSlot(page.locator(`#day-${api.matchId}`), time, { index: 1 });
+    await page.getByRole('button', { name: 'Previsualizar', exact: true }).click();
+    await expect(
+      page.getByRole('button', { name: 'Publicar calendario', exact: true }),
+    ).toBeEnabled();
+    await page.getByRole('button', { name: 'Publicar calendario', exact: true }).click();
+    await expect(page.getByText('Horario publicado.')).toBeVisible();
+    const stored = await fetch(
+      `${api.url}/api/organizations/liga-orbital/tournaments/undecided-cup/stages/${api.stageId}/schedule`,
+    );
+    expect((await stored.json()).assignments).toEqual([
+      expect.objectContaining({ matchId: api.matchId, slotId: expect.any(String) }),
+    ]);
+    await page.reload();
+    await expect(time).not.toHaveValue('');
+    for (const [width, height] of [
+      [1440, 900],
+      [390, 844],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      const typography = await page.getByTestId('entrant-name').evaluateAll((names) =>
+        names.every((name) => {
+          const own = getComputedStyle(name);
+          if (name.parentElement === null) return false;
+          const parent = getComputedStyle(name.parentElement);
+          return (
+            own.fontFamily === parent.fontFamily &&
+            own.fontSize === parent.fontSize &&
+            own.fontWeight === parent.fontWeight
+          );
+        }),
+      );
+      expect(typography).toBe(true);
+    }
+  } finally {
+    if (child.connected) child.send('close');
+    await new Promise<void>((resolve) => {
+      child.once('exit', () => resolve());
+      if (child.exitCode !== null) resolve();
+    });
+  }
+});
+
+/** The real API launcher in `scenario`, with the page's API calls routed to it. */
+async function realApi(
+  page: import('@playwright/test').Page,
+  scenario: string,
+  language: 'en' | 'es' | 'de' = 'es',
+) {
+  await promisify(execFile)('yarn', ['workspace', '@copalibre/api', 'build']);
+  const child = fork(
+    fileURLToPath(new URL('./support/persisted-bracket-api.mjs', import.meta.url)),
+    {
+      execArgv: ['--import', 'tsx'],
+      env: {
+        ...process.env,
+        COPALIBRE_TEST_DIALECT: 'sqlite',
+        PERSISTED_BRACKET_SCENARIO: scenario,
+      },
+      stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+    },
+  );
+  let errors = '';
+  child.stderr?.on('data', (chunk) => {
+    errors += String(chunk);
+  });
+  const api = await new Promise<{ url: string; stageId: string }>((resolve, reject) => {
+    child.once('message', (message) => resolve(message as { url: string; stageId: string }));
+    child.once('error', reject);
+    child.once('exit', (code) => reject(new Error(`Fixture API exited ${code}: ${errors}`)));
+  });
+  await page.exposeFunction(
+    '__realBracketApi',
+    async (path: string, method: string, body?: string) => {
+      const response = await fetch(`${api.url}${path}`, {
+        method,
+        ...(body === undefined ? {} : { body }),
+        headers: { authorization: 'Bearer organizer-org1', 'content-type': 'application/json' },
+      });
+      return { status: response.status, body: await response.text() };
+    },
+  );
+  await page.addInitScript(
+    ({ tokenEndpoint, language }) => {
+      localStorage.setItem('copalibre.language', language);
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = async (input, init) => {
+        const path = String(input);
+        if (path === tokenEndpoint)
+          return Response.json({ access_token: 'organizer-org1', expires_in: 3600 });
+        if (!path.startsWith('/api/organizations/')) return originalFetch(input, init);
+        const response = await (
+          window as unknown as {
+            __realBracketApi: (
+              path: string,
+              method: string,
+              body?: string,
+            ) => Promise<{ status: number; body: string }>;
+          }
+        ).__realBracketApi(
+          path,
+          init?.method ?? 'GET',
+          init?.body === undefined ? undefined : String(init.body),
+        );
+        return new Response(response.body, {
+          status: response.status,
+          headers: { 'content-type': 'application/json' },
+        });
+      };
+    },
+    { tokenEndpoint: TOKEN_ENDPOINT, language },
+  );
+  return {
+    api,
+    send: (message: string) =>
+      new Promise<void>((resolve) => {
+        child.once('message', () => resolve());
+        child.send(message);
+      }),
+    close: async () => {
+      if (child.connected) child.send('close');
+      await new Promise<void>((resolve) => {
+        child.once('exit', () => resolve());
+        if (child.exitCode !== null) resolve();
+      });
+    },
+  };
+}
+
+for (const locale of [
+  {
+    language: 'en',
+    preview: 'Preview',
+    publish: 'Publish schedule',
+    published: 'Schedule published.',
+  },
+  {
+    language: 'de',
+    preview: 'Vorschau',
+    publish: 'Spielplan veröffentlichen',
+    published: 'Spielplan veröffentlicht.',
+  },
+] as const) {
+  test(`publishes a schedule with matching ${locale.language} action and toast copy`, async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    const real = await realApi(page, 'publishable', locale.language);
+    try {
+      const target = '/control/liga-orbital/tournaments/undecided-cup/stages/1/schedule';
+      await seedLoginTransaction(page, target);
+      await page.goto(loginCallbackUrl());
+      await page.waitForURL(`**${target}`);
+
+      await expect(page.getByRole('button', { name: locale.preview, exact: true })).toBeVisible();
+      const match = page.getByRole('combobox', { name: /Club 1 vs Club 8$/ });
+      // The day control comes first in the row, the slot control second.
+      await chooseSlot(match.first(), match.last(), { index: 1 });
+      await page.getByRole('button', { name: locale.preview, exact: true }).click();
+      const publishButton = page.getByRole('button', { name: locale.publish, exact: true });
+      await expect(publishButton).toBeEnabled();
+      await publishButton.click();
+      await expect(page.getByText(locale.published, { exact: true })).toBeVisible();
+    } finally {
+      await real.close();
+    }
+  });
+}
+
+test('reports a rest conflict a quarter-final result makes real, without moving either match', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const real = await realApi(page, 'arisen-conflict');
+  try {
+    const target = '/control/liga-orbital/tournaments/undecided-cup/stages/1/schedule';
+    await seedLoginTransaction(page, target);
+    await page.goto(loginCallbackUrl());
+    await page.waitForURL(`**${target}`);
+    await expandAllAgendaDays(page);
+    await expect(page.getByText('Conflictos surgidos después de publicar')).toHaveCount(0);
+
+    // The quarter-final is played; its winner now owes the semi-final an hour of rest.
+    await real.send('finalize-quarter');
+    await page.reload();
+    const arisen = page.locator('[data-arisen-conflicts]');
+    await expect(arisen.getByText('Conflictos surgidos después de publicar')).toBeVisible();
+    await expect(arisen.getByText(/^Club 1 no tiene el descanso exigido entre/)).toBeVisible();
+    const stored = await (
+      await fetch(
+        `${real.api.url}/api/organizations/liga-orbital/tournaments/undecided-cup/stages/${real.api.stageId}/schedule`,
+      )
+    ).json();
+    expect(stored.assignments).toHaveLength(2);
+    expect(stored.conflicts).toEqual([expect.objectContaining({ kind: 'rest-rule' })]);
+  } finally {
+    await real.close();
+  }
+});
+
+/** Picks a mocked slot for a match, naming it as the operator reads it: day, then start time. */
+async function pickSlot(page: Page, match: string, slotId: string): Promise<void> {
+  const startsAt = SCHEDULES[0]?.slots.find((one) => one.slotId === slotId)?.startsAt;
+  if (startsAt === undefined) throw new Error(`Unknown slot ${slotId}`);
+  await chooseSlot(
+    page.getByLabel(`Día — ${match}`),
+    page.getByLabel(`Hora de inicio — ${match}`),
+    { slotId, startsAt },
+  );
+}
+
+const slotStart = (slotId: string | undefined) =>
+  Date.parse(SCHEDULES[0]?.slots.find((one) => one.slotId === slotId)?.startsAt ?? '');
+
+/** The tournament's stored rest rule, measured from a one-hour match's end. */
+interface MockConflict {
+  readonly kind: string;
+  readonly matchId: string;
+  readonly conflictsWithMatchId: string;
+  readonly resourceId: string;
+  readonly detail: string;
+}
+
+function restConflicts(assignments: readonly ScheduleAssignment[]): readonly MockConflict[] {
+  if (minimumRestMinutes === undefined) return [];
+  const entrantsOf = (matchId: string) => {
+    const fixture = fixtures.find((one) => one.matchId === matchId);
+    return [fixture?.homeEntrantId, fixture?.awayEntrantId];
+  };
+  const placed = [
+    ...published.filter((one) => !assignments.some((a) => a.matchId === one.matchId)),
+    ...assignments,
+  ];
+  const conflicts: MockConflict[] = [];
+  for (const [index, a] of placed.entries()) {
+    for (const b of placed.slice(index + 1)) {
+      const shared = entrantsOf(a.matchId).filter((id) => entrantsOf(b.matchId).includes(id));
+      if (shared.length === 0) continue;
+      const gap = Math.abs(slotStart(a.slotId) - slotStart(b.slotId)) / 60_000 - 60;
+      if (gap < minimumRestMinutes) {
+        conflicts.push({
+          kind: 'rest-rule',
+          matchId: a.matchId,
+          conflictsWithMatchId: b.matchId,
+          resourceId: String(shared[0]),
+          detail: `Entrant "${shared[0]}" gets ${gap} minute(s) between "${a.matchId}" and "${b.matchId}"; ${minimumRestMinutes} are required`,
+        });
+      }
+    }
+  }
+  return conflicts;
+}
+
 /** Two matches placed in one slot at a single-capacity venue is exactly one conflict. */
-function detectConflicts(
-  assignments: readonly ScheduleAssignment[],
-): readonly { readonly detail: string }[] {
-  const conflicts: { detail: string }[] = [];
+function detectConflicts(assignments: readonly ScheduleAssignment[]): readonly MockConflict[] {
+  const conflicts: MockConflict[] = [];
   for (const [index, a] of assignments.entries()) {
     for (const b of assignments.slice(index + 1)) {
       if (a.slotId !== b.slotId) continue;
       const slot = SCHEDULES[0]?.slots.find((one) => one.slotId === a.slotId);
       const venue = venues.find((one) => one.venueId === slot?.venueId);
       if ((venue?.concurrentCapacity ?? 1) < 2) {
-        conflicts.push({ detail: `Venue "${slot?.venueId}" hosts 1 fixture(s) at once` });
+        conflicts.push({
+          kind: 'venue-double-booked',
+          matchId: a.matchId,
+          conflictsWithMatchId: b.matchId,
+          resourceId: String(slot?.venueId),
+          detail: `Venue "${slot?.venueId}" hosts 1 fixture(s) at once`,
+        });
       }
     }
   }
@@ -96,6 +512,11 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
   venues = [];
   officials = [];
   published = [];
+  fixtures = [...BASE_FIXTURES];
+  streamUrls = {};
+  streamUrlWrites = [];
+  minimumRestMinutes = undefined;
+  publishedBodies = [];
   nextVenueId = 1;
   nextOfficialId = 1;
 
@@ -109,12 +530,12 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
 
-        if (url === `/organizations/${orgAlias}/venues` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/venues` && method === 'GET') {
           return Response.json(
             await (window as unknown as { __venues: () => Promise<unknown> }).__venues(),
           );
         }
-        if (url === `/organizations/${orgAlias}/venues` && method === 'POST') {
+        if (url === `/api/organizations/${orgAlias}/venues` && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as {
             alias: string;
             name: string;
@@ -127,17 +548,17 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
             { status: 201 },
           );
         }
-        if (url === `/organizations/${orgAlias}/schedules` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/schedules` && method === 'GET') {
           return Response.json(
             await (window as unknown as { __schedules: () => Promise<unknown> }).__schedules(),
           );
         }
-        if (url === `/organizations/${orgAlias}/officials` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/officials` && method === 'GET') {
           return Response.json(
             await (window as unknown as { __officials: () => Promise<unknown> }).__officials(),
           );
         }
-        if (url === `/organizations/${orgAlias}/officials` && method === 'POST') {
+        if (url === `/api/organizations/${orgAlias}/officials` && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as {
             displayName: string;
             roles: readonly string[];
@@ -150,37 +571,62 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
           );
         }
 
-        const fixturesUrl = `/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/1/fixtures`;
+        const fixturesUrl = `/api/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/1/fixtures`;
         if (url === fixturesUrl && method === 'GET') {
           return Response.json(
             await (window as unknown as { __fixtures: () => Promise<unknown> }).__fixtures(),
           );
         }
 
-        const scheduleBase = `/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/${stageId}/schedule`;
+        const scheduleBase = `/api/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/${stageId}/schedule`;
         if (url === scheduleBase && method === 'GET') {
           return Response.json(
             await (window as unknown as { __schedule: () => Promise<unknown> }).__schedule(),
           );
         }
+        if (
+          method === 'PUT' &&
+          url.startsWith(`${scheduleBase}/matches/`) &&
+          url.endsWith('/stream-url')
+        ) {
+          const matchId = url.slice(`${scheduleBase}/matches/`.length, -'/stream-url'.length);
+          const body = JSON.parse(String(init?.body)) as { streamUrl: string | null };
+          return Response.json(
+            await (
+              window as unknown as {
+                __setStreamUrl: (matchId: string, streamUrl: string | null) => Promise<unknown>;
+              }
+            ).__setStreamUrl(matchId, body.streamUrl),
+          );
+        }
         if (url === `${scheduleBase}/preview` && method === 'POST') {
-          const body = JSON.parse(String(init?.body)) as {
-            assignments: readonly ScheduleAssignment[];
-          };
           return Response.json(
             await (
               window as unknown as { __preview: (body: unknown) => Promise<unknown> }
-            ).__preview(body.assignments),
+            ).__preview(JSON.parse(String(init?.body))),
           );
         }
         if (url === scheduleBase && method === 'POST') {
-          const body = JSON.parse(String(init?.body)) as {
-            assignments: readonly ScheduleAssignment[];
-          };
           return Response.json(
             await (
               window as unknown as { __publish: (body: unknown) => Promise<unknown> }
-            ).__publish(body.assignments),
+            ).__publish(JSON.parse(String(init?.body))),
+          );
+        }
+        if (url === `/api/organizations/${orgAlias}/schedule/reasons/recent` && method === 'GET') {
+          return Response.json({ reasons: ['Cancha 1 sin luz'] });
+        }
+        const settingsUrl = `/api/organizations/${orgAlias}/tournaments/${tournamentAlias}/settings`;
+        if (url === settingsUrl && method === 'GET') {
+          return Response.json(
+            await (window as unknown as { __settings: () => Promise<unknown> }).__settings(),
+          );
+        }
+        if (url === settingsUrl && method === 'PUT') {
+          return Response.json(
+            await (
+              window as unknown as { __saveSettings: (body: unknown) => Promise<unknown> }
+            ).__saveSettings(JSON.parse(String(init?.body))),
           );
         }
 
@@ -227,17 +673,119 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
     },
   );
   await page.exposeFunction('__schedules', () => SCHEDULES);
-  await page.exposeFunction('__fixtures', () => ({ stageId: STAGE_ID, fixtures }));
-  await page.exposeFunction('__schedule', () => ({ assignments: published }));
-  await page.exposeFunction('__preview', (assignments: readonly ScheduleAssignment[]) => {
-    const conflicts = detectConflicts(assignments);
-    return { committable: conflicts.length === 0, conflicts, affectedPublishedMatches: [] };
+  await page.exposeFunction('__fixtures', () => ({
+    stageId: STAGE_ID,
+    fixtures: fixtures.map((fixture) => ({
+      ...fixture,
+      matches: fixture.matches?.map((game) =>
+        streamUrls[game.matchId] === undefined
+          ? game
+          : { ...game, streamUrl: streamUrls[game.matchId] },
+      ),
+    })),
+  }));
+  await page.exposeFunction('__setStreamUrl', (matchId: string, streamUrl: string | null) => {
+    streamUrlWrites = [...streamUrlWrites, { matchId, streamUrl }];
+    if (streamUrl === null) delete streamUrls[matchId];
+    else streamUrls[matchId] = streamUrl;
+    return { matchId, streamUrl };
   });
-  await page.exposeFunction('__publish', (assignments: readonly ScheduleAssignment[]) => {
-    published = [...assignments];
+  await page.exposeFunction('__schedule', () => ({ assignments: published }));
+  await page.exposeFunction('__preview', (body: BatchBody) => {
+    const placements = body.assignments.filter(
+      (entry): entry is ScheduleAssignment => entry.withdraw !== true,
+    );
+    const withdrawn = body.assignments
+      .filter((entry) => entry.withdraw === true)
+      .map((e) => e.matchId);
+    const conflicts = [...detectConflicts(placements), ...restConflicts(placements)];
+    const moved = placements
+      .filter((entry) => {
+        const prior = published.find((one) => one.matchId === entry.matchId);
+        return prior !== undefined && prior.slotId !== entry.slotId;
+      })
+      .map((entry) => entry.matchId);
+    return {
+      committable: conflicts.length === 0,
+      conflicts,
+      affectedPublishedMatches: [...moved, ...withdrawn],
+      reasonRequiredMatches: [...moved, ...withdrawn],
+      withdrawn,
+      freedSlotIds: published.filter((one) => withdrawn.includes(one.matchId)).map((o) => o.slotId),
+    };
+  });
+  await page.exposeFunction('__publish', (body: BatchBody) => {
+    publishedBodies = [...publishedBodies, body];
+    const withdrawn = body.assignments
+      .filter((entry) => entry.withdraw === true)
+      .map((e) => e.matchId);
+    const placements = body.assignments.filter(
+      (entry): entry is ScheduleAssignment => entry.withdraw !== true,
+    );
+    published = [
+      ...published.filter(
+        (one) =>
+          !withdrawn.includes(one.matchId) && !placements.some((p) => p.matchId === one.matchId),
+      ),
+      ...placements.map(({ matchId, slotId, officialIds }) => ({
+        matchId,
+        slotId,
+        ...(officialIds === undefined ? {} : { officialIds }),
+      })),
+    ];
     return { assignments: published };
   });
+  await page.exposeFunction('__settings', () => ({
+    name: 'Apertura 2026',
+    featured: false,
+    ...(minimumRestMinutes === undefined ? {} : { minimumRestMinutes }),
+  }));
+  await page.exposeFunction('__saveSettings', (body: { minimumRestMinutes?: number | null }) => {
+    if (body.minimumRestMinutes !== undefined) {
+      minimumRestMinutes = body.minimumRestMinutes ?? undefined;
+    }
+    return {
+      name: 'Apertura 2026',
+      featured: false,
+      ...(minimumRestMinutes === undefined ? {} : { minimumRestMinutes }),
+    };
+  });
 }
+
+test('sets, refuses and clears a match stream link from the match row', async ({ page }) => {
+  await mockControlApi(page);
+
+  const scheduleTarget = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/stages/1/schedule`;
+  await seedLoginTransaction(page, scheduleTarget);
+  await page.goto(loginCallbackUrl()).catch((error: Error) => {
+    if (!error.message.includes('is interrupted by another navigation')) throw error;
+  });
+  await page.waitForURL(`**${scheduleTarget}`);
+  await expandAllAgendaDays(page);
+
+  const row = 'Club Alfa vs Club Bravo';
+  await page.getByRole('button', { name: `Editar transmisión — ${row}` }).click();
+  await page.getByLabel('Enlace de transmisión').fill('ftp://example.org/stream');
+  await page.getByRole('button', { name: 'Guardar enlace' }).click();
+  await expect(page.getByRole('alert')).toContainText(
+    'Ingresá un enlace completo, de hasta 2048 caracteres, que empiece con http:// o https://',
+  );
+  expect(streamUrlWrites).toEqual([]);
+
+  await page.getByLabel('Enlace de transmisión').fill('https://example.org/live/semifinal-1');
+  await page.getByRole('button', { name: 'Guardar enlace' }).click();
+  await expect(page.getByLabel('Enlace de transmisión')).toHaveCount(0);
+  expect(streamUrlWrites).toEqual([
+    { matchId: 'match-1', streamUrl: 'https://example.org/live/semifinal-1' },
+  ]);
+
+  await page.getByRole('button', { name: `Editar transmisión — ${row}` }).click();
+  await expect(page.getByLabel('Enlace de transmisión')).toHaveValue(
+    'https://example.org/live/semifinal-1',
+  );
+  await page.getByRole('button', { name: 'Quitar enlace' }).click();
+  expect(streamUrlWrites.at(-1)).toEqual({ matchId: 'match-1', streamUrl: null });
+});
 
 test('creates a venue and an official, assigns a fixture, previews, and publishes', async ({
   page,
@@ -266,20 +814,27 @@ test('creates a venue and an official, assigns a fixture, previews, and publishe
   });
   await page.waitForURL(`**${scheduleTarget}`);
 
-  await expect(page.getByText('Ronda 1').first()).toBeVisible();
-  await page.getByLabel('Hora de inicio — entrant-a vs entrant-b').selectOption('slot-1');
+  await expandAllAgendaDays(page);
+  await expectCompleteHeadingOutline(page, 'schedule');
+  await pickSlot(page, 'Club Alfa vs Club Bravo', 'slot-1');
+
+  // The row summarizes its officials; the picker opens for one match at a time.
+  await expect(page.getByText('Sin árbitros asignados').first()).toBeVisible();
+  await expect(page.getByLabel('Ana Gómez')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Editar árbitros — Club Alfa vs Club Bravo' }).click();
+  await page.getByLabel('Ana Gómez').check();
+  await page.getByRole('button', { name: 'Listo — Club Alfa vs Club Bravo' }).click();
+  await expect(page.getByLabel('Ana Gómez')).toHaveCount(0);
+  await expect(page.getByText('Árbitros: Ana Gómez')).toBeVisible();
 
   await page.getByText('Previsualizar').click();
-  await expect(page.getByText('Publicar')).toBeEnabled();
-  await page.getByText('Publicar').click();
+  await expect(page.getByText('Publicar calendario')).toBeEnabled();
+  await page.getByText('Publicar calendario').click();
 
   await expect(page.getByText('Horario publicado.')).toBeVisible();
-  // fixture-1 is no longer among the unassigned calendar rows — only fixture-2 (never
-  // assigned in this test) remains "Sin asignar". Scoped to the calendar: the list view's
-  // slot picker carries an unassigned option on every row, which is not a row's state.
-  await expect(
-    page.locator('[aria-label="Vista de calendario"]').getByText('Sin asignar'),
-  ).toHaveCount(1);
+  expect(published).toEqual([
+    { matchId: 'match-1', slotId: 'slot-1', officialIds: ['official-1'] },
+  ]);
 });
 
 test('a conflicting batch shows the conflict and blocks publish until resolved', async ({
@@ -301,14 +856,175 @@ test('a conflicting batch shows the conflict and blocks publish until resolved',
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${scheduleTarget}`);
 
-  await expect(page.getByText('Ronda 1').first()).toBeVisible();
+  await expandAllAgendaDays(page);
 
   // Both matches into the same slot at a venue that can host only one.
-  await page.getByLabel('Hora de inicio — entrant-a vs entrant-b').selectOption('slot-1');
-  await page.getByLabel('Hora de inicio — entrant-c vs entrant-d').selectOption('slot-1');
+  await pickSlot(page, 'Club Alfa vs Club Bravo', 'slot-1');
+  await expandAllAgendaDays(page);
+  await pickSlot(page, 'Club Cóndor vs Club Delta', 'slot-1');
 
   await page.getByText('Previsualizar').click();
-  await expect(page.getByText('Conflictos')).toBeVisible();
-  await expect(page.getByText(/hosts 1 fixture\(s\) at once/)).toBeVisible();
-  await expect(page.getByText('Publicar')).toBeDisabled();
+  await expect(page.getByRole('heading', { name: 'Conflictos', exact: true })).toBeVisible();
+  await expect(page.getByText(/^La cancha supera su capacidad con Club/)).toBeVisible();
+  // The API's English diagnostic never reaches the operator.
+  await expect(page.getByText(/hosts 1 fixture/)).toHaveCount(0);
+  await expect(page.getByText('Publicar calendario')).toBeDisabled();
+});
+
+for (const viewport of [
+  { width: 1440, height: 900 },
+  { width: 768, height: 1024 },
+  { width: 390, height: 844 },
+]) {
+  test(`no day or slot control clips its value at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await mockControlApi(page);
+    venues = [
+      {
+        venueId: 'venue-1',
+        organizationId: 'org-1',
+        alias: 'richet-y-zapata',
+        name: 'Richet y Zapata',
+        concurrentCapacity: 2,
+      },
+      {
+        venueId: 'venue-2',
+        organizationId: 'org-1',
+        alias: 'aldo-cantoni',
+        name: 'Aldo Cantoni',
+        concurrentCapacity: 1,
+      },
+    ];
+
+    const scheduleTarget = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/stages/1/schedule`;
+    await seedLoginTransaction(page, scheduleTarget);
+    await page.goto(loginCallbackUrl());
+    await page.waitForURL(`**${scheduleTarget}`);
+    await expandAllAgendaDays(page);
+
+    // A day chosen, the slot lists time and venue; the value is visible in full.
+    await pickSlot(page, 'Club Alfa vs Club Bravo', 'slot-1');
+    const clipped = await page.evaluate(() =>
+      [...document.querySelectorAll('select[id^="day-"], select[id^="slot-"]')]
+        .map((native) => native.closest('.cl-select-wrapper')?.querySelector('.cl-select__value'))
+        .filter((value): value is Element => value !== null && value !== undefined)
+        .filter((value) => value.scrollWidth > value.clientWidth + 1)
+        .map((value) => value.textContent),
+    );
+    expect(clipped).toEqual([]);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+  });
+}
+
+test('stores a minimum rest, asks a reason for published moves from the keyboard, and withdraws a match', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+  fixtures = [...BASE_FIXTURES, ...MORE_FIXTURES];
+  venues = [
+    {
+      venueId: 'venue-1',
+      organizationId: 'org-1',
+      alias: 'cancha-1',
+      name: 'Cancha 1',
+      concurrentCapacity: 1,
+    },
+    {
+      venueId: 'venue-2',
+      organizationId: 'org-1',
+      alias: 'cancha-2',
+      name: 'Cancha 2',
+      concurrentCapacity: 1,
+    },
+  ];
+  published = [
+    { matchId: 'match-1', slotId: 'slot-1' },
+    { matchId: 'match-2', slotId: 'slot-2' },
+    { matchId: 'match-3', slotId: 'slot-3' },
+  ];
+
+  const settingsTarget = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/settings`;
+  await seedLoginTransaction(page, settingsTarget);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${settingsTarget}`);
+  await page.getByLabel('Descanso mínimo entre partidos (minutos)').fill('120');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.getByText('Configuración guardada.')).toBeVisible();
+  expect(minimumRestMinutes).toBe(120);
+
+  const scheduleTarget = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/stages/1/schedule`;
+  await seedLoginTransaction(page, scheduleTarget);
+  await page.goto(loginCallbackUrl()).catch((error: Error) => {
+    if (!error.message.includes('is interrupted by another navigation')) throw error;
+  });
+  await page.waitForURL(`**${scheduleTarget}`);
+  await expandAllAgendaDays(page);
+
+  // entrant-a plays match-1 at 14:00; match-4 at 15:00 leaves no rest at all.
+  await pickSlot(page, 'Club Alfa vs Club Cóndor', 'slot-5');
+  await page.getByText('Previsualizar').click();
+  await expect(
+    page.getByText(/^Club Alfa no tiene el descanso exigido entre/).first(),
+  ).toBeVisible();
+  await expect(page.getByText(/are required/)).toHaveCount(0);
+  await page.getByLabel('Hora de inicio — Club Alfa vs Club Cóndor').selectOption('');
+
+  // Three published matches move; the batch needs a reason before it publishes.
+  await pickSlot(page, 'Club Alfa vs Club Bravo', 'slot-4');
+  await pickSlot(page, 'Club Cóndor vs Club Delta', 'slot-6');
+  await pickSlot(page, 'Club Estrella vs Club Faro', 'slot-7');
+  await page.getByText('Previsualizar').click();
+  await page.getByRole('button', { name: 'Publicar calendario', exact: true }).click();
+
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  const batchReason = dialog.getByLabel('Motivo del lote');
+  await expect(batchReason).toBeFocused();
+  await page.keyboard.type('Cancha 1 sin luz');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('e');
+  await expect(dialog.getByLabel('Motivo de Club Cóndor vs Club Delta')).toBeFocused();
+  await page.keyboard.type('Pedido de un');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(
+    dialog.getByText('3 partidos · 2 con el motivo del lote · 1 excepción'),
+  ).toBeVisible();
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Horario publicado.')).toBeVisible();
+
+  const moved = publishedBodies.at(-1);
+  expect(moved?.reason).toEqual({ text: 'Cancha 1 sin luz' });
+  expect(moved?.assignments.find((entry) => entry.matchId === 'match-2')?.reason).toEqual({
+    code: 'entrant-request',
+    text: 'Pedido de un participante',
+  });
+  expect(moved?.assignments.find((entry) => entry.matchId === 'match-1')?.reason).toBeUndefined();
+
+  // Withdrawing a published match frees its slot in the preview and needs a reason too.
+  await page
+    .getByRole('button', { name: 'Retirar del horario — Club Estrella vs Club Faro' })
+    .click();
+  await page.getByText('Previsualizar').click();
+  await expect(page.getByText('Horarios que libera este lote')).toBeVisible();
+  await page.getByRole('button', { name: 'Publicar calendario', exact: true }).click();
+  await page.keyboard.press('Control+A');
+  await page.keyboard.type('Clima');
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  // The first publish's toast may still be showing; the newest one is this publish's.
+  await expect(page.getByText('Horario publicado.').last()).toBeVisible();
+  expect(publishedBodies.at(-1)?.assignments).toContainEqual({
+    matchId: 'match-3',
+    withdraw: true,
+  });
+  expect(publishedBodies.at(-1)?.reason).toEqual({ code: 'weather', text: 'Clima' });
+  expect(published.map((one) => one.matchId)).not.toContain('match-3');
 });

@@ -16,6 +16,12 @@ const materializedMatch: CanvasMatch = {
   ],
 };
 
+function matchNode(matchId: string): HTMLElement {
+  const node = document.querySelector<HTMLElement>(`[data-match="${matchId}"]`);
+  if (node === null) throw new Error(`Expected bracket node ${matchId}`);
+  return node;
+}
+
 describe('SeedingBuilderTemplate', () => {
   it('renders within ListScreenLayout structure and displays seeding order and bracket canvas', async () => {
     const { container } = render(
@@ -35,9 +41,9 @@ describe('SeedingBuilderTemplate', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /seeding/i }));
-    expect(container.querySelector('.cl-list-screen')).not.toBeNull();
-    expect(container.querySelector('.cl-list-screen__header')).not.toBeNull();
-    expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
+    expect(container.querySelector('.cl-workspace-template')).not.toBeNull();
+    expect(container.querySelector('.cl-page-header')).not.toBeNull();
+    expect(container.querySelector('.cl-workspace-template__panes')).not.toBeNull();
     expect(screen.getByText('Godoy Cruz')).toBeDefined();
     expect(screen.getByText('Independiente Rivadavia')).toBeDefined();
   });
@@ -63,6 +69,29 @@ describe('SeedingBuilderTemplate', () => {
     );
   });
 
+  it("names the stage hub in its breadcrumb by the stage's own name when it is known", async () => {
+    render(
+      withIntl(
+        <SeedingBuilderTemplate
+          hasRecordedResults={false}
+          zones={[]}
+          organizationAlias="liga-mendocina"
+          seeds={[]}
+          stageName="Fase de grupos"
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+          tournamentName="Apertura 2026"
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByRole('heading', { level: 1, name: /seeding/i }));
+    expect(screen.getByRole('link', { name: 'Fase de grupos' }).getAttribute('href')).toBe(
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
+    );
+    expect(screen.queryByRole('link', { name: 'Stage 1' })).toBeNull();
+  });
+
   it('links a resolved bracket node to its match console when a tournament alias is supplied', () => {
     render(
       withIntl(
@@ -77,7 +106,8 @@ describe('SeedingBuilderTemplate', () => {
       ),
     );
 
-    const link = screen.getByText('WB-R1-M1').closest('a');
+    const link = matchNode('WB-R1-M1').querySelector('a');
+    expect(screen.getByText('Round 1, match 1')).toBeDefined();
     expect(link?.getAttribute('href')).toBe(
       '/control/liga-mendocina/tournaments/apertura-2026/matches/persisted-match-1',
     );
@@ -96,7 +126,7 @@ describe('SeedingBuilderTemplate', () => {
       ),
     );
 
-    expect(screen.getByText('WB-R1-M1').closest('a')).toBeNull();
+    expect(matchNode('WB-R1-M1').querySelector('a')).toBeNull();
   });
 
   it('renders graceful fallback for unresolved entrants missing from names dictionary', () => {
@@ -113,7 +143,7 @@ describe('SeedingBuilderTemplate', () => {
       ),
     );
 
-    expect(screen.getByText('Entrant 01890000')).toBeDefined();
+    expect(screen.getByText('Unnamed entrant')).toBeDefined();
     expect(screen.queryByText('01890000-0000-7000-8000-000000000001')).toBeNull();
   });
 });

@@ -8,7 +8,7 @@ const meta = {
   args: {
     now: Date.parse(NOW),
     devices: ['online', 'stale', 'never-seen', 'revoked'].map((state, index) => ({
-      tournamentAlias: TOURNAMENT,
+      tournamentName: TOURNAMENT,
       token: {
         displayTokenId: `${ids.match.slice(0, -1)}${index}`,
         tournamentId: ids.tournament,

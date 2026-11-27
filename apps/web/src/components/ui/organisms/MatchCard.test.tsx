@@ -1,9 +1,14 @@
+import { jest } from '@jest/globals';
 import { render, screen } from '@testing-library/react';
+import { matchCardLabels, publicIntl, sideSourceLabels } from '../../../lib/i18n/public-intl.js';
+import { formatTimestamp } from '../../../lib/format-timestamp.js';
 import { MatchCard, resolveCompactEntrant } from './MatchCard.js';
-import type { MatchCardData } from '../../../lib/matches-view.js';
+import { withSourceDepth, type MatchCardData } from '../../../lib/matches-view.js';
 import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
 
 const labels: MatchCardLabels = {
+  matchHeading: 'Match {match}',
+  sideSource: sideSourceLabels(publicIntl('en')),
   state: {
     live: 'LIVE',
     upcoming: 'UPCOMING',
@@ -22,8 +27,6 @@ const labels: MatchCardLabels = {
   zoneGroupAriaLabel: 'Zone/group: {scope}',
   positionInGroup: '{group} — position #{position}',
   position: 'Position #{position}',
-  decidedBy: 'Decided by: {factor}',
-  decidedByAriaLabel: 'A full explanation is available to an authorized organizer.',
   fullTraceHeading: 'Full standings comparator trace',
   seriesAriaLabel: 'Best of {bestOf} series: {home} to {away}',
   seriesPending: 'Series undecided at {home}–{away}',
@@ -44,6 +47,81 @@ function baseMatch(overrides: Partial<MatchCardData> = {}): MatchCardData {
 }
 
 describe('MatchCard', () => {
+  it('gives the title its own truncating slot with the full title as its tooltip, linked or not', () => {
+    const { container, rerender } = render(
+      <MatchCard
+        match={baseMatch({
+          state: 'final',
+          homeScore: 2,
+          awayScore: 1,
+          groupName: 'Cuartos de final 1',
+        })}
+        labels={labels}
+        locale="en"
+        outcome={{ kind: 'won', label: 'Won' }}
+      />,
+    );
+
+    const title = container.querySelector('.cl-match-card__title');
+    expect(title?.textContent).toBe('Cuartos de final 1');
+    expect(title?.getAttribute('title')).toBe('Cuartos de final 1');
+    expect(
+      container.querySelector('.cl-match-card__header .cl-match-card__outcome'),
+    ).not.toBeNull();
+
+    rerender(
+      <MatchCard
+        match={baseMatch({ state: 'final', homeScore: 2, awayScore: 1, groupName: 'Grupo A' })}
+        labels={labels}
+        locale="en"
+        reportUrl="/report/1"
+      />,
+    );
+    expect(
+      container.querySelector('a.cl-match-card__report-link .cl-match-card__title')?.textContent,
+    ).toBe('Grupo A');
+  });
+
+  it.each([
+    ['won', 'cl-badge--positive', 'Won'],
+    ['drawn', 'cl-badge--muted', 'Drawn'],
+    ['lost', 'cl-badge--negative', 'Lost'],
+  ] as const)(
+    'renders a %s outcome as a labelled badge with its tone',
+    (kind, toneClass, label) => {
+      const { container } = render(
+        <MatchCard
+          match={baseMatch({ state: 'final', homeScore: 2, awayScore: 1 })}
+          labels={labels}
+          locale="en"
+          outcome={{ kind, label }}
+        />,
+      );
+
+      const badge = container.querySelector('.cl-match-card__outcome');
+      expect(badge?.textContent).toBe(label);
+      expect(badge?.classList.contains(toneClass)).toBe(true);
+    },
+  );
+
+  it('renders no outcome badge when no outcome is given', () => {
+    const { container } = render(
+      <MatchCard
+        match={baseMatch({ state: 'final', homeScore: 2, awayScore: 1 })}
+        labels={labels}
+        locale="en"
+      />,
+    );
+
+    expect(container.querySelector('.cl-match-card__outcome')).toBeNull();
+  });
+
+  it('uses the match number as its card heading at the requested depth', () => {
+    render(<MatchCard headingLevel={3} match={baseMatch()} labels={labels} locale="en" />);
+
+    expect(screen.getByRole('heading', { level: 3, name: 'Match 1' })).toBeDefined();
+  });
+
   it('uses the requested opaque surface band while leaving other cards at their default', () => {
     const { container } = render(
       <>
@@ -93,6 +171,62 @@ describe('MatchCard', () => {
     ).toEqual(['10', '8']);
   });
 
+  it('does not show placeholder dashes for an upcoming match without a score', () => {
+    const { container } = render(<MatchCard match={baseMatch()} labels={labels} locale="en" />);
+
+    expect(container.querySelectorAll('.cl-match-card__side .cl-stat-tile__value')).toHaveLength(0);
+  });
+
+  it('shows 0 and 0 for a live match with no recorded score, in full and compact cards', () => {
+    const live = baseMatch({ state: 'live' });
+    const { container, rerender } = render(<MatchCard match={live} labels={labels} locale="en" />);
+    expect(
+      [...container.querySelectorAll('.cl-match-card__side .cl-stat-tile__value')].map(
+        (score) => score.textContent,
+      ),
+    ).toEqual(['0', '0']);
+
+    rerender(<MatchCard compact match={live} labels={labels} locale="en" />);
+    expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toContain(
+      'Norte 0',
+    );
+    expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toContain(
+      '0 Sur',
+    );
+  });
+
+  it('titles a group match by its group, with the match number as secondary text', () => {
+    render(
+      <MatchCard
+        headingLevel={3}
+        match={baseMatch({ matchNumber: 14, zoneName: 'Zona 1', groupName: 'Grupo A' })}
+        labels={{ ...labels, roundHeading: 'Round {round}' }}
+        locale="en"
+        reportUrl="/report"
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { level: 3, name: 'Grupo A · Match 14: Norte vs Sur' }),
+    ).toBeDefined();
+    expect(screen.getByText('Match 14').classList.contains('cl-match-card__number')).toBe(true);
+    // The scope line keeps the zone and does not repeat the group the title names.
+    expect(screen.getByTitle('Zone/group: Zona 1').textContent).toBe('Zona 1');
+  });
+
+  it('titles a knockout match by its round name', () => {
+    render(
+      <MatchCard
+        headingLevel={3}
+        match={baseMatch({ matchNumber: 33, nodeKey: 'SE-R2-M1', round: 2, sourceFinalRound: 3 })}
+        labels={labels}
+        locale="en"
+      />,
+    );
+
+    expect(screen.getByRole('heading', { level: 3, name: 'Semi-final 1 Match 33' })).toBeDefined();
+  });
+
   it('omits the venue line when no venue is assigned', () => {
     const { rerender } = render(
       <MatchCard match={baseMatch({ venueName: 'Cancha 1' })} labels={labels} locale="en" />,
@@ -106,7 +240,12 @@ describe('MatchCard', () => {
   it('shows a zone match with zone and position, and no series indication', () => {
     render(
       <MatchCard
-        match={baseMatch({ zoneName: 'Group B', homePosition: 1, awayPosition: 2 })}
+        match={baseMatch({
+          state: 'final',
+          zoneName: 'Group B',
+          homePosition: 1,
+          awayPosition: 2,
+        })}
         labels={labels}
         locale="en"
       />,
@@ -115,6 +254,17 @@ describe('MatchCard', () => {
     expect(screen.getByTitle('Position #1')).toBeDefined();
     expect(screen.getByTitle('Position #2')).toBeDefined();
     expect(screen.queryByText(/Series undecided|won the series/)).toBeNull();
+  });
+
+  it('omits rankings before an upcoming match has been played', () => {
+    render(
+      <MatchCard
+        match={baseMatch({ homePosition: 1, awayPosition: 2 })}
+        labels={labels}
+        locale="en"
+      />,
+    );
+    expect(screen.queryByTitle(/^Position/)).toBeNull();
   });
 
   it('renders a series cross via the series summary, with no position shown', () => {
@@ -139,18 +289,18 @@ describe('MatchCard', () => {
     expect(screen.queryByTitle(/^Position/)).toBeNull();
   });
 
-  it('shows the deciding-factor line only when the response carries one', () => {
-    const { rerender } = render(
+  it('never states a standings tie-break on a match card, even when the match row carries one', () => {
+    const esLabels = matchCardLabels(publicIntl('es'));
+    const { container } = render(
       <MatchCard
-        match={baseMatch({ state: 'final', decidingFactor: 'Rule 2 (Head-to-head)' })}
-        labels={labels}
-        locale="en"
+        match={baseMatch({ state: 'final', decidingFactorCode: 'goal-average' })}
+        labels={esLabels}
+        locale="es"
       />,
     );
-    expect(screen.getByText('Decided by: Rule 2 (Head-to-head)')).toBeDefined();
 
-    rerender(<MatchCard match={baseMatch({ state: 'final' })} labels={labels} locale="en" />);
-    expect(screen.queryByText(/^Decided by:/)).toBeNull();
+    expect(container.textContent).not.toContain('Promedio de goles');
+    expect(container.querySelector('.cl-match-card__deciding-factor')).toBeNull();
   });
 
   it('never renders a trace panel when the response carries no trace (the public shape)', () => {
@@ -176,8 +326,8 @@ describe('MatchCard', () => {
     expect(screen.getByText('Rule 2 (Head-to-head): a=1 → resolved')).toBeDefined();
   });
 
-  it('wraps the card in a link when reportUrl is given', () => {
-    render(
+  it('links the heading and makes the rest of the card a click target', () => {
+    const { container } = render(
       <MatchCard
         match={baseMatch()}
         labels={labels}
@@ -188,6 +338,9 @@ describe('MatchCard', () => {
     expect(screen.getByRole('link').getAttribute('href')).toBe(
       '/liga/tournaments/x/stages/1/matches/1',
     );
+    expect(screen.getByRole('link').getAttribute('aria-label')).toBe('Match 1: Norte vs Sur');
+    expect(container.querySelector('.cl-match-card__heading a')).not.toBeNull();
+    expect(container.querySelector('.cl-match-card')?.closest('a')).toBeNull();
   });
 
   it('shows a labelled state badge and a localized timestamp', () => {
@@ -208,6 +361,15 @@ describe('MatchCard', () => {
     expect(timestamp?.textContent).not.toContain('2025-05-18T');
   });
 
+  it('uses exactly one live dot beside the live label', () => {
+    const { container } = render(
+      <MatchCard match={baseMatch({ state: 'live' })} labels={labels} locale="en" />,
+    );
+    const badge = container.querySelector('.cl-match-card__header .cl-badge');
+    expect(badge?.querySelectorAll('.cl-live-dot')).toHaveLength(1);
+    expect(badge?.textContent).toContain('LIVE');
+  });
+
   it('renders the scheduled timestamp in the locale it is given, not a fixed one', () => {
     const instant = '2025-05-18T15:30:00.000Z';
     const { container } = render(
@@ -219,31 +381,304 @@ describe('MatchCard', () => {
     const timestamp = container.querySelector('time.cl-responsive-timestamp');
     expect(timestamp?.textContent).toContain(expectedMonth);
   });
+
+  it("renders scheduled timestamps in the organization's time zone", () => {
+    const instant = '2025-05-18T03:30:00.000Z';
+    const timeZone = 'America/Argentina/Buenos_Aires';
+    const { container } = render(
+      <MatchCard
+        match={baseMatch({ scheduledAt: instant })}
+        labels={labels}
+        locale="en"
+        timeZone={timeZone}
+      />,
+    );
+    const timestamp = container.querySelector('time.cl-responsive-timestamp');
+    const expected = new Intl.DateTimeFormat('en', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+      timeZone,
+    }).format(new Date(instant));
+    expect(timestamp?.getAttribute('title')).toBe(expected);
+  });
+
+  it('keeps the organization day when a UTC instant crosses midnight', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-11-20T12:00:00.000Z'));
+    try {
+      const { container } = render(
+        <MatchCard
+          match={baseMatch({ scheduledAt: '2026-11-19T00:15:00.000Z' })}
+          labels={labels}
+          locale="es"
+          timeZone="America/Argentina/Buenos_Aires"
+        />,
+      );
+      const text = container.querySelector('time.cl-responsive-timestamp')?.textContent ?? '';
+      expect(text).toContain('18');
+      expect(text).toContain('21:15');
+      expect(text).not.toContain('19');
+      expect(text).not.toContain('00:15');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+});
+
+describe('MatchCard undecided sides', () => {
+  const semi = (position: number): MatchCardData =>
+    baseMatch({ matchId: `sf${position}`, nodeKey: `SE-R2-M${position}`, round: 2 });
+  const final = baseMatch({
+    matchId: 'final',
+    nodeKey: 'SE-R3-M1',
+    round: 3,
+    homeName: undefined,
+    awayName: undefined,
+    homeSource: { kind: 'winner-of', nodeKey: 'SE-R2-M1', round: 2, position: 1 },
+    awaySource: { kind: 'winner-of', nodeKey: 'SE-R2-M2', round: 2, position: 2 },
+  });
+
+  it('names each undecided side by its source, marked beyond colour', () => {
+    const [, , card] = withSourceDepth([semi(1), semi(2), final]);
+    if (!card) throw new Error('missing final');
+    const { container } = render(<MatchCard match={card} labels={labels} locale="en" />);
+
+    expect(screen.getByText('Winner of Semi-final 1')).toBeDefined();
+    expect(screen.getByText('Winner of Semi-final 2')).toBeDefined();
+    expect(container.querySelectorAll('.cl-entrant-name--pending')).toHaveLength(2);
+    expect(screen.queryByText('TBD')).toBeNull();
+  });
+
+  it('shows the entrant on a decided side while the other still names its source', () => {
+    const [, , card] = withSourceDepth([semi(1), semi(2), { ...final, homeName: 'Norte' }]);
+    if (!card) throw new Error('missing final');
+    const { container } = render(<MatchCard match={card} labels={labels} locale="en" />);
+
+    expect(screen.getByText('Norte')).toBeDefined();
+    expect(screen.getByText('Winner of Semi-final 2')).toBeDefined();
+    expect(container.querySelectorAll('.cl-entrant-name--pending')).toHaveLength(1);
+  });
+
+  it('labels a placement game by the places it settles', () => {
+    const [, , third] = withSourceDepth([
+      semi(1),
+      semi(2),
+      baseMatch({
+        matchId: 'third',
+        nodeKey: 'placement-3',
+        homeName: undefined,
+        awayName: undefined,
+        homeSource: { kind: 'loser-of', nodeKey: 'SE-R2-M1', round: 2, position: 1 },
+        awaySource: { kind: 'loser-of', nodeKey: 'SE-R2-M2', round: 2, position: 2 },
+      }),
+    ]);
+    if (!third) throw new Error('missing third-place game');
+    render(<MatchCard match={{ ...third, sourceFinalRound: 3 }} labels={labels} locale="en" />);
+
+    expect(screen.getByText('3rd place')).toBeDefined();
+    expect(screen.getByText('Loser of Semi-final 1')).toBeDefined();
+    expect(screen.getByText('Loser of Semi-final 2')).toBeDefined();
+  });
+
+  it('uses the compact source form in the ticker presentation', () => {
+    const [, , card] = withSourceDepth([semi(1), semi(2), final]);
+    if (!card) throw new Error('missing final');
+    render(<MatchCard compact match={card} labels={labels} locale="en" />);
+
+    expect(
+      document
+        .querySelector('.cl-match-card__compact-content')
+        ?.textContent?.replace(/\s+/g, ' ')
+        .trim(),
+    ).toContain('W Semi 1 vs W Semi 2');
+  });
+
+  it('keeps both undecided sides in the same form when only one overflows', () => {
+    const [, , card] = withSourceDepth([semi(1), semi(2), final]);
+    if (!card) throw new Error('missing final');
+    const OriginalResizeObserver = globalThis.ResizeObserver;
+    const widthMap = new WeakMap<Element, { scrollWidth: number; clientWidth: number }>();
+
+    class MockResizeObserver {
+      private readonly cb: ResizeObserverCallback;
+      constructor(cb: ResizeObserverCallback) {
+        this.cb = cb;
+      }
+      observe(target: Element): void {
+        const text = target.textContent ?? '';
+        const overflows = text.includes('Winner of Semi-final 2');
+        Object.defineProperty(target, 'scrollWidth', {
+          configurable: true,
+          value: overflows ? 180 : 120,
+        });
+        Object.defineProperty(target, 'clientWidth', { configurable: true, value: 140 });
+        widthMap.set(target, { scrollWidth: overflows ? 180 : 120, clientWidth: 140 });
+        this.cb([], this as unknown as ResizeObserver);
+      }
+      unobserve(): void {}
+      disconnect(): void {}
+    }
+
+    globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+    try {
+      const { container } = render(<MatchCard match={card} labels={labels} locale="en" />);
+      const names = [...container.querySelectorAll('[data-testid="entrant-name"]')];
+      expect(names).toHaveLength(2);
+      expect(names.every((el) => el.querySelector('abbr') !== null)).toBe(true);
+      expect(names.map((el) => el.textContent?.trim())).toEqual(['W Semi 1', 'W Semi 2']);
+    } finally {
+      globalThis.ResizeObserver = OriginalResizeObserver;
+    }
+  });
+
+  it('distinguishes placement feeders by range and position in both full and compact cards', () => {
+    const feeder1 = baseMatch({
+      matchId: 'pl1',
+      nodeKey: 'PL5-R1-M1',
+      round: 1,
+      homeName: undefined,
+      awayName: undefined,
+    });
+    const feeder2 = baseMatch({
+      matchId: 'pl2',
+      nodeKey: 'PL5-R1-M2',
+      round: 1,
+      homeName: undefined,
+      awayName: undefined,
+    });
+    const final5th = baseMatch({
+      matchId: 'pl5',
+      nodeKey: 'PL5-R2-M1',
+      round: 2,
+      homeName: undefined,
+      awayName: undefined,
+      homeSource: { kind: 'winner-of', nodeKey: 'PL5-R1-M1', round: 1, position: 1 },
+      awaySource: { kind: 'winner-of', nodeKey: 'PL5-R1-M2', round: 1, position: 2 },
+    });
+    const [, , card] = withSourceDepth([feeder1, feeder2, final5th]);
+    if (!card) throw new Error('missing 5th-place final');
+
+    const { rerender } = render(<MatchCard match={card} labels={labels} locale="en" />);
+    expect(screen.getByText('Winner of 5th–8th place (1)')).toBeDefined();
+    expect(screen.getByText('Winner of 5th–8th place (2)')).toBeDefined();
+
+    rerender(<MatchCard compact match={card} labels={labels} locale="en" />);
+    expect(
+      document
+        .querySelector('.cl-match-card__compact-content')
+        ?.textContent?.replace(/\s+/g, ' ')
+        .trim(),
+    ).toContain('W 5–8 (1) vs W 5–8 (2)');
+  });
+
+  it('prefixes placement titles with the zone outside its section and hides implicit Grupos scope', () => {
+    const [, card] = withSourceDepth([
+      baseMatch({
+        matchId: 'z1',
+        zoneName: 'Copa Oro',
+        nodeKey: 'placement-3',
+        round: 1,
+      }),
+      baseMatch({
+        matchId: 'z2',
+        zoneName: 'Copa Plata',
+        nodeKey: 'placement-3',
+        round: 1,
+      }),
+    ]);
+    if (!card) throw new Error('missing zone placement card');
+
+    const { rerender } = render(
+      <MatchCard
+        match={card}
+        labels={{ ...labels, zonePrefix: '{zone} · {placement}' }}
+        locale="en"
+      />,
+    );
+    expect(screen.getByText('Copa Plata · 3rd place')).toBeDefined();
+    expect(screen.queryByTitle(/^Zone\/group:/)).toBeNull();
+
+    rerender(
+      <MatchCard
+        inZoneSection
+        match={card}
+        labels={{ ...labels, zonePrefix: '{zone} · {placement}' }}
+        locale="en"
+      />,
+    );
+    expect(screen.getByText('3rd place')).toBeDefined();
+    expect(screen.getByTitle('Zone/group: Copa Plata')).toBeDefined();
+
+    rerender(
+      <MatchCard
+        match={baseMatch({ zoneName: 'Grupos', groupName: 'Grupo A' })}
+        labels={labels}
+        locale="en"
+      />,
+    );
+    expect(screen.queryByTitle(/^Zone\/group:/)).toBeNull();
+  });
 });
 
 describe('resolveCompactEntrant', () => {
   it('prefers a persisted abbreviation, trimmed, over any derivation', () => {
-    expect(resolveCompactEntrant('  CAI  ', 'Club Atlético Independiente')).toBe('CAI');
+    expect(resolveCompactEntrant('A definir', '  CAI  ', 'Club Atlético Independiente')).toBe(
+      'CAI',
+    );
   });
 
-  it('derives dotted initials from a multi-word name', () => {
-    expect(resolveCompactEntrant(undefined, 'San Juan')).toBe('S.J.');
-    expect(resolveCompactEntrant(undefined, 'Club Atlético Independiente')).toBe('C.A.I.');
+  it('uses the full display name when no abbreviation is stored', () => {
+    expect(resolveCompactEntrant('A definir', undefined, 'San Juan')).toBe('San Juan');
+    expect(resolveCompactEntrant('A definir', undefined, 'Club Atlético Independiente')).toBe(
+      'Club Atlético Independiente',
+    );
   });
 
-  it('takes the first 5 uppercased characters of a single-word name', () => {
-    expect(resolveCompactEntrant(undefined, 'River')).toBe('RIVER');
-    expect(resolveCompactEntrant(undefined, 'Huracán')).toBe('HURAC');
+  it('does not truncate or change the case of a display name', () => {
+    expect(resolveCompactEntrant('A definir', undefined, 'River')).toBe('River');
+    expect(resolveCompactEntrant('A definir', undefined, 'Huracán')).toBe('Huracán');
   });
 
-  it('falls back to TBD with neither an abbreviation nor a name', () => {
-    expect(resolveCompactEntrant(undefined, undefined)).toBe('TBD');
-    expect(resolveCompactEntrant('', '')).toBe('TBD');
+  it('falls back to the undecided text with neither an abbreviation nor a name', () => {
+    expect(resolveCompactEntrant('A definir', undefined, undefined)).toBe('A definir');
+    expect(resolveCompactEntrant('A definir', '', '')).toBe('A definir');
   });
 });
 
 describe('MatchCard compact presentation', () => {
-  it('renders a color-coded state dot, abbreviations, and the score in ticker order while live', () => {
+  it('keeps full club names in overview summaries when requested', () => {
+    const { container } = render(
+      <MatchCard
+        compact
+        compactNames="full"
+        match={baseMatch({
+          homeName: 'Club Universitario de Buenos Aires',
+          homeAbbreviation: 'CUBA',
+          awayName: 'Andes Talleres',
+          awayAbbreviation: 'AND',
+        })}
+        labels={labels}
+        locale="es"
+        reportUrl="/match/1"
+      />,
+    );
+
+    expect(container.querySelector('.cl-match-card--compact-full-names')).not.toBeNull();
+    expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toContain(
+      'Club Universitario de Buenos Aires',
+    );
+    expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toContain(
+      'Andes Talleres',
+    );
+    const displayedNames = Array.from(
+      container.querySelectorAll('.cl-match-card__compact-side > span'),
+      (name) => name.textContent,
+    );
+    expect(displayedNames).toContain('Club Universitario de Buenos Aires');
+    expect(displayedNames).toContain('Andes Talleres');
+  });
+
+  it('renders a color-coded state dot, full entrant names, and score in ticker order while live', () => {
     const { container } = render(
       <MatchCard
         compact
@@ -262,14 +697,17 @@ describe('MatchCard compact presentation', () => {
     expect(container.querySelector('.cl-match-card--compact')).not.toBeNull();
     const dot = container.querySelector('.cl-match-card__compact-dot');
     expect(dot?.classList.contains('cl-state--live')).toBe(true);
+    expect(dot?.classList.contains('cl-live-dot')).toBe(true);
     expect(dot?.getAttribute('title')).toBe('LIVE');
     expect(screen.getByText('LIVE', { selector: '.cl-visually-hidden' })).toBeDefined();
     expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toBe(
-      'C.A.I. 4 vs 3 U.V.T.',
+      'Club Atlético Independiente 4 vs 3 Unión Vecinal Talcahuano',
     );
   });
 
-  it('renders entrant abbreviations, versus, and the scheduled time for an upcoming match', () => {
+  it('renders full entrant names, versus, and the short dynamic scheduled timestamp for an upcoming match', () => {
+    const referenceDate = Date.parse('2026-07-20T12:00:00.000Z');
+    const scheduledAt = '2026-08-01T18:30:00.000Z';
     const { container } = render(
       <MatchCard
         compact
@@ -277,19 +715,70 @@ describe('MatchCard compact presentation', () => {
           state: 'upcoming',
           homeName: 'Norte',
           awayName: 'Sur',
-          scheduledAt: '2026-08-01T18:30:00.000Z',
+          scheduledAt,
         })}
         labels={labels}
         locale="en-GB"
+        referenceDate={referenceDate}
+        timeZone="UTC"
       />,
     );
 
-    const expectedTime = new Intl.DateTimeFormat('en-GB', { timeStyle: 'short' }).format(
-      new Date('2026-08-01T18:30:00.000Z'),
-    );
+    const expectedTime = formatTimestamp(scheduledAt, {
+      locale: 'en-GB',
+      referenceDate,
+      timeZone: 'UTC',
+    });
     expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toBe(
-      `NORTE vs SUR ${expectedTime}`,
+      `Norte vs Sur ${expectedTime}`,
     );
+  });
+
+  it('uses relative-day words in compact mode and shows a visible delayed badge when past kickoff', () => {
+    const referenceDate = Date.parse('2026-08-01T18:50:00.000Z');
+    const scheduledAt = '2026-08-01T18:30:00.000Z';
+    const { container } = render(
+      <MatchCard
+        compact
+        match={baseMatch({
+          state: 'upcoming',
+          homeName: 'Norte',
+          awayName: 'Sur',
+          scheduledAt,
+        })}
+        labels={{ ...labels, delayed: 'Delayed' }}
+        locale="en"
+        referenceDate={referenceDate}
+        timeZone="UTC"
+      />,
+    );
+
+    expect(container.querySelector('.cl-match-card__compact-dot.cl-state--delayed')).not.toBeNull();
+    expect(
+      container.querySelector('.cl-match-card__compact-state.cl-state--delayed')?.textContent,
+    ).toBe('Delayed');
+    expect(container.querySelector('.cl-match-card__compact-time')?.textContent?.trim()).toBe(
+      'Today 18:30',
+    );
+  });
+
+  it('renders the delayed badge in full mode once more than 15 minutes have elapsed', () => {
+    const referenceDate = Date.parse('2026-08-01T18:50:00.000Z');
+    render(
+      <MatchCard
+        match={baseMatch({
+          state: 'upcoming',
+          scheduledAt: '2026-08-01T18:30:00.000Z',
+        })}
+        labels={{ ...labels, delayed: 'Delayed' }}
+        locale="en"
+        referenceDate={referenceDate}
+        timeZone="UTC"
+      />,
+    );
+
+    const badge = screen.getByText('Delayed').closest('.cl-badge');
+    expect(badge?.classList.contains('cl-state--delayed')).toBe(true);
   });
 
   it('renders the decided score with a positive-state dot for a final match', () => {
@@ -311,12 +800,12 @@ describe('MatchCard compact presentation', () => {
     const dot = container.querySelector('.cl-match-card__compact-dot');
     expect(dot?.classList.contains('cl-state--positive')).toBe(true);
     expect(container.querySelector('.cl-match-card__compact-content')?.textContent).toBe(
-      'NORTE 2 vs 1 SUR',
+      'Norte 2 vs 1 Sur',
     );
   });
 
-  it('wraps the compact card in a link when reportUrl is given', () => {
-    render(
+  it('gives compact cards an accessible overlay link without wrapping the card', () => {
+    const { container } = render(
       <MatchCard
         compact
         match={baseMatch()}
@@ -328,6 +817,9 @@ describe('MatchCard compact presentation', () => {
     expect(screen.getByRole('link').getAttribute('href')).toBe(
       '/liga/tournaments/x/stages/1/matches/1',
     );
+    expect(screen.getByRole('link').getAttribute('aria-label')).toBe('Norte vs Sur');
+    expect(screen.getByRole('link').classList.contains('cl-match-card__hit-area')).toBe(true);
+    expect(container.querySelector('.cl-match-card--compact')?.closest('a')).toBeNull();
   });
 
   it('never renders the full card structure while compact', () => {
@@ -336,5 +828,96 @@ describe('MatchCard compact presentation', () => {
     );
     expect(container.querySelector('.cl-match-card__sides')).toBeNull();
     expect(container.querySelector('.cl-match-card__header')).toBeNull();
+  });
+
+  it('renders LiveMatchScoreboard with active segment label and paused indicator when clock is provided', () => {
+    render(
+      <MatchCard
+        match={baseMatch({
+          state: 'live',
+          clock: {
+            segmentNumber: 2,
+            elapsedSeconds: 930,
+            running: false,
+            asOf: '2026-04-01T18:15:30.000Z',
+          },
+          segments: [
+            {
+              number: 1,
+              type: 'half',
+              label: { en: 'Half', es: 'Tiempo' },
+              state: 'completed',
+              timed: true,
+            },
+            {
+              number: 2,
+              type: 'half',
+              label: { en: 'Half', es: 'Tiempo' },
+              state: 'active',
+              timed: true,
+            },
+          ],
+        })}
+        labels={{
+          ...labels,
+          clockStopped: 'Stopped',
+          liveClockAriaLabel: '{segment}, {time}',
+          lastUpdated: 'Last updated at {time}',
+        }}
+        locale="en"
+      />,
+    );
+
+    const timer = screen.getByRole('timer');
+    expect(timer.textContent).toContain('2nd Half');
+    expect(timer.textContent).toContain('15:30');
+    expect(timer.textContent).toContain('Stopped');
+    expect(timer.getAttribute('aria-label')).toBe('2nd Half, 15:30');
+  });
+
+  it('links team names to club pages only on regular cards when aliases are valid, never on compact cards', () => {
+    const matchWithClubs = baseMatch({
+      homeClubAlias: 'club-hispano',
+      awayClubAlias: 'andes-talleres',
+    });
+
+    const { container, rerender } = render(
+      <MatchCard
+        match={matchWithClubs}
+        labels={labels}
+        locale="en"
+        localePrefix="/es"
+        organizationAlias="liga-mendocina"
+        tournamentAlias="apertura-2026"
+        reportUrl="/es/liga-mendocina/tournaments/apertura-2026/stages/1/matches/1"
+      />,
+    );
+
+    const teamLinks = [...container.querySelectorAll('.cl-match-card__team-link')].map((el) =>
+      el.getAttribute('href'),
+    );
+    expect(teamLinks).toEqual([
+      '/es/liga-mendocina/tournaments/apertura-2026/clubs/club-hispano',
+      '/es/liga-mendocina/tournaments/apertura-2026/clubs/andes-talleres',
+    ]);
+    expect(container.querySelector('.cl-match-card__report-link')?.getAttribute('href')).toBe(
+      '/es/liga-mendocina/tournaments/apertura-2026/stages/1/matches/1',
+    );
+
+    rerender(
+      <MatchCard
+        compact
+        match={matchWithClubs}
+        labels={labels}
+        locale="en"
+        localePrefix="/es"
+        organizationAlias="liga-mendocina"
+        tournamentAlias="apertura-2026"
+        reportUrl="/es/liga-mendocina/tournaments/apertura-2026/stages/1/matches/1"
+      />,
+    );
+
+    expect(container.querySelectorAll('.cl-match-card__team-link')).toHaveLength(0);
+    expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 });

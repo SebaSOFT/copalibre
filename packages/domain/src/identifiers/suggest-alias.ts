@@ -94,8 +94,46 @@ export function suggestAvailableAlias(
   return undefined;
 }
 
+/** Whether the folded form of `text` is a club alias `Alias.create` accepts, before any suffixing. */
+function usableClubCandidate(text: string): boolean {
+  const base = suggestAlias(text);
+  return base !== undefined && Alias.create('club', base).ok;
+}
+
 /** Whether a suggestion would survive `Alias.create`, for a caller that wants to check. */
 export function isSuggestable(name: string, scope: AliasScope = 'club'): boolean {
   const suggestion = suggestAlias(name);
   return suggestion !== undefined && Alias.create(scope, suggestion).ok;
+}
+
+/**
+ * The alias a club is given when none is supplied. It never comes back empty.
+ *
+ * The chain: the name, disambiguated as above; then the organizer's abbreviation
+ * when one is given, folded the same way (a transformation of a choice the
+ * organizer already made, and readable in a URL); then `club-<n>` with the
+ * smallest free `n`. The last step always terminates because `taken` is finite.
+ *
+ * Kept apart from `suggestAvailableAlias`, which still reports "nothing usable"
+ * because team, participant and CSV-import callers each have their own fallback.
+ */
+export function suggestRequiredClubAlias(
+  name: string,
+  taken: ReadonlySet<string> | readonly string[],
+  abbreviation?: string,
+): string {
+  const used = taken instanceof Set ? taken : new Set(taken);
+
+  // A candidate a club alias may not be (a UUID-shaped name, say) falls through to the next step.
+  const fromName = usableClubCandidate(name) ? suggestAvailableAlias(name, used) : undefined;
+  if (fromName !== undefined) return fromName;
+
+  if (abbreviation !== undefined && usableClubCandidate(abbreviation)) {
+    const fromAbbreviation = suggestAvailableAlias(abbreviation, used);
+    if (fromAbbreviation !== undefined) return fromAbbreviation;
+  }
+
+  let ordinal = 1;
+  while (used.has(`club-${ordinal}`)) ordinal += 1;
+  return `club-${ordinal}`;
 }

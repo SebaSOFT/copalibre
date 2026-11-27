@@ -1,6 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures.js';
+import { recordedFlashes, recordFlashes } from './support/flash-recorder.js';
 
 /**
  * The live-patched score ticker on the public tournament overview page —
@@ -10,13 +11,13 @@ import { expect, test } from './fixtures.js';
  *
  * B1 is server-rendered — its overview fetch runs inside the Astro preview
  * process, not the browser — so a local stub API stands in for it, the same
- * pattern `standings-and-rankings.spec.ts`'s "B2: public tournament page"
+ * pattern `standings-and-rankings.table.spec.ts`'s "B2: public tournament page"
  * describe block already established.
  */
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const TOURNAMENT = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const OVERVIEW_PATH = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const MATCH_ID = 'match-live-1';
 const HOME_ENTRANT_ID = 'entrant-home';
@@ -81,7 +82,7 @@ async function mockStreamDeliveringOneScoreEvent(page: Page): Promise<void> {
         const encoder = new TextEncoder();
         const body = new ReadableStream<Uint8Array>({
           start(controller) {
-            controller.enqueue(encoder.encode(frame));
+            setTimeout(() => controller.enqueue(encoder.encode(frame)), 150);
           },
         });
         return new Response(body, {
@@ -115,14 +116,20 @@ test.describe('public score ticker live reactivity', () => {
   });
 
   test('a live SSE event updates the ticker score without navigating away', async ({ page }) => {
+    await recordFlashes(page, `.cl-ticker__item[data-match-id="${MATCH_ID}"] .cl-ticker__figure`);
     await mockStreamDeliveringOneScoreEvent(page);
     await page.goto(OVERVIEW_PATH);
 
     const item = page.locator(`.cl-ticker__item[data-match-id="${MATCH_ID}"]`).first();
     await expect(item).toBeVisible();
-    // The mock stream delivers its one frame as soon as the client connects,
-    // so the only reliably observable state is the post-patch score.
-    await expect(item.locator('.cl-ticker__figure')).toHaveText('2 : 1', { timeout: 10_000 });
+    // The mock stream waits briefly after connection so the score change remains
+    // observable as a cue.
+    const figure = item.locator('.cl-ticker__figure');
+    await expect(figure).toHaveText('2 : 1', { timeout: 10_000 });
+    await expect
+      .poll(() => recordedFlashes(page))
+      .toContainEqual(expect.objectContaining({ text: '2 : 1' }));
+    await expect(figure).not.toHaveClass(/cl-flash-on-change/, { timeout: 2_000 });
 
     // Still the same overview page — a live event never triggers a navigation.
     expect(page.url()).toContain(OVERVIEW_PATH);
@@ -139,5 +146,22 @@ test.describe('public score ticker live reactivity', () => {
     await expect(item.locator('.cl-ticker__figure')).toHaveText('1 : 1');
 
     await context.close();
+  });
+
+  test('the ticker pause control reserves space instead of covering match text', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(OVERVIEW_PATH);
+
+    const viewport = page.locator('.cl-ticker__viewport');
+    const pause = page.locator('[data-ticker-pause]');
+    await expect(pause).toBeVisible();
+
+    const viewportBox = await viewport.boundingBox();
+    const pauseBox = await pause.boundingBox();
+    expect(viewportBox).not.toBeNull();
+    expect(pauseBox).not.toBeNull();
+    expect((viewportBox?.x ?? 0) + (viewportBox?.width ?? 0)).toBeLessThanOrEqual(pauseBox?.x ?? 0);
   });
 });

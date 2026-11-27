@@ -9,7 +9,9 @@ import {
   fetchOrganizationTournaments,
   fetchPublicTableLayouts,
   fetchPublicTableProjection,
+  publicTableCsvUrl,
   mapOverviewResponse,
+  mapPublicWinnerZones,
   mapLiveResponse,
   mapBracketResponse,
   mapMatchesViewResponse,
@@ -44,7 +46,7 @@ describe('public-api-client', () => {
       const result = await fetchOverview('org1', 'tourney1');
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/overview',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/overview',
       );
     });
 
@@ -89,7 +91,7 @@ describe('public-api-client', () => {
       const result = await fetchCompletion('org1', 'tourney1');
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/completion',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/completion',
       );
     });
 
@@ -128,7 +130,7 @@ describe('public-api-client', () => {
       const result = await fetchLive('org1', 'tourney1');
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/live',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/live',
       );
     });
 
@@ -165,7 +167,7 @@ describe('public-api-client', () => {
       const result = await fetchBracket('org1', 'tourney1', 1);
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/stages/1/bracket',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/stages/1/bracket',
       );
     });
 
@@ -204,7 +206,7 @@ describe('public-api-client', () => {
       const result = await fetchMatchesView('org1', 'tourney1');
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/matches-view',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/matches-view',
       );
     });
 
@@ -221,7 +223,7 @@ describe('public-api-client', () => {
         state: 'live',
       });
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/matches-view?stageNumber=2&groupId=group-1&state=live',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/matches-view?stageNumber=2&groupId=group-1&state=live',
       );
     });
 
@@ -247,17 +249,28 @@ describe('public-api-client', () => {
             round: 1,
             status: 'final',
             homeName: 'Norte',
+            homeClubAlias: 'norte',
             awayName: 'Sur',
+            awayClubAlias: 'sur',
             homeScore: 2,
             awayScore: 1,
             zoneName: 'Group B',
             homePosition: 1,
-            decidingFactor: 'Rule 2 (Head-to-head)',
+            decidingFactorCode: 'head-to-head',
+            decidingFactorRule: 2,
+            latestEvent: {
+              definitionCode: 'goal',
+              label: 'Goal',
+              labels: { en: 'Goal', es: 'Gol' },
+              occurredAt: '2026-08-01T20:15:00.000Z',
+            },
           },
         ],
       };
       const result = mapMatchesViewResponse(
         response as unknown as Parameters<typeof mapMatchesViewResponse>[0],
+        undefined,
+        'es',
       );
       expect(result.matches).toEqual([
         {
@@ -268,20 +281,28 @@ describe('public-api-client', () => {
           state: 'final',
           homeName: 'Norte',
           homeAbbreviation: undefined,
+          homeClubAlias: 'norte',
           homeScore: 2,
           awayName: 'Sur',
           awayAbbreviation: undefined,
+          awayClubAlias: 'sur',
           awayScore: 1,
           clockSeconds: undefined,
           venueName: undefined,
           scheduledAt: undefined,
-          latestEvent: undefined,
+          latestEvent: {
+            definitionCode: 'goal',
+            label: 'Gol',
+            labels: { en: 'Goal', es: 'Gol' },
+            occurredAt: '2026-08-01T20:15:00.000Z',
+          },
           zoneName: 'Group B',
           groupName: undefined,
           homePosition: 1,
           awayPosition: undefined,
           series: undefined,
-          decidingFactor: 'Rule 2 (Head-to-head)',
+          decidingFactorCode: 'head-to-head',
+          decidingFactorRule: 2,
         },
       ]);
     });
@@ -298,7 +319,7 @@ describe('public-api-client', () => {
 
       expect(await fetchMatchReport('org1', 'tourney1', 2, 3)).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/stages/2/matches/3',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/stages/2/matches/3',
       );
     });
 
@@ -323,7 +344,7 @@ describe('public-api-client', () => {
       const result = await fetchPublicTableLayouts('org1', 'tourney1');
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/public/tables',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/public/tables',
       );
     });
 
@@ -349,7 +370,7 @@ describe('public-api-client', () => {
       const result = await fetchPublicTableProjection('org1', 'tourney1', 'top-scorers');
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/public/tables/top-scorers',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/public/tables/top-scorers',
       );
     });
 
@@ -362,7 +383,7 @@ describe('public-api-client', () => {
 
       await fetchPublicTableProjection('org1', 'tourney1', 'group-standings-default', 2);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default',
       );
     });
 
@@ -383,7 +404,7 @@ describe('public-api-client', () => {
       );
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/public/tables/top-scorers?clubId=club-123',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/public/tables/top-scorers?clubId=club-123',
       );
     });
 
@@ -402,7 +423,30 @@ describe('public-api-client', () => {
         'club-123',
       );
       expect(fetch).toHaveBeenCalledWith(
-        'http://api.test/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default?clubId=club-123',
+        'http://api.test/api/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default?clubId=club-123',
+      );
+    });
+
+    it('reads layouts with ?club= when an alias filter object is supplied', async () => {
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ layoutCode: 'top-scorers', rows: [] }),
+      } as unknown as Response);
+
+      await fetchPublicTableProjection('org1', 'tourney1', 'top-scorers', undefined, {
+        club: 'club-hispano',
+      });
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/api/organizations/org1/tournaments/tourney1/public/tables/top-scorers?club=club-hispano',
+      );
+
+      await fetchPublicTableProjection('org1', 'tourney1', 'group-standings-default', 2, {
+        club: 'club-hispano',
+        clubId: 'club-123',
+      });
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/api/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default?club=club-hispano',
       );
     });
 
@@ -416,6 +460,36 @@ describe('public-api-client', () => {
     });
   });
 
+  describe('publicTableCsvUrl', () => {
+    it('builds a tournament-wide CSV path on the app origin', () => {
+      expect(publicTableCsvUrl('org1', 'tourney1', 'top-scorers')).toBe(
+        '/api/organizations/org1/tournaments/tourney1/public/tables/top-scorers/csv',
+      );
+    });
+
+    it('builds a stage-scoped CSV path and retains the club filter', () => {
+      expect(publicTableCsvUrl('org1', 'tourney1', 'group-standings-default', 2, 'club-123')).toBe(
+        '/api/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default/csv?clubId=club-123',
+      );
+      expect(
+        publicTableCsvUrl('org1', 'tourney1', 'group-standings-default', 2, {
+          club: 'club-hispano',
+        }),
+      ).toBe(
+        '/api/organizations/org1/tournaments/tourney1/stages/2/public/tables/group-standings-default/csv?club=club-hispano',
+      );
+    });
+
+    it('never carries the server-side API address, whatever it is set to', () => {
+      process.env.COPALIBRE_API_INTERNAL_URL = 'http://api:3001';
+
+      const url = publicTableCsvUrl('org1', 'tourney1', 'group-standings-default', 1);
+
+      expect(url.startsWith('/api/organizations/')).toBe(true);
+      expect(url).not.toContain('api:3001');
+    });
+  });
+
   describe('fetchOrganizationTournaments', () => {
     it('returns parsed json on 200, including the clubs list and organization emblem', async () => {
       const mockData = {
@@ -423,7 +497,7 @@ describe('public-api-client', () => {
         organizationName: 'Org One',
         organizationEmblemObjectId: 'object-1',
         tournaments: [],
-        clubs: [{ clubId: 'club-1', name: 'Club One' }],
+        clubs: [{ clubId: 'club-1', name: 'Club One', alias: 'club-one' }],
       };
       (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
         ok: true,
@@ -433,7 +507,32 @@ describe('public-api-client', () => {
 
       const result = await fetchOrganizationTournaments('org1');
       expect(result).toEqual(mockData);
-      expect(fetch).toHaveBeenCalledWith('http://api.test/organizations/org1/public/tournaments');
+      expect(fetch).toHaveBeenCalledWith(
+        'http://api.test/api/organizations/org1/public/tournaments',
+      );
+    });
+
+    it('skips a club the API returned without a usable alias, and logs it', async () => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+      (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          organizationAlias: 'org1',
+          organizationName: 'Org One',
+          tournaments: [],
+          clubs: [
+            { clubId: 'club-1', name: 'Club One', alias: 'club-one' },
+            { clubId: 'club-2', name: 'Club Two', alias: 'Not An Alias' },
+          ],
+        }),
+      } as unknown as Response);
+
+      const result = await fetchOrganizationTournaments('org1');
+
+      expect(result?.clubs?.map((club) => club.clubId)).toEqual(['club-1']);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('club club-2'));
+      warn.mockRestore();
     });
 
     it('returns undefined on 404', async () => {
@@ -448,18 +547,20 @@ describe('public-api-client', () => {
 
   describe('emblem URL builders', () => {
     it('builds a same-origin organization emblem URL', () => {
-      expect(organizationEmblemUrl('liga-mendocina')).toBe('/organizations/liga-mendocina/emblem');
+      expect(organizationEmblemUrl('liga-mendocina')).toBe(
+        '/api/organizations/liga-mendocina/emblem',
+      );
     });
 
     it('builds a same-origin club emblem URL', () => {
       expect(clubEmblemUrl('liga-mendocina', 'club-1')).toBe(
-        '/organizations/liga-mendocina/clubs/club-1/emblem',
+        '/api/organizations/liga-mendocina/clubs/club-1/emblem',
       );
     });
 
     it('builds a same-origin tournament emblem URL', () => {
       expect(tournamentEmblemUrl('liga-mendocina', 'apertura-2026')).toBe(
-        '/organizations/liga-mendocina/tournaments/apertura-2026/emblem',
+        '/api/organizations/liga-mendocina/tournaments/apertura-2026/emblem',
       );
     });
   });
@@ -512,6 +613,112 @@ describe('public-api-client', () => {
       expect(result.standings[0].points).toBe(3);
     });
 
+    it('carries a renamed club’s former aliases and omits the field for a club never renamed', () => {
+      const response = {
+        organizationAlias: 'org',
+        tournamentAlias: 't',
+        organizationName: 'Org',
+        tournamentName: 'T',
+        seasonName: 'S',
+        ruleset: {},
+        matches: [],
+        clubs: [
+          { clubId: 'club-1', name: 'Hispano', alias: 'hispano', formerAliases: ['club-hispano'] },
+          { clubId: 'club-2', name: 'Red Star', alias: 'red-star', formerAliases: [] },
+        ],
+      };
+      const result = mapOverviewResponse(
+        response as unknown as Parameters<typeof mapOverviewResponse>[0],
+      );
+      expect(result.clubs?.[0]?.formerAliases).toEqual(['club-hispano']);
+      expect(result.clubs?.[1]).not.toHaveProperty('formerAliases');
+    });
+
+    it('carries the structure a card is titled by: node key, round, zone and group', () => {
+      const match = {
+        matchId: 'match-1',
+        stageNumber: 2,
+        stageOrdinal: 33,
+        matchNumber: 1,
+        round: 2,
+        nodeKey: 'SE-R2-M1',
+        zoneName: 'Copa Oro',
+        status: 'scheduled',
+      };
+      const response = {
+        organizationAlias: 'org',
+        tournamentAlias: 't',
+        ruleset: {},
+        matches: [
+          match,
+          { ...match, matchId: 'match-2', nodeKey: undefined, groupName: 'Grupo A' },
+        ],
+      };
+      const [knockout, group] = mapOverviewResponse(
+        response as unknown as Parameters<typeof mapOverviewResponse>[0],
+      ).matches;
+
+      expect(knockout).toMatchObject({
+        stageOrdinal: 33,
+        nodeKey: 'SE-R2-M1',
+        round: 2,
+        zoneName: 'Copa Oro',
+      });
+      expect(knockout).not.toHaveProperty('groupName');
+      expect(group).toMatchObject({ groupName: 'Grupo A' });
+      expect(group).not.toHaveProperty('nodeKey');
+    });
+
+    it('localizes hidden podium identities and strips youth identity details', () => {
+      const [zone] =
+        mapPublicWinnerZones(
+          [
+            {
+              champion: {
+                entrantId: 'hidden-adult',
+                name: 'Private Person',
+                hiddenAtRequest: true,
+                publicProfileAvailable: false,
+                abbreviation: 'PRI',
+                clubId: 'club-private',
+                emblemObjectId: 'emblem-private',
+              },
+              champions: [
+                {
+                  entrantId: 'hidden-adult',
+                  name: 'Private Person',
+                  hiddenAtRequest: true,
+                  publicProfileAvailable: false,
+                  clubId: 'club-private',
+                },
+              ],
+              runnerUp: {
+                entrantId: 'youth',
+                name: 'Youth Player',
+                publicProfileAvailable: false,
+                abbreviation: 'YOU',
+                clubId: 'club-youth',
+                emblemObjectId: 'emblem-youth',
+              },
+            },
+          ],
+          'es',
+        ) ?? [];
+
+      expect(zone?.champion).toEqual({
+        entrantId: 'hidden-adult',
+        name: 'Participante oculto por solicitud propia',
+        hiddenAtRequest: true,
+        publicProfileAvailable: false,
+      });
+      expect(zone?.champions?.[0]?.name).toBe('Participante oculto por solicitud propia');
+      expect(zone?.runnerUp).toEqual({
+        entrantId: 'youth',
+        name: 'Youth Player',
+        publicProfileAvailable: false,
+      });
+    });
+
     it.each([
       ['scheduled', 'upcoming'],
       ['in-progress', 'live'],
@@ -559,7 +766,11 @@ describe('public-api-client', () => {
       const result = mapOverviewResponse(
         response as unknown as Parameters<typeof mapOverviewResponse>[0],
       );
-      expect(result.matches[0].home.name).toBe('TBD');
+      expect(result.matches[0].home.name).toBe('To be determined');
+      expect(
+        mapOverviewResponse(response as unknown as Parameters<typeof mapOverviewResponse>[0], 'es')
+          .matches[0].home.name,
+      ).toBe('A definir');
       expect(result.matches[0].startsAt).toBe('');
       expect(result.standings[0].played).toBe(0);
     });
@@ -718,6 +929,35 @@ describe('public-api-client', () => {
       const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
       expect(result.matches[0]).not.toHaveProperty('activePenalties');
     });
+
+    it('maps structured clock and computes lastUpdatedAt from clock.asOf', () => {
+      const response = {
+        matches: [
+          {
+            matchId: 'm1',
+            matchNumber: 1,
+            state: 'in-progress',
+            projectionVersion: 4,
+            clock: {
+              segmentNumber: 2,
+              elapsedSeconds: 185,
+              running: true,
+              asOf: '2026-04-01T18:03:05.000Z',
+            },
+            sides: [{ entrantId: 'e1', name: 'A', abbreviation: 'A', score: 1 }],
+          },
+        ],
+      };
+      const result = mapLiveResponse(response as unknown as Parameters<typeof mapLiveResponse>[0]);
+      expect(result.matches[0]?.clock).toEqual({
+        segmentNumber: 2,
+        elapsedSeconds: 185,
+        running: true,
+        asOf: '2026-04-01T18:03:05.000Z',
+      });
+      expect(result.matches[0]?.clockSeconds).toBe(185);
+      expect(result.lastUpdatedAt).toBe('2026-04-01T18:03:05.000Z');
+    });
   });
 
   describe('mapBracketResponse', () => {
@@ -759,6 +999,7 @@ describe('public-api-client', () => {
       };
       const result = mapBracketResponse(
         response as unknown as Parameters<typeof mapBracketResponse>[0],
+        'A definir',
       );
       const matches = zoneAt(result, 0).matches;
       expect(matches[0].matchNumber).toBe(1);
@@ -780,7 +1021,7 @@ describe('public-api-client', () => {
       });
       expect(matches[0].slots[3]).toEqual({
         kind: 'entrant',
-        name: 'TBD',
+        name: 'A definir',
         abbreviation: undefined,
         clubId: undefined,
         emblemObjectId: undefined,
@@ -808,6 +1049,7 @@ describe('public-api-client', () => {
       };
       const result = mapBracketResponse(
         response as unknown as Parameters<typeof mapBracketResponse>[0],
+        'A definir',
       );
       expect(zoneAt(result, 0).matches[0].matchNumber).toBe(17);
     });
@@ -831,6 +1073,7 @@ describe('public-api-client', () => {
       };
       const result = mapBracketResponse(
         response as unknown as Parameters<typeof mapBracketResponse>[0],
+        'A definir',
       );
       expect(zoneAt(result, 0).matches[0].matchNumber).toBe(1);
     });
@@ -856,6 +1099,7 @@ describe('public-api-client', () => {
       };
       const result = mapBracketResponse(
         response as unknown as Parameters<typeof mapBracketResponse>[0],
+        'A definir',
       );
       const matches = zoneAt(result, 0).matches;
       expect(matches[0].slots[0]).toEqual({ kind: 'winner-of' });
@@ -890,9 +1134,12 @@ describe('public-api-client', () => {
           },
         ],
       };
-      const result = mapBracketResponse(response as Parameters<typeof mapBracketResponse>[0]);
+      const result = mapBracketResponse(
+        response as Parameters<typeof mapBracketResponse>[0],
+        'A definir',
+      );
       expect(zoneAt(result, 0).matches[1]?.slots).toEqual([
-        { kind: 'winner-of', matchId: 'WB-R1-M2', matchNumber: 2 },
+        { kind: 'winner-of', matchId: 'WB-R1-M2', matchNumber: 2, round: 1, position: 2 },
         { kind: 'loser-of', matchId: '3', matchNumber: 3 },
       ]);
     });
@@ -948,6 +1195,7 @@ describe('public-api-client', () => {
       };
       const result = mapBracketResponse(
         response as unknown as Parameters<typeof mapBracketResponse>[0],
+        'A definir',
       );
       expect(result.zones).toHaveLength(2);
       expect(zoneAt(result, 0).zoneName).toBe('Copa de Oro');
@@ -955,13 +1203,55 @@ describe('public-api-client', () => {
         kind: 'winner-of',
         matchId: 'z1-m1',
         matchNumber: 1,
+        round: 1,
+        position: 1,
       });
       expect(zoneAt(result, 1).zoneName).toBe('Copa de Plata');
       expect(zoneAt(result, 1).matches[1]?.slots[0]).toEqual({
         kind: 'winner-of',
         matchId: 'z2-m1',
         matchNumber: 1,
+        round: 1,
+        position: 1,
       });
+    });
+  });
+
+  describe('mapMatchesViewResponse', () => {
+    it('preserves homeEntrantId and awayEntrantId when present and omits them when absent', () => {
+      const response = {
+        matches: [
+          {
+            matchId: 'm-1',
+            stageNumber: 1,
+            matchNumber: 1,
+            round: 1,
+            status: 'upcoming' as const,
+            homeEntrantId: 'e-home',
+            homeName: 'Talleres',
+            awayEntrantId: 'e-away',
+            awayName: 'Independiente',
+          },
+          {
+            matchId: 'm-2',
+            stageNumber: 1,
+            matchNumber: 2,
+            round: 1,
+            status: 'final' as const,
+            homeName: 'San Martín',
+            awayName: 'Gimnasia',
+          },
+        ],
+      };
+
+      const result = mapMatchesViewResponse(
+        response as unknown as Parameters<typeof mapMatchesViewResponse>[0],
+      );
+
+      expect(result.matches[0]?.homeEntrantId).toBe('e-home');
+      expect(result.matches[0]?.awayEntrantId).toBe('e-away');
+      expect(result.matches[1]).not.toHaveProperty('homeEntrantId');
+      expect(result.matches[1]).not.toHaveProperty('awayEntrantId');
     });
   });
 });

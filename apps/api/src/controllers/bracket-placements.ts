@@ -191,6 +191,7 @@ export function placementMatchOf(node: PlacementNode): {
   readonly round: number;
   readonly position: number;
   readonly status: string;
+  readonly winnerEntrantId?: string;
   readonly role: string;
 } {
   return {
@@ -199,6 +200,9 @@ export function placementMatchOf(node: PlacementNode): {
     round: node.round,
     position: node.position,
     status: node.record.status,
+    ...(node.record.status === 'finalized' && node.record.winnerEntrantId !== undefined
+      ? { winnerEntrantId: node.record.winnerEntrantId }
+      : {}),
     role: node.role,
   };
 }

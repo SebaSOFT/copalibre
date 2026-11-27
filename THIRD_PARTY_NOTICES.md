@@ -52,6 +52,42 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## Icon dependencies
+
+These packages are used as dependencies; their source is not copied into CopaLibre. Their licences
+remain with their respective projects.
+
+| Package               | Version | Licence |
+| --------------------- | ------- | ------- |
+| `lucide-static`       | 1.59.0  | ISC     |
+| `lucide-react`        | 1.59.0  | ISC     |
+| `@tabler/icons`       | 3.49.0  | MIT     |
+| `@tabler/icons-react` | 3.49.0  | MIT     |
+
+## API reference renderer
+
+`@scalar/api-reference` 1.78.1 (MIT, Copyright (c) Scalar) renders the interactive API reference at
+`/help/api-reference/`. Its prebuilt standalone bundle is copied into the web build at build time
+(`apps/web/scripts/copy-scalar-assets.mjs`) and served from the application's own origin. The copy is
+modified in two ways, both checked by the build: the `@font-face` rules that load fonts from
+`fonts.scalar.com` are removed, and the validation library's `Function('')` probe is made to answer no
+without asking. The licence text ships in the package's `LICENSE` file.
+
+## Font dependencies
+
+These packages are dependencies of `@copalibre/design-tokens`; their font files are bundled into the
+web build and served from the application's own origin. They are licensed under the SIL Open Font
+License 1.1, whose text ships in each package's `LICENSE` file. The fonts are not sold on their own.
+
+| Package                                 | Version | Licence | Copyright                               |
+| --------------------------------------- | ------- | ------- | --------------------------------------- |
+| `@fontsource/barlow`                    | 5.3.0   | OFL-1.1 | 2017 The Barlow Project Authors         |
+| `@fontsource/barlow-condensed`          | 5.3.0   | OFL-1.1 | 2017 The Barlow Project Authors         |
+| `@fontsource-variable/jetbrains-mono`   | 5.3.0   | OFL-1.1 | 2020 The JetBrains Mono Project Authors |
+| `@fontsource-variable/roboto`           | 5.3.0   | OFL-1.1 | 2011 The Roboto Project Authors         |
+| `@fontsource-variable/roboto-condensed` | 5.3.0   | OFL-1.1 | 2011 Google Inc.                        |
+| `@fontsource-variable/noto-sans-sc`     | 5.3.1   | OFL-1.1 | Google Inc.                             |
+
 ## `packages/demo-datasets/datasets/`
 
 Demo data copied from a public results portal for use as development sample data, with player surnames and

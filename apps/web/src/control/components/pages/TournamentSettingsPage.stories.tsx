@@ -1,3 +1,4 @@
+import { ReadStoryScope, StaleReadStory } from '../screen-story-fixtures.js';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useMemo } from 'react';
 import { useIntl } from 'react-intl';
@@ -17,14 +18,22 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
       return Promise.resolve(value);
     }
     return storyClient<ControlApiClient>({
+      fetchRulesetOverrides: undefined,
       fetchTournamentSettings: () =>
         read({
           name: TITLE,
           featured: false,
+          includesMinors: false,
+          showYouthProfiles: false,
           ...(empty ? {} : { region: 'San Juan', capacity: 16 }),
         }),
       previewTournamentSettings: async () => ({ fields: [] }),
-      updateTournamentSettings: async () => ({ name: TITLE, featured: false }),
+      updateTournamentSettings: async () => ({
+        name: TITLE,
+        featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
+      }),
       uploadTournamentEmblem: undefined,
       deleteTournamentEmblem: undefined,
     });
@@ -34,6 +43,13 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
   );
 }
 const meta = {
+  decorators: [
+    (Story, context) => (
+      <ReadStoryScope key={`${context.id}:${String(context.args.mode)}`}>
+        <Story />
+      </ReadStoryScope>
+    ),
+  ],
   title: 'Admin/Screens/TournamentSettingsPage',
   component: Screen,
   args: { mode: 'loaded' },
@@ -45,3 +61,9 @@ export const Loaded: Story = {};
 export const Empty: Story = { args: { mode: 'empty' } };
 export const Loading: Story = { args: { mode: 'loading' } };
 export const Failed: Story = { args: { mode: 'failed' } };
+
+export const Stale: Story = {
+  render: () => (
+    <StaleReadStory loaded={<Screen mode="loaded" />} failed={<Screen mode="failed" />} />
+  ),
+};

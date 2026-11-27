@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../../e2e/csp-guard.js';
 import {
   loginCallbackUrl,
   seedLoginTransaction,
@@ -13,7 +13,19 @@ test('analytics shows organization context and tournament match progress', async
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url.includes('/organizations/liga-mendocina/tournaments/apertura-2026/completion')) {
+        if (url.includes('/api/organizations?mine=true')) {
+          return Response.json([
+            {
+              organizationId: 'org-1',
+              organizationAlias: 'liga-mendocina',
+              organizationName: 'Liga Mendocina',
+              role: 'admin',
+            },
+          ]);
+        }
+        if (
+          url.includes('/api/organizations/liga-mendocina/tournaments/apertura-2026/completion')
+        ) {
           return Response.json({
             totalMatches: 8,
             resolvedMatches: 5,
@@ -24,7 +36,10 @@ test('analytics shows organization context and tournament match progress', async
             stages: [],
           });
         }
-        if (url.includes('/organizations/liga-mendocina/tournaments')) {
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage')) {
+          return Response.json({ totalBytes: 0, objectCount: 0 });
+        }
+        if (url.includes('/api/organizations/liga-mendocina/tournaments')) {
           return Response.json([
             {
               tournamentId: '019927d0-0000-7000-8000-000000000002',
@@ -45,8 +60,12 @@ test('analytics shows organization context and tournament match progress', async
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await expect(page.getByText('liga-mendocina / Analítica')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Liga Mendocina', exact: true })).toHaveAttribute(
+    'href',
+    '/control/liga-mendocina',
+  );
+  await expect(page.getByRole('heading', { level: 1, name: 'Analítica' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Resumen de torneos' })).toBeVisible();
   await expect(page.getByRole('row', { name: /Apertura 2026/ })).toContainText('5 / 8 partidos');
-  await expect(page.getByRole('row', { name: /Apertura 2026/ })).toContainText('En vivo');
+  await expect(page.getByRole('row', { name: /Apertura 2026/ })).toContainText('En curso');
 });

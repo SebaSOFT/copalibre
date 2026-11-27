@@ -10,6 +10,10 @@ import {
 } from './index.js';
 import { rosterTerminology } from './0004-roster-terminology.js';
 import { resultReasonBackfill } from './0016-result-reason-backfill.js';
+import { fixtureGraphSources } from './0042-fixture-graph-sources.js';
+import { idempotencyClaim } from './0047-idempotency-claim.js';
+import { requiredClubAlias } from './0048-required-club-alias.js';
+import { matchStreamUrl } from './0049-match-stream-url.js';
 
 interface LegacyRosterSchema {
   match_lineups: {
@@ -20,11 +24,42 @@ interface LegacyRosterSchema {
   };
 }
 
+interface LegacyClubsSchema {
+  clubs: {
+    readonly club_id: string;
+    readonly organization_id: string;
+    alias: string | null;
+    readonly name: string;
+    readonly abbreviation: string | null;
+    readonly emblem_object_id: string | null;
+    readonly created_at: Date;
+  };
+}
+
 interface MinimalMatchesSchema {
   matches: {
     readonly match_id: string;
     result: string | null;
   };
+}
+
+interface MinimalFixtureGraphSchema {
+  fixtures: {
+    readonly fixture_id: string;
+    readonly stage_id: string;
+    readonly zone_id: string | null;
+    readonly round: number;
+    readonly home_entrant_id: string | null;
+    readonly away_entrant_id: string | null;
+    readonly created_at: string;
+  };
+  matches: {
+    readonly match_id: string;
+    readonly fixture_id: string;
+    readonly result: string | null;
+  };
+  match_schedule_assignments: { readonly match_id: string };
+  match_schedule_officials: { readonly match_id: string };
 }
 
 describe('migrations (integration)', () => {
@@ -213,8 +248,123 @@ describe('migrations (integration)', () => {
     );
 
     expect(afterUpTables.find((table) => table.name === 'fixtures')?.columns).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: 'role', isNullable: true })]),
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'role', isNullable: true }),
+        expect.objectContaining({ name: 'node_key', isNullable: true }),
+        expect.objectContaining({ name: 'bracket', isNullable: true }),
+        expect.objectContaining({ name: 'position', isNullable: true }),
+        expect.objectContaining({ name: 'branch', isNullable: true }),
+        expect.objectContaining({ name: 'label', isNullable: true }),
+        expect.objectContaining({ name: 'home_source', isNullable: true }),
+        expect.objectContaining({ name: 'away_source', isNullable: true }),
+        expect.objectContaining({ name: 'contingency', isNullable: true }),
+      ]),
     );
+
+    expect(afterUp).toContain('match_schedule_history');
+    expect(afterUpTables.find((table) => table.name === 'tournaments')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'minimum_rest_minutes', isNullable: true }),
+      ]),
+    );
+
+    expect(afterUpTables.find((table) => table.name === 'promotion_plans')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'confirmed_resolution', isNullable: true }),
+      ]),
+    );
+    expect(afterUpTables.find((table) => table.name === 'tournaments')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'includes_minors', isNullable: false }),
+        expect.objectContaining({ name: 'show_youth_profiles', isNullable: false }),
+      ]),
+    );
+    expect(afterUpTables.find((table) => table.name === 'persons')?.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'hidden_from_public', isNullable: false }),
+      ]),
+    );
+    for (const table of ['venues', 'zones', 'groups', 'personal_access_tokens']) {
+      expect(afterUpTables.find((candidate) => candidate.name === table)?.columns).toEqual(
+        expect.arrayContaining([expect.objectContaining({ name: 'deleted_at' })]),
+      );
+    }
+
+    const matchStreamUrlDown = await migrateDownOneStep(scratch.db);
+    expect(matchStreamUrlDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0048-required-club-alias');
+
+    const requiredClubAliasDown = await migrateDownOneStep(scratch.db);
+    expect(requiredClubAliasDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0047-idempotency-claim');
+    expect(
+      (await scratch.db.introspection.getTables())
+        .find((candidate) => candidate.name === 'clubs')
+        ?.columns.find((column) => column.name === 'alias')?.isNullable,
+    ).toBe(true);
+
+    const idempotencyClaimDown = await migrateDownOneStep(scratch.db);
+    expect(idempotencyClaimDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0046-reversible-removals');
+
+    const reversibleRemovalsDown = await migrateDownOneStep(scratch.db);
+    expect(reversibleRemovalsDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0045-personal-data-publication',
+    );
+    const afterReversibleRemovalsDown = await scratch.db.introspection.getTables();
+    for (const table of ['venues', 'zones', 'groups', 'personal_access_tokens']) {
+      expect(
+        afterReversibleRemovalsDown.find((candidate) => candidate.name === table)?.columns,
+      ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'deleted_at' })]));
+    }
+
+    const personalDataPublicationDown = await migrateDownOneStep(scratch.db);
+    expect(personalDataPublicationDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(
+      '0044-promotion-plan-confirmation',
+    );
+    const afterPrivacyDown = await scratch.db.introspection.getTables();
+    expect(afterPrivacyDown.find((table) => table.name === 'tournaments')?.columns).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'includes_minors' })]),
+    );
+    expect(afterPrivacyDown.find((table) => table.name === 'persons')?.columns).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'hidden_from_public' })]),
+    );
+
+    const promotionPlanConfirmationDown = await migrateDownOneStep(scratch.db);
+    expect(promotionPlanConfirmationDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0043-schedule-integrity');
+    expect(
+      (await scratch.db.introspection.getTables()).find((table) => table.name === 'promotion_plans')
+        ?.columns,
+    ).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'confirmed_resolution' })]),
+    );
+
+    const scheduleIntegrityDown = await migrateDownOneStep(scratch.db);
+    expect(scheduleIntegrityDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0042-fixture-graph-sources');
+    const afterScheduleIntegrityDown = await scratch.db.introspection.getTables();
+    expect(afterScheduleIntegrityDown.map((table) => table.name)).not.toContain(
+      'match_schedule_history',
+    );
+    expect(
+      afterScheduleIntegrityDown.find((table) => table.name === 'tournaments')?.columns,
+    ).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'minimum_rest_minutes' })]),
+    );
+
+    const fixtureGraphSourcesDown = await migrateDownOneStep(scratch.db);
+    expect(fixtureGraphSourcesDown.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe('0041-fixture-role');
+    const afterFixtureGraphSourcesDown = await scratch.db.introspection.getTables();
+    expect(
+      afterFixtureGraphSourcesDown.find((table) => table.name === 'fixtures')?.columns,
+    ).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'role' })]));
+    expect(
+      afterFixtureGraphSourcesDown.find((table) => table.name === 'fixtures')?.columns,
+    ).not.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'node_key' })]));
 
     const fixtureRoleDown = await migrateDownOneStep(scratch.db);
     expect(fixtureRoleDown.error).toBeUndefined();
@@ -644,6 +794,103 @@ describe('migrations (integration)', () => {
     }
   });
 
+  it('0042 adds graph metadata without backfill and removes only unresolved persisted nodes on down', async () => {
+    const graphDb = scratch.db as unknown as Kysely<MinimalFixtureGraphSchema>;
+    await graphDb.schema
+      .createTable('fixtures')
+      .addColumn('fixture_id', 'text', (column) => column.primaryKey())
+      .addColumn('stage_id', 'text', (column) => column.notNull())
+      .addColumn('zone_id', 'text')
+      .addColumn('round', 'integer', (column) => column.notNull())
+      .addColumn('home_entrant_id', 'text')
+      .addColumn('away_entrant_id', 'text')
+      .addColumn('created_at', 'text', (column) => column.notNull())
+      .execute();
+    await graphDb.schema
+      .createTable('matches')
+      .addColumn('match_id', 'text', (column) => column.primaryKey())
+      .addColumn('fixture_id', 'text', (column) => column.notNull())
+      .addColumn('result', 'jsonb')
+      .execute();
+    for (const table of ['match_schedule_assignments', 'match_schedule_officials'] as const) {
+      await graphDb.schema
+        .createTable(table)
+        .addColumn('match_id', 'text', (column) => column.notNull())
+        .execute();
+    }
+
+    await graphDb
+      .insertInto('fixtures')
+      .values([
+        {
+          fixture_id: 'legacy',
+          stage_id: 'stage',
+          zone_id: 'zone',
+          round: 1,
+          home_entrant_id: 'home',
+          away_entrant_id: 'away',
+          created_at: new Date().toISOString(),
+        },
+        {
+          fixture_id: 'persisted-resolved',
+          stage_id: 'stage',
+          zone_id: 'zone',
+          round: 1,
+          home_entrant_id: 'home',
+          away_entrant_id: 'away',
+          created_at: new Date().toISOString(),
+        },
+        {
+          fixture_id: 'persisted-unresolved',
+          stage_id: 'stage',
+          zone_id: 'zone',
+          round: 2,
+          home_entrant_id: null,
+          away_entrant_id: 'away',
+          created_at: new Date().toISOString(),
+        },
+      ])
+      .execute();
+
+    await fixtureGraphSources.up?.(graphDb);
+    await sql`UPDATE fixtures SET node_key = 'resolved' WHERE fixture_id = 'persisted-resolved'`.execute(
+      graphDb,
+    );
+    await sql`UPDATE fixtures SET node_key = 'unresolved' WHERE fixture_id = 'persisted-unresolved'`.execute(
+      graphDb,
+    );
+    await graphDb
+      .insertInto('matches')
+      .values([
+        { match_id: 'resolved-match', fixture_id: 'persisted-resolved', result: null },
+        { match_id: 'unresolved-match', fixture_id: 'persisted-unresolved', result: null },
+      ])
+      .execute();
+    await graphDb
+      .insertInto('match_schedule_assignments')
+      .values({ match_id: 'unresolved-match' })
+      .execute();
+    await graphDb
+      .insertInto('match_schedule_officials')
+      .values({ match_id: 'unresolved-match' })
+      .execute();
+
+    await fixtureGraphSources.down?.(graphDb);
+
+    const fixtures = await graphDb.selectFrom('fixtures').select('fixture_id').execute();
+    expect(fixtures.map((fixture) => fixture.fixture_id)).toEqual(
+      expect.arrayContaining(['legacy', 'persisted-resolved']),
+    );
+    expect(fixtures).toHaveLength(2);
+    await expect(graphDb.selectFrom('matches').selectAll().execute()).resolves.toHaveLength(1);
+    await expect(
+      graphDb.selectFrom('match_schedule_assignments').selectAll().execute(),
+    ).resolves.toHaveLength(0);
+    await expect(
+      graphDb.selectFrom('match_schedule_officials').selectAll().execute(),
+    ).resolves.toHaveLength(0);
+  });
+
   it('0029 accepts club-admin as an organization role and creates installation_role_assignments', async () => {
     await migrateToLatest(scratch.db);
 
@@ -870,6 +1117,270 @@ describe('migrations (integration)', () => {
       undefined,
       'walkover',
     ]);
+  });
+
+  it('0047 reads existing idempotency rows as completed and keeps pending rows on down', async () => {
+    await scratch.db.schema
+      .createTable('match_command_idempotency')
+      .addColumn('idempotency_key', 'text', (column) => column.primaryKey())
+      .addColumn('match_id', 'uuid', (column) => column.notNull())
+      .addColumn('operation', 'text', (column) => column.notNull())
+      .addColumn('request_fingerprint', 'text', (column) => column.notNull())
+      .addColumn('response', 'text', (column) => column.notNull())
+      .addColumn('created_at', 'timestamptz', (column) => column.notNull())
+      .execute();
+    const legacyMatchId = '00000000-0000-7000-8000-000000000008';
+    await scratch.db
+      .insertInto('match_command_idempotency')
+      .values({
+        idempotency_key: 'legacy-key',
+        match_id: legacyMatchId,
+        operation: 'end',
+        request_fingerprint: 'f-legacy',
+        response: JSON.stringify({ status: 'completed' }),
+        created_at: new Date(),
+      })
+      .execute();
+
+    await idempotencyClaim.up(scratch.db);
+
+    const legacy = await scratch.db
+      .selectFrom('match_command_idempotency')
+      .select(['idempotency_key', 'response_pending'])
+      .where('idempotency_key', '=', 'legacy-key')
+      .executeTakeFirstOrThrow();
+    expect(Boolean(legacy.response_pending)).toBe(false);
+
+    await scratch.db
+      .insertInto('match_command_idempotency')
+      .values({
+        idempotency_key: 'pending-key',
+        match_id: legacyMatchId,
+        operation: 'end',
+        request_fingerprint: 'f-pending',
+        response: JSON.stringify({}),
+        response_pending: true,
+        created_at: new Date(),
+      })
+      .execute();
+
+    if (!idempotencyClaim.down) {
+      throw new Error('Idempotency claim migration must support rollback.');
+    }
+    await idempotencyClaim.down(scratch.db);
+
+    // A pending key's command committed; keeping its row stops a retry from applying it again.
+    const remaining = await scratch.db
+      .selectFrom('match_command_idempotency')
+      .select('idempotency_key')
+      .orderBy('idempotency_key')
+      .execute();
+    expect(remaining.map((row) => row.idempotency_key)).toEqual(['legacy-key', 'pending-key']);
+    const table = (await scratch.db.introspection.getTables()).find(
+      (candidate) => candidate.name === 'match_command_idempotency',
+    );
+    expect(table?.columns.map((column) => column.name)).not.toContain('response_pending');
+  });
+
+  it('0048 gives every club without an alias the alias creation would give, and makes it required', async () => {
+    const legacyDb = scratch.db as unknown as Kysely<LegacyClubsSchema>;
+    await createMigrator(scratch.db).migrateTo('0047-idempotency-claim');
+    const organizationA = '01900000-0000-7000-8000-000000000481';
+    const organizationB = '01900000-0000-7000-8000-000000000482';
+    for (const [organizationId, alias] of [
+      [organizationA, 'org-a'],
+      [organizationB, 'org-b'],
+    ] as const) {
+      await scratch.db
+        .insertInto('organizations')
+        .values({
+          organization_id: organizationId,
+          alias,
+          name: alias,
+          primary_language: 'es',
+          timezone: 'UTC',
+          created_at: new Date(),
+        })
+        .execute();
+    }
+    const clubRow = (
+      clubId: string,
+      organizationId: string,
+      name: string,
+      alias: string | null,
+      abbreviation: string | null,
+      minute: number,
+    ) => ({
+      club_id: clubId,
+      organization_id: organizationId,
+      alias,
+      name,
+      abbreviation,
+      emblem_object_id: null,
+      created_at: new Date(Date.UTC(2026, 0, 1, 0, minute)),
+    });
+    await legacyDb
+      .insertInto('clubs')
+      .values([
+        clubRow(
+          '01900000-0000-7000-8000-0000000004a1',
+          organizationA,
+          'Talleres',
+          'talleres',
+          null,
+          1,
+        ),
+        clubRow('01900000-0000-7000-8000-0000000004a2', organizationA, 'Talleres', null, null, 2),
+        clubRow('01900000-0000-7000-8000-0000000004a3', organizationA, '北京俱乐部', null, 'BJ', 3),
+        clubRow('01900000-0000-7000-8000-0000000004a4', organizationA, '北京俱乐部', null, null, 4),
+        clubRow('01900000-0000-7000-8000-0000000004b1', organizationB, 'Динамо', null, null, 1),
+      ])
+      .execute();
+
+    await requiredClubAlias.up(scratch.db);
+
+    const aliases = await legacyDb
+      .selectFrom('clubs')
+      .select(['club_id', 'alias'])
+      .orderBy('club_id')
+      .execute();
+    expect(aliases).toEqual([
+      { club_id: '01900000-0000-7000-8000-0000000004a1', alias: 'talleres' },
+      { club_id: '01900000-0000-7000-8000-0000000004a2', alias: 'talleres-2' },
+      { club_id: '01900000-0000-7000-8000-0000000004a3', alias: 'bj' },
+      { club_id: '01900000-0000-7000-8000-0000000004a4', alias: 'club-1' },
+      { club_id: '01900000-0000-7000-8000-0000000004b1', alias: 'club-1' },
+    ]);
+
+    // Records no alias history: a club given its first alias had no URL to preserve.
+    const redirects = await scratch.db.selectFrom('alias_redirects').selectAll().execute();
+    expect(redirects).toEqual([]);
+
+    // NOT NULL is enforced.
+    await expect(
+      legacyDb
+        .insertInto('clubs')
+        .values(
+          clubRow('01900000-0000-7000-8000-0000000004c1', organizationA, 'Nulo', null, null, 9),
+        )
+        .execute(),
+    ).rejects.toThrow();
+
+    // A rerun changes nothing.
+    await requiredClubAlias.up(scratch.db);
+    const rerun = await legacyDb
+      .selectFrom('clubs')
+      .select(['club_id', 'alias'])
+      .orderBy('club_id')
+      .execute();
+    expect(rerun).toEqual(aliases);
+
+    if (!requiredClubAlias.down) {
+      throw new Error('Required club alias migration must support rollback.');
+    }
+    await requiredClubAlias.down(scratch.db);
+    const afterDown = await legacyDb
+      .selectFrom('clubs')
+      .select(['club_id', 'alias'])
+      .orderBy('club_id')
+      .execute();
+    expect(afterDown).toEqual(aliases);
+    await legacyDb
+      .insertInto('clubs')
+      .values(clubRow('01900000-0000-7000-8000-0000000004c1', organizationA, 'Nulo', null, null, 9))
+      .execute();
+  });
+
+  it('0048 backfills a UUID-shaped alias and keeps former club aliases out of the suggestions', async () => {
+    await createMigrator(scratch.db).migrateTo('0047-idempotency-claim');
+    const legacyDb = scratch.db as unknown as Kysely<LegacyClubsSchema>;
+    const organizationId = '01900000-0000-7000-8000-000000000483';
+    await scratch.db
+      .insertInto('organizations')
+      .values({
+        organization_id: organizationId,
+        alias: 'org-uuid-alias',
+        name: 'org-uuid-alias',
+        primary_language: 'es',
+        timezone: 'UTC',
+        created_at: new Date(),
+      })
+      .execute();
+    await legacyDb
+      .insertInto('clubs')
+      .values([
+        {
+          club_id: '01900000-0000-7000-8000-0000000004b1',
+          organization_id: organizationId,
+          alias: '01936f4a-0001-7000-8000-000000000001',
+          name: 'Talleres',
+          abbreviation: null,
+          emblem_object_id: null,
+          created_at: new Date(Date.UTC(2026, 0, 1, 0, 1)),
+        },
+        {
+          club_id: '01900000-0000-7000-8000-0000000004b2',
+          organization_id: organizationId,
+          alias: null,
+          name: '北京俱乐部',
+          abbreviation: null,
+          emblem_object_id: null,
+          created_at: new Date(Date.UTC(2026, 0, 1, 0, 2)),
+        },
+      ])
+      .execute();
+    // `club-1` was a club's former alias: its inbound links must not reach the club created next.
+    await scratch.db
+      .insertInto('alias_redirects')
+      .values({
+        redirect_id: '01900000-0000-7000-8000-0000000004f1',
+        organization_id: organizationId,
+        scope: 'club',
+        old_alias: 'club-1',
+        new_alias: 'atenas',
+        created_at: new Date(),
+      })
+      .execute();
+
+    await requiredClubAlias.up(scratch.db);
+
+    const aliases = await legacyDb
+      .selectFrom('clubs')
+      .select(['club_id', 'alias'])
+      .orderBy('club_id')
+      .execute();
+    expect(aliases).toEqual([
+      { club_id: '01900000-0000-7000-8000-0000000004b1', alias: 'talleres' },
+      { club_id: '01900000-0000-7000-8000-0000000004b2', alias: 'club-2' },
+    ]);
+  });
+
+  it('0049 adds a nullable stream_url to matches and removes it on down', async () => {
+    await createMigrator(scratch.db).migrateTo('0048-required-club-alias');
+    const streamUrlColumn = async () =>
+      (await scratch.db.introspection.getTables())
+        .find((table) => table.name === 'matches')
+        ?.columns.find((column) => column.name === 'stream_url');
+
+    expect(await streamUrlColumn()).toBeUndefined();
+    await matchStreamUrl.up(scratch.db);
+    expect(await streamUrlColumn()).toEqual(expect.objectContaining({ isNullable: true }));
+
+    await matchStreamUrl.down?.(scratch.db);
+    expect(await streamUrlColumn()).toBeUndefined();
+  });
+
+  it('0047 applies cleanly after a rollback and the full chain reaches the expected version', async () => {
+    await migrateToLatest(scratch.db);
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(EXPECTED_SCHEMA_VERSION);
+
+    const rolledBack = await migrateDownOneStep(scratch.db);
+    expect(rolledBack.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.not.toBe(EXPECTED_SCHEMA_VERSION);
+
+    const reapplied = await migrateToLatest(scratch.db);
+    expect(reapplied.error).toBeUndefined();
+    await expect(readAppliedSchemaVersion(scratch.db)).resolves.toBe(EXPECTED_SCHEMA_VERSION);
   });
 
   it('refuses 0031-schedules migration when legacy fixture_schedules has null venue_id', async () => {

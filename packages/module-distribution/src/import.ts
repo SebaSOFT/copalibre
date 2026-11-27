@@ -1,5 +1,4 @@
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import {
   bindCapabilities,
   type Attribution,
@@ -20,7 +19,7 @@ import {
   type UnitOfWork,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
-import { ASSETS_DIRECTORY_NAME } from './package-format.js';
+import { assetFilePath } from './assets.js';
 import type { ModuleSource } from './fetch.js';
 import type { ModuleManifest } from './manifest.js';
 import type { ValidatedModule } from './validate.js';
@@ -92,7 +91,7 @@ async function uploadModuleAssets(
 ): Promise<AssetUploadRecord[]> {
   const records: AssetUploadRecord[] = [];
   for (const asset of manifest.assets) {
-    const bytes = await readFile(join(directory, ASSETS_DIRECTORY_NAME, asset.path));
+    const bytes = await readFile(assetFilePath(directory, asset.path));
     const extension = asset.path.split('.').pop()?.toLowerCase() ?? '';
     const contentType = CONTENT_TYPES[extension] ?? 'application/octet-stream';
     const key = `modules/${manifest.alias}/${manifest.version}/${asset.path}`;

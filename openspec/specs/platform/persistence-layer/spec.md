@@ -85,14 +85,12 @@ rulesets, and per-match materialised outcomes and standings.
   or roll back together
 
 ### Requirement: A refused attempt is recorded, not only a completed change
+
 An operation refused on authorization, lifecycle state or mutation classification SHALL record who
 attempted it, what they attempted, and why it was refused, in the same audit trail as the operations
-that succeed.
-
-A refusal record SHALL be written whether or not the caller receives an explanatory message, and its
-absence SHALL be a defect rather than an accepted normal. Recording a refusal SHALL NOT change the
-refusal: an operation that would be refused is still refused, and a failure while recording SHALL NOT
-convert a refusal into a different outcome.
+that succeed. A refusal record SHALL be written whether or not the caller receives an explanatory
+message, and its absence SHALL be a defect. Recording a refusal SHALL NOT change the refusal, and a
+failure while recording SHALL NOT convert a refusal into a different outcome.
 
 #### Scenario: A blocked mutation records who attempted it
 - **WHEN** an operator attempts a change classified `blocked_after_results` and is refused
@@ -112,6 +110,11 @@ convert a refusal into a different outcome.
 - **WHEN** writing a refusal record fails
 - **THEN** the original refusal is still returned to the caller unchanged, and the failure to record is
   reported through the installation's own error reporting rather than to the caller
+
+#### Scenario: A silent refusal is still recorded
+
+- **WHEN** an operation is refused without an explanatory message to the caller
+- **THEN** a refusal record is written all the same
 
 ### Requirement: Sensitive reads are recorded
 Bulk extraction of data and reads of personal data SHALL record actor, scope and time. Ordinary
@@ -156,3 +159,27 @@ owning process.
   network interruption)
 - **THEN** the owning application process SHALL log the error and continue operating, rather than
   crashing on an unhandled `'error'` event
+
+### Requirement: Migrations run as the schema owner and keep runtime grants current
+
+`apps/migrate` SHALL connect with `DATABASE_MIGRATION_URL` when it is set, and with `DATABASE_URL`
+otherwise. Every migrate run SHALL leave the runtime role able to read and write every application table
+after migrations apply or revert, when that role exists. The runtime role SHALL be limited to reading and
+inserting on `audit_log` and to reading the migration bookkeeping tables. A migration SHALL NOT create
+objects outside the `public` schema.
+
+#### Scenario: A new table reaches the runtime role
+
+- **WHEN** a migration adds a table and `apps/migrate` runs as the owner
+- **THEN** the runtime role can select, insert, update and delete rows in that table without another step
+
+#### Scenario: Grants are restored on every run
+
+- **WHEN** the runtime role's grant on an application table has been revoked and `apps/migrate` runs
+  with no pending migrations
+- **THEN** the grant is back after the run, and the run reports no pending migrations
+
+#### Scenario: Development without separate roles keeps working
+
+- **WHEN** `apps/migrate` runs against a database where the runtime role does not exist
+- **THEN** migrations apply as before, and the grant step is skipped without error

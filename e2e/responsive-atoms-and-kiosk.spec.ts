@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import { expect, test } from './fixtures.js';
+import { expect, gotoTv, test } from './support/tv-ready.js';
 
 /**
  * The ResponsiveTimestamp / EntrantName / ResponsivePlayerName
@@ -10,7 +10,7 @@ const ORGANIZATION = 'responsive-atoms-org';
 const TOURNAMENT = 'responsive-atoms-2026';
 const TV_PATH = `/tv/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const PUBLIC_BASE = `/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
-const API_BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const API_BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 
 const HOME_NAME = 'Club Atlético Independiente de Avellaneda';
 const AWAY_NAME = 'Club Atlético Talleres de Córdoba';
@@ -133,23 +133,38 @@ test.afterAll(async () => {
 });
 
 test.describe('TV kiosk', () => {
-  test('the spotlight anchors the home emblem at least 120x120px', async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.goto(TV_PATH);
-    const box = await page
-      .locator('.tv-team-side--anchor .tv-team-side__emblem-wrap')
-      .boundingBox();
-    if (box === null) throw new Error('The anchor emblem has no layout box');
-    expect(box.width).toBeGreaterThanOrEqual(120);
-    expect(box.height).toBeGreaterThanOrEqual(120);
+  test('the spotlight keeps equal emblem frames and labels each team role', async ({ page }) => {
+    await gotoTv(page, `${TV_PATH}?lang=es`);
+
+    for (const viewport of [
+      { width: 1920, height: 1080 },
+      { width: 1280, height: 720 },
+      { width: 480, height: 900 },
+    ]) {
+      await page.setViewportSize(viewport);
+      const frameSizes = await page.locator('.tv-team-side__emblem-wrap').evaluateAll((frames) =>
+        frames.map((frame) => {
+          const { width, height } = frame.getBoundingClientRect();
+          return { width, height };
+        }),
+      );
+      expect(frameSizes).toHaveLength(2);
+      expect(frameSizes[0]).toEqual(frameSizes[1]);
+    }
+
+    const sides = page.locator('.tv-team-side');
+    await expect(sides.nth(0).locator('.tv-team-side__role')).toHaveText('Local');
+    await expect(sides.nth(1).locator('.tv-team-side__role')).toHaveText('Visitante');
   });
 
-  test('the spotlight team name falls back to its abbreviation in a narrow frame', async ({
-    page,
-  }) => {
+  test('the spotlight keeps the full team name accessible in a narrow frame', async ({ page }) => {
     await page.setViewportSize({ width: 480, height: 900 });
-    await page.goto(TV_PATH);
-    await expect(page.locator('abbr.tv-team-side__short', { hasText: 'CAI' })).toBeVisible();
+    await gotoTv(page, TV_PATH);
+    const homeName = page.locator('.tv-team-side__name').first();
+    await expect(homeName).toHaveText(HOME_NAME);
+    await expect(homeName).toHaveAccessibleName(HOME_NAME);
+    await expect(homeName).toHaveAttribute('title', HOME_NAME);
+    await expect(homeName.locator('abbr')).toHaveCount(0);
   });
 
   test('top performers shows a responsive player name, nationality flag, and club', async ({
@@ -157,7 +172,7 @@ test.describe('TV kiosk', () => {
   }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.goto(TV_PATH);
+    await gotoTv(page, TV_PATH);
     await page.getByRole('button', { name: 'Top performers' }).click();
     const rail = page.getByTestId('tv-rail-content');
     await expect(rail.getByText('Sebastian Dieguez')).toBeVisible();
@@ -167,17 +182,20 @@ test.describe('TV kiosk', () => {
 });
 
 test.describe('public matches page', () => {
-  test('a same-day kickoff renders as a bare HH:mm, not a raw ISO string', async ({ page }) => {
+  test('a same-day kickoff renders as Today HH:mm, not bare HH:mm or a raw ISO string', async ({
+    page,
+  }) => {
     await page.goto(`${PUBLIC_BASE}/matches?view=cards`);
     const [firstMatch] = overview.matches;
     if (firstMatch === undefined) throw new Error('Fixture must declare at least one match');
-    // The fixture's own kick-off, not "now": the suite can cross a minute before this test runs.
-    const expected = new Intl.DateTimeFormat('en', {
+    const timeText = new Intl.DateTimeFormat('en', {
       hour: '2-digit',
       minute: '2-digit',
       hourCycle: 'h23',
     }).format(new Date(firstMatch.scheduledAt));
-    await expect(page.getByText(expected, { exact: true }).first()).toBeVisible();
+    const timestamp = page.locator('.cl-match-card__venue time.cl-responsive-timestamp').first();
+    await expect(timestamp).toBeVisible();
+    await expect(timestamp).toHaveText(`Today ${timeText}`);
     await expect(page.getByText(firstMatch.scheduledAt, { exact: true })).toHaveCount(0);
   });
 });

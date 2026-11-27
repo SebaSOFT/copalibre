@@ -48,6 +48,17 @@ export class ZoneResponse {
   series?: SeriesDeclarationRequest;
 }
 
+export class GroupEntrantResponse {
+  @ApiProperty({ format: 'uuid' })
+  entrantId!: string;
+
+  @ApiPropertyOptional({ description: 'The entrant’s human-readable display name.' })
+  displayName?: string;
+
+  @ApiPropertyOptional({ description: 'A short display label for a constrained layout.' })
+  abbreviation?: string;
+}
+
 export class GroupResponse {
   @ApiProperty({ format: 'uuid' })
   groupId!: string;
@@ -67,6 +78,12 @@ export class GroupResponse {
     example: ['01890000-0000-7000-8000-000000000001'],
   })
   entrantIds?: readonly string[];
+
+  @ApiPropertyOptional({
+    type: [GroupEntrantResponse],
+    description: 'Human-readable labels for the entrants assigned to this group.',
+  })
+  entrants?: readonly GroupEntrantResponse[];
 }
 
 /** Shared by a zone's and a group's rename endpoint — the only field either edits. */
@@ -336,6 +353,14 @@ export class PromotionPlanResponse {
 
   @ApiProperty({ type: 'object', additionalProperties: true })
   plan!: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    enum: ['requires_rebuild'],
+    description:
+      'Set when the target stage was generated ahead from this plan: its qualifier positions may ' +
+      'no longer match, so the stage must be generated again before it is confirmed',
+  })
+  mutationClass?: 'requires_rebuild';
 }
 
 export class QualifiedEntrantResponse {

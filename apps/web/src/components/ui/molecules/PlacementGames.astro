@@ -1,7 +1,12 @@
 ---
 import type { IntlShape } from 'react-intl';
-import { matchReportUrl, type BracketMatch } from '../../../lib/bracket.ts';
-import { bracketBranchLabel, bracketRoleLabel } from '../../../lib/i18n/public-intl.ts';
+import { describeSlot, matchReportUrl, type BracketMatch } from '../../../lib/bracket.ts';
+import { placementGroupRole } from '../../../lib/bracket-role.ts';
+import {
+  bracketBranchLabel,
+  bracketRoleLabel,
+  sideSourceLabels,
+} from '../../../lib/i18n/public-intl.ts';
 
 /**
  * The games a bracket does not draw: third place, fifth and seventh place, the round that sorts the
@@ -16,6 +21,8 @@ interface Props {
   readonly stageNumber: number;
   readonly localePrefix?: string;
   readonly highlightMatchNumber?: number;
+  readonly headingLevel: number;
+  readonly overallPlaceOffset?: number;
 }
 const {
   games,
@@ -25,84 +32,99 @@ const {
   stageNumber,
   localePrefix = '',
   highlightMatchNumber,
+  headingLevel,
+  overallPlaceOffset,
 } = Astro.props;
+type HeadingTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+const Heading = `h${Math.min(headingLevel, 6)}` as HeadingTag;
+const RoleHeading = `h${Math.min(headingLevel + 1, 6)}` as HeadingTag;
 
-const nameOf = (slot: BracketMatch['slots'][number]): string =>
-  slot.kind === 'entrant' ? slot.name : '—';
+const sources = sideSourceLabels(intl);
+const zoneNodeKeys = games.map((game) => game.nodeKey);
+/** An undecided side names the game it waits on, as every other surface does. */
+const nameOf = (slot: BracketMatch['slots'][number], game: BracketMatch): string =>
+  describeSlot(slot, sources, game.sourceFinalRound, game.zoneNodeKeys ?? zoneNodeKeys);
+// One group per role, in the order roles first appear, so a round of several games stays together.
 const groups = games.reduce<{ role: string; games: BracketMatch[] }[]>((acc, game) => {
   const role = game.role ?? '';
-  const last = acc.at(-1);
-  if (last?.role === role) last.games.push(game);
+  const existing = acc.find((group) => group.role === role);
+  if (existing) existing.games.push(game);
   else acc.push({ role, games: [game] });
   return acc;
 }, []);
 ---
 
-{
-  games.length > 0 && (
-    <section class="cl-placement-games" aria-labelledby="placement-games-heading">
-      <h3 id="placement-games-heading">{bracketBranchLabel(intl, 'placement')}</h3>
-      {groups.map((group) => (
-        <div class="cl-placement-games__group">
-          <h4 class="cl-placement-games__role">
-            {group.role === ''
-              ? bracketBranchLabel(intl, 'placement')
-              : bracketRoleLabel(intl, group.role)}
-          </h4>
-          <ul class="cl-placement-games__list">
-            {group.games.map((game) => {
-              const [home, away] = game.slots;
-              const [homeScore, awayScore] = game.scores ?? [];
-              const homeName = home ? nameOf(home) : '—';
-              const awayName = away ? nameOf(away) : '—';
-              const score =
-                homeScore !== undefined && awayScore !== undefined
-                  ? `${homeScore} – ${awayScore}`
-                  : '—';
-              const current = game.matchNumber === highlightMatchNumber;
-              return (
-                <li
-                  aria-current={current ? 'true' : undefined}
-                  class:list={[
-                    'cl-placement-games__game',
-                    current && 'cl-placement-games__game--current',
-                  ]}
+{games.length > 0 && (
+  <section class="cl-placement-games" aria-labelledby="placement-games-heading">
+    <Heading class="cl-placement-games__heading" id="placement-games-heading">
+      {bracketBranchLabel(intl, 'placement')}
+    </Heading>
+    {groups.map((group) => (
+      <div class="cl-placement-games__group">
+        <RoleHeading class="cl-placement-games__role">
+          {group.role === ''
+            ? bracketBranchLabel(intl, 'placement')
+            : bracketRoleLabel(
+                intl,
+                placementGroupRole(
+                  group.role,
+                  games.filter((game) => game.role === group.role).length,
+                ),
+                overallPlaceOffset,
+              )}
+        </RoleHeading>
+        <ul class="cl-placement-games__list">
+          {group.games.map((game) => {
+            const [home, away] = game.slots;
+            const [homeScore, awayScore] = game.scores ?? [];
+            const homeName = home ? nameOf(home, game) : '—';
+            const awayName = away ? nameOf(away, game) : '—';
+            const score =
+              homeScore !== undefined && awayScore !== undefined
+                ? `${homeScore} – ${awayScore}`
+                : '—';
+            const current = game.matchNumber === highlightMatchNumber;
+            return (
+              <li
+                aria-current={current ? 'true' : undefined}
+                class:list={[
+                  'cl-placement-games__game',
+                  current && 'cl-placement-games__game--current',
+                ]}
+              >
+                <span class="cl-placement-games__side cl-placement-games__side--home">
+                  {homeName}
+                </span>
+                <a
+                  aria-label={`${homeName} ${score} ${awayName}`}
+                  class="cl-placement-games__score cl-tabular-nums cl-focusable"
+                  href={matchReportUrl({
+                    organizationAlias,
+                    tournamentAlias,
+                    stageNumber,
+                    matchNumber: game.matchNumber,
+                    localePrefix,
+                  })}
                 >
-                  <span class="cl-placement-games__side cl-placement-games__side--home">
-                    {homeName}
-                  </span>
-                  <a
-                    aria-label={`${homeName} ${score} ${awayName}`}
-                    class="cl-placement-games__score cl-tabular-nums cl-focusable"
-                    href={matchReportUrl({
-                      organizationAlias,
-                      tournamentAlias,
-                      stageNumber,
-                      matchNumber: game.matchNumber,
-                      localePrefix,
-                    })}
-                  >
-                    {score}
-                  </a>
-                  <span class="cl-placement-games__side">{awayName}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ))}
-    </section>
-  )
-}
+                  {score}
+                </a>
+                <span class="cl-placement-games__side">{awayName}</span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    ))}
+  </section>
+)}
 
 <style>
   .cl-placement-games {
     display: grid;
-    max-width: 56rem;
     gap: var(--cl-space-3);
     min-width: 0;
   }
-  .cl-placement-games h3 {
+  .cl-placement-games__heading {
     margin: 0;
   }
   .cl-placement-games__group {
@@ -145,7 +167,7 @@ const groups = games.reduce<{ role: string; games: BracketMatch[] }[]>((acc, gam
   }
   /* The match a report page is about: a heavier edge as well as a tint, so it reads without colour. */
   .cl-placement-games__game--current {
-    border-inline-start: 4px solid var(--cl-primary);
+    border-inline-start: 4px solid var(--cl-border-accent);
     background: var(--cl-surface-chrome);
     font-weight: var(--cl-weight-semibold);
   }

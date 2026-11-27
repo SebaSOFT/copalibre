@@ -1,3 +1,5 @@
+import { API_PATH_PREFIX } from './api-path.ts';
+
 export interface PublicObjectReference {
   readonly key: string;
 }
@@ -30,7 +32,7 @@ export function selectDisciplineBackground(
   const reference = images[index];
   if (!reference) return undefined;
   return {
-    url: `/objects/discipline-background-image?key=${encodeURIComponent(reference.key)}`,
+    url: `${API_PATH_PREFIX}/objects/discipline-background-image?key=${encodeURIComponent(reference.key)}`,
     opacity: strength.opacity,
     ...(strength.blurPx === undefined ? {} : { blurPx: strength.blurPx }),
   };

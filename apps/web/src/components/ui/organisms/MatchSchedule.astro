@@ -1,27 +1,39 @@
 ---
 import type { IntlShape } from 'react-intl';
 import BracketView from './BracketView.astro';
-import DataTable, { type DataTableColumn, type DataTableSection } from './DataTable.astro';
+import DataTable, {
+  type DataTableCellContent,
+  type DataTableColumn,
+  type DataTableSection,
+} from './DataTable.astro';
+import { rescheduledStatement } from '../../../lib/reschedule.ts';
 import { MatchCard } from './MatchCard.tsx';
+import MatchDayList from './MatchDayList.astro';
 import { matchReportUrl } from '../../../lib/bracket.ts';
-import type { MatchCardData } from '../../../lib/matches-view.ts';
+import { formatSideSource, sourceMatchLabel, type SourceText } from '../../../lib/side-source.ts';
+import { displayedScore, type MatchCardData } from '../../../lib/matches-view.ts';
 import type { ScheduleStage, ScheduleZone } from '../../../lib/match-schedule.ts';
-import { presentState } from '../../../lib/result-state.ts';
+import { presentDelayedState, presentState } from '../../../lib/result-state.ts';
+import { isDelayed } from '../../../lib/match-state.ts';
+import { formatTimestamp } from '../../../lib/format-timestamp.ts';
 import { matchCardLabels, resultStateLabels } from '../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
+import { clubEmblemUrl } from '../../../lib/public-image-paths.ts';
+import { optionalClubPageUrl } from '../../../lib/club-url.ts';
 
 /**
  * A tournament's matches as a schedule: stage, then zone, then group, then round, each level named
  * only when it has company. A large scope is a table of rows (kick-off, sides, score, state,
  * venue); a short one may be cards instead; a knockout zone is its bracket, never rows as well.
  *
- * Everything renders on the server. The one script only re-writes the kick-off times into the
- * viewer's own time zone, which the server cannot know.
+ * Everything renders on the server in the organization's time zone. The viewer's local zone does
+ * not change when a spectator opens the schedule from another region.
  */
 interface Props {
   readonly stages: readonly ScheduleStage[];
   readonly intl: IntlShape;
   readonly organizationAlias: string;
+  readonly organizationTimeZone?: string;
   readonly tournamentAlias: string;
   readonly localePrefix?: string;
   readonly presentation?: 'rows' | 'cards' | 'compact-cards';
@@ -31,11 +43,18 @@ interface Props {
   readonly collapsible?: boolean;
   readonly openStage?: number;
   readonly emptyLabel: string;
+  /**
+   * Every listed match, for the phone layout: given, phones see these by day and the nested
+   * schedule shows from the medium breakpoint up.
+   */
+  readonly dayRows?: readonly MatchCardData[];
+  readonly referenceDate?: number;
 }
 const {
   stages,
   intl,
   organizationAlias,
+  organizationTimeZone,
   tournamentAlias,
   localePrefix = '',
   presentation = 'rows',
@@ -43,21 +62,30 @@ const {
   collapsible = false,
   openStage,
   emptyLabel,
+  dayRows,
+  referenceDate = Date.now(),
 } = Astro.props;
 
 const cardLabels = matchCardLabels(intl);
 const stateLabels = resultStateLabels(intl);
-const kickoff = new Intl.DateTimeFormat(intl.locale, {
-  day: 'numeric',
-  month: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
-  timeZone: 'UTC',
-  timeZoneName: 'short',
+const delayedLabel = cardLabels.delayed ?? intl.formatMessage(messages.resultStateDelayed);
+const scheduleTimeZone = organizationTimeZone ?? 'UTC';
+const scheduledMatch = (match: MatchCardData): MatchCardData => ({
+  ...match,
+  ...(match.scheduledAt === undefined
+    ? {}
+    : {
+        scheduledAtLabel: formatTimestamp(match.scheduledAt, {
+          locale: intl.locale,
+          timeZone: scheduleTimeZone,
+          referenceDate,
+        }),
+      }),
 });
 const stageLabel = (stage: ScheduleStage): string =>
   stage.stageName || intl.formatMessage(messages.breadcrumbStage, { stage: stage.stageNumber });
-const heading = (depth: number): string => `h${Math.min(headingLevel + depth, 6)}`;
+type HeadingTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+const heading = (level: number): HeadingTag => `h${Math.min(Math.max(level, 2), 6)}` as HeadingTag;
 
 const reportOf = (stage: number, match: number): string =>
   matchReportUrl({
@@ -68,27 +96,101 @@ const reportOf = (stage: number, match: number): string =>
     localePrefix,
   });
 
+/** The scores a row shows: a live match reads 0 for a side with none recorded yet. */
+const shownScores = (match: MatchCardData) => ({
+  homeScore: displayedScore(match.state, match.homeScore),
+  awayScore: displayedScore(match.state, match.awayScore),
+});
+// An undecided side names its source, in the same words as the cards and the bracket.
+const sideOf = (match: MatchCardData, side: 'home' | 'away'): SourceText | undefined => {
+  const name = side === 'home' ? match.homeName : match.awayName;
+  if (name !== undefined) return undefined;
+  const source = side === 'home' ? match.homeSource : match.awaySource;
+  return formatSideSource(
+    source,
+    cardLabels.sideSource,
+    source === undefined
+      ? undefined
+      : sourceMatchLabel(source, cardLabels.sideSource, match.sourceFinalRound, match.zoneNodeKeys),
+  );
+};
+
+const sideHref = (match: MatchCardData, side: 'home' | 'away'): string | undefined => {
+  const name = side === 'home' ? match.homeName : match.awayName;
+  if (name === undefined) return undefined;
+  const clubAlias = side === 'home' ? match.homeClubAlias : match.awayClubAlias;
+  return optionalClubPageUrl({
+    organizationAlias,
+    tournamentAlias,
+    clubAlias,
+    localePrefix,
+  });
+};
+
+const sideCell = (match: MatchCardData, side: 'home' | 'away'): DataTableCellContent => {
+  const isHome = side === 'home';
+  const name = isHome ? match.homeName : match.awayName;
+  const clubId = isHome ? match.homeClubId : match.awayClubId;
+  const emblemObjectId = isHome ? match.homeEmblemObjectId : match.awayEmblemObjectId;
+  const abbreviation = isHome ? match.homeAbbreviation : match.awayAbbreviation;
+  const displayName = name ?? sideOf(match, side)?.long ?? '—';
+  return {
+    text: displayName,
+    emblem: {
+      abbreviation: name === undefined ? undefined : abbreviation,
+      alt: displayName,
+      src:
+        organizationAlias && clubId && emblemObjectId
+          ? clubEmblemUrl(organizationAlias, clubId)
+          : undefined,
+    },
+  };
+};
+
 const columns: readonly DataTableColumn[] = [
   {
     key: 'kickoff',
     header: intl.formatMessage(messages.scheduleColumnKickoff),
     render: (row) => {
       const { scheduledAt } = row as MatchCardData;
-      return scheduledAt ? kickoff.format(new Date(scheduledAt)) : '—';
+      const match = row as MatchCardData;
+      const previous =
+        match.state === 'upcoming'
+          ? rescheduledStatement(
+              match.rescheduledFrom,
+              match.venueName,
+              intl.locale,
+              cardLabels.rescheduled,
+            )
+          : '';
+      return [
+        scheduledAt
+          ? formatTimestamp(scheduledAt, {
+              locale: intl.locale,
+              timeZone: scheduleTimeZone,
+              referenceDate,
+            })
+          : '—',
+        previous,
+      ]
+        .filter(Boolean)
+        .join(' · ');
     },
     datetime: (row) => (row as MatchCardData).scheduledAt,
   },
   {
     key: 'home',
     header: intl.formatMessage(messages.scheduleColumnHome),
-    render: (row) => (row as MatchCardData).homeName ?? '—',
-    abbreviation: (row) => (row as MatchCardData).homeAbbreviation,
+    render: (row) =>
+      (row as MatchCardData).homeName ?? sideOf(row as MatchCardData, 'home')?.long ?? '—',
+    href: (row) => sideHref(row as MatchCardData, 'home'),
+    renderContent: (row) => sideCell(row as MatchCardData, 'home'),
   },
   {
     key: 'score',
     header: intl.formatMessage(messages.scheduleColumnScore),
     render: (row) => {
-      const { homeScore, awayScore } = row as MatchCardData;
+      const { homeScore, awayScore } = shownScores(row as MatchCardData);
       return homeScore === undefined || awayScore === undefined
         ? 'vs'
         : `${homeScore} – ${awayScore}`;
@@ -97,19 +199,40 @@ const columns: readonly DataTableColumn[] = [
       const match = row as MatchCardData;
       return reportOf(match.stageNumber, match.matchNumber);
     },
+    linkAriaLabel: (row) => {
+      const match = row as MatchCardData;
+      const home = match.homeName ?? sideOf(match, 'home')?.long ?? '—';
+      const away = match.awayName ?? sideOf(match, 'away')?.long ?? '—';
+      const versus = cardLabels.versus ?? intl.formatMessage(messages.matchesViewVersus);
+      const { homeScore, awayScore } = shownScores(match);
+      const score =
+        homeScore === undefined || awayScore === undefined ? '' : `, ${homeScore} – ${awayScore}`;
+      return `${home} ${versus} ${away}${score}`;
+    },
   },
   {
     key: 'away',
     header: intl.formatMessage(messages.scheduleColumnAway),
-    render: (row) => (row as MatchCardData).awayName ?? '—',
-    abbreviation: (row) => (row as MatchCardData).awayAbbreviation,
+    render: (row) =>
+      (row as MatchCardData).awayName ?? sideOf(row as MatchCardData, 'away')?.long ?? '—',
+    href: (row) => sideHref(row as MatchCardData, 'away'),
+    renderContent: (row) => sideCell(row as MatchCardData, 'away'),
   },
   {
     key: 'state',
     header: intl.formatMessage(messages.scheduleColumnState),
     render: (row) => {
-      const shown = presentState((row as MatchCardData).state, stateLabels);
-      return `${shown.icon} ${shown.label}`;
+      const match = row as MatchCardData;
+      return isDelayed(match, referenceDate)
+        ? delayedLabel
+        : presentState(match.state, stateLabels).label;
+    },
+    renderContent: (row) => {
+      const match = row as MatchCardData;
+      const shown = isDelayed(match, referenceDate)
+        ? presentDelayedState(delayedLabel)
+        : presentState(match.state, stateLabels);
+      return { text: shown.label, icon: shown.icon };
     },
   },
   {
@@ -133,76 +256,117 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
 
 <div class="cl-match-schedule">
   {stages.length === 0 && <p class="cl-empty-state">{emptyLabel}</p>}
-  {
-    stages.map((stage) => {
-      const StageHeading = heading(0);
-      const ZoneHeading = heading(1);
-      const GroupHeading = heading(2);
+  {dayRows !== undefined && (
+    <MatchDayList
+      intl={intl}
+      matches={dayRows}
+      organizationAlias={organizationAlias}
+      organizationTimeZone={scheduleTimeZone}
+      referenceDate={referenceDate}
+      reportUrlOf={(match) => reportOf(match.stageNumber, match.matchNumber)}
+    />
+  )}
+  <div
+    class={
+      dayRows === undefined
+        ? 'cl-match-schedule__nested'
+        : 'cl-match-schedule__nested cl-match-days__wide'
+    }
+  >
+    {stages.map((stage) => {
       const named = stages.length > 1;
+      // A collapsible stage uses <summary>, not a heading. Its contents must
+      // start below the schedule's own heading instead of skipping a level.
+      const stageLevel = named && !collapsible ? headingLevel : headingLevel - 1;
+      const StageHeading = heading(stageLevel);
       const body = (
         <>
-          {stage.zones.map((zone, zoneIndex) => (
-            <section class="cl-match-schedule__zone" data-zone={zoneKey(zone, zoneIndex)}>
-              {stage.zones.length > 1 && zone.name && <ZoneHeading>{zone.name}</ZoneHeading>}
-              {zone.kind === 'bracket' ? (
-                <BracketView
-                  intl={intl}
-                  localePrefix={localePrefix}
-                  matches={zone.matches}
-                  organizationAlias={organizationAlias}
-                  stageNumber={stage.stageNumber}
-                  tournamentAlias={tournamentAlias}
-                />
-              ) : (
-                zone.groups.map((group) => (
-                  <div class="cl-match-schedule__group">
-                    {zone.groups.length > 1 && group.name && (
-                      <GroupHeading>{group.name}</GroupHeading>
-                    )}
-                    {presentation === 'rows' ? (
-                      <DataTable
-                        ariaLabel={scopeOf(
-                          stages.length > 1 ? stageLabel(stage) : undefined,
-                          zone.name,
-                          group.name,
+          {stage.zones.map((zone, zoneIndex) => {
+            const hasZoneHeading = stage.zones.length > 1 && Boolean(zone.name);
+            const zoneLevel = hasZoneHeading ? stageLevel + 1 : stageLevel;
+            const ZoneHeading = heading(zoneLevel);
+            return (
+              <section class="cl-match-schedule__zone" data-zone={zoneKey(zone, zoneIndex)}>
+                {hasZoneHeading && <ZoneHeading>{zone.name}</ZoneHeading>}
+                {zone.kind === 'bracket' ? (
+                  <BracketView
+                    headingLevel={zoneLevel + 1}
+                    intl={intl}
+                    localePrefix={localePrefix}
+                    matches={zone.matches}
+                    matchesView={zone.scheduleRows}
+                    organizationAlias={organizationAlias}
+                    organizationTimeZone={scheduleTimeZone}
+                    stageNumber={stage.stageNumber}
+                    tournamentAlias={tournamentAlias}
+                    zoneName={zone.name}
+                  />
+                ) : (
+                  zone.groups.map((group) => {
+                    const hasGroupHeading = zone.groups.length > 1 && Boolean(group.name);
+                    const groupLevel = hasGroupHeading ? zoneLevel + 1 : zoneLevel;
+                    const GroupHeading = heading(groupLevel);
+                    const RoundHeading = heading(groupLevel + 1);
+                    const matchHeadingLevel = groupLevel + (group.rounds.length > 1 ? 2 : 1);
+                    return (
+                      <div class="cl-match-schedule__group">
+                        {hasGroupHeading && <GroupHeading>{group.name}</GroupHeading>}
+                        {presentation === 'rows' ? (
+                          <DataTable
+                            ariaLabel={scopeOf(
+                              stages.length > 1 ? stageLabel(stage) : undefined,
+                              zone.name,
+                              group.name,
+                            )}
+                            columns={columns}
+                            compact
+                            mobileMode="stacked"
+                            rows={[]}
+                            sections={sectionsOf(group.rounds)}
+                          />
+                        ) : (
+                          group.rounds.map((one) => (
+                            <section>
+                              {group.rounds.length > 1 && (
+                                <RoundHeading class="cl-match-schedule__round">
+                                  {roundLabel(one.round)}
+                                </RoundHeading>
+                              )}
+                              <div
+                                class={
+                                  presentation === 'compact-cards'
+                                    ? 'cl-matches-view__grid cl-matches-view__grid--compact'
+                                    : 'cl-matches-view__grid'
+                                }
+                              >
+                                {one.matches.map((match) => (
+                                  <MatchCard
+                                    client:load
+                                    compact={presentation === 'compact-cards'}
+                                    headingLevel={matchHeadingLevel}
+                                    inZoneSection={hasZoneHeading}
+                                    labels={cardLabels}
+                                    locale={intl.locale}
+                                    match={scheduledMatch(match)}
+                                    referenceDate={referenceDate}
+                                    reportUrl={reportOf(match.stageNumber, match.matchNumber)}
+                                    organizationAlias={organizationAlias}
+                                    tournamentAlias={tournamentAlias}
+                                    localePrefix={localePrefix}
+                                    timeZone={scheduleTimeZone}
+                                  />
+                                ))}
+                              </div>
+                            </section>
+                          ))
                         )}
-                        columns={columns}
-                        compact
-                        rows={[]}
-                        sections={sectionsOf(group.rounds)}
-                      />
-                    ) : (
-                      group.rounds.map((one) => (
-                        <section>
-                          {group.rounds.length > 1 && (
-                            <h6 class="cl-match-schedule__round">{roundLabel(one.round)}</h6>
-                          )}
-                          <div
-                            class={
-                              presentation === 'compact-cards'
-                                ? 'cl-matches-view__grid cl-matches-view__grid--compact'
-                                : 'cl-matches-view__grid'
-                            }
-                          >
-                            {one.matches.map((match) => (
-                              <MatchCard
-                                client:load
-                                compact={presentation === 'compact-cards'}
-                                labels={cardLabels}
-                                locale={intl.locale}
-                                match={match}
-                                reportUrl={reportOf(match.stageNumber, match.matchNumber)}
-                              />
-                            ))}
-                          </div>
-                        </section>
-                      ))
-                    )}
-                  </div>
-                ))
-              )}
-            </section>
-          ))}
+                      </div>
+                    );
+                  })
+                )}
+              </section>
+            );
+          })}
         </>
       );
       return collapsible && named ? (
@@ -216,23 +380,9 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
           {body}
         </section>
       );
-    })
-  }
+    })}
+  </div>
 </div>
-
-<script>
-  // The server prints each kick-off in UTC; the viewer reads it in their own time zone.
-  const format = new Intl.DateTimeFormat(document.documentElement.lang || undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
-  for (const time of document.querySelectorAll<HTMLTimeElement>(
-    '.cl-match-schedule time[datetime]',
-  )) {
-    const instant = new Date(time.dateTime);
-    if (!Number.isNaN(instant.getTime())) time.textContent = format.format(instant);
-  }
-</script>
 
 <style>
   .cl-match-schedule > section.cl-match-schedule__stage,
@@ -267,23 +417,55 @@ const zoneKey = (zone: ScheduleZone, index: number): string => `${index}-${zone.
     width: 100%;
     box-sizing: border-box;
   }
-  .cl-match-schedule :global(.cl-data-table__table) {
-    display: table;
-    width: 100%;
+  /* Below the medium breakpoint the table is stacked cards; wider, it is one row per match. */
+  @media (width >= 768px) {
+    .cl-match-schedule :global(.cl-data-table__table) {
+      display: table;
+      width: max-content;
+      min-width: 100%;
+    }
+    .cl-match-schedule :global(.cl-data-table__table th) {
+      white-space: nowrap;
+    }
   }
-  /* On a wide screen every table shares one column grid, so groups line up under each other. */
-  @media (min-width: 768px) {
+  /* Wide screens share a column grid; give team names the room their score does not need. */
+  @media (min-width: 1024px) {
     .cl-match-schedule :global(.cl-data-table__table) {
       table-layout: fixed;
+      width: 100%;
+    }
+    .cl-match-schedule :global(.cl-data-table__table th[data-column='kickoff']),
+    .cl-match-schedule :global(.cl-data-table__table td[data-column='kickoff']) {
+      width: 16%;
+    }
+    .cl-match-schedule :global(.cl-data-table__table th[data-column='home']),
+    .cl-match-schedule :global(.cl-data-table__table td[data-column='home']),
+    .cl-match-schedule :global(.cl-data-table__table th[data-column='away']),
+    .cl-match-schedule :global(.cl-data-table__table td[data-column='away']) {
+      width: 22%;
+    }
+    .cl-match-schedule :global(.cl-data-table__table th[data-column='score']),
+    .cl-match-schedule :global(.cl-data-table__table td[data-column='score']) {
+      width: 11%;
+    }
+    .cl-match-schedule :global(.cl-data-table__table th[data-column='state']),
+    .cl-match-schedule :global(.cl-data-table__table td[data-column='state']) {
+      width: 14%;
+    }
+    .cl-match-schedule :global(.cl-data-table__table th[data-column='venue']),
+    .cl-match-schedule :global(.cl-data-table__table td[data-column='venue']) {
+      width: 15%;
     }
     .cl-match-schedule :global(.cl-data-table__table td) {
       overflow: hidden;
       text-overflow: ellipsis;
     }
   }
-  /* A row stays one line; a narrow screen scrolls the table inside its own region. */
-  .cl-match-schedule :global(.cl-data-table__table td) {
-    white-space: nowrap;
+  /* A row stays one line; a screen too narrow for that gets stacked cards instead. */
+  @media (width >= 768px) {
+    .cl-match-schedule :global(.cl-data-table__table td) {
+      white-space: nowrap;
+    }
   }
   details.cl-match-schedule__stage {
     margin-block-start: var(--cl-space-4);

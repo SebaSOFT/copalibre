@@ -12,6 +12,23 @@ function isFeminine(label: string, endings: RegExp): boolean {
   return endings.test(label.trim().split(/\s+/)[0]?.toLowerCase() ?? '');
 }
 
+/** A word that starts with one capital and has lower-case letters but no other capital: a common noun. */
+const COMMON_NOUN_WORD = /^\p{Lu}(?=.*\p{Ll})[^\p{Lu}]*$/u;
+
+/**
+ * Lower-cases the first letter of each common-noun word after an ordinal. Acronyms and inner capitals
+ * ("OT", "TieBreak") keep their case, and the whitespace of the label is preserved.
+ */
+function lowerCommonNouns(label: string): string {
+  return label.replace(/\S+/gu, (word) => {
+    if (!COMMON_NOUN_WORD.test(word)) {
+      return word;
+    }
+    const [first, ...rest] = word;
+    return `${first.toLowerCase()}${rest.join('')}`;
+  });
+}
+
 function englishSuffix(n: number): string {
   const rule = new Intl.PluralRules('en', { type: 'ordinal' }).select(n);
   return rule === 'one' ? 'st' : rule === 'two' ? 'nd' : rule === 'few' ? 'rd' : 'th';
@@ -21,13 +38,14 @@ function spanish(n: number, label: string): string {
   const table = isFeminine(label, /(a|d|ión)$/) ? SPANISH_SUFFIX_F : SPANISH_SUFFIX_M;
   // Past the tenth the written ordinal is a number and a bare "º"/"ª"; "er" and "ra" apply to 1 and 3.
   const suffix = n < table.length ? table[n] : table === SPANISH_SUFFIX_F ? 'a' : 'o';
-  return `${n}${suffix} ${label}`;
+  return `${n}${suffix} ${lowerCommonNouns(label)}`;
 }
 
 /**
- * A segment named by its place in the match: "2nd Half", "2do tiempo", "3er Set", "2da vuelta". The
+ * A segment named by its place in the match: "2nd Half", "2do tiempo", "3er set", "2da vuelta". The
  * label is the discipline's own name for the segment type, so the sport decides whether it is a
- * half, a lap or a set; this adds the language's ordinal.
+ * half, a lap or a set; this adds the language's ordinal. Where the language writes a common noun in
+ * lower case after an ordinal, the label is lower-cased to match.
  */
 export function segmentOrdinalLabel(
   label: string,
@@ -39,14 +57,14 @@ export function segmentOrdinalLabel(
       return spanish(ordinal, label);
     case 'pt':
     case 'it':
-      return `${ordinal}${isFeminine(label, /a$/) ? 'ª' : 'º'} ${label}`;
+      return `${ordinal}${isFeminine(label, /a$/) ? 'ª' : 'º'} ${lowerCommonNouns(label)}`;
     case 'fr':
-      return `${ordinal}${ordinal === 1 ? (isFeminine(label, /e$/) ? 're' : 'er') : 'e'} ${label}`;
+      return `${ordinal}${ordinal === 1 ? (isFeminine(label, /e$/) ? 're' : 'er') : 'e'} ${lowerCommonNouns(label)}`;
     case 'de':
       return `${ordinal}. ${label}`;
     case 'ru': {
       const noun = label.trim().split(/\s+/)[0]?.toLowerCase() ?? '';
-      return `${ordinal}-${/[аяь]$/.test(noun) ? 'я' : /[ое]$/.test(noun) ? 'е' : 'й'} ${label}`;
+      return `${ordinal}-${/[аяь]$/.test(noun) ? 'я' : /[ое]$/.test(noun) ? 'е' : 'й'} ${lowerCommonNouns(label)}`;
     }
     case 'zh':
       return `第${ordinal}${label}`;

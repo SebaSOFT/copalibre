@@ -1,20 +1,28 @@
 ---
 import type { IntlShape } from 'react-intl';
 import BracketGraph from './BracketGraph.astro';
+import { AdvancingBadge } from '../atoms/AdvancingBadge.tsx';
 import Button from '../atoms/Button.astro';
 import '../../../styles/entrant-path.css';
 import { OutcomeLegend, type BracketOutcome } from '../molecules/OutcomeLegend.tsx';
+import type { MatchCardData } from '../../../lib/matches-view.ts';
 import {
   bracketMatchId,
   describeSlot,
+  entrantPath,
   nodeOutcomes,
   stageOutcomes,
   toRounds,
   type BracketMatch,
 } from '../../../lib/bracket.ts';
+import { bracketRoundTitle } from '../../../lib/bracket-round-heading.ts';
 import PlacementGames from '../molecules/PlacementGames.astro';
 import { placementGamesOf } from '../../../lib/public-bracket-layout.ts';
-import { bracketBranchLabel, bracketRoleLabel } from '../../../lib/i18n/public-intl.ts';
+import {
+  bracketBranchLabel,
+  bracketRoleLabel,
+  sideSourceLabels,
+} from '../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 interface Props {
@@ -26,6 +34,16 @@ interface Props {
   readonly localePrefix?: string;
   /** The match a report page is about; drawn with a heavier edge and `aria-current`. */
   readonly highlightMatchNumber?: number;
+  /** Pre-selected club id (e.g., from `?club=` on the stage page) whose entrant path is highlighted. */
+  readonly highlightClubId?: string;
+  /** First heading level for this bracket, based on the page's outline. */
+  readonly headingLevel?: number;
+  /** Explicit zone name used as the main bracket heading. */
+  readonly zoneName?: string;
+  /** Zone matches-view rows supplying schedule time and venue for upcoming bracket nodes. */
+  readonly matchesView?: readonly MatchCardData[];
+  readonly organizationTimeZone?: string;
+  readonly overallPlaceOffset?: number;
 }
 const {
   intl,
@@ -34,7 +52,32 @@ const {
   stageNumber,
   localePrefix = '',
   highlightMatchNumber,
+  highlightClubId,
+  headingLevel = 2,
+  zoneName,
+  matchesView,
+  organizationTimeZone,
+  overallPlaceOffset,
 } = Astro.props;
+const initialEntrantId = highlightClubId
+  ? Astro.props.matches
+      .flatMap((match) => match.slots)
+      .find(
+        (slot): slot is Extract<typeof slot, { readonly kind: 'entrant' }> =>
+          slot.kind === 'entrant' &&
+          slot.clubId === highlightClubId &&
+          slot.entrantId !== undefined,
+      )?.entrantId
+  : undefined;
+const initialPath = initialEntrantId
+  ? entrantPath(Astro.props.matches, initialEntrantId)
+  : undefined;
+const zoneNodeKeys = Astro.props.matches.map((match) => match.nodeKey);
+const branchLabel = (branch: string): string =>
+  (branch === 'winners' || branch === 'winner') && zoneName?.trim()
+    ? zoneName.trim()
+    : bracketBranchLabel(intl, branch);
+const advancesLabel = intl.formatMessage(messages.bracketAdvances);
 const rounds = toRounds(Astro.props.matches);
 const placementGames = placementGamesOf(Astro.props.matches);
 
@@ -54,12 +97,18 @@ const legend = stageOutcomes(Astro.props.matches).map((outcome) => ({
   label: outcomeLabels[outcome],
 }));
 
-const roundLabel = (round: (typeof rounds)[number]): string =>
-  `${bracketBranchLabel(intl, round.branch)} · ${intl.formatMessage(messages.bracketRoundHeading, { round: round.roundNumber })}`;
+type HeadingTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+const Heading = `h${Math.min(headingLevel, 6)}` as HeadingTag;
+const OutlineHeading = `h${Math.min(headingLevel + 1, 6)}` as HeadingTag;
+const BranchHeading = `h${Math.min(headingLevel + 2, 6)}` as HeadingTag;
+const RoundHeading = `h${Math.min(headingLevel + 3, 6)}` as HeadingTag;
+const outlineBranches = [...new Set(rounds.map((round) => round.branch))].map((branch) => ({
+  branch,
+  rounds: rounds.filter((round) => round.branch === branch),
+}));
 ---
 
-{
-  /*
+{/*
   Rounds, not a tree. A tree only describes single elimination; the losers'
   bracket takes entrants from two places and the grand final may be replayed.
 
@@ -68,30 +117,32 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
   below that width the textual round-and-branch view carries the same seeds,
   sources and outcomes instead. The stylesheet decides which is showing, so the
   choice survives with JavaScript unavailable.
-*/
-}
-<section aria-label={intl.formatMessage(messages.bracketStageAriaLabel)} class="cl-bracket-stage">
+*/}
+<section
+  aria-label={intl.formatMessage(messages.bracketStageAriaLabel)}
+  class="cl-bracket-stage"
+  data-initial-entrant-id={initialEntrantId}
+>
+  <Heading class="cl-visually-hidden">{intl.formatMessage(messages.bracketStageAriaLabel)}</Heading>
   <script
     is:inline
     type="application/json"
     data-journey-matches
     set:html={JSON.stringify(Astro.props.matches).replace(/</g, '\\u003c')}
   />
-  <p hidden data-journey-hint>{intl.formatMessage(messages.bracketHighlightHint)}</p>
-  {
-    legend.length > 0 && (
-      <OutcomeLegend entries={legend} label={intl.formatMessage(messages.bracketLegendLabel)} />
-    )
-  }
+  <p hidden data-journey-hint>
+    {intl.formatMessage(messages.bracketHighlightHint)}
+  </p>
+  {legend.length > 0 && (
+    <OutcomeLegend entries={legend} label={intl.formatMessage(messages.bracketLegendLabel)} />
+  )}
 
-  {
-    /*
+  {/*
     The same bracket twice, each at a density: cards with emblems and highlight controls where
     there is room, abbreviations and scores where there is not. The stylesheet shows one.
-  */
-  }
-  {
-    (['full', 'compact'] as const).map((density) => (
+  */}
+  {(['full', 'compact'] as const).map((density) => (
+    <div class={`cl-bracket-stage__frame cl-bracket-stage__frame--${density}`}>
       <div
         aria-label={intl.formatMessage(messages.bracketScrollAriaLabel)}
         class={`cl-bracket-stage__scroll cl-bracket-stage__scroll--${density}`}
@@ -100,93 +151,152 @@ const roundLabel = (round: (typeof rounds)[number]): string =>
       >
         <BracketGraph
           density={density}
+          headingLevel={headingLevel}
           highlightMatchNumber={highlightMatchNumber}
+          initialEntrantId={initialEntrantId}
+          initialPath={initialPath}
           intl={intl}
           localePrefix={localePrefix}
           matches={Astro.props.matches}
+          matchesView={matchesView}
           organizationAlias={organizationAlias}
+          organizationTimeZone={organizationTimeZone}
           stageNumber={stageNumber}
           tournamentAlias={tournamentAlias}
+          zoneName={zoneName}
+          overallPlaceOffset={overallPlaceOffset}
         />
       </div>
-    ))
-  }
+      <p class="cl-bracket-stage__hint">{intl.formatMessage(messages.bracketScrollHint)}</p>
+    </div>
+  ))}
 
   <PlacementGames
     games={placementGames}
     highlightMatchNumber={highlightMatchNumber}
+    headingLevel={Math.min(headingLevel + 1, 5)}
     intl={intl}
     localePrefix={localePrefix}
     organizationAlias={organizationAlias}
     stageNumber={stageNumber}
     tournamentAlias={tournamentAlias}
+    overallPlaceOffset={overallPlaceOffset}
   />
 
-  {
-    /*
+  {/*
     The same stage in words. Every slot names where it comes from — an entrant,
     a seed, or the match it is waiting on — so nothing is lost by reading this
     instead of the graph.
-  */
-  }
+  */}
   <div class="cl-bracket-stage__outline">
-    <h3>{intl.formatMessage(messages.bracketOutlineHeading)}</h3>
-    {
-      rounds.map((round) => (
-        <section class="cl-bracket-stage__outline-branch">
-          <h4>{roundLabel(round)}</h4>
-          <ol class="cl-bracket-stage__outline-list">
-            {round.matches.map((match) => {
-              const outcomes = nodeOutcomes(match);
-              return (
-                <li data-journey-match={bracketMatchId(match)}>
-                  {match.role !== undefined && (
-                    <strong>{bracketRoleLabel(intl, match.role)}: </strong>
-                  )}
-                  {match.slots.map((slot, index) => (
-                    <>
-                      {index > 0 && ' — '}
-                      {slot.kind === 'entrant' && slot.entrantId !== undefined ? (
+    <OutlineHeading>{intl.formatMessage(messages.bracketOutlineHeading)}</OutlineHeading>
+    {outlineBranches.map(({ branch, rounds: branchRounds }) => (
+      <section class="cl-bracket-stage__outline-branch">
+        <BranchHeading>{branchLabel(branch)}</BranchHeading>
+        {branchRounds.map((round) => (
+          <>
+            <RoundHeading>{bracketRoundTitle(intl, round, branchRounds)}</RoundHeading>
+            <ol class="cl-bracket-stage__outline-list">
+              {round.matches.map((match) => {
+                const outcomes = nodeOutcomes(match);
+                const isDrawnKnockout =
+                  match.state === 'final' &&
+                  match.scores?.[0] !== undefined &&
+                  match.scores?.[1] !== undefined &&
+                  match.scores[0] === match.scores[1] &&
+                  match.winnerEntrantId !== undefined;
+                return (
+                  <li
+                    data-journey-match={bracketMatchId(match)}
+                    data-entrant-path={
+                      initialPath?.size
+                        ? initialPath.has(bracketMatchId(match))
+                          ? 'included'
+                          : 'excluded'
+                        : undefined
+                    }
+                  >
+                    {match.role !== undefined && (
+                      <strong>{bracketRoleLabel(intl, match.role, overallPlaceOffset)}: </strong>
+                    )}
+                    {match.slots.map((slot, index) => {
+                      const slotAdvances =
+                        isDrawnKnockout &&
+                        slot.kind === 'entrant' &&
+                        slot.entrantId === match.winnerEntrantId;
+                      return (
                         <>
-                          <span data-journey-fallback>{describeSlot(slot)}</span>
-                          <Button
-                            hidden
-                            aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
-                              entrant: slot.name,
-                            })}
-                            aria-pressed="false"
-                            class="cl-journey-name"
-                            data-entrant-id={slot.entrantId}
-                            variant="secondary"
-                          >
-                            {slot.name}
-                          </Button>
+                          {index > 0 && ' — '}
+                          {slot.kind === 'entrant' && slot.entrantId !== undefined ? (
+                            <>
+                              <span data-journey-fallback>
+                                {describeSlot(
+                                  slot,
+                                  sideSourceLabels(intl),
+                                  match.sourceFinalRound,
+                                  zoneNodeKeys,
+                                )}
+                              </span>
+                              <Button
+                                hidden
+                                aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
+                                  entrant: slot.name,
+                                })}
+                                aria-pressed={
+                                  slot.entrantId === initialEntrantId ? 'true' : 'false'
+                                }
+                                class="cl-journey-name"
+                                data-entrant-id={slot.entrantId}
+                                variant="secondary"
+                              >
+                                {slot.name}
+                              </Button>
+                            </>
+                          ) : (
+                            <span>
+                              {describeSlot(
+                                slot,
+                                sideSourceLabels(intl),
+                                match.sourceFinalRound,
+                                zoneNodeKeys,
+                              )}
+                            </span>
+                          )}
+                          {match.scores?.[index] !== undefined && (
+                            <span class="cl-row__figure cl-tabular-nums">
+                              {' '}
+                              {match.scores[index]}
+                            </span>
+                          )}
+                          {slotAdvances ? (
+                            <AdvancingBadge label={advancesLabel} />
+                          ) : (
+                            outcomes[index] !== undefined && (
+                              <span> ({outcomeLabels[outcomes[index]!]})</span>
+                            )
+                          )}
                         </>
-                      ) : (
-                        <span>{describeSlot(slot)}</span>
-                      )}
-                      {match.scores?.[index] !== undefined && (
-                        <span class="cl-row__figure cl-tabular-nums"> {match.scores[index]}</span>
-                      )}
-                      {outcomes[index] !== undefined && (
-                        <span> ({outcomeLabels[outcomes[index]!]})</span>
-                      )}
-                    </>
-                  ))}
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-      ))
-    }
+                      );
+                    })}
+                  </li>
+                );
+              })}
+            </ol>
+          </>
+        ))}
+      </section>
+    ))}
   </div>
 </section>
 
 <script>
   import { initializeEntrantHighlight } from '../../../lib/entrant-highlight';
+  import { initializeBracketOverflow } from '../../../lib/bracket-overflow';
   const initialize = (): void => {
     document.querySelectorAll<HTMLElement>('.cl-bracket-stage').forEach(initializeEntrantHighlight);
+    document
+      .querySelectorAll<HTMLElement>('.cl-bracket-stage__scroll')
+      .forEach(initializeBracketOverflow);
   };
   initialize();
   document.addEventListener('astro:page-load', initialize);

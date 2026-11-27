@@ -11,8 +11,7 @@ const model = buildDashboard({
       organizationId: ids.organization,
       alias: TOURNAMENT,
       name: TITLE,
-      lifecycle: 'live',
-      matchesToday: 8,
+      lifecycle: 'in-progress',
       pendingRegistrations: 12,
     },
   ],
@@ -25,18 +24,42 @@ const meta = {
   args: {
     canCreateTournament: true,
     canManageDisplayTokens: true,
+    canManageTournamentLifecycle: true,
     devices: [],
+    failed: false,
+    loading: false,
     model,
     now: Date.now(),
     onArchive: () => undefined,
     onExport: () => undefined,
     onExportConfiguration: () => undefined,
+    onPublish: () => undefined,
+    onRetry: () => undefined,
     organizationAlias: ORG,
+    staleSince: undefined,
   },
 } satisfies Meta<typeof DashboardTemplate>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};
+export const DraftReadyToPublish: Story = {
+  args: {
+    model: buildDashboard({
+      organizationId: ids.organization,
+      tournaments: [
+        {
+          tournamentId: ids.tournament,
+          organizationId: ids.organization,
+          alias: TOURNAMENT,
+          name: TITLE,
+          lifecycle: 'draft',
+          pendingRegistrations: 0,
+        },
+      ],
+      activity: auditRecords,
+    }),
+  },
+};
 export const Empty: Story = {
   args: {
     model: buildDashboard({ organizationId: ids.organization, tournaments: [], activity: [] }),
@@ -49,3 +72,31 @@ export const EmptyNoCreatePermission: Story = {
     model: buildDashboard({ organizationId: ids.organization, tournaments: [], activity: [] }),
   },
 };
+export const MultipleTournamentsForTvPairing: Story = {
+  args: {
+    model: buildDashboard({
+      organizationId: ids.organization,
+      tournaments: [
+        {
+          tournamentId: ids.tournament,
+          organizationId: ids.organization,
+          alias: TOURNAMENT,
+          name: TITLE,
+          lifecycle: 'in-progress',
+          pendingRegistrations: 12,
+        },
+        {
+          tournamentId: ids.second,
+          organizationId: ids.organization,
+          alias: 'copa-premier-femenina',
+          name: 'Copa Premier femenina',
+          lifecycle: 'upcoming',
+          pendingRegistrations: 0,
+        },
+      ],
+      activity: auditRecords,
+    }),
+  },
+};
+export const Failed: Story = { args: { failed: true } };
+export const Stale: Story = { args: { staleSince: Date.now() - 60_000 } };

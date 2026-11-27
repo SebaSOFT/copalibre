@@ -20,21 +20,39 @@
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@copalibre/domain';
 import '@copalibre/design-tokens/generated/copalibre.css';
 import Button from '../components/ui/atoms/Button.astro';
+import Container from '../components/ui/atoms/layout/Container.astro';
 import EmblemImage from '../components/ui/atoms/EmblemImage.astro';
+import Icon from '../components/ui/atoms/Icon.astro';
 import Logo from '../components/ui/atoms/Logo.astro';
 import PersonPhotoImage from '../components/ui/atoms/PersonPhotoImage.astro';
+import SearchInput from '../components/ui/atoms/SearchInput.astro';
+import Select from '../components/ui/atoms/Select.astro';
+import SortIndicator from '../components/ui/atoms/SortIndicator.astro';
+import { ICON_REGISTRY } from '../lib/icon-registry.js';
 import StateBadge from '../components/ui/atoms/StateBadge.astro';
 import BroadcastStatusPanel from '../components/ui/molecules/BroadcastStatusPanel.astro';
 import RulesetBriefing from '../components/ui/molecules/RulesetBriefing.astro';
 import SeriesStateBar from '../components/ui/molecules/SeriesStateBar.astro';
+import TimeZoneNote from '../components/ui/molecules/TimeZoneNote.astro';
+import TvLauncherLinkPreview from '../components/ui/molecules/TvLauncherLinkPreview.astro';
+import { TV_LAUNCHER_LABELS } from '../lib/tv-launcher-labels.js';
 import TournamentHero from '../components/ui/molecules/TournamentHero.astro';
+import TournamentOverviewHero from '../components/ui/organisms/TournamentOverviewHero.astro';
 import BracketView from '../components/ui/organisms/BracketView.astro';
 import Breadcrumb from '../components/ui/organisms/Breadcrumb.astro';
 import ChampionPodium from '../components/ui/organisms/ChampionPodium.astro';
+import TournamentHonourBoard from '../components/ui/organisms/TournamentHonourBoard.astro';
+import TournamentNowStrip from '../components/ui/organisms/TournamentNowStrip.astro';
+import FeaturedMatchCard from '../components/ui/organisms/FeaturedMatchCard.astro';
 import BracketGraph from '../components/ui/organisms/BracketGraph.astro';
 import MatchNodeCompact from '../components/ui/molecules/MatchNodeCompact.astro';
 import PlacementGames from '../components/ui/molecules/PlacementGames.astro';
 import ClubFilterChip from '../components/ui/molecules/ClubFilterChip.astro';
+import ClubIdentity from '../components/ui/molecules/ClubIdentity.astro';
+import SectionHeader from '../components/ui/molecules/SectionHeader.astro';
+import Stack from '../components/ui/atoms/layout/Stack.astro';
+import Form from '../components/ui/atoms/Form.astro';
+import Input from '../components/ui/atoms/Input.astro';
 import DataTable from '../components/ui/organisms/DataTable.astro';
 import MatchCardGrid from '../components/ui/organisms/MatchCardGrid.astro';
 import MatchBracketContext from '../components/ui/organisms/MatchBracketContext.astro';
@@ -43,6 +61,8 @@ import MatchNode from '../components/ui/organisms/MatchNode.astro';
 import MatchOfficials from '../components/ui/organisms/MatchOfficials.astro';
 import MatchRosters from '../components/ui/organisms/MatchRosters.astro';
 import MatchSchedule from '../components/ui/organisms/MatchSchedule.astro';
+import MatchDayList from '../components/ui/organisms/MatchDayList.astro';
+import MatchDayRow from '../components/ui/molecules/MatchDayRow.astro';
 import MatchScheduleFilters from '../components/ui/organisms/MatchScheduleFilters.astro';
 import MatchTimeline from '../components/ui/organisms/MatchTimeline.astro';
 import Modal from '../components/ui/organisms/Modal.astro';
@@ -50,6 +70,8 @@ import OrganizationClubs from '../components/ui/organisms/OrganizationClubs.astr
 import OrganizationHeader from '../components/ui/organisms/OrganizationHeader.astro';
 import PlayerProfileView from '../components/ui/organisms/PlayerProfileView.astro';
 import PublicHeader from '../components/ui/organisms/PublicHeader.astro';
+import PageHeader from '../components/ui/organisms/PageHeader.astro';
+import EmptyState from '../components/ui/molecules/EmptyState.astro';
 import ResultLegend from '../components/ui/molecules/ResultLegend.astro';
 import ScoreTicker from '../components/ui/organisms/ScoreTicker.astro';
 import StandingsTable from '../components/ui/organisms/StandingsTable.astro';
@@ -63,27 +85,36 @@ import {
   seriesStateBarLabels,
   tickerChromeLabels,
   tickerLabels,
+  timeZoneNoteLabels,
   tournamentHeroLabels,
+  completionFigureLabels,
 } from '../lib/i18n/public-intl.ts';
 import { messages } from '../lib/i18n/public-messages.en.ts';
 import {
   referenceBracket,
   referenceSchedule,
+  referenceScheduleRows,
   referenceJourneyBracket,
   referencePlacementBracket,
   referenceClubs,
   referenceGroupMatches,
+  referenceEmptyTimelineMatchReportModel,
   referenceMatchReportModel,
   referenceOverview,
+  referenceRegisteredSquadMatchReportModel,
+  referenceTimedMatchReportModel,
   referencePlayerProfile,
+  referencePromotionTableProjection,
   referenceSeries,
   referenceStandings,
   referenceTableLayouts,
   referenceTableProjection,
   referenceTournamentListing,
+  referenceTvLauncherAddress,
   referenceWinnerZones,
 } from '../lib/reference-fixtures.ts';
-import type { StandingsRowView } from '../lib/overview.ts';
+import { displayName, type StandingsRowView } from '../lib/overview.ts';
+import type { MatchCardData } from '../lib/matches-view.ts';
 import { toSeriesInput } from '../lib/series.ts';
 import { buildTickerItems } from '../lib/ticker-items.ts';
 
@@ -95,10 +126,12 @@ import { buildTickerItems } from '../lib/ticker-items.ts';
  * mechanism, not the catalogue.
  */
 const PREVIEWABLE = new Set([
+  'empty-state',
   'result-legend',
   'score-ticker',
   'score-ticker-empty',
   'score-ticker-stale',
+  'tv-launcher-link-preview',
   'bracket-stage',
   'bracket-placement',
   'placement-games',
@@ -111,18 +144,32 @@ const PREVIEWABLE = new Set([
   'match-bracket-context-championship',
   'match-bracket-context-unknown-focus',
   'public-header',
+  'page-header',
+  'container',
   // Every remaining server-rendered library component.
   'button',
+  'icon',
   'emblem-image',
+  'emblem-image-fallbacks',
   'emblem-image-matrix',
+  'emblem-image-long-abbreviation',
   'logo',
   'person-photo-image',
   'person-photo-cutout',
+  'search-input',
+  'select',
+  'sort-indicator',
   'state-badge',
   'broadcast-status-panel',
   'ruleset-briefing',
   'series-state-bar',
+  'time-zone-note',
   'tournament-hero',
+  'tournament-overview-hero',
+  'tournament-now-strip',
+  'tournament-honour-board',
+  'tournament-honour-board-single',
+  'featured-match-card',
   'champion-podium',
   'champion-podium-shared-title',
   'champion-podium-empty',
@@ -139,13 +186,24 @@ const PREVIEWABLE = new Set([
   'match-rosters',
   'match-schedule',
   'match-schedule-filters',
+  'match-day-list',
+  'match-day-row',
   'match-timeline',
+  'match-timeline-timed',
+  'match-timeline-empty',
+  'match-rosters-registered',
   'modal',
   'organization-clubs',
   'organization-header',
   'player-profile-view',
   'club-filter-chip',
+  'club-identity',
+  'section-header',
+  'stack',
+  'form',
+  'input',
   'standings-table',
+  'standings-table-promotion',
   'tournament-card',
   'tournament-section',
 ]);
@@ -171,11 +229,54 @@ const tickerLabel = intl.formatMessage({ id: 'ticker.label', defaultMessage: 'Li
 
 const overview = referenceOverview();
 const heroLabels = tournamentHeroLabels(intl, overview);
+const overviewHeroFacts = [
+  completionFigureLabels(intl, { totalMatches: 18, resolvedMatches: 7 }).summary,
+];
+const previewMatch = (index: number, state: MatchCardData['state']): MatchCardData => {
+  const match = overview.matches[index];
+  if (!match) throw new Error(`Missing reference match at index ${index}`);
+  return {
+    matchId: `01936f4a-210${index + 1}-7000-8000-00000000000${index + 1}`,
+    stageNumber: match.stageNumber,
+    matchNumber: match.matchNumber ?? index + 1,
+    state,
+    homeName: match.home.name,
+    ...(state === 'upcoming' || match.home.score === undefined
+      ? {}
+      : { homeScore: match.home.score }),
+    awayName: match.away.name,
+    ...(state === 'upcoming' || match.away.score === undefined
+      ? {}
+      : { awayScore: match.away.score }),
+    ...(match.startsAt === '' ? {} : { scheduledAt: match.startsAt }),
+  };
+};
+const previewNowEntries = [
+  {
+    kind: 'live' as const,
+    match: previewMatch(0, 'live'),
+    href: '/reference-league/tournaments/reference-cup/stages/1/matches/1',
+  },
+  {
+    kind: 'upcoming' as const,
+    match: previewMatch(1, 'upcoming'),
+    href: '/reference-league/tournaments/reference-cup/stages/1/matches/2',
+  },
+  {
+    kind: 'final' as const,
+    match: previewMatch(2, 'final'),
+    href: '/reference-league/tournaments/reference-cup/stages/1/matches/3',
+  },
+];
+const featuredPreviewMatch = previewMatch(2, 'final');
 const seriesBarProps = seriesStateBarLabels(intl, toSeriesInput(referenceSeries()), {
   homeName: 'Meridian Seven',
   awayName: 'Ironclad Five',
 });
 const matchReport = referenceMatchReportModel();
+const timedMatchReport = referenceTimedMatchReportModel();
+const emptyMatchReport = referenceEmptyTimelineMatchReportModel();
+const registeredMatchReport = referenceRegisteredSquadMatchReportModel();
 const standingsRows: readonly StandingsRowView[] = referenceStandings();
 const dataTableColumns = [
   {
@@ -216,26 +317,49 @@ const [compactSample] = referenceJourneyBracket(true);
     </style>
   </head>
   <body class="cl-band--base" data-preview={component} data-locale={locale}>
-    {
-      component === 'result-legend' && (
-        <ResultLegend
-          heading={intl.formatMessage(messages.legendHeading)}
-          labels={resultStateLabels(intl)}
-        />
-      )
-    }
-    {
-      component === 'score-ticker' && (
-        <ScoreTicker
-          emptyLabel={tickerChrome.empty}
-          items={ticker}
-          label={tickerLabel}
-          pauseLabel={tickerChrome.pause}
-          resumeLabel={tickerChrome.resume}
-          staleLabel={tickerChrome.stale}
-        />
-      )
-    }
+    {component === 'container' && (
+      <Container variant="public">
+        <h1>{intl.formatMessage(messages.homeHeroTitle)}</h1>
+        <Container variant="reading">
+          <p>{intl.formatMessage(messages.homeHeroDescription)}</p>
+        </Container>
+      </Container>
+    )}
+    {component === 'empty-state' && (
+      <EmptyState
+        icon="calendar"
+        heading={intl.formatMessage(messages.interactionNoLive)}
+        description={intl.formatMessage(messages.interactionSeeSchedule)}
+        actionLabel={intl.formatMessage(messages.interactionViewMatches)}
+        href="/liga-san-juan/tournaments/copa-premier/matches"
+      />
+    )}
+    {component === 'tv-launcher-link-preview' && (
+      <TvLauncherLinkPreview
+        url={referenceTvLauncherAddress(locale)}
+        previewSrc={referenceTvLauncherAddress(locale)}
+        transparent
+        finalLinkLabel={TV_LAUNCHER_LABELS[locale].finalLink ?? ''}
+        copyLabel={TV_LAUNCHER_LABELS[locale].copyLink ?? ''}
+        previewLabel={TV_LAUNCHER_LABELS[locale].preview ?? ''}
+      />
+    )}
+    {component === 'result-legend' && (
+      <ResultLegend
+        heading={intl.formatMessage(messages.legendHeading)}
+        labels={resultStateLabels(intl)}
+      />
+    )}
+    {component === 'score-ticker' && (
+      <ScoreTicker
+        emptyLabel={tickerChrome.empty}
+        items={ticker}
+        label={tickerLabel}
+        pauseLabel={tickerChrome.pause}
+        resumeLabel={tickerChrome.resume}
+        staleLabel={tickerChrome.stale}
+      />
+    )}
     {
       /* Brand, locale and menu control in a stable row. Narrow the frame below
          768px and open the menu: the content beneath moves down rather than
@@ -247,6 +371,19 @@ const [compactSample] = referenceJourneyBracket(true);
             locale: language,
             href: language === 'en' ? '/' : `/${language}/`,
           }))}
+          tournamentNavigation={{
+            current: 'overview',
+            stageNumber: 2,
+            tournamentPath: '/es/reference-league/tournaments/reference-cup',
+            destinations: {
+              overview: '/es/reference-league/tournaments/reference-cup',
+              matches: '/es/reference-league/tournaments/reference-cup/matches',
+              live: '/es/reference-league/tournaments/reference-cup/live',
+              standings:
+                '/es/reference-league/tournaments/reference-cup?tab=group-standings-default',
+              brackets: '/es/reference-league/tournaments/reference-cup/stages/2',
+            },
+          }}
         />
       )
     }
@@ -269,6 +406,7 @@ const [compactSample] = referenceJourneyBracket(true);
       component === 'bracket-graph' && (
         <BracketGraph
           density="compact"
+          headingLevel={2}
           intl={intl}
           matches={referencePlacementBracket()}
           organizationAlias="reference-league"
@@ -280,8 +418,9 @@ const [compactSample] = referenceJourneyBracket(true);
     {
       /* The bracket card for a narrow screen: abbreviations and scores, one link to the report. */
       component === 'match-node-compact' && compactSample && (
-        <div style="width: 66px; height: 56px;">
+        <div style="width: 116px; height: 56px;">
           <MatchNodeCompact
+            advancesLabel={intl.formatMessage(messages.bracketAdvances)}
             intl={intl}
             match={compactSample}
             organizationAlias="reference-league"
@@ -296,6 +435,7 @@ const [compactSample] = referenceJourneyBracket(true);
       component === 'placement-games' && (
         <PlacementGames
           games={referencePlacementBracket().filter((match) => match.branch === 'placement')}
+          headingLevel={2}
           highlightMatchNumber={8}
           intl={intl}
           organizationAlias="reference-league"
@@ -382,372 +522,592 @@ const [compactSample] = referenceJourneyBracket(true);
         />
       )
     }
-    {
-      component === 'button' && (
-        <Button href="#">
-          {intl.formatMessage({ id: 'preview.button.label', defaultMessage: 'Register' })}
-        </Button>
-      )
-    }
-    {
-      component === 'emblem-image' && (
-        <EmblemImage
-          alt={intl.formatMessage({
-            id: 'preview.emblemImage.alt',
-            defaultMessage: 'Reference League emblem',
-          })}
-          placeholderAlt="No emblem set"
-          size={96}
-          src="/preview-fixtures/emblem-display.svg"
-        />
-      )
-    }
-    {
-      component === 'emblem-image-bare' && (
-        <div class="cl-preview-emblem-matrix">
-          {[20, 32, 48].map((size) => (
-            <EmblemImage
-              alt={intl.formatMessage({
-                id: 'preview.emblemImage.alt',
-                defaultMessage: 'Reference League emblem',
-              })}
-              bare
-              placeholderAlt="No emblem set"
-              size={size}
-              src="/preview-fixtures/emblem-display.svg"
-            />
-          ))}
-        </div>
-      )
-    }
-    {
-      component === 'emblem-image-matrix' && (
-        <div class="cl-preview-emblem-matrix">
-          {[48, 96, 160].map((size) => (
-            <EmblemImage
-              alt={intl.formatMessage({
-                id: 'preview.emblemImage.alt',
-                defaultMessage: 'Reference League emblem',
-              })}
-              placeholderAlt="No emblem set"
-              size={size}
-              src="/preview-fixtures/emblem-display.svg"
-            />
-          ))}
-        </div>
-      )
-    }
-    {component === 'logo' && <Logo href="/" />}
-    {
-      component === 'person-photo-image' && (
-        <PersonPhotoImage
-          alt={intl.formatMessage({
-            id: 'preview.personPhotoImage.alt',
-            defaultMessage: 'Priya Natarajan-Whitfield',
-          })}
-          placeholderAlt="No photo set"
-        />
-      )
-    }
-    {
-      component === 'person-photo-cutout' && (
-        <PersonPhotoImage
-          alt={intl.formatMessage({
-            id: 'preview.personPhotoImage.alt',
-            defaultMessage: 'Priya Natarajan-Whitfield',
-          })}
-          placeholderAlt="No photo set"
-          size={160}
-          src="/preview-fixtures/person-photo-cutout.svg"
-        />
-      )
-    }
-    {component === 'state-badge' && <StateBadge intl={intl} state="final" />}
-    {
-      component === 'broadcast-status-panel' && (
-        <>
-          <BroadcastStatusPanel
-            model={overview}
-            statusText="Live updates are unavailable. This page shows the latest known results."
+    {component === 'button' && (
+      <Button href="#">
+        {intl.formatMessage({ id: 'preview.button.label', defaultMessage: 'Register' })}
+      </Button>
+    )}
+    {component === 'icon' && (
+      <div class="cl-preview-iconography">
+        {Object.keys(ICON_REGISTRY).map((name) => (
+          <div class="cl-preview-iconography__item">
+            <Icon name={name} size={20} />
+            <code>{name}</code>
+          </div>
+        ))}
+      </div>
+    )}
+    {component === 'emblem-image' && (
+      <EmblemImage
+        alt={intl.formatMessage({
+          id: 'preview.emblemImage.alt',
+          defaultMessage: 'Reference League emblem',
+        })}
+        placeholderAlt="No emblem set"
+        size={96}
+        src="/preview-fixtures/emblem-display.svg"
+      />
+    )}
+    {component === 'emblem-image-fallbacks' && (
+      <div class="cl-preview-emblem-matrix">
+        {[
+          { abbreviation: 'CPC', name: 'Concepción Patín Club' },
+          { abbreviation: 'NORTE', name: 'Norte' },
+          { abbreviation: 'PANAMERO', name: 'Panamericano' },
+          { abbreviation: undefined, name: 'Club without an abbreviation' },
+        ].map((entrant) => (
+          <EmblemImage
+            alt={entrant.name}
+            abbreviation={entrant.abbreviation}
+            placeholderAlt="No emblem set"
+            size={72}
           />
-          {/* The notice is hidden until the stream fails; the preview shows it as a failure would. */}
-          <script is:inline>
-            document.querySelector('[data-connection-notice]')?.removeAttribute('hidden');
-          </script>
-        </>
-      )
-    }
-    {
-      component === 'ruleset-briefing' && (
-        <RulesetBriefing heading="Ruleset" rows={rulesetBriefingRows(intl, overview)} />
-      )
-    }
+        ))}
+        <EmblemImage
+          alt={intl.formatMessage(messages.orgPageEmblemAlt, {
+            name: 'Concepción Patín Club',
+          })}
+          abbreviation="CPC"
+          placeholderAlt="No emblem set"
+          size={72}
+          src="/missing-emblem.png"
+        />
+      </div>
+    )}
+    {component === 'emblem-image-bare' && (
+      <div class="cl-preview-emblem-matrix">
+        {[20, 32, 48].map((size) => (
+          <EmblemImage
+            alt={intl.formatMessage({
+              id: 'preview.emblemImage.alt',
+              defaultMessage: 'Reference League emblem',
+            })}
+            bare
+            placeholderAlt="No emblem set"
+            size={size}
+            src="/preview-fixtures/emblem-display.svg"
+          />
+        ))}
+      </div>
+    )}
+    {component === 'emblem-image-matrix' && (
+      <div class="cl-preview-emblem-matrix">
+        {[48, 96, 160].map((size) => (
+          <EmblemImage
+            alt={intl.formatMessage({
+              id: 'preview.emblemImage.alt',
+              defaultMessage: 'Reference League emblem',
+            })}
+            placeholderAlt="No emblem set"
+            size={size}
+            src="/preview-fixtures/emblem-display.svg"
+          />
+        ))}
+      </div>
+    )}
+    {component === 'logo' && <Logo href="/" />}
+    {component === 'person-photo-image' && (
+      <PersonPhotoImage
+        alt={intl.formatMessage({
+          id: 'preview.personPhotoImage.alt',
+          defaultMessage: 'Priya Natarajan-Whitfield',
+        })}
+        placeholderAlt="No photo set"
+      />
+    )}
+    {component === 'person-photo-cutout' && (
+      <PersonPhotoImage
+        alt={intl.formatMessage({
+          id: 'preview.personPhotoImage.alt',
+          defaultMessage: 'Priya Natarajan-Whitfield',
+        })}
+        placeholderAlt="No photo set"
+        size={160}
+        src="/preview-fixtures/person-photo-cutout.svg"
+      />
+    )}
+    {component === 'state-badge' && <StateBadge intl={intl} state="final" />}
+    {component === 'search-input' && (
+      <SearchInput
+        action="#"
+        label={intl.formatMessage(messages.standingsTableSearchLabel)}
+        placeholder={intl.formatMessage(messages.standingsTableSearchPlaceholder)}
+        hiddenParams={[{ name: 'tab', value: 'player-statistics' }]}
+      />
+    )}
+    {component === 'select' && (
+      <Select
+        name="club"
+        ariaLabel={intl.formatMessage(messages.matchesViewFilterClub)}
+        options={[
+          {
+            value: '',
+            label: intl.formatMessage(messages.matchesViewFilterClubAll),
+            selected: true,
+          },
+          { value: 'meridian-athletic', label: 'Meridian Athletic' },
+        ]}
+      />
+    )}
+    {component === 'sort-indicator' && (
+      <div class="cl-preview-chip-row">
+        <SortIndicator direction="ascending" />
+        <SortIndicator direction="descending" />
+        <SortIndicator direction="none" />
+      </div>
+    )}
+    {component === 'broadcast-status-panel' && (
+      <>
+        <BroadcastStatusPanel
+          model={overview}
+          statusText="Live updates are unavailable. This page shows the latest known results."
+        />
+        {/* The notice is hidden until the stream fails; the preview shows it as a failure would. */}
+        <script is:inline>
+          document.querySelector('[data-connection-notice]')?.removeAttribute('hidden');
+        </script>
+      </>
+    )}
+    {component === 'ruleset-briefing' && (
+      <RulesetBriefing heading="Ruleset" rows={rulesetBriefingRows(intl, overview)} />
+    )}
     {
       /* Undecided at game four of five, so both the segment strip and the pending
          outcome text render — a decided series would hide the pending copy. */
       component === 'series-state-bar' && <SeriesStateBar {...seriesBarProps} />
     }
+    {component === 'time-zone-note' && (
+      <TimeZoneNote
+        locale={locale}
+        timeZone={overview.organizationTimeZone}
+        {...timeZoneNoteLabels(intl)}
+      />
+    )}
     {component === 'tournament-hero' && <TournamentHero labels={heroLabels} model={overview} />}
-    {
-      component === 'champion-podium' && (
-        <ChampionPodium intl={intl} winners={referenceWinnerZones()} />
-      )
-    }
-    {
-      component === 'champion-podium-shared-title' && (
-        <ChampionPodium intl={intl} winners={referenceWinnerZones().slice(1)} />
-      )
-    }
+    {component === 'tournament-overview-hero' && (
+      <TournamentOverviewHero
+        model={overview}
+        labels={heroLabels}
+        trail={[
+          { label: overview.organizationName, href: `/${overview.organizationAlias}` },
+          { label: displayName(overview) },
+        ]}
+        breadcrumbLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+        collapsedBreadcrumbLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+        stateLabel={heroLabels.liveCountText}
+        facts={overviewHeroFacts}
+      />
+    )}
+    {component === 'tournament-now-strip' && (
+      <TournamentNowStrip
+        heading={intl.formatMessage(messages.overviewNowStripHeading)}
+        entries={previewNowEntries}
+        labels={matchCardLabels(intl)}
+        locale={locale}
+      />
+    )}
+    {component === 'tournament-honour-board' && (
+      <TournamentHonourBoard
+        heading={intl.formatMessage(messages.overviewHonourBoardHeading)}
+        winners={referenceWinnerZones()}
+        intl={intl}
+      />
+    )}
+    {component === 'tournament-honour-board-single' && (
+      <TournamentHonourBoard
+        heading={intl.formatMessage(messages.overviewHonourBoardHeading)}
+        winners={referenceWinnerZones().slice(0, 1)}
+        intl={intl}
+      />
+    )}
+    {component === 'featured-match-card' && (
+      <FeaturedMatchCard
+        heading={intl.formatMessage(messages.overviewFeaturedMatchHeading)}
+        match={featuredPreviewMatch}
+        href="/reference-league/tournaments/reference-cup/stages/1/matches/3"
+        labels={matchCardLabels(intl)}
+        locale={locale}
+        organizationAlias="reference-league"
+      />
+    )}
+    {component === 'page-header' && (
+      <PageHeader
+        title={displayName(overview)}
+        description={intl.formatMessage(messages.tournamentPageDescription, {
+          tournament: displayName(overview),
+        })}
+        loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
+      >
+        <Breadcrumb
+          slot="breadcrumb"
+          items={[
+            { label: overview.organizationName, href: `/${overview.organizationAlias}` },
+            { label: displayName(overview) },
+          ]}
+          ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+          collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+        />
+      </PageHeader>
+    )}
+    {component === 'champion-podium' && (
+      <ChampionPodium intl={intl} winners={referenceWinnerZones()} />
+    )}
+    {component === 'champion-podium-shared-title' && (
+      <ChampionPodium intl={intl} winners={referenceWinnerZones().slice(1)} />
+    )}
     {component === 'champion-podium-empty' && <ChampionPodium intl={intl} winners={[]} />}
-    {
-      component === 'breadcrumb' && (
-        <Breadcrumb
-          ariaLabel="Breadcrumb"
-          collapsedLabel="Show the hidden levels"
-          items={[
-            { label: 'Reference League', href: '/reference-league' },
-            { label: 'Reference Cup', href: '/reference-league/tournaments/reference-cup' },
-            { label: 'Stage 2' },
-          ]}
-        />
-      )
-    }
-    {
-      component === 'breadcrumb-collapsed' && (
-        <Breadcrumb
-          ariaLabel="Breadcrumb"
-          collapsedLabel="Show the hidden levels"
-          items={[
-            { label: 'Reference League', href: '/reference-league' },
-            { label: 'Reference Cup', href: '/reference-league/tournaments/reference-cup' },
-            { label: 'Matches', href: '/reference-league/tournaments/reference-cup/matches' },
-            { label: 'Stage 2', href: '/reference-league/tournaments/reference-cup/stages/2' },
-            { label: 'Round 1 · Match 2' },
-          ]}
-        />
-      )
-    }
-    {
-      component === 'champion-podium-narrow' && (
-        <div style="width: 16rem">
-          <ChampionPodium intl={intl} winners={referenceWinnerZones()} />
-        </div>
-      )
-    }
-    {
-      component === 'champion-podium-medium' && (
-        <div style="width: 26rem">
-          <ChampionPodium intl={intl} winners={referenceWinnerZones()} />
-        </div>
-      )
-    }
-    {
-      component === 'tournament-card-finished-narrow' && (
-        <div style="width: 22rem">
-          <TournamentCard
-            intl={intl}
-            organizationAlias="reference-league"
-            tournament={{
-              ...(tournaments.find((t) => t.status === 'finished') ?? tournaments[0]),
-              name: 'Campeonato Panamericano de Clubes de Hockey Patines',
-            }}
-          />
-        </div>
-      )
-    }
-    {
-      component === 'data-table' && (
-        <DataTable
-          ariaLabel="Reference standings"
-          caption="Group A"
-          columns={dataTableColumns}
-          emptyMessage="No rows yet."
-          rows={standingsRows}
-        />
-      )
-    }
-    {
-      component === 'match-card-grid' && (
-        <MatchCardGrid intl={intl} localePrefix="" model={overview} />
-      )
-    }
-    {
-      component === 'match-hero' && (
-        <MatchHero locale={intl.locale} model={matchReport} statusLabel="LIVE" />
-      )
-    }
-    {
-      component === 'match-node' && (
-        <MatchNode
-          intl={intl}
-          localePrefix=""
-          match={referenceBracket()[0]}
-          organizationAlias="reference-league"
-          stageNumber={1}
-          tournamentAlias="reference-cup"
-        />
-      )
-    }
-    {component === 'match-officials' && <MatchOfficials intl={intl} model={matchReport} />}
-    {
-      component === 'match-rosters' && (
-        <MatchRosters
-          intl={intl}
-          locale={locale}
-          model={matchReport}
-          organization="reference-league"
-          tournament="reference-cup"
-        />
-      )
-    }
-    {
-      component === 'match-schedule-filters' && (
-        <MatchScheduleFilters
-          activeStageNumber={1}
-          activeZone="Copa de Oro"
-          buildUrl={() => '#'}
-          groups={['Group A', 'Group B']}
-          labels={{
-            stageFilterAriaLabel: intl.formatMessage(messages.matchesViewStageFilterAriaLabel),
-            zoneFilterAriaLabel: intl.formatMessage(messages.matchesViewZoneFilterAriaLabel),
-            groupFilterAriaLabel: intl.formatMessage(messages.matchesViewGroupFilterAriaLabel),
-            stateFilterAriaLabel: intl.formatMessage(messages.matchesViewStateFilterAriaLabel),
-            viewFilterAriaLabel: intl.formatMessage(messages.matchesViewViewFilterAriaLabel),
-            titles: {
-              stage: intl.formatMessage(messages.matchesViewStageFilterTitle),
-              zone: intl.formatMessage(messages.matchesViewZoneFilterTitle),
-              group: intl.formatMessage(messages.matchesViewGroupFilterTitle),
-              state: intl.formatMessage(messages.matchesViewStateFilterTitle),
-              view: intl.formatMessage(messages.matchesViewViewFilterTitle),
-            },
-            viewOptions: {
-              rows: intl.formatMessage(messages.matchesViewViewRows),
-              cards: intl.formatMessage(messages.matchesViewViewCards),
-            },
-            filters: matchCardLabels(intl).filters,
-          }}
-          stages={[
-            { stageNumber: 1, stageName: 'Group Stage' },
-            { stageNumber: 2, stageName: 'Playoffs' },
-          ]}
-          offerView
-          state="all"
-          view="rows"
-          zones={['Copa de Oro', 'Copa de Plata']}
-        />
-      )
-    }
-    {
-      component === 'match-schedule' && (
-        <MatchSchedule
-          collapsible
-          emptyLabel="No matches yet."
-          intl={intl}
-          localePrefix=""
-          openStage={1}
-          organizationAlias="reference-league"
-          stages={referenceSchedule()}
-          tournamentAlias="reference-cup"
-        />
-      )
-    }
-    {component === 'match-timeline' && <MatchTimeline intl={intl} model={matchReport} />}
-    {
-      component === 'modal' && (
-        <Modal
-          closeLabel="Close"
-          description="Preview of the modal organism, opened by default so it renders without a trigger script."
-          id="preview-modal"
-          open={true}
-          title={intl.formatMessage({
-            id: 'preview.modal.title',
-            defaultMessage: 'Reference modal',
-          })}
-        />
-      )
-    }
-    {
-      component === 'organization-clubs' && (
-        <OrganizationClubs clubs={referenceClubs()} intl={intl} />
-      )
-    }
-    {
-      component === 'organization-header' && (
-        <OrganizationHeader
-          intl={intl}
-          organizationAlias="reference-league"
-          organizationName="Reference League"
-        />
-      )
-    }
-    {
-      component === 'player-profile-view' && (
-        <PlayerProfileView
-          intl={intl}
-          organizationAlias="reference-league"
-          profile={referencePlayerProfile()}
-        />
-      )
-    }
-    {
-      component === 'club-filter-chip' && (
-        <div class="cl-preview-chip-row">
-          <ClubFilterChip active={true} filter="all" href="#" label="All" />
-          <ClubFilterChip
-            active={false}
-            club
-            emblemSrc="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M8 6h32l-4 4v14c0 12-8 18-12 20-4-2-12-8-12-20V10z' fill='%23243049'/%3E%3C/svg%3E"
-            filter="meridian"
-            href="#"
-            label="Meridian Athletic"
-          />
-          <ClubFilterChip active={false} club filter="ironclad" href="#" label="Ironclad Union" />
-          <ClubFilterChip active={true} club filter="harbor" href="#" label="Harbor Rovers" />
-        </div>
-      )
-    }
-    {
-      component === 'standings-table' && (
-        <StandingsTable
-          activeLayoutCode="group-table"
-          activeClubId={referenceClubs()[1]?.clubId}
-          canonicalPath="/reference-league/tournaments/reference-cup/standings"
-          clubs={referenceClubs()}
-          intl={intl}
-          layout={referenceTableLayouts()[0]}
-          layouts={referenceTableLayouts()}
-          organizationAlias="reference-league"
-          projection={referenceTableProjection()}
-          tournamentAlias="reference-cup"
-        />
-      )
-    }
-    {
-      component === 'tournament-card' && (
+    {component === 'breadcrumb' && (
+      <Breadcrumb
+        ariaLabel="Breadcrumb"
+        collapsedLabel="Show the hidden levels"
+        items={[
+          { label: 'Reference League', href: '/reference-league' },
+          { label: 'Reference Cup', href: '/reference-league/tournaments/reference-cup' },
+          { label: 'Stage 2' },
+        ]}
+      />
+    )}
+    {component === 'breadcrumb-collapsed' && (
+      <Breadcrumb
+        ariaLabel="Breadcrumb"
+        collapsedLabel="Show the hidden levels"
+        items={[
+          { label: 'Reference League', href: '/reference-league' },
+          { label: 'Reference Cup', href: '/reference-league/tournaments/reference-cup' },
+          { label: 'Matches', href: '/reference-league/tournaments/reference-cup/matches' },
+          { label: 'Stage 2', href: '/reference-league/tournaments/reference-cup/stages/2' },
+          { label: 'Round 1 · Match 2' },
+        ]}
+      />
+    )}
+    {component === 'champion-podium-narrow' && (
+      <div style="width: 16rem">
+        <ChampionPodium intl={intl} winners={referenceWinnerZones()} />
+      </div>
+    )}
+    {component === 'champion-podium-medium' && (
+      <div style="width: 26rem">
+        <ChampionPodium intl={intl} winners={referenceWinnerZones()} />
+      </div>
+    )}
+    {component === 'tournament-card-finished-narrow' && (
+      <div style="width: 22rem">
         <TournamentCard
           intl={intl}
           organizationAlias="reference-league"
-          tournament={tournaments[0]}
+          tournament={{
+            ...(tournaments.find((t) => t.status === 'finished') ?? tournaments[0]),
+            name: 'Campeonato Panamericano de Clubes de Hockey Patines',
+          }}
         />
-      )
-    }
-    {
-      component === 'tournament-section' && (
-        <TournamentSection
-          headingId="preview-tournament-section"
-          heading="Live tournaments"
-          intl={intl}
-          localePrefix=""
-          organizationAlias="reference-league"
-          showLiveDot={true}
-          tournaments={tournaments}
+      </div>
+    )}
+    {component === 'data-table' && (
+      <DataTable
+        ariaLabel="Reference standings"
+        caption="Group A"
+        columns={dataTableColumns}
+        emptyMessage="No rows yet."
+        rows={standingsRows}
+      />
+    )}
+    {component === 'match-card-grid' && (
+      <MatchCardGrid intl={intl} localePrefix="" model={overview} />
+    )}
+    {component === 'match-hero' && (
+      <MatchHero intl={intl} locale={intl.locale} model={matchReport} statusLabel="LIVE" />
+    )}
+    {component === 'match-node' && (
+      <MatchNode
+        intl={intl}
+        localePrefix=""
+        match={referenceBracket()[0]}
+        organizationAlias="reference-league"
+        stageNumber={1}
+        tournamentAlias="reference-cup"
+      />
+    )}
+    {component === 'match-officials' && <MatchOfficials intl={intl} model={matchReport} />}
+    {component === 'match-rosters' && (
+      <MatchRosters
+        intl={intl}
+        locale={locale}
+        model={matchReport}
+        organization="reference-league"
+        tournament="reference-cup"
+      />
+    )}
+    {component === 'match-schedule-filters' && (
+      <MatchScheduleFilters
+        activeStageNumber={1}
+        activeZone="Copa de Oro"
+        buildUrl={() => '#'}
+        groups={['Group A', 'Group B']}
+        labels={{
+          disclosureLabel: intl.formatMessage(messages.matchesViewFiltersDisclosureLabel),
+          stageFilterAriaLabel: intl.formatMessage(messages.matchesViewStageFilterAriaLabel),
+          zoneFilterAriaLabel: intl.formatMessage(messages.matchesViewZoneFilterAriaLabel),
+          groupFilterAriaLabel: intl.formatMessage(messages.matchesViewGroupFilterAriaLabel),
+          dayFilterAriaLabel: intl.formatMessage(messages.matchesViewFilterDay),
+          stateFilterAriaLabel: intl.formatMessage(messages.matchesViewStateFilterAriaLabel),
+          viewFilterAriaLabel: intl.formatMessage(messages.matchesViewViewFilterAriaLabel),
+          titles: {
+            stage: intl.formatMessage(messages.matchesViewStageFilterTitle),
+            zone: intl.formatMessage(messages.matchesViewZoneFilterTitle),
+            group: intl.formatMessage(messages.matchesViewGroupFilterTitle),
+            day: intl.formatMessage(messages.matchesViewFilterDay),
+            state: intl.formatMessage(messages.matchesViewStateFilterTitle),
+            view: intl.formatMessage(messages.matchesViewViewFilterTitle),
+          },
+          dayOptions: {
+            all: intl.formatMessage(messages.matchesViewFilterDayAll),
+            today: intl.formatMessage(messages.matchesViewFilterDayToday),
+            tomorrow: intl.formatMessage(messages.matchesViewFilterDayTomorrow),
+          },
+          viewOptions: {
+            rows: intl.formatMessage(messages.matchesViewViewRows),
+            cards: intl.formatMessage(messages.matchesViewViewCards),
+          },
+          filters: matchCardLabels(intl).filters,
+        }}
+        filtersOpen={false}
+        stages={[
+          { stageNumber: 1, stageName: 'Group Stage' },
+          { stageNumber: 2, stageName: 'Playoffs' },
+        ]}
+        offerView
+        state="all"
+        view="rows"
+        zones={['Copa de Oro', 'Copa de Plata']}
+      />
+    )}
+    {component === 'match-schedule' && (
+      <MatchSchedule
+        collapsible
+        emptyLabel="No matches yet."
+        intl={intl}
+        localePrefix=""
+        openStage={1}
+        organizationAlias="reference-league"
+        stages={referenceSchedule()}
+        tournamentAlias="reference-cup"
+      />
+    )}
+    {component === 'match-day-list' && (
+      <MatchDayList
+        intl={intl}
+        matches={referenceScheduleRows()}
+        organizationAlias="reference-league"
+        organizationTimeZone="UTC"
+        reportUrlOf={(match) =>
+          `/reference-league/tournaments/reference-cup/stages/1/matches/${match.matchNumber}`
+        }
+      />
+    )}
+    {component === 'match-day-row' && (
+      <ol class="cl-match-day__matches">
+        {referenceScheduleRows()
+          .slice(0, 2)
+          .map((match, index) => (
+            <li>
+              <MatchDayRow
+                intl={intl}
+                match={
+                  index === 0
+                    ? { ...match, state: 'live', homeScore: undefined, awayScore: undefined }
+                    : match
+                }
+                organizationAlias="reference-league"
+                organizationTimeZone="UTC"
+                reportUrl={`/reference-league/tournaments/reference-cup/stages/1/matches/${match.matchNumber}`}
+              />
+            </li>
+          ))}
+      </ol>
+    )}
+    {component === 'match-timeline' && <MatchTimeline intl={intl} model={matchReport} />}
+    {component === 'match-timeline-timed' && <MatchTimeline intl={intl} model={timedMatchReport} />}
+    {component === 'match-timeline-empty' && <MatchTimeline intl={intl} model={emptyMatchReport} />}
+    {component === 'match-rosters-registered' && (
+      <MatchRosters
+        intl={intl}
+        locale={locale}
+        model={registeredMatchReport}
+        organization="reference-league"
+        tournament="reference-cup"
+      />
+    )}
+    {component === 'modal' && (
+      <Modal
+        closeLabel="Close"
+        description="Preview of the modal organism, opened by default so it renders without a trigger script."
+        id="preview-modal"
+        open={true}
+        title={intl.formatMessage({
+          id: 'preview.modal.title',
+          defaultMessage: 'Reference modal',
+        })}
+      />
+    )}
+    {component === 'organization-clubs' && (
+      <OrganizationClubs
+        clubs={referenceClubs()}
+        intl={intl}
+        organizationAlias="reference-league"
+      />
+    )}
+    {component === 'organization-header' && (
+      <OrganizationHeader intl={intl} organizationName="Reference League" />
+    )}
+    {component === 'player-profile-view' && (
+      <PlayerProfileView
+        intl={intl}
+        organizationAlias="reference-league"
+        tournamentAlias="reference-cup"
+        profile={referencePlayerProfile()}
+      />
+    )}
+    {component === 'emblem-image-long-abbreviation' && (
+      <div>
+        {['CUDB', 'CCBA', 'ESTSM', 'ACSM', 'BATA'].map((abbreviation) => (
+          <div>
+            {[48, 32, 24].map((size) => (
+              <EmblemImage
+                abbreviation={abbreviation}
+                alt={abbreviation}
+                placeholderAlt={abbreviation}
+                size={size}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    )}
+    {component === 'club-identity' && (
+      <div>
+        <ClubIdentity name="Club Hispano" abbreviation="HIS" placeholderAlt="Crest" />
+        <ClubIdentity
+          name="Lomas de Rivadavia"
+          abbreviation="LDR"
+          placeholderAlt="Crest"
+          href="#"
+          size="sm"
         />
-      )
-    }
+        <ClubIdentity
+          name="Club Hispano"
+          abbreviation="HIS"
+          placeholderAlt="Crest"
+          headingLevel={1}
+          size="lg"
+        />
+      </div>
+    )}
+    {component === 'section-header' && (
+      <div>
+        <SectionHeader headingId="preview-heading-plain" heading="Results" />
+        <SectionHeader
+          headingId="preview-heading-action"
+          heading="Standing"
+          actionHref="#"
+          actionLabel="View stage standings"
+          count={8}
+        />
+      </div>
+    )}
+    {component === 'form' && (
+      <Form action="#" class="cl-filter-row">
+        <Input name="zone" value="Zona Norte" />
+        <Input type="search" name="q" value="Liga" id="preview-form-search" class="cl-input" />
+        <Button type="submit" variant="secondary">
+          {intl.formatMessage(messages.interactionViewMatches)}
+        </Button>
+      </Form>
+    )}
+    {component === 'input' && (
+      <Input type="search" name="q" value="Liga" id="preview-input-search" class="cl-input" />
+    )}
+    {component === 'stack' && (
+      <Stack gap="md">
+        <p>{intl.formatMessage(messages.clubIndexTitle)}</p>
+        <p>{intl.formatMessage(messages.clubIndexEmptyDescription)}</p>
+      </Stack>
+    )}
+    {component === 'club-filter-chip' && (
+      <div class="cl-preview-chip-row">
+        <ClubFilterChip active={true} filter="all" href="#" label="All" />
+        <ClubFilterChip
+          active={false}
+          club
+          emblemSrc="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M8 6h32l-4 4v14c0 12-8 18-12 20-4-2-12-8-12-20V10z' fill='%23243049'/%3E%3C/svg%3E"
+          filter="meridian"
+          href="#"
+          label="Meridian Athletic"
+        />
+        <ClubFilterChip active={false} club filter="ironclad" href="#" label="Ironclad Union" />
+        <ClubFilterChip active={true} club filter="harbor" href="#" label="Harbor Rovers" />
+      </div>
+    )}
+    {component === 'standings-table' && (
+      <StandingsTable
+        activeLayoutCode="group-table"
+        activeClubId={referenceClubs()[1]?.clubId}
+        canonicalPath="/reference-league/tournaments/reference-cup/standings"
+        clubs={referenceClubs()}
+        intl={intl}
+        layout={referenceTableLayouts()[0]}
+        layouts={referenceTableLayouts()}
+        organizationAlias="reference-league"
+        projection={referenceTableProjection()}
+        tournamentAlias="reference-cup"
+      />
+    )}
+    {component === 'standings-table-promotion' && (
+      <StandingsTable
+        activeLayoutCode="group-table"
+        canonicalPath="/reference-league/tournaments/reference-cup/standings"
+        clubs={referenceClubs()}
+        intl={intl}
+        layout={referenceTableLayouts()[0]}
+        layouts={referenceTableLayouts()}
+        organizationAlias="reference-league"
+        projection={referencePromotionTableProjection()}
+        tournamentAlias="reference-cup"
+      />
+    )}
+    {component === 'tournament-card' && (
+      <TournamentCard
+        intl={intl}
+        organizationAlias="reference-league"
+        tournament={tournaments[0]}
+      />
+    )}
+    {component === 'tournament-section' && (
+      <TournamentSection
+        headingId="preview-tournament-section"
+        heading="Live tournaments"
+        intl={intl}
+        localePrefix=""
+        organizationAlias="reference-league"
+        tournaments={tournaments}
+      />
+    )}
   </body>
 </html>
 
 <style>
+  .cl-preview-iconography {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--cl-space-3);
+    padding: var(--cl-space-4);
+    background: var(--cl-color-ink-950);
+    color: var(--cl-text-primary);
+  }
+  .cl-preview-iconography__item {
+    display: flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+  }
   .cl-preview-chip-row {
     display: flex;
     flex-wrap: wrap;

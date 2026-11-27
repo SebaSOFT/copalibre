@@ -1,0 +1,31 @@
+.cl-interaction-empty-state {
+  display: grid;
+  justify-items: center;
+  gap: var(--cl-space-3);
+  padding: var(--cl-space-8) var(--cl-space-4);
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-panel);
+  text-align: center;
+}
+
+.cl-interaction-empty-state__icon-well {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-chrome);
+  color: var(--cl-text-primary);
+}
+
+.cl-interaction-empty-state__heading,
+.cl-interaction-empty-state__description,
+.cl-interaction-empty-state__permission {
+  margin: 0;
+}
+
+.cl-interaction-empty-state__description,
+.cl-interaction-empty-state__permission {
+  max-width: 42rem;
+  color: var(--cl-text-secondary);
+}

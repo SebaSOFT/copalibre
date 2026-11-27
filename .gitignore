@@ -23,6 +23,12 @@ test-results/
 blob-report/
 .artifacts/
 artifacts/
+.lighthouse
+.lighthouseci/
+# Chrome Launcher can leave temporary WSL profiles with a Windows path as the root name.
+/*lighthouse.*/
+# Screenshots are attached to the pull request, never committed.
+docs/assets/screenshots/
 .cache/
 .eslintcache
 .stylelintcache
@@ -104,6 +110,8 @@ tmp/
 .claude/
 .gemini/
 .opencode/
+.superpowers/
+docs/superpowers/
 # Impeccable keeps team-shared and per-developer state side by side: `config.json`
 # carries the committed detector suppressions and build-path default, `design.json`
 # is DESIGN.md's sidecar and is regenerated with it. Everything else here is local —
@@ -115,8 +123,16 @@ tmp/
 # an installer drops into it have to be ignored one by one.
 .github/agents/
 .github/hooks/
-.github/skills/
+# OpenSpec: track specs baseline and config; ignore proposals, archive, and residuals
+.openspec-target
 openspec/changes/*
+!openspec/changes/.gitkeep
+openspec/changes/archive/*
+!openspec/changes/archive/.gitkeep
+openspec/archive/
+!openspec/specs/
+!openspec/config.yaml
+
 apps/web/public/openapi/
 apps/web/public/vendor/
 apps/web/public/authoring/
@@ -132,3 +148,6 @@ packages/design-tokens/generated/
 
 # Raw scrape cache for demo datasets (never committed)
 packages/demo-datasets/cache/
+
+# Security gate reports (scripts/security/run.mjs)
+security-report/

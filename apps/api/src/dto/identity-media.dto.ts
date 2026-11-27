@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 /** Matches `reports.controller.ts`'s established upload request shape. */
 export class UploadImageRequest {
@@ -47,6 +47,20 @@ export class PersonNationalityResponse {
   nationality!: string | null;
 }
 
+export class SetPersonPublicVisibilityRequest {
+  @ApiProperty({ description: 'Whether to hide this person from public pages.' })
+  @IsBoolean()
+  hiddenFromPublic!: boolean;
+}
+
+export class PersonPublicVisibilityResponse {
+  @ApiProperty({ format: 'uuid' })
+  personId!: string;
+
+  @ApiProperty({ description: 'Whether this person is hidden from public pages.' })
+  hiddenFromPublic!: boolean;
+}
+
 export class NaturalKeyResponse {
   @ApiProperty({ example: 'dni' })
   kind!: string;
@@ -70,4 +84,7 @@ export class PersonResponse {
 
   @ApiPropertyOptional({ type: NaturalKeyResponse })
   naturalKey?: NaturalKeyResponse;
+
+  @ApiProperty({ description: 'Whether this person is hidden from public pages.' })
+  hiddenFromPublic!: boolean;
 }

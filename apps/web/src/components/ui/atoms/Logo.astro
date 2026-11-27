@@ -16,19 +16,17 @@ const { href, class: extraClass = '' } = Astro.props;
 const classes = `cl-logo ${extraClass}`.trim();
 ---
 
-{
-  href ? (
-    <a class={`${classes} cl-focusable`} href={href}>
-      <img src="/copalibre-logo.svg" alt="" width="28" height="28" />
-      <span class="cl-logo__wordmark">CopaLibre</span>
-    </a>
-  ) : (
-    <span class={classes}>
-      <img src="/copalibre-logo.svg" alt="" width="28" height="28" />
-      <span class="cl-logo__wordmark">CopaLibre</span>
-    </span>
-  )
-}
+{href ? (
+  <a class={`${classes} cl-focusable`} href={href}>
+    <img src="/copalibre-logo.svg" alt="" width="28" height="28" />
+    <span class="cl-logo__wordmark">CopaLibre</span>
+  </a>
+) : (
+  <span class={classes}>
+    <img src="/copalibre-logo.svg" alt="" width="28" height="28" />
+    <span class="cl-logo__wordmark">CopaLibre</span>
+  </span>
+)}
 
 <style>
   .cl-logo {

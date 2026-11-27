@@ -1,20 +1,40 @@
 import {
+  normaliseEmail,
   wouldLeaveInstallationWithoutSuperAdmin,
   type InstallationRoleAssignment,
 } from '@copalibre/domain';
-import type { Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import { InvariantViolationError, NotFoundError } from '../errors.js';
 import { newId } from '../ids.js';
 import { toInstallationRoleAssignment } from '../mapping.js';
 import { lockRowsForMutation } from '../row-lock.js';
 import { SYSTEM_ORGANIZATION } from '../relay/scheduled-jobs.js';
 import type { Database } from '../schema.js';
+import { testCapabilities } from '../test-support/test-dialect.js';
 import type { UnitOfWork } from '../transaction.js';
 import type { AccessAuditContext } from './organization-access-repository.js';
 
 export interface CreateSuperAdminInput extends AccessAuditContext {
   readonly principalId: string;
 }
+
+export interface GrantFirstSuperAdminInput extends AccessAuditContext {
+  /** The account to promote, found by email as sign-in finds it. */
+  readonly email: string;
+}
+
+/**
+ * Why the first super-admin was not granted. Both are answers, not failures: the transaction that
+ * produced them commits, so a refusal is in the audit trail beside the grants.
+ */
+export type FirstSuperAdminRefusal = 'super-admin-exists' | 'no-account';
+
+export type FirstSuperAdminOutcome =
+  | { readonly kind: 'granted'; readonly assignment: InstallationRoleAssignment }
+  | { readonly kind: 'refused'; readonly reason: FirstSuperAdminRefusal };
+
+/** Serializes first grants: two operators running the command together must not both see none. */
+const FIRST_SUPER_ADMIN_LOCK = 'copalibre:first-super-admin';
 
 export interface ChangeInstallationRoleStatusInput extends AccessAuditContext {
   readonly assignmentId: string;
@@ -104,6 +124,58 @@ export class InstallationRoleRepository {
       resultingState: { ...assignment },
     });
     return assignment;
+  }
+
+  /**
+   * Grants super-admin to the account with this email, only while the installation has no active
+   * super-admin: the one way to the first one, since every other grant needs one already.
+   *
+   * The check and the grant run under one transaction-scoped lock, so concurrent callers are
+   * serialized and exactly one finds the installation empty. An attempt made while one exists is
+   * recorded as a refusal (no resulting state, a reason), because someone trying to take the role
+   * is the event an audit trail is for. A missing account is not: it is a mistyped email.
+   */
+  async grantFirstSuperAdmin(
+    uow: UnitOfWork,
+    input: GrantFirstSuperAdminInput,
+  ): Promise<FirstSuperAdminOutcome> {
+    if (testCapabilities(uow.tx).supportsRowLocks) {
+      await sql`select pg_advisory_xact_lock(hashtext(${FIRST_SUPER_ADMIN_LOCK}))`.execute(uow.tx);
+    }
+
+    const active = await uow.tx
+      .selectFrom('installation_role_assignments')
+      .select('assignment_id')
+      .where('role', '=', 'super-admin')
+      .where('status', '=', 'active')
+      .where('deleted_at', 'is', null)
+      .executeTakeFirst();
+    if (active) {
+      await uow.recordAudit({
+        organizationId: SYSTEM_ORGANIZATION,
+        entityType: 'installation-role-assignment',
+        entityId: active.assignment_id,
+        action: 'installation.super-admin-created',
+        actor: input.actor,
+        authorizationContext: input.authorizationContext,
+        reason: 'An active super-admin already exists',
+      });
+      return { kind: 'refused', reason: 'super-admin-exists' };
+    }
+
+    const principal = await uow.tx
+      .selectFrom('identity_principals')
+      .select('principal_id')
+      .where('email', '=', normaliseEmail(input.email))
+      .executeTakeFirst();
+    if (!principal) return { kind: 'refused', reason: 'no-account' };
+
+    const assignment = await this.createSuperAdmin(uow, {
+      principalId: principal.principal_id,
+      actor: input.actor,
+      authorizationContext: input.authorizationContext,
+    });
+    return { kind: 'granted', assignment };
   }
 
   async changeStatus(

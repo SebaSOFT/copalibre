@@ -1,69 +1,73 @@
-import { render, screen, within } from '@testing-library/react';
-import { TvStandingsTable } from './TvStandingsTable.js';
+import { render, screen } from '@testing-library/react';
+import { publicIntl, tvDashboardLabels } from '../../../../lib/i18n/public-intl.js';
 import type { StandingsRowView } from '../../../../lib/overview.js';
-import type { TvDashboardLabels } from '../../tv-types.js';
+import { TvStandingsTable } from './TvStandingsTable.js';
 
-const dashboardLabels = {
-  clubColumn: 'Club',
-  playedColumn: 'PJ',
-  standingsUnavailable: 'Sin tabla',
-} as unknown as TvDashboardLabels;
+const dashboardLabels = tvDashboardLabels(publicIntl('en'));
 
-const row = (position: number, name: string, zoneName?: string): StandingsRowView => ({
-  position,
-  name,
-  played: 3,
-  points: 9 - position,
-  ...(zoneName === undefined ? {} : { zoneName }),
-});
-
-function renderTable(standings: readonly StandingsRowView[]) {
-  return render(
-    <TvStandingsTable
-      dashboardLabels={dashboardLabels}
-      pointsShortLabel="Pts"
-      standings={standings}
-    />,
-  );
+function row(position: number, groupName: string): StandingsRowView {
+  return {
+    position,
+    name: `Club ${groupName} ${position}`,
+    abbreviation: `C${position}`,
+    played: 3,
+    points: 9 - position,
+    groupName,
+  };
 }
 
 describe('TvStandingsTable', () => {
-  it('renders a stage with a single table as one headless table, as before', () => {
-    const { container } = renderTable([row(1, 'Boca'), row(2, 'River')]);
+  it('renders every row of a full-frame table, past the eight-row cap', () => {
+    const standings = Array.from({ length: 24 }, (_, index) => row(index + 1, 'Grupo A'));
+    render(
+      <TvStandingsTable
+        dashboardLabels={dashboardLabels}
+        pointsShortLabel="Pts"
+        showAllRows
+        standings={standings}
+      />,
+    );
 
-    expect(container.querySelectorAll('table')).toHaveLength(1);
-    expect(screen.queryByTestId('tv-standings-zone')).toBeNull();
-    expect(screen.queryByRole('heading')).toBeNull();
+    expect(document.querySelectorAll('.tv-standings-table tbody tr')).toHaveLength(24);
   });
 
-  it('renders one table per zone, each headed by the zone name, with no row crossing zones', () => {
-    renderTable([
-      row(1, 'Boca', 'Liga A'),
-      row(2, 'River', 'Liga A'),
-      row(1, 'Lanús', 'Liga B'),
-      row(2, 'Banfield', 'Liga B'),
-    ]);
+  it('heads each table with the stage and, when the stage has several, the group', () => {
+    const standings = [row(1, 'Grupo A'), row(1, 'Grupo B')];
+    render(
+      <TvStandingsTable
+        dashboardLabels={dashboardLabels}
+        pointsShortLabel="Pts"
+        showAllRows
+        stageName="Fase 1"
+        standings={standings}
+      />,
+    );
 
-    const zones = screen.getAllByTestId('tv-standings-zone');
-    expect(zones).toHaveLength(2);
-    expect(within(zones[0] as HTMLElement).getByRole('heading', { name: 'Liga A' })).toBeTruthy();
-    expect(within(zones[0] as HTMLElement).getByText('Boca')).toBeTruthy();
-    expect(within(zones[0] as HTMLElement).queryByText('Lanús')).toBeNull();
-    expect(within(zones[1] as HTMLElement).getByRole('heading', { name: 'Liga B' })).toBeTruthy();
-    expect(within(zones[1] as HTMLElement).getByText('Banfield')).toBeTruthy();
+    const headings = Array.from(document.querySelectorAll('.tv-standings-zone__name')).map(
+      (heading) => heading.textContent,
+    );
+    expect(headings).toEqual(['Fase 1 · Grupo A', 'Fase 1 · Grupo B']);
+    expect(screen.getAllByRole('table')).toHaveLength(2);
   });
+});
 
-  it('caps each zone at eight rows, not the whole list', () => {
-    const many = (zone: string) =>
-      Array.from({ length: 10 }, (_, index) => row(index + 1, `${zone}${index + 1}`, zone));
-    const { container } = renderTable([...many('A'), ...many('B')]);
+describe('TvStandingsTable headings on a later page', () => {
+  it('heads a page that holds only Group B with the stage and the group, when the stage has several tables', () => {
+    const groupB = [row(5, 'Grupo B'), row(6, 'Grupo B')];
+    render(
+      <TvStandingsTable
+        dashboardLabels={dashboardLabels}
+        pointsShortLabel="Pts"
+        scopesHeadings
+        showAllRows
+        stageName="Fase 1"
+        standings={groupB}
+      />,
+    );
 
-    expect(container.querySelectorAll('tbody tr')).toHaveLength(16);
-  });
-
-  it('says so when there are no standings at all', () => {
-    renderTable([]);
-
-    expect(screen.getByText('Sin tabla')).toBeTruthy();
+    const headings = Array.from(document.querySelectorAll('.tv-standings-zone__name')).map(
+      (heading) => heading.textContent,
+    );
+    expect(headings).toEqual(['Fase 1 · Grupo B']);
   });
 });

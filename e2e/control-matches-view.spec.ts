@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectCompleteHeadingOutline } from './support/heading-outline.js';
 
 /**
  * The organizer-facing matches view: the same card grid the
@@ -29,6 +30,8 @@ function finalizedMatchWithTrace() {
     groupName: 'Grupo A',
     homePosition: 1,
     awayPosition: 2,
+    decidingFactorCode: 'head-to-head',
+    decidingFactorRule: 2,
     decidingFactor: 'head-to-head goal difference',
     homeTrace: ['Comparator: head-to-head goal difference — Club Andes ahead by 2'],
     awayTrace: ['Comparator: head-to-head goal difference — Deportivo Sur behind by 2'],
@@ -80,6 +83,17 @@ async function mockMatchesViewApi(page: Page): Promise<void> {
             state === 'live' ? [live] : state === 'final' ? [finalized] : [finalized, live];
           return Response.json({ matches });
         }
+        if (url.endsWith('/completion') && method === 'GET') {
+          return Response.json({
+            totalMatches: 2,
+            resolvedMatches: 1,
+            liveMatches: 1,
+            scheduledMatches: 0,
+            finalizedMatches: 1,
+            forfeitedMatches: 0,
+            stages: [],
+          });
+        }
         return new Response('Not found', { status: 404 });
       };
     },
@@ -103,10 +117,13 @@ test('shows every match with venue/clock and the full comparator trace on a tieb
   await expect(page.getByText('Club Andes', { exact: true })).toBeVisible();
   await expect(page.getByText('Talleres', { exact: true })).toBeVisible();
   await expect(page.getByText('Estadio Central')).toBeVisible();
+  await expect(page.getByTestId('entrant-name').first()).toHaveCSS('text-transform', 'uppercase');
+  await expectCompleteHeadingOutline(page, 'matches view');
 
-  // The full trace, not just the summary line, reaches this authorized screen —
-  // collapsed by default, so open it before checking its content is present.
-  await expect(page.getByText('Decided by: head-to-head goal difference')).toBeVisible();
+  // The full trace reaches this authorized screen — collapsed by default, so open it before
+  // checking its content is present. The card states no one-line standings tie-break: that
+  // criterion describes the table, not the match.
+  await expect(page.getByText(/Decided by/)).toHaveCount(0);
   await page.getByText('Full standings comparator trace').click();
   await expect(page.getByText('Club Andes ahead by 2')).toBeVisible();
   await expect(page.getByText('Deportivo Sur behind by 2')).toBeVisible();

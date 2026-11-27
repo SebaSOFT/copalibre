@@ -19,11 +19,29 @@ const content: EmailContent = {
 };
 
 describe('email layout', () => {
+  it('uses script-aware body and display font stacks', () => {
+    const { html } = renderEmail(config, content);
+
+    expect(html).toContain(
+      "font-family:'Barlow', 'Roboto', 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', sans-serif;",
+    );
+    expect(html).toContain(
+      "font-family:'Barlow Condensed', 'Roboto Condensed', 'Noto Sans SC', 'Arial Narrow', system-ui, sans-serif;",
+    );
+  });
+
   it('shows the organization emblem, escaped name and public page link in the header', () => {
     const { html } = renderEmail(config, content);
-    expect(html).toContain('src="https://liga.example/organizations/liga-mendocina/emblem"');
-    expect(html).toContain('alt="Liga &lt;Mendocina&gt; &amp; Co"');
+    expect(html).toContain('src="https://liga.example/api/organizations/liga-mendocina/emblem"');
+    expect(html).toContain('>Liga &lt;Mendocina&gt; &amp; Co</span>');
     expect(html).toContain('href="https://liga.example/liga-mendocina"');
+  });
+
+  it('names the organization and the product once each where images are blocked', () => {
+    const { html } = renderEmail(config, content);
+    const readable = html.replace(/<img [^>]*alt="([^"]*)"[^>]*>/g, '$1').replace(/<[^>]+>/g, ' ');
+    expect(readable.match(/Liga &lt;Mendocina&gt; &amp; Co/g)).toHaveLength(1);
+    expect(readable.match(/CopaLibre/g)).toHaveLength(1);
   });
 
   it('routes the organization link under the language prefix for non-English languages', () => {
@@ -41,25 +59,34 @@ describe('email layout', () => {
     expect(html).toContain('>Liga</span>');
   });
 
-  it('shows the Copa Libre mark alone when there is no organization', () => {
+  it('shows the CopaLibre mark alone when there is no organization', () => {
     const { html, text } = renderEmail(config, { ...content, organization: undefined });
-    expect(html).toContain('alt="Copa Libre" width="40"');
+    expect(html).toContain('alt="CopaLibre" width="40"');
     expect(html).not.toContain('/emblem');
-    expect(text.startsWith('Copa Libre\n')).toBe(true);
+    expect(text.startsWith('CopaLibre\n')).toBe(true);
   });
 
-  it('signs every email with the Copa Libre logo and a fixed copalibre.app link', () => {
+  it('signs every email with the CopaLibre logo and a fixed www.copalibre.app link', () => {
     const { html, text } = renderEmail(config, content);
     expect(html).toContain('src="https://liga.example/copalibre-logo.png"');
-    expect(html).toContain('href="https://copalibre.app"');
-    expect(text.trimEnd().endsWith('https://copalibre.app')).toBe(true);
+    expect(html).toContain('href="https://www.copalibre.app"');
+    expect(text.trimEnd().endsWith('https://www.copalibre.app')).toBe(true);
   });
 
-  it('gives every image alternative text', () => {
+  it('shows the canonical host as the signature link text, so following it needs no redirect', () => {
+    const { html } = renderEmail(config, content);
+    expect(html).toContain(
+      'href="https://www.copalibre.app" style="color:#5b6b7a;">www.copalibre.app</a>',
+    );
+    expect(html).not.toContain('https://copalibre.app');
+    expect(html).not.toContain('>copalibre.app<');
+  });
+
+  it('gives every image an alt attribute, empty when its name sits beside it', () => {
     const { html } = renderEmail(config, content);
     const images = html.match(/<img [^>]*>/g) ?? [];
     expect(images.length).toBeGreaterThan(0);
-    for (const image of images) expect(image).toMatch(/alt="[^"]+"/);
+    for (const image of images) expect(image).toMatch(/alt="[^"]*"/);
   });
 
   it('escapes body text and always carries a plain-text part with the action link', () => {

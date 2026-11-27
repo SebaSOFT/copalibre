@@ -24,6 +24,11 @@ describe('the StepHeading composition', () => {
     expect(marker?.textContent).toBe('4');
   });
 
+  it('shows the total when a long wizard supplies one', () => {
+    const { container } = render(<StepHeading step={1} title="Name" totalSteps={8} />);
+    expect(container.querySelector('.cl-step-heading__marker')?.textContent).toBe('1 / 8');
+  });
+
   it('renders whatever the step says beneath its title', () => {
     render(
       <StepHeading step={1} title="Create the tournament">

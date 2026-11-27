@@ -1,0 +1,110 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { EntrantEmblem } from './EntrantEmblem.js';
+
+describe('EntrantEmblem', () => {
+  it('renders a loaded crest with the entrant as its accessible name', () => {
+    render(<EntrantEmblem alt="Concepción Patín Club" src="/crest.png" />);
+
+    expect(
+      screen
+        .getByRole('img', { name: 'Concepción Patín Club' })
+        .querySelector('img')
+        ?.getAttribute('src'),
+    ).toBe('/crest.png');
+  });
+
+  it('renders the stored abbreviation without changing its casing', () => {
+    render(<EntrantEmblem abbreviation="CPC" alt="Concepción Patín Club" />);
+
+    expect(
+      screen.getByRole('img', { name: 'Concepción Patín Club' }).textContent?.includes('CPC'),
+    ).toBe(true);
+  });
+
+  it('sets a four-character monogram to the medium step in a 24px frame', () => {
+    render(<EntrantEmblem abbreviation="ESTM" alt="Estudiantil San Miguel" size={24} />);
+
+    const monogram = screen.getByText('ESTM');
+    expect(monogram.classList.contains('cl-entrant-emblem__monogram--medium')).toBe(true);
+    expect(
+      monogram.closest('.cl-entrant-emblem')?.classList.contains('cl-entrant-emblem--micro'),
+    ).toBe(true);
+  });
+
+  it.each([
+    ['CUDB', 'medium'],
+    ['CCBA', 'medium'],
+    ['ESTSM', 'long'],
+    ['ACSMX', 'long'],
+    ['BATAXX', 'longest'],
+  ] as const)('sets %s to the %s step at 48px', (abbreviation, step) => {
+    render(<EntrantEmblem abbreviation={abbreviation} alt="Club" size={48} />);
+
+    expect(
+      screen.getByText(abbreviation).classList.contains(`cl-entrant-emblem__monogram--${step}`),
+    ).toBe(true);
+  });
+
+  it('uses the shield when abbreviation is absent or too long', () => {
+    const { rerender } = render(<EntrantEmblem alt="Concepción Patín Club" />);
+    const shield = screen.getByRole('img', { name: 'Concepción Patín Club' });
+    expect(shield.querySelector('svg')).not.toBeNull();
+
+    rerender(<EntrantEmblem abbreviation="PANAMER" alt="Concepción Patín Club" />);
+    expect(
+      screen.getByRole('img', { name: 'Concepción Patín Club' }).querySelector('svg'),
+    ).not.toBeNull();
+    expect(screen.queryByText('PANAMER')).toBeNull();
+  });
+
+  it('swaps a failed crest to the stored abbreviation', () => {
+    render(<EntrantEmblem abbreviation="CPC" alt="Concepción Patín Club" src="/broken.png" />);
+
+    const image = screen.getByRole('img', { name: 'Concepción Patín Club' }).querySelector('img');
+    if (!image) throw new Error('loaded emblem should include an image element');
+    fireEvent.error(image);
+
+    expect(
+      screen.getByRole('img', { name: 'Concepción Patín Club' }).textContent?.includes('CPC'),
+    ).toBe(true);
+  });
+
+  it('hides a bare emblem from assistive technology when the name is beside it', () => {
+    render(<EntrantEmblem abbreviation="CPC" alt="Concepción Patín Club" bare />);
+
+    expect(screen.queryByRole('img', { name: 'Concepción Patín Club' })).toBeNull();
+    expect(screen.getByText('CPC').closest('[aria-hidden="true"]')).not.toBeNull();
+  });
+});
+
+describe('EntrantEmblem renditions', () => {
+  const src = '/api/organizations/demo/clubs/club-1/emblem';
+
+  it('offers the renditions at its displayed size, with its dimensions, loading lazily', () => {
+    render(<EntrantEmblem alt="Red Star" size={32} src={src} />);
+
+    const image = screen.getByRole('img', { name: 'Red Star' }).querySelector('img');
+    expect(image?.getAttribute('srcset')).toContain(`${src}?width=128 128w`);
+    expect(image?.getAttribute('sizes')).toBe('32px');
+    expect(image?.getAttribute('width')).toBe('32');
+    expect(image?.getAttribute('height')).toBe('32');
+    expect(image?.getAttribute('loading')).toBe('lazy');
+    expect(image?.getAttribute('decoding')).toBe('async');
+  });
+
+  it('loads at once when marked above the first screen', () => {
+    render(<EntrantEmblem alt="Red Star" eager src={src} />);
+
+    expect(
+      screen.getByRole('img', { name: 'Red Star' }).querySelector('img')?.getAttribute('loading'),
+    ).toBe('eager');
+  });
+
+  it('shows the original alone when its size cannot be a sizes value', () => {
+    render(<EntrantEmblem alt="Red Star" size="100%" src={src} />);
+
+    const image = screen.getByRole('img', { name: 'Red Star' }).querySelector('img');
+    expect(image?.hasAttribute('srcset')).toBe(false);
+    expect(image?.getAttribute('src')).toBe(src);
+  });
+});

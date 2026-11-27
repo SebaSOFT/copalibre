@@ -1,3 +1,4 @@
+import { ReadStoryScope, StaleReadStory } from '../screen-story-fixtures.js';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useMemo } from 'react';
 import { useIntl } from 'react-intl';
@@ -24,6 +25,8 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
       return Promise.resolve(value);
     }
     return storyClient<ControlApiClient>({
+      listStages: undefined,
+      configureZone: undefined,
       listZones: () =>
         read(
           empty
@@ -53,6 +56,19 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
         },
       ],
       fetchZoneEntrants: async () => [ids.second, ids.third],
+      fetchMatchesView: async () => ({
+        matches: [
+          {
+            matchId: ids.match,
+            stageNumber: 1,
+            matchNumber: 1,
+            state: 'upcoming',
+            zoneName: 'Copa Premier',
+            groupName: 'A',
+            venueName: 'Estadio Central',
+          },
+        ],
+      }),
       renameZone: undefined,
       deleteZone: undefined,
       createZone: undefined,
@@ -71,6 +87,13 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
   );
 }
 const meta = {
+  decorators: [
+    (Story, context) => (
+      <ReadStoryScope key={`${context.id}:${String(context.args.mode)}`}>
+        <Story />
+      </ReadStoryScope>
+    ),
+  ],
   title: 'Admin/Screens/ZoneGroupPage',
   component: Screen,
   args: { mode: 'loaded' },
@@ -82,3 +105,9 @@ export const Loaded: Story = {};
 export const Empty: Story = { args: { mode: 'empty' } };
 export const Loading: Story = { args: { mode: 'loading' } };
 export const Failed: Story = { args: { mode: 'failed' } };
+
+export const Stale: Story = {
+  render: () => (
+    <StaleReadStory loaded={<Screen mode="loaded" />} failed={<Screen mode="failed" />} />
+  ),
+};

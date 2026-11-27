@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -33,6 +33,9 @@ async function mockRegistrationApi(page: Page): Promise<void> {
             },
           ]);
         }
+        if (url.endsWith('/entrants/needing-abbreviation') && method === 'GET') {
+          return Response.json([]);
+        }
         if (url.endsWith(`/participants/${personId}/identity-link`) && method === 'POST') {
           hasIdentityLink = true;
           return Response.json({ principalId: 'principal-1', personId }, { status: 201 });
@@ -57,7 +60,7 @@ test('pre-links a participant to the wrong email, unlinks, then re-links to the 
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByText('Persona a Corregir').click();
+  await page.getByRole('button', { name: 'Mostrar detalles: Persona a Corregir' }).click();
   await page.getByText('Vincular identidad').click();
   const linkDialog = page.getByRole('dialog');
   await expect(linkDialog).toBeVisible();

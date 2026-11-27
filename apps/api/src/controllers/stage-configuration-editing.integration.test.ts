@@ -87,7 +87,7 @@ describe('stage-configuration edit and preview', () => {
     const { tournamentAlias, stageNumber } = await seedTournamentAndStage();
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
@@ -99,7 +99,7 @@ describe('stage-configuration edit and preview', () => {
 
     const first = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
       token: 'organizer-org1',
       payload: { overrides: { segments: { overtimeEnabled: true } } },
     });
@@ -108,7 +108,7 @@ describe('stage-configuration edit and preview', () => {
 
     const second = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
       token: 'organizer-org1',
       payload: { overrides: { tiebreakers: ['points', 'goals-for'] } },
     });
@@ -120,7 +120,7 @@ describe('stage-configuration edit and preview', () => {
 
     const read = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
       token: 'organizer-org1',
     });
     expect(read.json().overrides).toEqual({
@@ -131,7 +131,7 @@ describe('stage-configuration edit and preview', () => {
 
   it('persists, updates, reads, and clears explicit group configuration', async () => {
     const { tournamentAlias, stageNumber } = await seedTournamentAndStage();
-    const url = `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`;
+    const url = `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`;
     const initialGroups = {
       groupCount: 3,
       groupSize: 5,
@@ -180,7 +180,7 @@ describe('stage-configuration edit and preview', () => {
     const { tournamentAlias, stageNumber } = await seedTournamentAndStage();
     const response = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
       token: 'organizer-org1',
       payload: {
         overrides: {},
@@ -199,7 +199,7 @@ describe('stage-configuration edit and preview', () => {
     const { tournamentAlias, stageNumber } = await seedTournamentAndStage();
     const preview = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration/preview`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration/preview`,
       token: 'organizer-org1',
       payload: { overrides: { segments: { overtimeEnabled: true } } },
     });
@@ -210,7 +210,7 @@ describe('stage-configuration edit and preview', () => {
 
     const read = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
       token: 'organizer-org1',
     });
     expect(read.json().overrides).toEqual({});
@@ -230,7 +230,7 @@ describe('stage-configuration edit and preview', () => {
 
     const response = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
       token: 'organizer-org1',
       payload: { overrides: { segments: { overtimeEnabled: true } } },
     });
@@ -242,7 +242,7 @@ describe('stage-configuration edit and preview', () => {
     const { tournamentAlias, stageNumber } = await seedTournamentAndStage();
     const response = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stageNumber}/configuration`,
       token: 'organizer-org1',
       payload: { overrides: { 'scoring.unheardOf': 1 } },
     });

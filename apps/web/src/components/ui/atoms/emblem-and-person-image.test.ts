@@ -8,20 +8,36 @@ const personAstro = readFileSync(join(here, 'PersonPhotoImage.astro'), 'utf8');
 
 describe('EmblemImage display atom', () => {
   it('enforces a 1:1 square frame and proportional sizing from size prop', () => {
-    expect(emblemAstro).toContain('style={`width: ${size}px`}');
+    // The frame's width, cut and padding all follow this one property.
+    expect(emblemAstro).toContain('style={`--entrant-emblem-size: ${size}px`}');
     expect(emblemAstro).toMatch(/\.cl-emblem-frame\s*\{[^}]*aspect-ratio:\s*1\s*\/\s*1/);
   });
 
   it('centers and contains the emblem with a token-based safe inset', () => {
     expect(emblemAstro).toMatch(/\.cl-emblem-frame img\s*\{[^}]*object-fit:\s*contain/);
-    expect(emblemAstro).toMatch(/\.cl-emblem-frame img\s*\{[^}]*padding:\s*var\(--cl-space-2\)/);
+    // The inset scales with the emblem size, capped at --cl-space-2 in the token CSS.
+    expect(emblemAstro).toMatch(
+      /\.cl-emblem-frame img\s*\{[^}]*padding:\s*var\(--cl-emblem-inset\)/,
+    );
   });
 
-  it('renders an accessible placeholder with title and fallback onerror handler', () => {
-    expect(emblemAstro).toContain('<svg');
-    expect(emblemAstro).toContain('class="cl-emblem-placeholder"');
-    expect(emblemAstro).toContain('<title>{placeholderAlt}</title>');
-    expect(emblemAstro).toContain('this.nextElementSibling.style.display');
+  it('renders an accessible placeholder and swaps to it without an inline handler', () => {
+    expect(emblemAstro).toContain('<Icon name="club"');
+    expect(emblemAstro).toContain('cl-emblem-placeholder cl-entrant-emblem__fallback');
+    expect(emblemAstro).toContain(
+      'aria-label={hiddenFromAssistiveTechnology ? undefined : alt || placeholderAlt}',
+    );
+    // The Content Security Policy blocks inline event handlers; a module swaps it.
+    expect(emblemAstro).toContain('data-image-fallback');
+    expect(emblemAstro).toContain('installImageFallback()');
+    expect(emblemAstro).not.toMatch(/\sonerror=/);
+  });
+
+  it('sizes a persisted abbreviation to its length step from the tile and never invents or truncates one', () => {
+    expect(emblemAstro).toContain('const monogramStep = emblemMonogramStep(abbreviation)');
+    expect(emblemAstro).toContain('`cl-entrant-emblem__monogram--${monogramStep}`');
+    expect(emblemAstro).toContain('{abbreviation}');
+    expect(emblemAstro).toContain('<Icon name="club"');
   });
 });
 
@@ -32,6 +48,18 @@ describe('EmblemImage bare mode', () => {
     expect(emblemAstro).toMatch(/\.cl-emblem-frame--bare\s*\{[^}]*background:\s*none/);
     expect(emblemAstro).toMatch(/\.cl-emblem-frame--bare\s*\{[^}]*border-radius:\s*0/);
     expect(emblemAstro).toMatch(/\.cl-emblem-frame--bare img\s*\{[^}]*padding:\s*0/);
+    expect(emblemAstro).toContain(
+      "aria-hidden={hiddenFromAssistiveTechnology ? 'true' : undefined}",
+    );
+  });
+});
+
+describe('EmblemImage theme contrast', () => {
+  it('keeps framed monograms legible on ink and bare emblems legible on the page', () => {
+    expect(emblemAstro).toContain('color: var(--cl-text-on-emblem-frame);');
+    expect(emblemAstro).toMatch(
+      /\.cl-emblem-frame--bare \.cl-emblem-placeholder \{\s*color: var\(--cl-text-primary\);\s*\}/,
+    );
   });
 });
 
@@ -48,10 +76,12 @@ describe('PersonPhotoImage display atom', () => {
     );
   });
 
-  it('renders a distinct profile placeholder with title and fallback onerror handler', () => {
+  it('renders a distinct profile placeholder and swaps to it without an inline handler', () => {
     expect(personAstro).toContain('class="cl-person-photo-placeholder"');
-    expect(personAstro).toContain('viewBox="0 0 96 96"');
-    expect(personAstro).toContain('<title>{placeholderAlt}</title>');
-    expect(personAstro).toContain('this.nextElementSibling.style.display');
+    expect(personAstro).toContain('<Icon name="user"');
+    expect(personAstro).toContain('aria-label={placeholderAlt}');
+    expect(personAstro).toContain('data-image-fallback');
+    expect(personAstro).toContain('installImageFallback()');
+    expect(personAstro).not.toMatch(/\sonerror=/);
   });
 });

@@ -20,6 +20,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * `match_rosters` had five production readers
@@ -67,6 +68,7 @@ describe('match roster selection (integration)', () => {
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -269,7 +271,7 @@ describe('match roster selection (integration)', () => {
   });
 
   const base = () =>
-    `/organizations/liga-roster-selection/tournaments/apertura-roster-selection/matches/${matchId}`;
+    `/api/organizations/liga-roster-selection/tournaments/apertura-roster-selection/matches/${matchId}`;
 
   // A fresh key per call (recordEvent/setRoster now check one too, not
   // just finalize) — a fixed key would make every subsequent POST/PUT here
@@ -386,7 +388,7 @@ describe('match roster selection (integration)', () => {
     expect(home.members[0].personId).toBe(strikerHome);
   });
 
-  it('THE REGRESSION THIS CHANGE PREVENTS: a person-attributed event is refused for a person absent from the roster, and accepted once selected through the real write path', async () => {
+  it('refuses a person-attributed event for a player absent from the roster, and accepts it once selected', async () => {
     // Away side still has no roster row at all at this point in the suite.
     const refused = await request('POST', `${base()}/events`, 'referee', {
       definitionCode: 'goal',

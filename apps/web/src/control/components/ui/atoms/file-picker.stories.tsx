@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useIntl } from 'react-intl';
+import { publicIntl } from '../../../../lib/i18n/public-intl.js';
 import { FilePicker } from './file-picker.js';
 import { StoryMatrix } from '../story-matrix.js';
 import { filePickerLabels } from '../../../lib/file-picker-labels.js';
@@ -10,6 +11,7 @@ const meta = {
   args: {
     id: 'story-file-picker',
     label: 'Upload file',
+    ...filePickerLabels(publicIntl('en')),
   },
 } satisfies Meta<typeof FilePicker>;
 

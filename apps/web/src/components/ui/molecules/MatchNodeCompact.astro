@@ -1,7 +1,9 @@
 ---
+import { EntrantName } from '../atoms/EntrantName.tsx';
 import type { IntlShape } from 'react-intl';
 import { matchReportUrl, toNode, type BracketMatch } from '../../../lib/bracket.ts';
-import { resultStateLabels } from '../../../lib/i18n/public-intl.ts';
+import { resultStateLabels, sideSourceLabels } from '../../../lib/i18n/public-intl.ts';
+import Icon from '../atoms/Icon.astro';
 
 /**
  * A bracket card for a narrow screen: each side's abbreviation and score, a mark for the state,
@@ -15,6 +17,7 @@ interface Props {
   readonly tournamentAlias: string;
   readonly stageNumber: number;
   readonly localePrefix?: string;
+  readonly advancesLabel?: string;
 }
 const {
   match,
@@ -23,19 +26,22 @@ const {
   tournamentAlias,
   stageNumber,
   localePrefix = '',
+  advancesLabel,
 } = Astro.props;
-const node = toNode(match, resultStateLabels(intl));
+const node = toNode(match, resultStateLabels(intl), sideSourceLabels(intl));
 const sides = node.slots.map((slot, index) => ({
-  short:
-    slot.fullName === undefined
-      ? '—'
-      : (slot.abbreviation ?? Array.from(slot.fullName).slice(0, 3).join('').toLocaleUpperCase()),
+  short: slot.fullName === undefined ? (slot.abbreviation ?? slot.label) : slot.abbreviation,
   name: slot.fullName ?? slot.label,
+  pending: slot.pending,
   score: slot.score,
   winner: slot.winner === true,
+  advancing: slot.advancing === true,
+  eliminated: slot.eliminated === true,
   index,
 }));
-const spoken = `${sides[0]?.name ?? ''} ${sides[0]?.score ?? '—'} – ${sides[1]?.score ?? '—'} ${sides[1]?.name ?? ''} (${node.badge.label})`;
+const sideLabel = (side: (typeof sides)[number]): string =>
+  side.advancing && advancesLabel !== undefined ? `${side.name} (${advancesLabel})` : side.name;
+const spoken = `${sides[0] ? sideLabel(sides[0]) : ''} ${sides[0]?.score ?? '—'} – ${sides[1]?.score ?? '—'} ${sides[1] ? sideLabel(sides[1]) : ''} (${node.badge.label})`;
 ---
 
 <a
@@ -50,16 +56,33 @@ const spoken = `${sides[0]?.name ?? ''} ${sides[0]?.score ?? '—'} – ${sides[
     localePrefix,
   })}
 >
-  <span aria-hidden="true" class="cl-match-compact__state">{node.badge.icon}</span>
+  <span aria-hidden="true" class="cl-match-compact__state">
+    <Icon name={node.badge.icon} size={16} />
+  </span>
   <ol aria-hidden="true">
-    {
-      sides.map((side) => (
-        <li class:list={[side.winner && 'cl-match-compact__winner']}>
-          <span class="cl-match-compact__name">{side.short}</span>
-          <span class="cl-match-compact__score cl-tabular-nums">{side.score ?? '—'}</span>
-        </li>
-      ))
-    }
+    {sides.map((side) => (
+      <li
+        class:list={[
+          side.winner && 'cl-match-compact__winner',
+          side.eliminated && 'cl-match-compact__eliminated',
+        ]}
+      >
+        <EntrantName
+          className="cl-match-compact__name"
+          compact
+          pending={side.pending}
+          showPendingIcon={false}
+          fullName={side.name}
+          abbreviation={side.short}
+        />
+        {side.advancing && (
+          <span class="cl-match-compact__advancing" title={advancesLabel}>
+            <Icon name="winner" size={16} />
+          </span>
+        )}
+        <span class="cl-match-compact__score cl-tabular-nums">{side.score ?? '—'}</span>
+      </li>
+    ))}
   </ol>
 </a>
 
@@ -71,7 +94,7 @@ const spoken = `${sides[0]?.name ?? ''} ${sides[0]?.score ?? '—'} – ${sides[
     gap: var(--cl-space-1);
     box-sizing: border-box;
     height: 100%;
-    padding: var(--cl-space-1) var(--cl-space-2);
+    padding: var(--cl-space-1);
     border: 1px solid var(--cl-border-muted);
     background: var(--cl-surface-panel);
     color: var(--cl-text-primary);
@@ -79,26 +102,45 @@ const spoken = `${sides[0]?.name ?? ''} ${sides[0]?.score ?? '—'} – ${sides[
   }
   .cl-match-compact__state {
     color: var(--cl-text-secondary);
-    font-size: 0.625rem;
+    font-size: var(--cl-font-size-xs);
   }
   .cl-match-compact ol {
     display: grid;
     gap: var(--cl-space-1);
+    min-width: 0;
     margin: 0;
     padding: 0;
     list-style: none;
   }
   .cl-match-compact li {
     display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: var(--cl-space-1);
+    min-width: 0;
     font-size: var(--cl-font-size-xs);
   }
-  .cl-match-compact__name {
+  .cl-match-compact :global(.cl-match-compact__name) {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-family: var(--cl-font-display);
     letter-spacing: var(--cl-tracking-wide);
   }
+  .cl-match-compact__advancing {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--cl-state-positive);
+  }
+  .cl-match-compact__score {
+    flex-shrink: 0;
+  }
   .cl-match-compact__winner {
     font-weight: var(--cl-weight-bold);
+  }
+  .cl-match-compact__eliminated {
+    color: var(--cl-text-muted);
   }
 </style>

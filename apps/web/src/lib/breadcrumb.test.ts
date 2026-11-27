@@ -29,6 +29,28 @@ describe('trailBaseOf', () => {
 });
 
 describe('publicTrail', () => {
+  it('reads organization, tournament, stage and match in containment order', () => {
+    const seasoned = trailBaseOf({
+      organizationAlias: 'panamericano-demo',
+      organizationName: 'Panamericano Demo',
+      tournamentName: 'Campeonato Panamericano Clubes Senior Varones 2025/26',
+      canonicalPath: '/panamericano-demo/tournaments/clubes-2025',
+      localePrefix: '/es',
+    });
+    const trail = publicTrail(seasoned, [
+      { label: 'Copas', href: `${seasoned.tournamentPath}/stages/2` },
+      { label: 'Copa Oro · Semifinal 1' },
+    ]);
+
+    expect(trail.map((item) => item.label)).toEqual([
+      'Panamericano Demo',
+      'Campeonato Panamericano Clubes Senior Varones 2025/26',
+      'Copas',
+      'Copa Oro · Semifinal 1',
+    ]);
+    expect(trail.at(-1)?.href).toBeUndefined();
+  });
+
   it('links every ancestor and leaves the current page as plain text', () => {
     const trail = publicTrail(base, [
       { label: 'Partidos', href: `${base.tournamentPath}/matches?stageNumber=2` },

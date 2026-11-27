@@ -212,6 +212,7 @@ export const CanonicalChrome: Story = {
         header: (
           <ColumnHeaderTooltip
             description={code}
+            infoLabel={`About ${SHORT_HEADERS[code] ?? code}`}
             indicator={
               sort?.columnCode === code ? (
                 <span aria-hidden="true" className="cl-column-header__indicator">

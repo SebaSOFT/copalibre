@@ -1,17 +1,17 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
  * Sign in, create a club from the club-management
  * screen, upload its emblem, then upload the organization's own emblem
- * from the preferences screen, confirming both leave the placeholder and
+ * from the organization screen, confirming both leave the placeholder and
  * show an `<img>` in its place.
  */
 
 /**
  * A real, tiny, decodable PNG (1×1) — the crop modal opens every selected
  * file as a real `<img>` (a genuine browser decode, unlike a unit test), so
- * placeholder text bytes that aren't a real image would leave "Use image"
+ * placeholder text bytes that aren't a real image would leave "Apply"
  * disabled forever.
  */
 const ONE_PIXEL_PNG_BASE64 =
@@ -23,7 +23,7 @@ interface ClubRecord {
   readonly clubId: string;
   readonly organizationId: string;
   readonly name: string;
-  readonly alias?: string;
+  readonly alias: string;
   readonly abbreviation?: string;
   emblemObjectId?: string;
 }
@@ -48,35 +48,62 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
 
-        if (url === `/organizations/${orgAlias}` && method === 'GET') {
+        if (url === '/api/organizations?mine=true' && method === 'GET') {
+          return Response.json([
+            {
+              organizationId: 'org-1',
+              organizationAlias: orgAlias,
+              organizationName: 'Liga Mendocina',
+              role: 'admin',
+            },
+          ]);
+        }
+        if (url === '/api/auth/pat/scopes' && method === 'GET') {
+          return Response.json({ scopes: [] });
+        }
+        if (url === '/api/auth/pat' && method === 'GET') return Response.json([]);
+        if (url === `/api/organizations/${orgAlias}/storage-usage` && method === 'GET') {
+          return Response.json({ totalBytes: 0, objectCount: 0 });
+        }
+        if (url === `/api/organizations/${orgAlias}/storage-usage/objects` && method === 'GET') {
+          return Response.json([]);
+        }
+
+        if (url === `/api/organizations/${orgAlias}` && method === 'GET') {
           const org = await (
             window as unknown as { __organization: () => Promise<unknown> }
           ).__organization();
           return Response.json(org);
         }
-        if (url === `/organizations/${orgAlias}/emblem` && method === 'POST') {
+        if (url === `/api/organizations/${orgAlias}/emblem` && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as { filename: string };
           const created = await (
             window as unknown as { __uploadOrgEmblem: (filename: string) => Promise<unknown> }
           ).__uploadOrgEmblem(body.filename);
           return Response.json(created);
         }
-        if (url === `/organizations/${orgAlias}/statistics/rebuild` && method === 'POST') {
-          const body = JSON.parse(String(init?.body)) as { tournamentAlias?: string };
+        if (url === `/api/organizations/${orgAlias}/statistics/rebuild` && method === 'POST') {
+          const body = JSON.parse(String(init?.body)) as {
+            dryRun?: boolean;
+            tournamentAlias?: string;
+          };
           const result = await (
             window as unknown as {
               __rebuildStatistics: (tournamentAlias?: string) => Promise<unknown>;
             }
           ).__rebuildStatistics(body.tournamentAlias);
-          return Response.json(result);
+          return Response.json({
+            ...(result as Record<string, unknown>),
+            dryRun: body.dryRun ?? false,
+          });
         }
 
-        if (url === `/organizations/${orgAlias}/clubs` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/clubs` && method === 'GET') {
           const listed = await (window as unknown as { __clubs: () => Promise<unknown> }).__clubs();
           return Response.json(listed);
         }
-        if (url === `/organizations/${orgAlias}/clubs` && method === 'POST') {
-          const body = JSON.parse(String(init?.body)) as { name: string };
+        if (url === `/api/organizations/${orgAlias}/clubs` && method === 'POST') {
+          const body = JSON.parse(String(init?.body)) as { name: string; alias: string };
           if (body.name === 'Club duplicado') {
             return Response.json(
               { statusCode: 409, message: 'duplicate club', errorCode: 'conflict' },
@@ -90,8 +117,10 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
             );
           }
           const created = await (
-            window as unknown as { __createClub: (name: string) => Promise<unknown> }
-          ).__createClub(body.name);
+            window as unknown as {
+              __createClub: (name: string, alias: string) => Promise<unknown>;
+            }
+          ).__createClub(body.name, body.alias);
           return Response.json(created);
         }
         const emblemMatch = /\/clubs\/([^/]+)\/emblem$/.exec(url);
@@ -127,8 +156,13 @@ async function mockControlApi(page: import('@playwright/test').Page): Promise<vo
     return { objectId: organizationEmblemObjectId };
   });
   await page.exposeFunction('__clubs', () => clubs);
-  await page.exposeFunction('__createClub', (name: string) => {
-    const created: ClubRecord = { clubId: `club-${nextClubId}`, organizationId: 'org-1', name };
+  await page.exposeFunction('__createClub', (name: string, alias: string) => {
+    const created: ClubRecord = {
+      clubId: `club-${nextClubId}`,
+      organizationId: 'org-1',
+      name,
+      alias,
+    };
     nextClubId += 1;
     clubs = [...clubs, created];
     return created;
@@ -155,7 +189,7 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   // The `<img>` tag's own GET goes through the network stack, not the
   // in-page `window.fetch` override above — these stand in for the real
   // emblem-serving routes.
-  await page.route(`**/organizations/${ORG_ALIAS}/clubs/*/emblem`, (route) => {
+  await page.route(`**/organizations/${ORG_ALIAS}/clubs/*/emblem*`, (route) => {
     if (route.request().method() !== 'GET') return route.fallback();
     return route.fulfill({
       status: 200,
@@ -163,7 +197,7 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
       body: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
     });
   });
-  await page.route(`**/organizations/${ORG_ALIAS}/emblem`, (route) => {
+  await page.route(`**/organizations/${ORG_ALIAS}/emblem*`, (route) => {
     if (route.request().method() !== 'GET') return route.fallback();
     return route.fulfill({
       status: 200,
@@ -199,18 +233,24 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   } catch {
     // removal succeeded or already in cropping state
   }
-  const useImage = clubDialog.getByRole('button', { name: 'Usar imagen' });
+  const useImage = clubDialog.getByRole('button', { name: 'Aplicar' });
   await expect(useImage).toBeEnabled({ timeout: 15000 });
   await useImage.click();
   await expect(page.getByText('Escudo subido.')).toBeVisible();
-  await expect(page.getByAltText('Escudo de Casa de Italia').first()).toBeVisible();
+  await expect(
+    page
+      .locator('li')
+      .filter({ hasText: 'Casa de Italia' })
+      .locator('.cl-entrant-emblem img')
+      .first(),
+  ).toBeVisible();
 
-  const preferencesTarget = `/control/${ORG_ALIAS}/preferences`;
-  await seedLoginTransaction(page, preferencesTarget);
+  const organizationTarget = `/control/${ORG_ALIAS}/organization`;
+  await seedLoginTransaction(page, organizationTarget);
   await page.goto(loginCallbackUrl()).catch((error: Error) => {
     if (!error.message.includes('is interrupted by another navigation')) throw error;
   });
-  await page.waitForURL(`**${preferencesTarget}`);
+  await page.waitForURL(`**${organizationTarget}`);
 
   await expect(page.getByRole('img', { name: 'Sin escudo cargado' })).toBeVisible();
   await page.getByLabel('Subir escudo').setInputFiles({
@@ -227,7 +267,7 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   } catch {
     // removal succeeded or already in cropping state
   }
-  const orgUseImage = orgDialog.getByRole('button', { name: 'Usar imagen' });
+  const orgUseImage = orgDialog.getByRole('button', { name: 'Aplicar' });
   await expect(orgUseImage).toBeEnabled({ timeout: 15000 });
   await orgUseImage.click();
   await expect(page.getByText('Escudo subido.')).toBeVisible();
@@ -238,13 +278,64 @@ test('creates a club, uploads its emblem, then uploads the organization emblem',
   await expect(page.getByAltText('Escudo de la organización')).toBeVisible({ timeout: 10000 });
 });
 
+test('the club alias is required: the create form prefills it and an emptied alias is refused', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+  const clubsTarget = `/control/${ORG_ALIAS}/clubs`;
+  await seedLoginTransaction(page, clubsTarget);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${clubsTarget}`);
+
+  await page.getByLabel('Nombre del club nuevo').fill('Casa de Italia');
+  await expect(page.getByLabel('Alias del nuevo club')).toHaveValue('casa-de-italia');
+  await page.getByLabel('Alias del nuevo club').fill('');
+  await page.getByText('Agregar club').click();
+  await expect(page.getByText('Ingresá un alias.')).toBeVisible();
+
+  await page.getByLabel('Alias del nuevo club').fill('casa-de-italia');
+  await page.getByText('Agregar club').click();
+  await expect(page.getByText('Club creado.')).toBeVisible();
+
+  await page.getByText('Editar').click();
+  await page.getByLabel('Alias', { exact: true }).fill('');
+  await page.getByText('Guardar cambios').click();
+  await expect(page.getByText('Ingresá un alias.')).toBeVisible();
+});
+
+test('editing a club to another club’s alias shows the taken-alias message on the field', async ({
+  page,
+}) => {
+  await mockControlApi(page);
+  const clubsTarget = `/control/${ORG_ALIAS}/clubs`;
+  await seedLoginTransaction(page, clubsTarget);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${clubsTarget}`);
+
+  await page.getByLabel('Nombre del club nuevo').fill('Casa de Italia');
+  await page.getByLabel('Alias del nuevo club').fill('casa-italia');
+  await page.getByText('Agregar club').click();
+  await expect(page.getByText('Club creado.')).toBeVisible();
+
+  await page.getByLabel('Nombre del club nuevo').fill('Club Atenas');
+  await page.getByLabel('Alias del nuevo club').fill('club-atenas');
+  await page.getByText('Agregar club').click();
+  await expect(page.getByText('Club creado.')).toBeVisible();
+
+  await page.locator('li').filter({ hasText: 'Club Atenas' }).getByText('Editar club').click();
+  await page.getByLabel('Alias', { exact: true }).fill('casa-italia');
+  await page.getByText('Guardar cambios').click();
+  await expect(page.getByText('Otro club ya usa este alias.')).toBeVisible();
+  await expect(page.getByText('Changes saved.')).toHaveCount(0);
+});
+
 test('supports keyboard dismiss (Escape) on image crop modal', async ({ page }) => {
   await mockControlApi(page);
 
-  const preferencesTarget = `/control/${ORG_ALIAS}/preferences`;
-  await seedLoginTransaction(page, preferencesTarget);
+  const organizationTarget = `/control/${ORG_ALIAS}/organization`;
+  await seedLoginTransaction(page, organizationTarget);
   await page.goto(loginCallbackUrl());
-  await page.waitForURL(`**${preferencesTarget}`);
+  await page.waitForURL(`**${organizationTarget}`);
 
   await page.getByLabel('Subir escudo').setInputFiles({
     name: 'org-emblem.png',
@@ -286,7 +377,7 @@ test('keeps rapid API errors stacked and independently dismissible', async ({ pa
 });
 
 /**
- * Trigger a statistics rebuild from the preferences screen,
+ * Trigger a statistics rebuild from the organization screen,
  * confirm it, and assert the result readout reports the expected match
  * count.
  */
@@ -295,16 +386,32 @@ test('triggers a statistics rebuild from the control panel and reports the match
 }) => {
   await mockControlApi(page);
 
-  const preferencesTarget = `/control/${ORG_ALIAS}/preferences`;
-  await seedLoginTransaction(page, preferencesTarget);
+  const organizationTarget = `/control/${ORG_ALIAS}/organization`;
+  await seedLoginTransaction(page, organizationTarget);
   await page.goto(loginCallbackUrl());
-  await page.waitForURL(`**${preferencesTarget}`);
+  await page.waitForURL(`**${organizationTarget}`);
 
   await page.getByRole('button', { name: 'Reconstruir estadísticas' }).click();
-  await expect(
-    page.getByText('Esto recalcula cada cifra almacenada dentro del alcance elegido. ¿Continuar?'),
-  ).toBeVisible();
+  const preview = page.getByRole('dialog', { name: 'Reconstrucción de estadísticas' });
+  await expect(preview).toBeVisible();
+  await expect(preview).toContainText('Partidos: 5; filas estadísticas para escribir: 12.');
 
-  await page.getByRole('button', { name: 'Confirmar reconstrucción' }).click();
+  await preview.getByRole('button', { name: 'Reconstruir estadísticas' }).click();
   await expect(page.getByText('5 partidos procesados.')).toBeVisible();
+});
+
+test('marks Clubs, not venues, in the rail on the clubs screen', async ({ page }) => {
+  await mockControlApi(page);
+  const clubsTarget = `/control/${ORG_ALIAS}/clubs`;
+  await seedLoginTransaction(page, clubsTarget);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${clubsTarget}`);
+
+  const rail = page.locator('.cl-control__nav-list');
+  await expect(rail.getByRole('link', { name: 'Clubes', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  await expect(rail.locator('[aria-current="page"]')).toHaveCount(1);
+  await expect(rail.getByRole('link', { name: 'Panel', exact: true })).toHaveCount(1);
 });

@@ -382,12 +382,14 @@ describe('listing every organization a principal belongs to', () => {
         organizationId: orgAlpha,
         organizationAlias: 'liga-alfa',
         organizationName: 'Liga Alfa',
+        timezone: 'UTC',
         role: 'admin',
       },
       {
         organizationId: orgBeta,
         organizationAlias: 'liga-beta',
         organizationName: 'Liga Beta',
+        timezone: 'UTC',
         role: 'referee',
       },
     ]);
@@ -424,6 +426,7 @@ describe('listing every organization a principal belongs to', () => {
         organizationId: orgGamma,
         organizationAlias: 'liga-gamma',
         organizationName: 'Liga Gamma',
+        timezone: 'UTC',
         role: 'viewer',
       },
     ]);

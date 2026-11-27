@@ -16,7 +16,7 @@ test('applySecurityHeaders sets every baseline header', () => {
   const response = fakeResponse();
   applySecurityHeaders(response);
   assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
-  assert.equal(response.headers.get('x-frame-options'), 'DENY');
+  assert.equal(response.headers.get('x-frame-options'), 'SAMEORIGIN');
   assert.equal(response.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
 });
 
@@ -26,4 +26,15 @@ test('SECURITY_HEADERS declares exactly the three baseline headers', () => {
     'x-content-type-options',
     'x-frame-options',
   ]);
+});
+
+test('the e2e edge gives the background-removal worker its own policy, as Caddy does', async () => {
+  const { edgeHeadersByPath } = await import('./serve-with-security-headers.mjs');
+  const headersFor = await edgeHeadersByPath({});
+  const worker = headersFor('/_astro/background-removal.worker-C9Uayp5F.js');
+  const page = headersFor('/control/liga/preferences');
+  assert.match(worker['Content-Security-Policy'], /script-src 'self' blob:/);
+  assert.doesNotMatch(page['Content-Security-Policy'], /script-src[^;]*blob:/);
+  assert.equal(headersFor('/_astro/background-removal.worker-x.js?v=1'), worker);
+  assert.equal(headersFor('/_astro/other-chunk.js'), page);
 });

@@ -27,12 +27,14 @@ export interface AuditLogItem {
 export interface AuditLogPanelProps {
   readonly title: string;
   readonly items: readonly AuditLogItem[];
+  readonly timeZone?: string;
   readonly className?: string;
 }
 
 export function AuditLogPanel({
   title,
   items,
+  timeZone,
   className = '',
 }: AuditLogPanelProps): React.JSX.Element {
   const intl = useIntl();
@@ -75,7 +77,11 @@ export function AuditLogPanel({
                         })}
                       </span>
                     )}
-                    <ResponsiveTimestamp locale={intl.locale} timestamp={item.timestamp} />
+                    <ResponsiveTimestamp
+                      locale={intl.locale}
+                      timeZone={timeZone}
+                      timestamp={item.timestamp}
+                    />
                   </Inline>
                 </Inline>
               </div>

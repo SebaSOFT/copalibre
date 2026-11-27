@@ -82,3 +82,12 @@ export class CyclicFixtureGraphError extends EngineError {
 export class InvalidCustomBracketError extends EngineError {
   readonly code = 'INVALID_CUSTOM_BRACKET';
 }
+
+/**
+ * A persisted fixture graph cannot be resolved as stored: a series node without a usable series
+ * declaration, an outcome naming no stored match, or node keys whose derived match ids collide.
+ * Resolving any of these would mean guessing, so it is refused.
+ */
+export class PersistedGraphError extends EngineError {
+  readonly code = 'PERSISTED_GRAPH_INVALID';
+}

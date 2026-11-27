@@ -21,6 +21,15 @@ const CLOCK_ACTION: QueuedAction = {
   request: { segmentId: 'segment-1', elapsedSeconds: 90, activate: true },
 };
 
+const REOPEN_ACTION: QueuedAction = {
+  kind: 'segment-reopen',
+  organizationAlias: 'liga',
+  tournamentAlias: 'apertura',
+  matchId: 'match-1',
+  segmentId: 'segment-1',
+  reason: 'Ended by mistake',
+};
+
 const FINALIZE_ACTION: QueuedAction = {
   kind: 'finalize',
   organizationAlias: 'liga',
@@ -53,6 +62,12 @@ function stubClient(overrides: Partial<MatchConsoleApiClient> = {}): MatchConsol
       throw new Error('not used in this test');
     },
     resolveMatchTimer: async () => {
+      throw new Error('not used in this test');
+    },
+    addMatchSegment: async () => {
+      throw new Error('not used in this test');
+    },
+    reopenMatchSegment: async () => {
       throw new Error('not used in this test');
     },
     sendMatchCommand: async () => {
@@ -171,6 +186,90 @@ describe('drainQueue sequential semantics', () => {
     ]);
   });
 
+  it('sends a queued segment addition once, with its idempotency key', async () => {
+    const calls: unknown[] = [];
+    const client = stubClient({
+      addMatchSegment: async (_organization, _tournament, matchId, type, key) => {
+        calls.push({ matchId, type, key });
+        return {} as never;
+      },
+    });
+    await enqueue(
+      {
+        kind: 'segment-add',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        type: 'extra-time',
+      },
+      'segment-add-key',
+      1_000,
+    );
+
+    expect(await drainQueue(client, 'match-1')).toEqual([{ kind: 'sent', id: 'segment-add-key' }]);
+    expect(calls).toEqual([{ matchId: 'match-1', type: 'extra-time', key: 'segment-add-key' }]);
+    expect(await drainQueue(client, 'match-1')).toEqual([]);
+  });
+
+  it('surfaces a refused segment addition in the queue with the server reason', async () => {
+    const client = stubClient({
+      addMatchSegment: jest
+        .fn<MatchConsoleApiClient['addMatchSegment']>()
+        .mockRejectedValueOnce(new ControlApiError(400, 'Match is finalized')),
+    });
+    await enqueue(
+      {
+        kind: 'segment-add',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        type: 'half',
+      },
+      'segment-add-refused',
+      1_000,
+    );
+
+    expect(await drainQueue(client, 'match-1')).toEqual([
+      { kind: 'refused', id: 'segment-add-refused', reason: 'Match is finalized' },
+    ]);
+    expect(await listPending('match-1')).toMatchObject([{ status: 'refused' }]);
+  });
+
+  it('sends a queued reopen once, with its idempotency key and reason', async () => {
+    const calls: unknown[] = [];
+    const client = stubClient({
+      reopenMatchSegment: async (_organization, _tournament, matchId, segmentId, reason, key) => {
+        calls.push({ matchId, segmentId, reason, key });
+        return {} as never;
+      },
+    });
+    await enqueue(REOPEN_ACTION, 'reopen-key', 1_000);
+
+    expect(await drainQueue(client, 'match-1')).toEqual([{ kind: 'sent', id: 'reopen-key' }]);
+    expect(calls).toEqual([
+      { matchId: 'match-1', segmentId: 'segment-1', reason: 'Ended by mistake', key: 'reopen-key' },
+    ]);
+    expect(await drainQueue(client, 'match-1')).toEqual([]);
+  });
+
+  it('counts a reopen the server refuses as refused, with the server reason', async () => {
+    const client = stubClient({
+      reopenMatchSegment: jest
+        .fn<MatchConsoleApiClient['reopenMatchSegment']>()
+        .mockRejectedValueOnce(new ControlApiError(400, 'Match is finalized')),
+    });
+    await enqueue(REOPEN_ACTION, 'reopen-refused', 1_000);
+
+    expect(await drainQueue(client, 'match-1')).toEqual([
+      { kind: 'refused', id: 'reopen-refused', reason: 'Match is finalized' },
+    ]);
+    expect(await listPending('match-1')).toMatchObject([{ status: 'refused' }]);
+  });
+
+  it('names a queued reopen with its segment and reason', () => {
+    expect(describeQueuedAction(REOPEN_ACTION)).toBe('Reopen segment segment-1: Ended by mistake');
+  });
+
   it("a refusal doesn't block later items — the drain continues past it", async () => {
     const client = stubClient({
       adjustMatchClock: jest
@@ -190,6 +289,26 @@ describe('drainQueue sequential semantics', () => {
     const pending = await listPending('match-1');
     expect(pending).toHaveLength(1);
     expect(pending[0]).toMatchObject({ id: 'key-1', status: 'refused' });
+  });
+
+  it('carries the server error code of a refusal, so the console can word it', async () => {
+    const client = stubClient({
+      adjustMatchClock: jest
+        .fn<MatchConsoleApiClient['adjustMatchClock']>()
+        .mockRejectedValueOnce(
+          new ControlApiError(409, 'Match side is undecided', 'match-side-undecided'),
+        ),
+    });
+    await enqueue(CLOCK_ACTION, 'key-1', 1_000);
+
+    expect(await drainQueue(client, 'match-1')).toEqual([
+      {
+        kind: 'refused',
+        id: 'key-1',
+        reason: 'Match side is undecided',
+        errorCode: 'match-side-undecided',
+      },
+    ]);
   });
 
   it('a network-level failure pauses the whole drain, leaving the remainder untouched', async () => {
@@ -252,7 +371,7 @@ describe('drainQueue sequential semantics', () => {
     expect(pending[0]?.action).toEqual(FINALIZE_ACTION);
   });
 
-  it('a refusal on one anulled match does not stop the rest of the queue (3.5)', async () => {
+  it('a refusal on one anulled match does not stop the rest of the queue', async () => {
     const client = stubClient({
       finalizeMatch: jest
         .fn<MatchConsoleApiClient['finalizeMatch']>()
@@ -292,6 +411,18 @@ describe('describeQueuedAction', () => {
         },
       }),
     ).toBe('Event goal for person-7');
+  });
+
+  it('names the segment type an addition queued offline will append', () => {
+    expect(
+      describeQueuedAction({
+        kind: 'segment-add',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        type: 'extra-time',
+      }),
+    ).toBe('Segment extra-time added');
   });
 
   it('describes every other queued kind structurally, ids and all', () => {
@@ -336,6 +467,19 @@ describe('describeQueuedAction', () => {
         segmentId: 'segment-2',
       }),
     ).toBe('Clock end on segment segment-2');
+  });
+
+  it('names no segment for a Start that creates the regulation plan', () => {
+    expect(
+      describeQueuedAction({
+        kind: 'clock-command',
+        organizationAlias: 'liga',
+        tournamentAlias: 'apertura',
+        matchId: 'match-1',
+        command: 'start',
+        segmentId: '',
+      }),
+    ).toBe('Clock start');
   });
 
   it('assumes no scoring key, reporting whatever statistics the discipline recorded', () => {

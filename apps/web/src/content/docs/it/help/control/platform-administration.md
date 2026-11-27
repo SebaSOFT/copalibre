@@ -16,7 +16,7 @@ influisce sull'intera installazione.
 
 ## Organizzazioni
 
-Una nuova organizzazione si crea qui — il suo alias, nome visualizzato, lingua principale e fuso orario
+Una nuova organizzazione si crea qui — il suo alias, nome visualizzato, lingua principale e fuso orario (un nome IANA, come `America/Argentina/Buenos_Aires`; uno sconosciuto viene rifiutato)
 — e il suo primo amministratore viene invitato via email nello stesso passaggio. Un'organizzazione
 creata senza un amministratore invitato resta senza nessuno che possa accedere e gestirla, per questo si
 fanno insieme.

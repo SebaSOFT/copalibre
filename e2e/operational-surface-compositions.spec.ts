@@ -13,7 +13,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT = 'apertura-2026';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 
 const overview = {
   organizationAlias: ORGANIZATION,
@@ -153,7 +153,7 @@ test.beforeAll(async ({ workerPort }) => {
 
     if (
       path === `${BASE}/overview` ||
-      path === `/organizations/${ORGANIZATION}/public/tournaments/${TOURNAMENT}/overview`
+      path === `/api/organizations/${ORGANIZATION}/public/tournaments/${TOURNAMENT}/overview`
     ) {
       res.end(JSON.stringify(overview));
       return;
@@ -241,6 +241,16 @@ test.describe('Public header, expanding in page flow', () => {
     expect(await page.locator('#cl-public-nav a:visible').count()).toBe(0);
   });
 
+  test('the inclusive 768px breakpoint starts with the menu collapsed', async ({ page }) => {
+    await page.setViewportSize({ width: 768, height: 900 });
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}`);
+
+    const toggle = page.locator('[data-public-nav-toggle]');
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('#cl-public-nav')).toBeHidden();
+  });
+
   test('Escape closes the menu and returns focus to the control that opened it', async ({
     page,
   }) => {
@@ -255,7 +265,7 @@ test.describe('Public header, expanding in page flow', () => {
     await expect(toggle).toBeFocused();
   });
 
-  test('the primary action stays in the row, open or closed', async ({ page }) => {
+  test('the Control Panel action stays in the row, open or closed', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}`);
 
     const cta = page.locator('.cl-public-header__cta');
@@ -266,7 +276,7 @@ test.describe('Public header, expanding in page flow', () => {
     // there is no second copy of it inside the menu.
     await page.locator('[data-public-nav-toggle]').click();
     await expect(cta).toBeVisible();
-    await expect(page.locator('a.cl-btn--primary:visible')).toHaveCount(1);
+    await expect(page.locator('.cl-public-header__cta:visible')).toHaveCount(1);
   });
 
   test('the locale control offers a language and moves the page to it', async ({ page }) => {
@@ -314,10 +324,14 @@ test.describe('The ticker in a browser', () => {
     const pause = page.locator('[data-ticker-pause]');
     await expect(pause).toBeVisible();
     await expect(pause).toHaveAttribute('aria-pressed', 'false');
+    await expect(pause.locator('.cl-ticker__pause-icon')).toBeVisible();
+    await expect(pause.locator('.cl-ticker__resume-icon')).toBeHidden();
 
     await pause.focus();
     await page.keyboard.press('Enter');
     await expect(pause).toHaveAttribute('aria-pressed', 'true');
+    await expect(pause.locator('.cl-ticker__pause-icon')).toBeHidden();
+    await expect(pause.locator('.cl-ticker__resume-icon')).toBeVisible();
 
     // Paused means the transport stops moving, not that the rail disappears.
     const track = page.locator('[data-ticker-track]');
@@ -348,7 +362,7 @@ test.describe('The ticker in a browser', () => {
 
 test.describe('Standings and bracket in a browser', () => {
   test('the tied leaders show the comparator that separated them', async ({ page }) => {
-    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/1`);
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT}`);
 
     const standingsSection = page.locator('.cl-standings-section');
     await expect(standingsSection).toBeVisible();
@@ -410,7 +424,9 @@ test.describe('Standings and bracket in a browser', () => {
     await expect(page.locator('.cl-bracket-stage__scroll').first()).toBeHidden();
     await expect(page.locator('.cl-bracket-stage__scroll').last()).toBeHidden();
     // The sources a pending cross is waiting on are named, not blank.
-    await expect(page.locator('.cl-bracket-stage__outline')).toContainText('Ganador');
+    await expect(page.locator('.cl-bracket-stage__outline')).toContainText(
+      'Winner of Round 1, match 1',
+    );
   });
 });
 

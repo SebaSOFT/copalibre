@@ -1,14 +1,33 @@
 ---
 import type { IntlShape } from 'react-intl';
-import '@copalibre/design-tokens/generated/copalibre.css';
+import '@copalibre/design-tokens/generated/copalibre-public.css';
+/*
+  The faces `copalibre-public.css` leaves out (every Latin weight but the text and heading faces,
+  JetBrains Mono, and Chinese): a page in Chinese loads them before it paints, every other page
+  once it has painted, swapping them in over metric-matched fallbacks.
+*/
+import deferredFontsHref from '@copalibre/design-tokens/generated/fonts-deferred.css?url';
+/*
+  Every public page's main heading is set in Barlow Condensed 700, and that heading is the page's
+  largest paint. Left to the stylesheet, its face is requested only once the stylesheet has been
+  parsed, last of all; preloading it starts the download with the document's. It is the same file
+  the stylesheet's `@font-face` names (the build gives both the same hashed URL), so it is fetched
+  once. One file only: preloading more would compete with the stylesheet on a slow connection.
+*/
+import headingFaceUrl from '@fontsource/barlow-condensed/files/barlow-condensed-latin-700-normal.woff2?url';
 import { messages } from '../lib/i18n/public-messages.en.ts';
 import {
   selectPublicDisciplineBackground,
   type PublicObjectReference,
 } from '../lib/discipline-background.ts';
 import { buildHreflangAlternates, serializeJsonLd, type JsonLdStructuredData } from '../lib/seo.ts';
+import {
+  publicTournamentNavigation,
+  type PublicTournamentStageFacts,
+} from '../lib/public-tournament-navigation.ts';
 import type { SupportedLanguage } from '@copalibre/domain';
 
+import Container from '../components/ui/atoms/layout/Container.astro';
 import PublicHeader from '../components/ui/organisms/PublicHeader.astro';
 
 interface Props {
@@ -23,6 +42,12 @@ interface Props {
   readonly ogImage?: string;
   readonly structuredData?: JsonLdStructuredData;
   readonly localeVariants?: readonly SupportedLanguage[] | readonly string[];
+  /** Whether the tournament has clubs; the header's teams tab opens the club index only then. */
+  readonly tournamentHasClubs?: boolean;
+  /** The tournament's published stages, for the section tabs. */
+  readonly tournamentStages?: readonly PublicTournamentStageFacts[];
+  /** The layout code the standings view opens with, when the discipline declares one. */
+  readonly standingsLayoutCode?: string;
 }
 
 const {
@@ -36,10 +61,19 @@ const {
   ogImage,
   structuredData,
   localeVariants,
+  tournamentHasClubs = false,
+  tournamentStages,
+  standingsLayoutCode,
 } = Astro.props;
 
 const site = Astro.site?.toString().replace(/\/$/, '') ?? '';
 const background = selectPublicDisciplineBackground(disciplineImages);
+const tournamentNavigation = publicTournamentNavigation({
+  pathname: Astro.url.pathname,
+  search: Astro.url.search,
+  stages: tournamentStages,
+  standingsLayoutCode,
+});
 const resolvedOgImage =
   ogImage ??
   (background?.url
@@ -63,13 +97,23 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
 <!doctype html>
 <html lang={intl.locale}>
   <head>
+    <script is:inline src="/scripts/theme-init.js"></script>
+    {/* `crossorigin` is required on a font preload even from the same origin, or the font is fetched twice. */}
+    <link rel="preload" as="font" type="font/woff2" crossorigin href={headingFaceUrl} />
+    {intl.locale === 'zh' ? (
+      <link rel="stylesheet" href={deferredFontsHref} />
+    ) : (
+      <meta name="copalibre:deferred-stylesheet" content={deferredFontsHref} />
+    )}
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/copalibre-logo.svg" />
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
     <link rel="canonical" href={canonicalUrl} />
-    {alternates.map((alt) => <link rel="alternate" hreflang={alt.hreflang} href={alt.href} />)}
+    {alternates.map((alt) => (
+      <link rel="alternate" hreflang={alt.hreflang} href={alt.href} />
+    ))}
     <meta property="og:title" content={title} />
     {description && <meta property="og:description" content={description} />}
     <meta property="og:type" content={ogType} />
@@ -79,68 +123,67 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
     <meta name="twitter:title" content={title} />
     {description && <meta name="twitter:description" content={description} />}
     {resolvedOgImage && <meta name="twitter:image" content={resolvedOgImage} />}
-    {
-      structuredData && (
-        <script is:inline type="application/ld+json" set:html={serializeJsonLd(structuredData)} />
-      )
-    }
+    {structuredData && (
+      <script is:inline type="application/ld+json" set:html={serializeJsonLd(structuredData)} />
+    )}
     {/* Defence in depth: a non-public route that somehow renders says so itself. */}
     {noindex && <meta name="robots" content="noindex, nofollow" />}
   </head>
   <body>
-    {
-      background ? (
-        <img
-          class="cl-discipline-background"
-          src={background.url}
-          alt=""
-          aria-hidden="true"
-          decoding="async"
-          style={`opacity: ${background.opacity}; --discipline-backdrop-blur: ${background.blurPx ?? 0}px;`}
-        />
-      ) : (
-        /*
-         * A discipline that ships no imagery gets a deliberate neutral ground,
-         * not the bare base surface — and never another discipline's picture.
-         */
-        <div
-          class="cl-discipline-background cl-discipline-background--neutral"
-          aria-hidden="true"
-        />
-      )
-    }
-    <a class="cl-skip-link cl-focusable" href="#main"
-      >{intl.formatMessage(messages.layoutSkipToContent)}</a
+    {background ? (
+      <img
+        class="cl-discipline-background"
+        src={background.url}
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+        style={`--discipline-image-opacity: ${background.opacity}; --discipline-light-opacity: ${background.opacity * 0.35}; --discipline-backdrop-blur: ${background.blurPx ?? 0}px;`}
+      />
+    ) : (
+      /*
+       * A discipline that ships no imagery gets a deliberate neutral ground,
+       * not the bare base surface — and never another discipline's picture.
+       */
+      <div class="cl-discipline-background cl-discipline-background--neutral" aria-hidden="true" />
+    )}
+    <a class="cl-skip-link cl-focusable" href="#main">
+      {intl.formatMessage(messages.layoutSkipToContent)}
+    </a>
+    <PublicHeader
+      intl={intl}
+      localeOptions={localeOptions}
+      tournamentNavigation={tournamentNavigation}
+      tournamentHasClubs={tournamentHasClubs}
+    />
+    <slot name="ticker" />
+    <main
+      id="main"
+      class:list={[
+        'cl-public-reading',
+        Astro.slots.has('ticker') && 'cl-public-reading--after-ticker',
+      ]}
     >
-    <PublicHeader intl={intl} localeOptions={localeOptions} />
-    <main id="main">
       <slot />
     </main>
     <footer>
-      <p>{intl.formatMessage(messages.layoutFooter)}</p>
+      <Container variant="public">
+        <p>{intl.formatMessage(messages.layoutFooter)}</p>
+      </Container>
     </footer>
   </body>
 </html>
 
+<script>
+  import { addDeferredStylesheets } from '../lib/deferred-stylesheets.ts';
+
+  addDeferredStylesheets();
+</script>
+
 <style>
-  .cl-skip-link {
-    position: absolute;
-    top: -9999px;
-    left: -9999px;
-    z-index: 9999;
-    padding: var(--cl-space-2) var(--cl-space-4);
-    background: var(--cl-surface-panel);
-    color: var(--cl-text-primary);
-    border: 1px solid var(--cl-border-muted);
-    border-radius: 4px;
-    text-decoration: none;
-    font-weight: 500;
+  .cl-public-reading--after-ticker {
+    padding-block-start: var(--cl-space-4);
   }
 
-  .cl-skip-link:focus {
-    top: var(--cl-space-2);
-    left: var(--cl-space-2);
-  }
   :global(html),
   :global(body) {
     margin: 0;
@@ -167,18 +210,32 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
   }
 
   :global(main),
-  :global(main > *) {
+  :global(main > *:not(.cl-container)) {
     min-width: 0;
     max-width: 100%;
     overflow-x: hidden;
   }
 
   :global(main table) {
+    border-bottom: 2px solid var(--cl-border-muted);
+  }
+
+  /*
+   * A table without its own scroll container scrolls itself. Both `.cl-table` (inside
+   * `.cl-table-scroll`) and `.cl-data-table__table` (inside `.cl-data-table`) already sit
+   * inside their own scroll container; making them block-level stops their columns from
+   * filling the panel width and adds a duplicate scrollbar gutter.
+   */
+  :global(main table:not(.cl-table):not(.cl-data-table__table)) {
     display: block;
     max-width: 100%;
     overflow-x: auto;
     scrollbar-gutter: stable;
-    border-bottom: 2px solid var(--cl-border-muted);
+  }
+
+  /* Preserve organizer-entered casing for names on public reading pages. */
+  :global(main.cl-public-reading .cl-entrant-name) {
+    text-transform: none;
   }
 
   .cl-discipline-background {
@@ -199,8 +256,19 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
    * showing as a transparent rim. The neutral ground is a gradient, not an image, and takes no filter.
    */
   img.cl-discipline-background {
+    opacity: var(--discipline-image-opacity, 0.06);
     filter: blur(var(--discipline-backdrop-blur, 0px));
     transform: scale(1.06);
+  }
+
+  :global(html[data-theme='light']) img.cl-discipline-background {
+    opacity: var(--discipline-light-opacity, 0.02);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :global(html:not([data-theme='dark'])) img.cl-discipline-background {
+      opacity: var(--discipline-light-opacity, 0.02);
+    }
   }
 
   /*
@@ -216,6 +284,28 @@ const localeOptions = buildHreflangAlternates('', canonicalPath, intl.locale, lo
         transparent 70%
       ),
       var(--cl-surface-base);
+  }
+
+  :global(html[data-theme='light']) .cl-discipline-background--neutral {
+    background:
+      radial-gradient(
+        120% 80% at 50% 0%,
+        color-mix(in srgb, var(--cl-surface-chrome) 34%, transparent),
+        transparent 70%
+      ),
+      var(--cl-surface-base);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :global(html:not([data-theme='dark'])) .cl-discipline-background--neutral {
+      background:
+        radial-gradient(
+          120% 80% at 50% 0%,
+          color-mix(in srgb, var(--cl-surface-chrome) 34%, transparent),
+          transparent 70%
+        ),
+        var(--cl-surface-base);
+    }
   }
 
   body > :not(.cl-discipline-background):not(.cl-skip-link) {

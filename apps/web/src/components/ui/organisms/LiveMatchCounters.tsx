@@ -1,0 +1,174 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { SupportedLanguage } from '@copalibre/domain';
+import { MatchCounters, type MatchPenaltyView } from '../molecules/MatchCounters.js';
+import type { LiveMatchCounter } from '../../../lib/live-state.js';
+import { matchCounterView, type MatchCounterTexts } from '../../../lib/match-counters.js';
+import {
+  getLiveScoreboardPatch,
+  subscribeLiveScoreboardEvents,
+  subscribeLiveScoreboardMatch,
+} from '../../../lib/live-scoreboard-store.js';
+import {
+  watchPublicMatchCounters,
+  type PublicMatchCountersSnapshot,
+  type PublicMatchCountersWatch,
+} from '../../../lib/public-match-counters.js';
+
+/**
+ * A match's counters and active penalties on its public page, for a match that tracks its live indicators.
+ *
+ * The page follows the stream from before the match starts. Its phase comes from the stream: a
+ * `match.started` event, or the store's state, makes it live, and turns on the 15 s reconcile; a
+ * `match.finalized` event, or the store's final state, ends it, once the final match-scope counters are
+ * taken from the report and the segment counters and penalties leave. A page rendered after the match has
+ * ended takes no part in the stream.
+ */
+export function LiveMatchCounters({
+  matchId,
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  matchOrdinal,
+  finished,
+  initialCounters,
+  initialPenalties,
+  sides,
+  language,
+  texts,
+  penaltyTemplate,
+  live,
+}: {
+  readonly matchId: string;
+  readonly organizationAlias: string;
+  readonly tournamentAlias: string;
+  readonly stageNumber: number;
+  readonly matchOrdinal: number;
+  /** The server rendered the match as over: the page takes no part in the stream. */
+  readonly finished: boolean;
+  readonly initialCounters: readonly LiveMatchCounter[];
+  readonly initialPenalties: PublicMatchCountersSnapshot['activePenalties'];
+  readonly sides: readonly {
+    readonly entrantId: string;
+    readonly name: string;
+    readonly place: 'home' | 'away';
+  }[];
+  readonly language: SupportedLanguage;
+  readonly texts: MatchCounterTexts;
+  readonly penaltyTemplate: string;
+  /** The server rendered the match as live. */
+  readonly live: boolean;
+}): React.JSX.Element | null {
+  const [snapshot, setSnapshot] = useState<PublicMatchCountersSnapshot>({
+    counters: initialCounters,
+    activePenalties: initialPenalties,
+  });
+  const [storeState, setStoreState] = useState(() => getLiveScoreboardPatch(matchId)?.state);
+  const [started, setStarted] = useState(false);
+  // The live projection lists only matches in play, so a refresh that found this match proves it is live,
+  // even when `match.started` arrived before the stream connected.
+  const [seenLive, setSeenLive] = useState(false);
+  const [ended, setEnded] = useState(finished);
+  const watch = useRef<PublicMatchCountersWatch | null>(null);
+
+  useEffect(
+    () =>
+      subscribeLiveScoreboardMatch(matchId, () =>
+        setStoreState(getLiveScoreboardPatch(matchId)?.state),
+      ),
+    [matchId],
+  );
+  useEffect(
+    () =>
+      subscribeLiveScoreboardEvents(matchId, (event) => {
+        if (event.eventType === 'match.started') setStarted(true);
+        if (event.eventType === 'match.finalized') setEnded(true);
+      }),
+    [matchId],
+  );
+
+  const over = ended || storeState === 'final';
+  const isLive =
+    !over && (started || seenLive || storeState === 'live' || (storeState === undefined && live));
+
+  useEffect(() => {
+    if (finished) return undefined;
+    const created = watchPublicMatchCounters(
+      { matchId, organizationAlias, tournamentAlias, stageNumber, matchOrdinal },
+      {
+        onUpdate: (next) => {
+          setSnapshot(next);
+          setSeenLive(true);
+        },
+        onFinal: (counters) => setSnapshot({ counters, activePenalties: [] }),
+      },
+    );
+    watch.current = created;
+    return () => {
+      created.dispose();
+      watch.current = null;
+    };
+  }, [finished, matchId, organizationAlias, tournamentAlias, stageNumber, matchOrdinal]);
+
+  useEffect(() => {
+    watch.current?.setLive(isLive);
+  }, [isLive, matchId, organizationAlias, tournamentAlias, stageNumber, matchOrdinal]);
+
+  useEffect(() => {
+    if (over) watch.current?.finish();
+  }, [over]);
+
+  const shownCounters = over
+    ? snapshot.counters.filter((counter) => counter.scope === 'match')
+    : snapshot.counters;
+  const placedSides = useMemo(() => resolveSides(sides, snapshot), [sides, snapshot]);
+  const views = matchCounterView(shownCounters, placedSides, language, texts);
+  const penalties: readonly MatchPenaltyView[] =
+    isLive && !over
+      ? snapshot.activePenalties.map((penalty) => ({
+          ...penalty,
+          sideName:
+            placedSides.find((side) => side.entrantId === penalty.entrantId)?.name ??
+            penalty.entrantId,
+        }))
+      : [];
+  return (
+    <MatchCounters
+      penalties={penalties}
+      penaltyTemplate={penaltyTemplate}
+      sides={placedSides}
+      views={views}
+    />
+  );
+}
+
+type CounterSide = {
+  readonly entrantId: string;
+  readonly name: string;
+  readonly place: 'home' | 'away';
+};
+
+/**
+ * The page's sides with an entrant that was unresolved when it was rendered (an empty id, such as an
+ * undecided bracket slot) filled from the counters and penalties the projection now carries: the first
+ * unknown entrant goes to the first unresolved side, home before away. A side that stays unresolved keeps
+ * its empty id and shows no values.
+ */
+export function resolveSides(
+  sides: readonly CounterSide[],
+  snapshot: PublicMatchCountersSnapshot,
+): readonly CounterSide[] {
+  if (sides.every((side) => side.entrantId !== '')) return sides;
+  const known = new Set(sides.map((side) => side.entrantId));
+  const unknown: string[] = [];
+  const note = (entrantId: string): void => {
+    if (!known.has(entrantId) && !unknown.includes(entrantId)) unknown.push(entrantId);
+  };
+  for (const counter of snapshot.counters)
+    for (const entry of counter.values) note(entry.entrantId);
+  for (const penalty of snapshot.activePenalties) note(penalty.entrantId);
+  return sides.map((side) =>
+    side.entrantId === '' && unknown.length > 0
+      ? { ...side, entrantId: unknown.shift() ?? '' }
+      : side,
+  );
+}

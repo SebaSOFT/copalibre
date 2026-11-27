@@ -267,7 +267,7 @@ function delay(milliseconds: number): Promise<void> {
  * implementation — two definitions of "replay window" would eventually disagree
  * about which side of it a client is on, and only one would be right.
  */
-@Controller('api/events')
+@Controller('events/poll')
 export class LongPollController {
   private readonly subscriptions: SubscriptionService;
 

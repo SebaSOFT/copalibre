@@ -14,6 +14,22 @@ import type {
 } from './lib/api-client.js';
 import { withIntl } from './i18n/test-support.js';
 
+const SLOT_STARTS: Readonly<Record<string, number>> = {
+  'slot-1': Date.UTC(2026, 7, 1, 14, 0),
+  'slot-2': Date.UTC(2026, 7, 1, 15, 15),
+};
+
+/** A slot is picked by its day first, then by the slot itself, as an operator does. */
+function chooseSlot(slotId: string): void {
+  const day = new Date(SLOT_STARTS[slotId] ?? 0).toLocaleDateString('en-CA');
+  fireEvent.change(screen.getByLabelText(/^Day — Club Alfa vs Club Bravo/), {
+    target: { value: day },
+  });
+  fireEvent.change(screen.getByLabelText(/Start time — Club Alfa vs Club Bravo/), {
+    target: { value: slotId },
+  });
+}
+
 const STAGE_ID = 'stage-1';
 
 const oneFixture: readonly FixtureResponse[] = [
@@ -22,7 +38,9 @@ const oneFixture: readonly FixtureResponse[] = [
     matchId: 'match-1',
     round: 1,
     homeEntrantId: 'entrant-a',
+    homeName: 'Club Alfa',
     awayEntrantId: 'entrant-b',
+    awayName: 'Club Bravo',
   },
 ];
 
@@ -33,7 +51,9 @@ const twoFixtures: readonly FixtureResponse[] = [
     matchId: 'match-2',
     round: 1,
     homeEntrantId: 'entrant-c',
+    homeName: 'Club Cóndor',
     awayEntrantId: 'entrant-d',
+    awayName: 'Club Delta',
   },
 ];
 
@@ -161,7 +181,7 @@ describe('ScheduleBuilderPage', () => {
       ),
     );
 
-    await screen.findAllByText(/Round 1/);
+    await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
     expect(screen.queryByText(/No match scheduled in this range/)).toBeNull();
   });
 
@@ -194,10 +214,8 @@ describe('ScheduleBuilderPage', () => {
       ),
     );
 
-    await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
-      target: { value: 'slot-1' },
-    });
+    await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
+    chooseSlot('slot-1');
 
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
@@ -205,10 +223,189 @@ describe('ScheduleBuilderPage', () => {
     expect(previewSchedule).toHaveBeenCalled();
 
     await act(async () => {
-      fireEvent.click(screen.getByText('Publish'));
+      fireEvent.click(screen.getByText('Publish schedule'));
     });
     expect(publishSchedule).toHaveBeenCalled();
     await screen.findByText('Schedule published.');
+  });
+
+  it('asks a reason before publishing a moved published match, and sends it', async () => {
+    const twoSlots: readonly ScheduleDetailResponse[] = [
+      {
+        ...(oneSchedule[0] as ScheduleDetailResponse),
+        slots: [
+          ...(oneSchedule[0] as ScheduleDetailResponse).slots,
+          {
+            slotId: 'slot-2',
+            scheduleId: 'schedule-1',
+            venueId: 'venue-1',
+            startsAt: Date.UTC(2026, 7, 1, 15, 15),
+            matchCount: 0,
+          },
+        ],
+      },
+    ];
+    const previewSchedule = jest.fn<NonNullable<ControlApiClient['previewSchedule']>>(async () => ({
+      committable: true,
+      conflicts: [],
+      affectedPublishedMatches: ['match-1'],
+      reasonRequiredMatches: ['match-1'],
+    }));
+    const publishSchedule = jest.fn<NonNullable<ControlApiClient['publishSchedule']>>(async () => ({
+      assignments: [],
+    }));
+    const recentScheduleReasons = jest.fn<NonNullable<ControlApiClient['recentScheduleReasons']>>(
+      async () => ({ reasons: ['Cancha 1 sin luz'] }),
+    );
+    const client = stubClient({
+      getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
+      getSchedule: () =>
+        Promise.resolve({
+          assignments: [
+            {
+              matchId: 'match-1',
+              fixtureId: 'fixture-1',
+              slotId: 'slot-1',
+              venueId: 'venue-1',
+              window: { startsAt: Date.UTC(2026, 7, 1, 14, 0), durationMinutes: 60 },
+            },
+          ],
+        }),
+      listVenues: () => Promise.resolve(oneVenue),
+      listSchedules: () => Promise.resolve(twoSlots),
+      previewSchedule,
+      publishSchedule,
+      recentScheduleReasons,
+    });
+    render(
+      withIntl(
+        <ScheduleBuilderPage
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
+    chooseSlot('slot-2');
+    await act(async () => {
+      fireEvent.click(screen.getByText('Preview'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Publish schedule'));
+    });
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.textContent).toContain('Club Alfa vs Club Bravo');
+    const publishChanges = screen.getByRole('button', { name: 'Publish changes' });
+    expect(publishChanges).toHaveProperty('disabled', true);
+    expect(recentScheduleReasons).toHaveBeenCalledWith('liga-mendocina');
+
+    fireEvent.change(screen.getByLabelText('Reason for this batch'), {
+      target: { value: 'Weather' },
+    });
+    expect(publishChanges).toHaveProperty('disabled', false);
+    await act(async () => {
+      fireEvent.click(publishChanges);
+    });
+    expect(publishSchedule).toHaveBeenCalledWith('liga-mendocina', 'apertura', STAGE_ID, {
+      assignments: [{ matchId: 'match-1', slotId: 'slot-2' }],
+      reason: { code: 'weather', text: 'Weather' },
+    });
+  });
+
+  it('withdraws a placed match in the batch and lists the slot it frees', async () => {
+    const previewSchedule = jest.fn<NonNullable<ControlApiClient['previewSchedule']>>(async () => ({
+      committable: true,
+      conflicts: [],
+      affectedPublishedMatches: ['match-1'],
+      reasonRequiredMatches: ['match-1'],
+      withdrawn: ['match-1'],
+      freedSlotIds: ['slot-1'],
+    }));
+    const client = stubClient({
+      getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
+      getSchedule: () =>
+        Promise.resolve({
+          assignments: [
+            {
+              matchId: 'match-1',
+              fixtureId: 'fixture-1',
+              slotId: 'slot-1',
+              venueId: 'venue-1',
+              window: { startsAt: Date.UTC(2026, 7, 1, 14, 0), durationMinutes: 60 },
+            },
+          ],
+        }),
+      listVenues: () => Promise.resolve(oneVenue),
+      listSchedules: () => Promise.resolve(oneSchedule),
+      previewSchedule,
+    });
+    render(
+      withIntl(
+        <ScheduleBuilderPage
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: /Withdraw from slot/ }));
+    expect(screen.getByText(/Withdrawn — it will have no scheduled time/)).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByText('Preview'));
+    });
+    expect(previewSchedule).toHaveBeenCalledWith('liga-mendocina', 'apertura', STAGE_ID, {
+      assignments: [{ matchId: 'match-1', withdraw: true }],
+    });
+    expect(screen.getByText('Slots this batch frees')).toBeTruthy();
+  });
+
+  it('offers no move or withdrawal for a match in progress', async () => {
+    const client = stubClient({
+      getStageFixtures: () =>
+        Promise.resolve({
+          stageId: STAGE_ID,
+          fixtures: [
+            {
+              ...(oneFixture[0] as FixtureResponse),
+              matches: [{ matchId: 'match-1', number: 1, status: 'in-progress' }],
+            },
+          ],
+        }),
+      getSchedule: () =>
+        Promise.resolve({
+          assignments: [
+            {
+              matchId: 'match-1',
+              fixtureId: 'fixture-1',
+              slotId: 'slot-1',
+              venueId: 'venue-1',
+              window: { startsAt: Date.UTC(2026, 7, 1, 14, 0), durationMinutes: 60 },
+            },
+          ],
+        }),
+      listVenues: () => Promise.resolve(oneVenue),
+      listSchedules: () => Promise.resolve(oneSchedule),
+    });
+    render(
+      withIntl(
+        <ScheduleBuilderPage
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    await screen.findByText(/In progress — it cannot be moved or withdrawn/);
+    expect(screen.queryByRole('button', { name: /Withdraw from slot/ })).toBeNull();
+    expect(screen.queryByLabelText(/Start time — Club Alfa vs Club Bravo/)).toBeNull();
   });
 
   it('shows a conflict and leaves publish disabled', async () => {
@@ -242,17 +439,19 @@ describe('ScheduleBuilderPage', () => {
       ),
     );
 
-    await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
-      target: { value: 'slot-1' },
-    });
+    await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
+    chooseSlot('slot-1');
 
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
     });
 
-    await screen.findByText('Venue "venue-1" hosts 1 fixture(s) at once');
-    expect((screen.getByText('Publish') as HTMLButtonElement).disabled).toBe(true);
+    await screen.findByText(
+      'The venue is over capacity for Club Alfa vs Club Bravo and Club Cóndor vs Club Delta',
+    );
+    // The API's English diagnostic, with its identifiers, is never shown.
+    expect(screen.queryByText(/hosts 1 fixture/)).toBeNull();
+    expect((screen.getByText('Publish schedule') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('a fixture touching a finalized match is refused and surfaced', async () => {
@@ -286,16 +485,73 @@ describe('ScheduleBuilderPage', () => {
       ),
     );
 
-    await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
-      target: { value: 'slot-1' },
-    });
+    await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
+    chooseSlot('slot-1');
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
     });
 
-    await screen.findByText(/has already been finalized/);
-    expect((screen.getByText('Publish') as HTMLButtonElement).disabled).toBe(true);
+    await screen.findByText(
+      'Club Alfa vs Club Bravo is finalized: its schedule is a record and can no longer change',
+    );
+    expect(screen.queryByText(/fixture-1/)).toBeNull();
+    expect((screen.getByText('Publish schedule') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('lists the conflicts of a refused publish in words, not the server’s message', async () => {
+    const publishSchedule = jest.fn<NonNullable<ControlApiClient['publishSchedule']>>(() =>
+      Promise.reject(
+        new ControlApiError(
+          400,
+          'The schedule has 1 conflict(s): Entrant "entrant-a" …',
+          'schedule-bad-request',
+          [
+            {
+              kind: 'match-in-progress',
+              matchId: 'match-1',
+              conflictsWithMatchId: 'match-1',
+              resourceId: 'match-1',
+            },
+          ],
+        ),
+      ),
+    );
+    const client = stubClient({
+      getStageFixtures: () => Promise.resolve({ stageId: STAGE_ID, fixtures: oneFixture }),
+      getSchedule: () => Promise.resolve({ assignments: [] }),
+      listSchedules: () => Promise.resolve(oneSchedule),
+      previewSchedule: () =>
+        Promise.resolve({ committable: true, conflicts: [], affectedPublishedMatches: [] }),
+      publishSchedule,
+    });
+    render(
+      withIntl(
+        <ScheduleBuilderPage
+          client={client}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura"
+        />,
+      ),
+    );
+
+    await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
+    chooseSlot('slot-1');
+    await act(async () => {
+      fireEvent.click(screen.getByText('Preview'));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Publish schedule'));
+    });
+
+    await screen.findByText('The schedule was not published: it now has conflicts, listed below.');
+    expect(
+      screen.getByText(
+        'Club Alfa vs Club Bravo is being played: it cannot be moved or withdrawn now',
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/entrant-a/)).toBeNull();
+    expect((screen.getByText('Publish schedule') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('surfaces the server’s own refusal message on a failed publish', async () => {
@@ -318,15 +574,13 @@ describe('ScheduleBuilderPage', () => {
       ),
     );
 
-    await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
-      target: { value: 'slot-1' },
-    });
+    await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
+    chooseSlot('slot-1');
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
     });
     await act(async () => {
-      fireEvent.click(screen.getByText('Publish'));
+      fireEvent.click(screen.getByText('Publish schedule'));
     });
 
     await screen.findByText('El lote fue rechazado');
@@ -351,13 +605,22 @@ describe('ScheduleBuilderPage', () => {
       ),
     );
 
-    await screen.findAllByText(/Round 1/);
+    await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
+
+    expect(screen.queryByLabelText('Ana Gómez')).toBeNull();
+    expect(screen.getByText('No officials assigned')).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', { name: /^Edit officials — Club Alfa vs Club Bravo/ }),
+    );
 
     const officialCheckbox = screen.getByLabelText('Ana Gómez') as HTMLInputElement;
     fireEvent.click(officialCheckbox);
     expect(officialCheckbox.checked).toBe(true);
     fireEvent.click(officialCheckbox);
     expect(officialCheckbox.checked).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: /^Done — Club Alfa vs Club Bravo/ }));
+    expect(screen.queryByLabelText('Ana Gómez')).toBeNull();
   });
 
   it('reports a generic failure when preview throws a non-ControlApiError', async () => {
@@ -378,10 +641,8 @@ describe('ScheduleBuilderPage', () => {
       ),
     );
 
-    await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
-      target: { value: 'slot-1' },
-    });
+    await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
+    chooseSlot('slot-1');
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
     });
@@ -407,10 +668,8 @@ describe('ScheduleBuilderPage', () => {
       ),
     );
 
-    await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
-      target: { value: 'slot-1' },
-    });
+    await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
+    chooseSlot('slot-1');
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
     });
@@ -438,15 +697,13 @@ describe('ScheduleBuilderPage', () => {
       ),
     );
 
-    await screen.findAllByText(/Round 1/);
-    fireEvent.change(screen.getByLabelText(/Start time — entrant-a vs entrant-b/), {
-      target: { value: 'slot-1' },
-    });
+    await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
+    chooseSlot('slot-1');
     await act(async () => {
       fireEvent.click(screen.getByText('Preview'));
     });
     await act(async () => {
-      fireEvent.click(screen.getByText('Publish'));
+      fireEvent.click(screen.getByText('Publish schedule'));
     });
 
     await screen.findByText('The request could not be completed. Try again.');
@@ -474,9 +731,9 @@ describe('ScheduleBuilderPage', () => {
       ),
     );
 
-    await screen.findAllByText(/Round 1/);
+    await screen.findByLabelText(/Start time — Club Alfa vs Club Bravo/);
     expect((screen.getByText('Preview') as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByText('Publish') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByText('Publish schedule') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('reports a load failure', async () => {
@@ -494,7 +751,7 @@ describe('ScheduleBuilderPage', () => {
       ),
     );
 
-    await screen.findByText('Could not load this stage’s schedule.');
+    await screen.findByRole('button', { name: 'Retry' });
   });
 
   it('reports a load failure when the client has no fixtures method at all', async () => {
@@ -510,7 +767,7 @@ describe('ScheduleBuilderPage', () => {
       ),
     );
 
-    await screen.findByText('Could not load this stage’s schedule.');
+    await screen.findByRole('button', { name: 'Retry' });
   });
 
   it('shows a stage with no fixtures yet', async () => {

@@ -1,7 +1,12 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createObjectStorageAdapter } from '@copalibre/object-storage';
+import {
+  EMBLEM_RENDITION_WIDTHS,
+  createObjectStorageAdapter,
+  emblemRenditionKey,
+} from '@copalibre/object-storage';
+import sharp from 'sharp';
 import {
   ObjectMetadataRepository,
   OBJECT_PROCESSING_REQUESTED_EVENT,
@@ -62,7 +67,7 @@ describe('object processing through the relay, against real clamd (integration)'
     expect(pass.failed).toBe(0);
   }
 
-  it('stores an object with a correctly-linked, organization-scoped metadata row (6.1)', async () => {
+  it('stores an object with a correctly-linked, organization-scoped metadata row', async () => {
     const storage = createObjectStorageAdapter({
       profile: 'filesystem',
       rootDirectory: storageRoot,
@@ -99,7 +104,7 @@ describe('object processing through the relay, against real clamd (integration)'
     expect(events[0]?.payload).toEqual({ objectId: saved.objectId });
   });
 
-  it('marks a clean object passed after a real relay pass through real clamd (6.2)', async () => {
+  it('marks a clean object passed after a real relay pass through real clamd', async () => {
     const storage = createObjectStorageAdapter({
       profile: 'filesystem',
       rootDirectory: storageRoot,
@@ -124,7 +129,46 @@ describe('object processing through the relay, against real clamd (integration)'
     expect(found?.status).toBe('passed');
   });
 
-  it('marks an EICAR-flagged object failed and audited, never passed, after a real relay pass through real clamd (6.3)', async () => {
+  it('leaves the three WebP renditions of a scanned PNG upload in storage, and no thumbnail', async () => {
+    const storage = createObjectStorageAdapter({
+      profile: 'filesystem',
+      rootDirectory: storageRoot,
+    });
+    const body = await sharp({
+      create: {
+        width: 410,
+        height: 512,
+        channels: 4,
+        background: { r: 30, g: 90, b: 200, alpha: 1 },
+      },
+    })
+      .png()
+      .toBuffer();
+    const reference = await storage.put('probe/emblem.png', body, 'image/png');
+    const metadata = new ObjectMetadataRepository(scratch.db);
+    const saved = await withTransaction(scratch.db, (uow) =>
+      metadata.save(uow, {
+        organizationId: SYSTEM_ORGANIZATION,
+        profile: storage.profile,
+        storageKey: reference.key,
+        contentType: 'image/png',
+        sizeBytes: body.byteLength,
+        uploadedBy: 'integration-test',
+      }),
+    );
+
+    await runOnePass();
+
+    expect((await metadata.findById(saved.objectId))?.status).toBe('passed');
+    for (const width of EMBLEM_RENDITION_WIDTHS) {
+      const rendition = await storage.get({ key: emblemRenditionKey(reference.key, width) });
+      const renditionMetadata = await sharp(rendition.body).metadata();
+      expect(renditionMetadata).toMatchObject({ format: 'webp', width });
+    }
+    await expect(storage.get({ key: `${reference.key}.thumbnail` })).rejects.toThrow();
+  });
+
+  it('marks an EICAR-flagged object failed and audited, never passed, after a real relay pass through real clamd', async () => {
     const storage = createObjectStorageAdapter({
       profile: 'filesystem',
       rootDirectory: storageRoot,

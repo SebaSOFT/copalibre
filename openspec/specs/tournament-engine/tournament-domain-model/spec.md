@@ -17,14 +17,12 @@ pulling in an HTTP framework.
 - **THEN** it contains no `@nestjs/*` or `fastify` package
 
 ### Requirement: Configuration inheritance hierarchy
+
 The domain SHALL model configuration as `DisciplineDescriptor → TournamentRuleset →
-StageConfiguration → MatchRuleset`, where each level may only override fields the level above
-explicitly marks as overridable. This applies uniformly to every overridable field, including the win
-condition (see the win-condition requirement below): a field policy of `merged` SHALL always mean an
-actual merge by the declared strategy, never a silent full replacement, regardless of which override
-path resolves that field. A `union-list` merge SHALL recognize two array elements as the same entry
-whenever they are structurally equal, independent of the order their source document declared their
-keys in.
+StageConfiguration → MatchRuleset`, where each level may only override fields the level above marks
+as overridable, for every overridable field including the win condition. A `merged` field policy
+SHALL always mean an actual merge by the declared strategy, never a silent full replacement, on any
+override path. A `union-list` merge SHALL treat structurally equal array elements as one entry.
 
 #### Scenario: Compiling an effective ruleset from a valid override chain
 - **WHEN** a `TournamentRuleset` overrides only fields its `DisciplineDescriptor` marks `replaced` or `merged`
@@ -43,6 +41,11 @@ keys in.
   to one already present, but whose object keys were declared in a different order in the source
   document
 - **THEN** the merged result contains that entry once, not twice
+
+#### Scenario: Key order does not matter
+
+- **WHEN** two union-list elements are structurally equal but declare their keys in different orders
+- **THEN** they are the same entry
 
 ### Requirement: Mutation classification on configuration fields
 Every configurable field SHALL declare a mutation class of `safe`, `requires_rebuild`, or
@@ -280,7 +283,12 @@ declared before this requirement existed SHALL continue to compile a ruleset exa
   or enforcement
 
 ### Requirement: Inheritable Zone Format and Overrides
-The `Zone` aggregate and its persistence record SHALL support an optional `format: TournamentFormat`. When a zone leaves `format` unset, its effective format SHALL be its parent `Stage.format`; when set, that format SHALL take precedence for the zone and every group within it. A format declared on a zone SHALL be one of the tournament discipline's `availableFormats`. A zone's series and rule overrides SHALL be held in the stage configuration's override set under a `zones.<zoneId>.` prefix, resolved zone entry first, then the stage's, then the ruleset's, and SHALL NOT be stored in a separate column or table. Changing a zone's format or overrides SHALL be refused once its stage holds a fixture.
+
+A `Zone` SHALL support an optional `format: TournamentFormat`, one of the discipline's
+`availableFormats`, which takes precedence for the zone and its groups; unset, the zone plays its
+`Stage.format`. A zone's series and rule overrides SHALL be held in the stage configuration under a
+`zones.<zoneId>.` prefix, resolved zone first, then stage, then ruleset, and SHALL NOT be stored in
+a separate column or table. Changing them SHALL be refused once the stage holds a fixture.
 
 #### Scenario: Zone inherits stage format by default
 - **WHEN** a zone is created or queried without a format
@@ -306,7 +314,12 @@ The `Zone` aggregate and its persistence record SHALL support an optional `forma
 - **THEN** the mutation is refused and nothing is persisted
 
 ### Requirement: Tournament creation creates the declared zones with their format and series
-Creating a tournament SHALL create, for each declared stage, the zones the request lists, numbered by list position, each with its declared `format` when present. A declared zone series SHALL be stored as zone-scoped entries in the stage's configuration, in the same keys the zone management endpoint writes, so that a zone's format and series resolve exactly as if they had been set after creation. The request SHALL be refused, with nothing stored, when a zone format is not supported by the discipline, when a zone whose effective format is a placement format declares a series, when a series declaration is invalid, or when two zones of a stage share a name. A stage that lists no zones SHALL be created without zones.
+
+Creating a tournament SHALL create, for each declared stage, the zones the request lists, numbered
+by list position, each with its declared `format`, and SHALL store a declared zone series in the
+same zone-scoped configuration keys the zone management endpoint writes. The request SHALL be
+refused with nothing stored when a zone declaration is invalid. A stage that lists no zones SHALL be
+created without zones.
 
 #### Scenario: Zones are created with the tournament
 - **WHEN** a tournament is created with a `single-elimination` stage declaring zones "Copa Oro" and "Liga", the latter with format `round-robin` and a best-of-three series
@@ -326,3 +339,14 @@ Creating a tournament SHALL create, for each declared stage, the zones the reque
 #### Scenario: A stage without zones is created as before
 - **WHEN** a tournament is created with stages that list no zones
 - **THEN** it has no zones, exactly as a tournament created before this capability existed
+
+#### Scenario: What makes a zone declaration invalid
+
+- **WHEN** a request declares zones
+- **THEN** it is refused when a zone format is not supported by the discipline, a placement-format
+  zone declares a series, a series declaration is invalid, or two zones of a stage share a name
+
+#### Scenario: Created zones resolve like edited ones
+
+- **WHEN** a zone is created with a format and series
+- **THEN** both resolve exactly as if they had been set after creation

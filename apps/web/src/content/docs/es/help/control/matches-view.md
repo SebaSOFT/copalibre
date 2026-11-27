@@ -45,19 +45,12 @@ Hay dos versiones de esta pantalla, que comparten la misma tarjeta:
     posiciones.
   - Un cruce resuelto por una serie muestra su avance y, una vez resuelto, su estado agregado — la
     misma representación de la serie que ya usa la [llave pública](/help/control/series).
-- **Factor decisivo**: en un partido finalizado cuyo resultado necesitó un comparador de desempate para
-  separar dos filas de las posiciones, una línea que nombra qué lo decidió (por ejemplo, "decidido por
-  diferencia de gol entre sí").
+- **Factor decisivo**: no se muestra en la tarjeta. La tabla de posiciones indica el criterio de desempate bajo las filas que separó.
+- **Página del partido**: al abrir una tarjeta se llega a la página del partido, con oficiales, alineaciones y la línea de tiempo. La línea de tiempo muestra el minuto de juego de cada evento y el marcador después de cada gol; cada segmento jugado se abre y se cierra con su marcador. Las alineaciones muestran quién está inscrito antes del inicio. Cada juego de una serie tiene su propia página, `?game=N`, a la que se llega desde la llave.
 
-## La línea de factor decisivo frente a la traza completa
+## La traza completa en la tarjeta del panel de control
 
-La línea de factor decisivo de la tarjeta pública es deliberadamente un resumen, no el razonamiento
-completo — nunca incluye los demás pasos ni los valores intermedios del comparador interno. Un
-organizador con autoridad sobre las posiciones internas de este torneo (un admin, o un tournament-admin
-con alcance sobre él) ve en cambio la traza completa del comparador, en la versión de esta misma
-tarjeta del panel de control, exactamente como ya la muestra el expansor de traza de la pantalla de
-posiciones internas. Nadie ve una versión intermedia: un espectador ve el resumen de una línea o la
-traza completa, nunca una versión parcialmente reducida.
+La tarjeta pública no muestra línea de desempate. Un organizador con autoridad sobre las posiciones internas de este torneo (un admin, o un tournament-admin con alcance sobre él) ve la traza completa del comparador en la versión de esta misma tarjeta del panel de control, igual que la muestra el expansor de traza de la pantalla de posiciones internas. Un espectador nunca ve una traza parcial.
 
 ## Qué NO hace esta pantalla
 

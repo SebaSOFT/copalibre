@@ -15,7 +15,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const TOURNAMENT = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const STAGE = `${TOURNAMENT}/stages/1`;
 const overviewPath = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const livePath = `${overviewPath}/live`;
@@ -128,7 +128,7 @@ test.beforeEach(() => {
   projection = DEFAULT_PROJECTION;
 });
 
-test('7.3: the public standings preview names the grain, with JavaScript disabled', async ({
+test('the public standings preview names the grain, with JavaScript disabled', async ({
   browser,
 }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
@@ -144,9 +144,77 @@ test('7.3: the public standings preview names the grain, with JavaScript disable
   await context.close();
 });
 
-test('7.3: a single-match tournament’s preview carries no such statement, unchanged from before this change', async ({
-  page,
+test('an entrant without an emblem renders its stored abbreviation when JavaScript is disabled', async ({
+  browser,
 }) => {
+  overview = {
+    ...DEFAULT_OVERVIEW,
+    clubs: [{ clubId: 'club-talleres', name: 'Talleres', abbreviation: 'TLL' }],
+    standingsPreview: [
+      {
+        rank: 1,
+        entrantId: 'entrant-talleres',
+        name: 'Talleres',
+        abbreviation: 'TLL',
+        clubId: 'club-talleres',
+        statistics: { points: 3 },
+      },
+    ],
+  };
+  projection = {
+    ...DEFAULT_PROJECTION,
+    rows: projectionRows.map((row) => ({
+      ...row,
+      entrantAbbreviation: 'TLL',
+      clubId: 'club-talleres',
+    })),
+  };
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto(overviewPath);
+
+  const tile = page.locator('.cl-standings-section .cl-entrant-emblem__monogram');
+  await expect(tile).toHaveText('TLL');
+  await expect(tile).toBeVisible();
+  await context.close();
+});
+
+test('a broken public emblem URL reveals stored abbreviation fallback', async ({ page }) => {
+  overview = {
+    ...DEFAULT_OVERVIEW,
+    clubs: [{ clubId: 'club-talleres', name: 'Talleres', abbreviation: 'TLL' }],
+    standingsPreview: [
+      {
+        rank: 1,
+        entrantId: 'entrant-talleres',
+        name: 'Talleres',
+        abbreviation: 'TLL',
+        clubId: 'club-talleres',
+        emblemObjectId: 'missing-emblem',
+        statistics: { points: 3 },
+      },
+    ],
+  };
+  projection = {
+    ...DEFAULT_PROJECTION,
+    rows: projectionRows.map((row) => ({
+      ...row,
+      entrantAbbreviation: 'TLL',
+      clubId: 'club-talleres',
+      emblemObjectId: 'missing-emblem',
+    })),
+  };
+  await page.route('**/organizations/liga-mendocina/clubs/club-talleres/emblem*', (route) =>
+    route.fulfill({ status: 404, body: 'missing' }),
+  );
+  await page.goto(overviewPath);
+
+  const frame = page.locator('.cl-standings-section .cl-table .cl-entrant-emblem');
+  await expect(frame.locator('img')).toHaveCSS('display', 'none');
+  await expect(frame.locator('.cl-entrant-emblem__monogram')).toHaveText('TLL');
+});
+
+test('a single-match tournament’s preview carries no grain statement', async ({ page }) => {
   const withoutGrain: Record<string, unknown> = { ...DEFAULT_PROJECTION };
   delete withoutGrain.grain;
   delete withoutGrain.countColumnCode;
@@ -159,7 +227,7 @@ test('7.3: a single-match tournament’s preview carries no such statement, unch
   await expect(page.getByRole('columnheader', { name: 'PJ' })).toBeVisible();
 });
 
-test('7.3: the live page’s leaders table names the grain, with JavaScript disabled', async ({
+test('the live page’s leaders table names the grain, with JavaScript disabled', async ({
   browser,
 }) => {
   overview = { ...DEFAULT_OVERVIEW, standingsGrain: 'match' };
@@ -172,7 +240,7 @@ test('7.3: the live page’s leaders table names the grain, with JavaScript disa
   await context.close();
 });
 
-test('7.4: the grain statement is legible with color disabled', async ({ page }) => {
+test('the grain statement is legible with color disabled', async ({ page }) => {
   await page.emulateMedia({ forcedColors: 'active' });
   await page.goto(overviewPath);
 
@@ -205,7 +273,7 @@ test('public standings figures and the schedule scores keep their numeric treatm
     /cl-tabular-nums/,
   );
 
-  const scores = page.locator('.cl-match-schedule td a');
+  const scores = page.locator('.cl-ticker__item:not([aria-hidden="true"]) .cl-ticker__figure');
   await expect(scores).toHaveCount(2);
   for (const score of await scores.all()) {
     await expect(score).toHaveCSS('font-variant-numeric', 'tabular-nums');

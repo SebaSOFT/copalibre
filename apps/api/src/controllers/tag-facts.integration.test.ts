@@ -21,6 +21,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * A recorded event carrying a declared `{ kind: 'tag' }` effect produces a
@@ -62,6 +63,7 @@ describe('tag facts inside the event-recording transaction (integration)', () =>
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -236,7 +238,7 @@ describe('tag facts inside the event-recording transaction (integration)', () =>
   it('a recorded event carrying a declared tag effect writes a real tag_facts row', async () => {
     const response = await (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: `/organizations/liga-tags/tournaments/apertura-tags/matches/${matchId}/events`,
+      url: `/api/organizations/liga-tags/tournaments/apertura-tags/matches/${matchId}/events`,
       headers: {
         authorization: 'Bearer referee',
         'idempotency-key': '01890000-0000-7000-8000-0000000000b1',

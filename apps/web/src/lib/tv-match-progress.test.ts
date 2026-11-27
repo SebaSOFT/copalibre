@@ -91,7 +91,7 @@ describe('tvMatchProgress', () => {
     );
 
     expect(progress.sets).toEqual([]);
-    expect(progress.segmentLabel).toBe('2do Tiempo');
+    expect(progress.segmentLabel).toBe('2do tiempo');
   });
 
   it('numbers a lap by its place among the laps, not among every segment', () => {
@@ -107,7 +107,29 @@ describe('tvMatchProgress', () => {
       undefined,
       'es',
     );
-    expect(progress.segmentLabel).toBe('2da Vuelta');
+    expect(progress.segmentLabel).toBe('2da vuelta');
+  });
+
+  it('keeps the declared case of a segment the match plays once in Spanish', () => {
+    const progress = tvMatchProgress(
+      {
+        state: 'live',
+        segments: [
+          half(1, 'completed'),
+          half(2, 'completed'),
+          {
+            number: 3,
+            type: 'overtime',
+            label: { es: 'Tiempo Extra' },
+            timed: true,
+            state: 'active',
+          },
+        ],
+      },
+      undefined,
+      'es',
+    );
+    expect(progress.segmentLabel).toBe('Tiempo Extra');
   });
 
   it('leaves a segment the match plays once without a number', () => {

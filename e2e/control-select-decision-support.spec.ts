@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -16,12 +16,12 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 
 const ORG = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const TOURNAMENT = `/organizations/${ORG}/tournaments/${TOURNAMENT_ALIAS}`;
+const TOURNAMENT = `/api/organizations/${ORG}/tournaments/${TOURNAMENT_ALIAS}`;
 const STAGE = `${TOURNAMENT}/stages/1`;
 
 async function mockStageApi(page: Page): Promise<void> {
   await page.addInitScript(
-    ({ tournament, stage, tokenEndpoint }) => {
+    ({ tournament, stage, organizationAlias, tokenEndpoint }) => {
       const initialStage = {
         stageId: 'stage-1',
         seasonId: 'season-1',
@@ -46,13 +46,43 @@ async function mockStageApi(page: Page): Promise<void> {
         if (url === `${tournament}/stages` && method === 'GET') {
           return Response.json([initialStage]);
         }
+        if (url === `/api/organizations/${organizationAlias}/roles` && method === 'GET') {
+          return Response.json([
+            {
+              assignmentId: '01800000-0000-7000-8000-000000000002',
+              principalId: '01800000-0000-7000-8000-000000000001',
+              email: 'referee@example.test',
+              role: 'referee',
+              status: 'active',
+            },
+          ]);
+        }
+        if (url === `/api/organizations/${organizationAlias}/invitations` && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url === `/api/organizations/${organizationAlias}/clubs` && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url === `/api/organizations/${organizationAlias}/tournaments` && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url === `/api/organizations/${organizationAlias}/roles/grantable` && method === 'GET') {
+          return Response.json({
+            roles: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
+          });
+        }
         if (url === stage && method === 'PATCH') {
           return Response.json(initialStage);
         }
         return new Response('Not found', { status: 404 });
       };
     },
-    { tournament: TOURNAMENT, stage: STAGE, tokenEndpoint: TOKEN_ENDPOINT },
+    {
+      tournament: TOURNAMENT,
+      stage: STAGE,
+      organizationAlias: ORG,
+      tokenEndpoint: TOKEN_ENDPOINT,
+    },
   );
 }
 
@@ -66,7 +96,7 @@ test('the Stage hub format Select shows the selected format’s own description,
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${stageHubTarget}`);
 
-  await expect(page.getByRole('heading', { level: 1, name: 'Fase 1' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Fase de grupos' })).toBeVisible();
   await expect(page.getByText('Cada equipo juega contra todos los demás una vez.')).toBeVisible();
 
   await page.getByLabel('Formato').selectOption('single-elimination');
@@ -107,13 +137,24 @@ async function mockRolesApi(page: Page): Promise<void> {
             status: 'active',
           });
         }
-        if (url === '/organizations/liga-mendocina/invitations' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/invitations' && method === 'GET') {
           return Response.json([]);
+        }
+        if (
+          url === '/api/organizations/liga-mendocina/clubs' ||
+          url === '/api/organizations/liga-mendocina/tournaments'
+        ) {
+          return Response.json([]);
+        }
+        if (url === '/api/organizations/liga-mendocina/roles/grantable' && method === 'GET') {
+          return Response.json({
+            roles: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
+          });
         }
         return new Response('Not found', { status: 404 });
       };
     },
-    { rolesPath: '/organizations/liga-mendocina/roles', tokenEndpoint: TOKEN_ENDPOINT },
+    { rolesPath: '/api/organizations/liga-mendocina/roles', tokenEndpoint: TOKEN_ENDPOINT },
   );
 }
 
@@ -127,19 +168,20 @@ test('the role Select explains the assigned role and links to that role’s own 
   await page.waitForURL(`**${target}`);
 
   await expect(page.getByText('referee@example.test')).toBeVisible();
+  const operators = page.getByRole('table');
   await expect(
-    page.getByText(
+    operators.getByText(
       'Opera un partido en vivo: registra eventos, controla el reloj, resuelve cronómetros y selecciona la plantilla.',
     ),
   ).toBeVisible();
-  const learnMoreLink = page.getByRole('link', { name: 'Más información' });
+  const learnMoreLink = operators.getByRole('link', { name: 'Más información' });
   await expect(learnMoreLink).toHaveAttribute('href', '/es/help/roles/referee/');
   await expect(learnMoreLink).toHaveAttribute('target', '_blank');
 
   await page.getByLabel('Rol de referee@example.test').selectOption('viewer');
 
   await expect(
-    page.getByText(
+    operators.getByText(
       'El rol de organización con menos privilegios: pertenece a la organización sin otorgar ninguna autoridad operativa.',
     ),
   ).toBeVisible();

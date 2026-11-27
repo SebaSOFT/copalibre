@@ -1,10 +1,17 @@
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { jest } from '@jest/globals';
+import { mkdir, mkdtemp, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  discoverJwksUri,
+  externalOidcEnvironment,
   formatRequiredSecrets,
+  resolveOidcOptions,
   generateRsaKeypair,
+  httpsAnswer,
+  httpsQuestion,
   readAsset,
+  sessionCookieSecureSetting,
   repairInstallationAssets,
   writeInstallationAssets,
   writeLocalDefaults,
@@ -20,9 +27,23 @@ describe('copalibre init', () => {
     const content = await readFile(file, 'utf8');
     expect(content).toContain('COPALIBRE_PORT=8080');
     expect(content).toContain('COPALIBRE_APP_URL=http://localhost:8080');
-    expect(content).toContain('COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:1.2.6');
-    expect(content).toContain('COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.6');
+    expect(content).toContain('COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:2.0.0');
+    expect(content).toContain('COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:2.0.0');
     expect(content).toContain('COPALIBRE_BOOTSTRAP_TOKEN=');
+  });
+
+  it('writes two distinct random database passwords, never the placeholders', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'copalibre-init-'));
+    const file = join(directory, '.env');
+
+    await writeLocalDefaults(file);
+
+    const content = await readFile(file, 'utf8');
+    const owner = /^COPALIBRE_DATABASE_OWNER_PASSWORD=([0-9a-f]{64})$/m.exec(content)?.[1];
+    const app = /^COPALIBRE_DATABASE_APP_PASSWORD=([0-9a-f]{64})$/m.exec(content)?.[1];
+    expect(owner).toBeDefined();
+    expect(app).toBeDefined();
+    expect(owner).not.toBe(app);
   });
 
   it('lists required secret inputs without assigning values', () => {
@@ -118,6 +139,7 @@ describe('writeInstallationAssets', () => {
     expect(env).toContain('COPALIBRE_APP_URL=https://tournaments.example.com');
     expect(env).toContain('COPALIBRE_API_URL=https://tournaments.example.com');
     expect(env).toContain('COPALIBRE_JWT_ISSUER=https://tournaments.example.com');
+    expect(env).toContain('COPALIBRE_NATIVE_JWT_ISSUER=https://tournaments.example.com');
     expect(env).toContain('COPALIBRE_MODULE_SOURCE_ALLOWLIST=file:///var/lib/copalibre/modules');
   });
 
@@ -146,6 +168,16 @@ describe('writeInstallationAssets', () => {
       'utf8',
     );
     expect(JSON.parse(tennisManifest).alias).toBe('tennis');
+  });
+
+  it('creates an empty well-known directory, since every file in it is public', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    const assetsDir = await stubAssetsDir();
+
+    await writeInstallationAssets(cwd, { assetsDir });
+
+    expect((await stat(join(cwd, 'well-known'))).isDirectory()).toBe(true);
+    expect(await readdir(join(cwd, 'well-known'))).toEqual([]);
   });
 
   it('exports copalibre-nginx.conf when proxy is set to nginx', async () => {
@@ -259,6 +291,29 @@ describe('repairInstallationAssets', () => {
     );
   });
 
+  it('creates a missing well-known directory and keeps published files in an existing one', async () => {
+    const assetsDir = await stubAssetsDir();
+    const freshCwd = await mkdtemp(join(tmpdir(), 'copalibre-repair-'));
+    await writeFile(join(freshCwd, 'jwt-private.pem'), generateRsaKeypair().privateKeyPem);
+
+    const fresh = await repairInstallationAssets(freshCwd, { assetsDir });
+
+    expect(fresh.createdAssets).toContain(join(freshCwd, 'well-known'));
+    expect(await readdir(join(freshCwd, 'well-known'))).toEqual([]);
+
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-repair-'));
+    await writeFile(join(cwd, 'jwt-private.pem'), generateRsaKeypair().privateKeyPem);
+    await mkdir(join(cwd, 'well-known'));
+    const securityTxt =
+      'Contact: mailto:security@example.test\nExpires: 2027-11-08T00:00:00.000Z\n';
+    await writeFile(join(cwd, 'well-known', 'security.txt'), securityTxt);
+
+    const repaired = await repairInstallationAssets(cwd, { assetsDir });
+
+    expect(repaired.createdAssets).not.toContain(join(cwd, 'well-known'));
+    expect(await readFile(join(cwd, 'well-known', 'security.txt'), 'utf8')).toBe(securityTxt);
+  });
+
   it('returns paste-ready snippets for services missing from the existing Compose file', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'copalibre-repair-'));
     const assetsDir = await mkdtemp(join(tmpdir(), 'copalibre-assets-'));
@@ -313,5 +368,135 @@ describe('readAsset SEA-vs-relative-path resolution', () => {
     const content = await readAsset('docker-compose.yml', assetsDir, { isSea: () => false });
 
     expect(content).toBe('services: {}\n');
+  });
+});
+
+describe('external OIDC in copalibre init', () => {
+  const oidc = {
+    issuer: 'https://id.example/realms/copa',
+    clientId: 'copalibre',
+    jwksUri: 'https://id.example/realms/copa/protocol/openid-connect/certs',
+  };
+
+  it('writes the provider and its origin for the Content Security Policy', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    const assetsDir = await stubAssetsDir();
+
+    await writeInstallationAssets(cwd, { assetsDir, appUrl: 'https://play.example', oidc });
+
+    const env = await readFile(join(cwd, '.env'), 'utf8');
+    expect(env).toContain('COPALIBRE_JWT_ISSUER=https://id.example/realms/copa');
+    expect(env).toContain(`COPALIBRE_JWKS_URI=${oidc.jwksUri}`);
+    expect(env).toContain('COPALIBRE_OIDC_CLIENT_ID=copalibre');
+    expect(env).toContain('COPALIBRE_CSP_IDENTITY_ORIGIN=https://id.example\n');
+    expect(env).toContain('COPALIBRE_NATIVE_JWT_ISSUER=https://play.example');
+  });
+
+  it('leaves the policy origin empty for the built-in provider', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    const assetsDir = await stubAssetsDir();
+
+    await writeInstallationAssets(cwd, { assetsDir, appUrl: 'https://play.example' });
+
+    expect(await readFile(join(cwd, '.env'), 'utf8')).toContain('COPALIBRE_CSP_IDENTITY_ORIGIN=\n');
+  });
+
+  it('adds no policy origin for an issuer on the application origin', () => {
+    expect(
+      externalOidcEnvironment(
+        { ...oidc, issuer: 'https://play.example/oidc' },
+        'https://play.example/',
+      ).COPALIBRE_CSP_IDENTITY_ORIGIN,
+    ).toBe('');
+  });
+
+  it('validates the flags', () => {
+    expect(resolveOidcOptions(undefined, undefined, undefined)).toBeUndefined();
+    expect(() => resolveOidcOptions(undefined, 'copalibre', undefined)).toThrow(
+      'require --oidc-issuer',
+    );
+    expect(() => resolveOidcOptions('id.example', 'copalibre', oidc.jwksUri)).toThrow(
+      '--oidc-issuer must be an http(s) URL',
+    );
+    expect(() => resolveOidcOptions(oidc.issuer, undefined, oidc.jwksUri)).toThrow(
+      '--oidc-client-id is required',
+    );
+    expect(() => resolveOidcOptions(oidc.issuer, 'copalibre', undefined)).toThrow(
+      '--oidc-jwks-uri is required',
+    );
+    expect(resolveOidcOptions(` ${oidc.issuer} `, 'copalibre', oidc.jwksUri)).toEqual(oidc);
+  });
+
+  it('reads the key set from the discovery document, and gives up quietly', async () => {
+    const fetchDocument = jest.fn(async () => Response.json({ jwks_uri: oidc.jwksUri }));
+    await expect(
+      discoverJwksUri(`${oidc.issuer}/`, fetchDocument as unknown as typeof fetch),
+    ).resolves.toBe(oidc.jwksUri);
+    expect(fetchDocument).toHaveBeenCalledWith(
+      `${oidc.issuer}/.well-known/openid-configuration`,
+      expect.anything(),
+    );
+
+    const unreachable = jest.fn(async () => {
+      throw new Error('offline');
+    });
+    await expect(
+      discoverJwksUri(oidc.issuer, unreachable as unknown as typeof fetch),
+    ).resolves.toBeUndefined();
+  });
+});
+
+describe('session cookie setting in copalibre init', () => {
+  it('asks about HTTPS with the URL scheme as the default answer', () => {
+    expect(httpsQuestion('https://play.example')).toContain('[Y/n]');
+    expect(httpsQuestion('http://192.168.1.10')).toContain('[y/N]');
+    expect(httpsAnswer('', 'https://play.example')).toBe(true);
+    expect(httpsAnswer('', 'http://192.168.1.10')).toBe(false);
+    expect(httpsAnswer('yes', 'http://192.168.1.10')).toBe(true);
+    expect(httpsAnswer(' N ', 'https://play.example')).toBe(false);
+  });
+
+  it('derives the value from the URL when HTTPS is not stated', () => {
+    expect(sessionCookieSecureSetting('https://play.example')).toBe('true');
+    expect(sessionCookieSecureSetting('http://localhost:8080')).toBe('true');
+    expect(sessionCookieSecureSetting('http://192.168.1.10')).toBe('false');
+    expect(sessionCookieSecureSetting()).toBe('true');
+  });
+
+  it('follows an explicit answer, and refuses "no HTTPS" for an https URL', () => {
+    expect(sessionCookieSecureSetting('http://play.example', true)).toBe('true');
+    expect(sessionCookieSecureSetting('http://192.168.1.10', false)).toBe('false');
+    // localhost is a secure context whatever the answer.
+    expect(sessionCookieSecureSetting('http://localhost:8080', false)).toBe('true');
+    expect(() => sessionCookieSecureSetting('https://play.example', false)).toThrow(
+      '--no-https contradicts',
+    );
+  });
+
+  it.each([
+    [{ appUrl: 'https://play.example' }, 'true'],
+    [{ appUrl: 'http://192.168.1.10' }, 'false'],
+    [{ appUrl: 'http://192.168.1.10', https: true }, 'true'],
+    [{}, 'true'],
+  ])('writes COPALIBRE_SESSION_COOKIE_SECURE for %o', async (options, expected) => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    const assetsDir = await stubAssetsDir();
+
+    const result = await writeInstallationAssets(cwd, { assetsDir, ...options });
+
+    expect(result.sessionCookieSecure).toBe(expected);
+    const env = await readFile(join(cwd, '.env'), 'utf8');
+    expect(env).toContain(`COPALIBRE_SESSION_COOKIE_SECURE=${expected}\n`);
+    expect(env.match(/COPALIBRE_SESSION_COOKIE_SECURE=/g)).toHaveLength(1);
+  });
+
+  it('writes nothing when the HTTPS answer contradicts the URL', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'copalibre-instance-'));
+    const assetsDir = await stubAssetsDir();
+
+    await expect(
+      writeInstallationAssets(cwd, { assetsDir, appUrl: 'https://play.example', https: false }),
+    ).rejects.toThrow('--no-https contradicts');
+    expect(await readdir(cwd)).toEqual([]);
   });
 });

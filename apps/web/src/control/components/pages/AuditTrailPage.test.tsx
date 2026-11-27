@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { AuditTrailPage } from '../pages/AuditTrailPage.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { AuditTrailResponse, ControlApiClient } from '../../lib/api-client.js';
@@ -42,11 +43,13 @@ describe('AuditTrailPage', () => {
   it('renders applied and refused entries, each naming its actor and outcome', async () => {
     render(withIntl(<AuditTrailPage client={stubClient()} organizationAlias="liga-mendocina" />));
 
-    await waitFor(() => screen.getByText('user:alice'));
+    await waitFor(() => expect(screen.getAllByText('User')).toHaveLength(2));
     expect(screen.getByRole('heading', { level: 1, name: /audit trail/i })).toBeDefined();
-    expect(screen.getByText('user:bob')).toBeDefined();
-    expect(screen.getByText('Applied')).toBeDefined();
-    expect(screen.getByText('Refused')).toBeDefined();
+    expect(screen.queryByText('user:alice')).toBeNull();
+    expect(screen.queryByText('user:bob')).toBeNull();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Applied')).toBeDefined();
+    expect(table.getByText('Refused')).toBeDefined();
     expect(
       screen.getByText('Subject organization role is not authorized for this route'),
     ).toBeDefined();
@@ -79,7 +82,7 @@ describe('AuditTrailPage', () => {
       ),
     );
 
-    await waitFor(() => screen.getByText('network down'));
+    await expectFirstReadFailure();
   });
 
   it('resolves actor IDs to user profiles when listOrganizationRoles is available', async () => {
@@ -123,7 +126,10 @@ describe('AuditTrailPage', () => {
     );
 
     await waitFor(() => screen.getByText('alice@copalibre.test'));
-    expect(screen.getByText('ID 00000001')).toBeDefined();
+    expect(screen.queryByText(/01800000-0000-7000-8000-000000000001/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Copy actor ID' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show details' }));
+    expect(screen.getByRole('button', { name: 'Copy actor ID' })).toBeDefined();
     expect(screen.getByText('Settings updated')).toBeDefined();
   });
 
@@ -195,7 +201,7 @@ describe('AuditTrailPage', () => {
       ),
     );
 
-    await waitFor(() => screen.getByText('user:charlie'));
+    await waitFor(() => expect(screen.getByText('User')).toBeDefined());
     const nextBtn = getByRole('button', { name: /next/i });
     nextBtn.click();
     await waitFor(() => expect(capturedOffset).toBe(25));

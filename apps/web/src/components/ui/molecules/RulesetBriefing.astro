@@ -11,14 +11,12 @@ const { rows, heading } = Astro.props;
 <section aria-labelledby="ruleset-heading" class="cl-ruleset-section">
   <h2 id="ruleset-heading">{heading}</h2>
   <dl class="cl-ruleset-grid">
-    {
-      rows.map((row) => (
-        <div class="cl-rule-item">
-          <dt class="cl-rule-label">{row.label}</dt>
-          <dd class="cl-rule-value">{row.value}</dd>
-        </div>
-      ))
-    }
+    {rows.map((row) => (
+      <div class="cl-rule-item">
+        <dt class="cl-rule-label">{row.label}</dt>
+        <dd class="cl-rule-value">{row.value}</dd>
+      </div>
+    ))}
   </dl>
 </section>
 

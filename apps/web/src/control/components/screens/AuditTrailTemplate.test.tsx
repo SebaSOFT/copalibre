@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { AuditTrailTemplate } from './AuditTrailTemplate.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { AuditRecordResponse } from '../../lib/api-client.js';
@@ -19,7 +19,6 @@ describe('AuditTrailTemplate', () => {
     render(
       withIntl(
         <AuditTrailTemplate
-          organizationAlias="test-org"
           records={[]}
           loading={true}
           total={0}
@@ -40,7 +39,6 @@ describe('AuditTrailTemplate', () => {
     render(
       withIntl(
         <AuditTrailTemplate
-          organizationAlias="test-org"
           records={[]}
           loading={false}
           error="Failed to load trail"
@@ -59,12 +57,45 @@ describe('AuditTrailTemplate', () => {
     expect(screen.getByText('Failed to load trail')).toBeDefined();
   });
 
+  it('summarises the trail and narrows the visible page by result', () => {
+    const refused: AuditRecordResponse = {
+      ...baseRecord,
+      auditId: 'audit-002',
+      actor: 'user:dana',
+      outcome: 'refused',
+    };
+    render(
+      withIntl(
+        <AuditTrailTemplate
+          records={[baseRecord, refused]}
+          loading={false}
+          total={40}
+          limit={25}
+          offset={0}
+          actorFilter=""
+          onActorFilterChange={() => {}}
+          onPreviousPage={() => {}}
+          onNextPage={() => {}}
+        />,
+      ),
+    );
+
+    const summary = within(screen.getByRole('group', { name: 'Audit trail summary' }));
+    expect(summary.getByText('40')).toBeDefined();
+    expect(summary.getByText('Applied on this page')).toBeDefined();
+    expect(summary.getByText('Refused on this page')).toBeDefined();
+    expect(screen.getByText('2 events on this page')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refused' }));
+    expect(screen.getByText('1 event on this page')).toBeDefined();
+    expect(within(screen.getByRole('table')).queryByText('Applied')).toBeNull();
+  });
+
   it('renders clear filter button when actorFilter is provided and handles clear', () => {
     let filterValue = 'alice';
     const { rerender } = render(
       withIntl(
         <AuditTrailTemplate
-          organizationAlias="test-org"
           records={[baseRecord]}
           loading={false}
           total={1}
@@ -88,7 +119,6 @@ describe('AuditTrailTemplate', () => {
     rerender(
       withIntl(
         <AuditTrailTemplate
-          organizationAlias="test-org"
           records={[baseRecord]}
           loading={false}
           total={1}
@@ -116,7 +146,6 @@ describe('AuditTrailTemplate', () => {
     render(
       withIntl(
         <AuditTrailTemplate
-          organizationAlias="test-org"
           records={[correctionRecord]}
           loading={false}
           total={1}
@@ -130,7 +159,16 @@ describe('AuditTrailTemplate', () => {
       ),
     );
 
+    expect(screen.queryByText(/what this record changed/i)).toBeNull();
+    const toggle = screen.getByRole('button', { name: 'Show details' });
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByText(/what this record changed/i)).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide details' }));
+    expect(screen.queryByText(/what this record changed/i)).toBeNull();
   });
 
   it('renders previous and next pagination buttons with correct disabled states', () => {
@@ -140,7 +178,6 @@ describe('AuditTrailTemplate', () => {
     render(
       withIntl(
         <AuditTrailTemplate
-          organizationAlias="test-org"
           records={[baseRecord]}
           loading={false}
           total={75}

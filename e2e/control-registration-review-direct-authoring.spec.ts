@@ -1,5 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectNoBrokenWords, expectTablesFitTheirFrame } from './support/table-assertions.js';
+import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
 
 /**
  * Direct participant authoring from the registration-review
@@ -28,12 +31,25 @@ async function mockRegistrationApi(
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
+        if (url.includes('/api/organizations?mine=true')) {
+          return Response.json([
+            {
+              organizationId: 'org-1',
+              organizationAlias: 'liga-mendocina',
+              organizationName: 'Liga Mendocina',
+              role: 'admin',
+            },
+          ]);
+        }
         if (url.endsWith('/registrations')) {
           if (pendingRegistrations) return new Promise<Response>(() => undefined);
           const loaded = await (
             window as unknown as { __registrations: () => Promise<unknown> }
           ).__registrations();
           return Response.json(loaded);
+        }
+        if (url.endsWith('/entrants/needing-abbreviation') && (init?.method ?? 'GET') === 'GET') {
+          return Response.json([]);
         }
         if (url.endsWith('/registrations/persons') && init?.method === 'POST') {
           const body = JSON.parse(String(init.body)) as { displayName: string };
@@ -72,28 +88,16 @@ async function mockRegistrationApi(
   });
 }
 
-test('dismisses a loading alert in the registration control screen and captures both states', async ({
-  page,
-}) => {
+test('keeps the registration screen shape while its first read is pending', async ({ page }) => {
   await mockRegistrationApi(page, [], true);
   const target = '/control/liga-mendocina/tournaments/apertura-2026/registrations';
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  const alert = page.getByRole('status');
-  await expect(alert).toContainText('Cargando inscripciones...');
-  await page.screenshot({
-    fullPage: true,
-    path: 'docs/assets/screenshots/control-panel-loading-alert.png',
-  });
-
-  await alert.getByRole('button', { name: 'Descartar notificación' }).click();
-  await expect(alert).toHaveCount(0);
-  await page.screenshot({
-    fullPage: true,
-    path: 'docs/assets/screenshots/control-panel-alert-dismissed.png',
-  });
+  const skeleton = page.locator('.cl-skeleton');
+  await expect(skeleton).toBeVisible();
+  await expect(skeleton).toHaveAttribute('aria-busy', 'true');
 });
 
 test('registers a walk-up entrant from the registration review screen, with no CSV file involved', async ({
@@ -105,12 +109,17 @@ test('registers a walk-up entrant from the registration review screen, with no C
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  const header = page.locator('.cl-list-screen__header');
-  const breadcrumb = page.locator('.cl-list-screen__breadcrumb');
+  const header = page.locator('.cl-page-header');
+  const breadcrumb = page.locator('.cl-page-header__breadcrumb');
   const title = page.getByRole('heading', { level: 1 });
   const toolbar = page.locator('.cl-list-screen__toolbar');
   await expect(header).toBeVisible();
   await expect(breadcrumb).toBeVisible();
+  await expect(breadcrumb.getByRole('link', { name: 'Liga Mendocina' })).toHaveAttribute(
+    'href',
+    '/control/liga-mendocina',
+  );
+  await expect(page.getByText('liga-mendocina', { exact: true })).toHaveCount(0);
   await expect(title).toBeVisible();
   await expect(toolbar).toBeVisible();
   const [headerTop, headerBottom, toolbarTop] = await Promise.all([
@@ -130,12 +139,12 @@ test('registers a walk-up entrant from the registration review screen, with no C
   await dialog.getByRole('button', { name: 'Registrar' }).click();
   await expect(dialog).toBeHidden();
 
-  const row = page.locator('summary', { hasText: 'Walk-up Person' });
+  const row = page.getByRole('row', { name: /Walk-up Person/ });
   await expect(row).toBeVisible();
   await expect(row.getByText('Pendiente')).toBeVisible();
 });
 
-test("edits a directly-added team's name from the screen and sees the change immediately", async ({
+test("edits a directly-added team's name from the screen and sees the change immediately @visible-identifier-lint", async ({
   page,
 }) => {
   await mockRegistrationApi(page, [
@@ -144,6 +153,7 @@ test("edits a directly-added team's name from the screen and sees the change imm
       tournamentId: 't-1',
       status: 'pending',
       teamId: TEAM_ID,
+      displayName: 'Talleres',
     },
   ]);
   const target = '/control/liga-mendocina/tournaments/apertura-2026/registrations';
@@ -151,8 +161,9 @@ test("edits a directly-added team's name from the screen and sees the change imm
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByText(TEAM_ID).click();
-  await page.getByRole('button', { name: 'Editar', exact: true }).click();
+  await expectNoVisibleIdentifiers(page, FIXTURE_ALIASES);
+  await page.getByRole('button', { name: 'Mostrar detalles: Talleres' }).click();
+  await page.getByRole('button', { name: 'Editar identidad', exact: true }).click();
 
   const dialog = page.getByRole('dialog', { name: 'Editar identidad' });
   await expect(dialog).toBeVisible();
@@ -161,4 +172,49 @@ test("edits a directly-added team's name from the screen and sees the change imm
 
   await expect(dialog).toBeHidden();
   await expect(page.getByText('Talleres FC')).toBeVisible();
+});
+
+test('registration review is a table with scoped headers that stacks on a phone in German', async ({
+  page,
+}) => {
+  await page.addInitScript(() => localStorage.setItem('copalibre.language', 'de'));
+  await mockRegistrationApi(page, [
+    {
+      entrantId: 'entrant-1',
+      tournamentId: 't-1',
+      status: 'pending',
+      teamId: TEAM_ID,
+      displayName: 'Club Atlético Estudiantil de la Ciudad de San Miguel de Tucumán',
+    },
+    {
+      entrantId: 'entrant-2',
+      tournamentId: 't-1',
+      status: 'accepted',
+      teamId: 'team-2',
+      displayName: 'Talleres',
+    },
+  ]);
+  await page.setViewportSize({ width: 375, height: 667 });
+  const target = '/control/liga-mendocina/tournaments/apertura-2026/registrations';
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  const table = page.getByRole('table');
+  await expect(table).toBeVisible();
+  const headers = table.getByRole('columnheader');
+  await expect(headers).toHaveCount(5);
+  const scopes = await headers.evaluateAll((cells) =>
+    cells.map((cell) => cell.getAttribute('scope')),
+  );
+  expect(scopes).toEqual(['col', 'col', 'col', 'col', 'col']);
+
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+  await expectTablesFitTheirFrame(page, 'stacked');
+  await expectNoBrokenWords(page, '.cl-data-table');
+
+  const { violations } = await new AxeBuilder({ page })
+    .withRules(['th-has-data-cells', 'scope-attr-valid', 'empty-table-header'])
+    .analyze();
+  expect(violations).toEqual([]);
 });

@@ -8,7 +8,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const STAGE = `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`;
 
 const side = (
@@ -153,6 +153,8 @@ const placementReport = {
 };
 
 let apiServer: Server;
+// Set by the fitting-bracket test only: the stage then holds one match, which fits its panel.
+let singleMatchStage = false;
 
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
@@ -161,7 +163,12 @@ test.beforeAll(async ({ workerPort }) => {
     if (path === `${BASE}/overview`) {
       res.end(JSON.stringify(overview));
     } else if (path === `${BASE}/stages/1/bracket`) {
-      res.end(JSON.stringify({ format: 'single-elimination', zones: [{ matches }] }));
+      res.end(
+        JSON.stringify({
+          format: 'single-elimination',
+          zones: [{ matches: singleMatchStage ? [matches[0]] : matches }],
+        }),
+      );
     } else if (path === `${BASE}/stages/1/matches/12`) {
       res.end(JSON.stringify(placementReport));
     } else {
@@ -185,7 +192,13 @@ test.describe('public knockout bracket', () => {
 
     const canvas = page.locator('.cl-bracket-stage__canvas[data-density="full"]');
     await expect(canvas.locator('.cl-bracket-stage__node')).toHaveCount(7);
-    await expect(canvas.getByText('Final', { exact: true })).toBeVisible();
+    await expect(
+      canvas.getByRole('heading', { name: 'Cuadro principal', exact: true }),
+    ).toHaveCount(1);
+    await expect(
+      canvas.locator('.cl-bracket-stage__round-label').filter({ hasText: 'Cuadro principal' }),
+    ).toHaveCount(0);
+    await expect(canvas.getByRole('heading', { name: 'Final', exact: true })).toBeVisible();
 
     // The five placement games are not in the tree; they are listed under what each decides.
     const list = page.locator('.cl-placement-games');
@@ -313,6 +326,36 @@ test.describe('public knockout bracket', () => {
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
+
+    // Compact round labels on the same vertical row must not overlap horizontally.
+    const roundLabels = await compact
+      .locator('.cl-bracket-stage__round-label')
+      .evaluateAll((labels) =>
+        labels.map((el) => {
+          const rect = el.getBoundingClientRect();
+          return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+        }),
+      );
+    for (const [i, a] of roundLabels.entries()) {
+      for (const b of roundLabels.slice(i + 1)) {
+        const sameRow = a.top < b.bottom && b.top < a.bottom;
+        if (!sameRow) continue;
+        const [first, second] = a.left <= b.left ? [a, b] : [b, a];
+        expect(first.right).toBeLessThanOrEqual(second.left);
+      }
+    }
+
+    // Compact match cards must not vertically clip their content.
+    const cardClipChecks = await compact.locator('.cl-match-compact').evaluateAll((cards) =>
+      cards.map((card) => ({
+        scrollHeight: card.scrollHeight,
+        clientHeight: card.clientHeight,
+      })),
+    );
+    expect(cardClipChecks.length).toBeGreaterThan(0);
+    for (const check of cardClipChecks) {
+      expect(check.scrollHeight).toBeLessThanOrEqual(check.clientHeight + 1);
+    }
   });
 
   test('a desktop keeps the full cards and hides the compact drawing', async ({ page }) => {
@@ -320,5 +363,45 @@ test.describe('public knockout bracket', () => {
     await page.goto(STAGE);
     await expect(page.locator('.cl-bracket-stage__canvas[data-density="full"]')).toBeVisible();
     await expect(page.locator('.cl-bracket-stage__canvas[data-density="compact"]')).toBeHidden();
+  });
+});
+
+test.describe('bracket scroll affordance', () => {
+  test('an overflowing bracket shows the hint below it and a fade on the side that continues', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 900, height: 900 });
+    await page.goto(STAGE);
+
+    const scroller = page.locator('.cl-bracket-stage__scroll--full').first();
+    await expect(scroller).toHaveAttribute('data-overflowing', '');
+    await expect(scroller).toHaveAttribute('data-overflow-end', '');
+    const hint = page.locator('.cl-bracket-stage__frame--full .cl-bracket-stage__hint');
+    await expect(hint).toBeVisible();
+    await expect(hint).toHaveText('Deslizá para ver toda la llave');
+    // The hint follows the scroller, so it sits next to the scrollbar rather than above the zone.
+    const hintIsAfterScroller = await hint.evaluate(
+      (element) =>
+        element.previousElementSibling?.classList.contains('cl-bracket-stage__scroll') === true,
+    );
+    expect(hintIsAfterScroller).toBe(true);
+  });
+
+  test('a bracket that fits its panel shows neither the hint nor a fade', async ({ page }) => {
+    singleMatchStage = true;
+    try {
+      await page.setViewportSize({ width: 900, height: 900 });
+      await page.goto(STAGE);
+
+      const scroller = page.locator('.cl-bracket-stage__scroll--full').first();
+      await expect(scroller.locator('.cl-bracket-stage__node')).toHaveCount(1);
+      await expect(scroller).not.toHaveAttribute('data-overflowing', /.*/);
+      await expect(scroller).not.toHaveAttribute('data-overflow-end', /.*/);
+      await expect(
+        page.locator('.cl-bracket-stage__frame--full .cl-bracket-stage__hint'),
+      ).toBeHidden();
+    } finally {
+      singleMatchStage = false;
+    }
   });
 });

@@ -1,3 +1,4 @@
+import { ToastProvider } from './components/ToastProvider.js';
 /**
  * The operator standings screen's Phase → Zone →
  * Group navigation was already implemented (`StandingsPage.tsx`'s
@@ -15,12 +16,14 @@ import { ORG, TOURNAMENT, projection, storyClient } from './components/screen-st
 function renderPage(client: ControlApiClient) {
   return render(
     <IntlProvider locale="en" messages={{}}>
-      <StandingsPage
-        client={client}
-        organizationAlias={ORG}
-        stageNumber={1}
-        tournamentAlias={TOURNAMENT}
-      />
+      <ToastProvider>
+        <StandingsPage
+          client={client}
+          organizationAlias={ORG}
+          stageNumber={1}
+          tournamentAlias={TOURNAMENT}
+        />
+      </ToastProvider>
     </IntlProvider>,
   );
 }
@@ -88,7 +91,7 @@ describe('the operator standings screen Phase → Zone → Group navigation', ()
     renderPage(client);
     await flush();
     const select = await screen.findByLabelText('Group');
-    const optionLabels = Array.from(select.querySelectorAll('option')).map(
+    const optionLabels = Array.from(select.querySelectorAll('option:not([hidden])')).map(
       (option) => option.textContent,
     );
     // Arbitrary Z (2 zones) and G (2 then 1 groups) — every group surfaces, each

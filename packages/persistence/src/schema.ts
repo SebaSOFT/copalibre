@@ -50,6 +50,7 @@ export interface PersonalAccessTokensTable {
   revoked_at: Timestamp | null;
   last_used_at: Timestamp | null;
   created_at: Timestamp;
+  deleted_at: Timestamp | null;
 }
 
 /**
@@ -188,8 +189,8 @@ export interface ReportEvidenceTable {
 export interface ClubsTable {
   club_id: string;
   organization_id: string;
-  /** Path identifier, unique within the organization. */
-  alias: string | null;
+  /** Path identifier, unique within the organization. Required since 0048. */
+  alias: string;
   name: string;
   /** Short label for constrained surfaces; `C I` for "Casa de Italia". */
   abbreviation: string | null;
@@ -253,6 +254,11 @@ export interface TournamentsTable {
   emblem_object_id: string | null;
   /** Organizer-set "this one matters" flag for the public organization page. */
   featured: ColumnType<boolean, boolean | undefined, boolean>;
+  /** Privacy preferences are safe mutations: they do not alter results or fixtures. */
+  includes_minors: ColumnType<boolean, boolean | undefined, boolean>;
+  show_youth_profiles: ColumnType<boolean, boolean | undefined, boolean>;
+  /** Minimum minutes between an entrant's matches; null declares no rest rule. */
+  minimum_rest_minutes: ColumnType<number | null, number | null | undefined, number | null>;
 }
 
 /**
@@ -276,6 +282,8 @@ export interface PersonsTable {
   photo_object_id: string | null;
   /** The club this person is affiliated with; null for a person with no club affiliation. */
   club_id: string | null;
+  /** Person-level public-page opt-out; changing visibility is a safe mutation. */
+  hidden_from_public: ColumnType<boolean, boolean | undefined, boolean>;
   created_at: Timestamp;
 }
 
@@ -381,6 +389,7 @@ export interface ZonesTable {
   draw_seed: number | null;
   draw_constraints: JSONColumnType<readonly DrawConstraint[]> | null;
   created_at: Timestamp;
+  deleted_at: Timestamp | null;
 }
 
 export interface GroupsTable {
@@ -391,6 +400,7 @@ export interface GroupsTable {
   draw_seed: number | null;
   draw_constraints: JSONColumnType<readonly DrawConstraint[]> | null;
   created_at: Timestamp;
+  deleted_at: Timestamp | null;
 }
 
 export interface PromotionPlansTable {
@@ -398,6 +408,8 @@ export interface PromotionPlansTable {
   zone_id: string;
   next_stage_id: string;
   plan: JSONColumnType<Record<string, unknown>>;
+  /** Confirmed qualifier position → entrant id, keyed by the position as a string. */
+  confirmed_resolution: JSONColumnType<Record<string, string>> | null;
   created_at: Timestamp;
 }
 
@@ -419,6 +431,14 @@ export interface FixturesTable {
   round: number;
   /** A placement game's part in its zone (`place-3`, `places-5-8`); null for the generated graph's own matches. */
   role: string | null;
+  node_key: string | null;
+  bracket: string | null;
+  position: number | null;
+  branch: string | null;
+  label: string | null;
+  home_source: JSONColumnType<Record<string, unknown>> | null;
+  away_source: JSONColumnType<Record<string, unknown>> | null;
+  contingency: string | null;
   home_entrant_id: string | null;
   away_entrant_id: string | null;
   created_at: Timestamp;
@@ -433,6 +453,7 @@ export interface VenuesTable {
   address: string | null;
   details: JSONColumnType<Record<string, string>> | null;
   created_at: Timestamp;
+  deleted_at: Timestamp | null;
 }
 
 export interface OfficialsTable {
@@ -477,6 +498,24 @@ export interface MatchScheduleAssignmentsTable {
   created_at: Timestamp;
 }
 
+/** One change to a published placement: where the match was, why it moved, and who moved it. */
+export interface MatchScheduleHistoryTable {
+  history_id: string;
+  match_id: string;
+  prior_slot_id: string;
+  /** Epoch milliseconds. Read back as a string by pg's bigint mapping. */
+  prior_starts_at: string | number;
+  prior_venue_id: string;
+  prior_official_ids: JSONColumnType<readonly string[]>;
+  /** Null when the change withdrew the match from its slot. */
+  resulting_slot_id: string | null;
+  /** A preset reason's code; null for a typed reason. */
+  reason_code: string | null;
+  reason: string;
+  actor: string;
+  changed_at: ColumnType<Date, Date | string | undefined, never>;
+}
+
 export interface MatchScheduleOfficialsTable {
   match_id: string;
   official_id: string;
@@ -488,6 +527,8 @@ export interface MatchesTable {
   number: number;
   status: string;
   result: JSONColumnType<Record<string, unknown>> | null;
+  /** Absolute http(s) link to the broadcast. Presentation only: no rule reads it. Added by 0049. */
+  stream_url: string | null;
   created_at: Timestamp;
 }
 
@@ -565,6 +606,8 @@ export interface MatchCommandIdempotencyTable {
   operation: string;
   request_fingerprint: string;
   response: JSONColumnType<Record<string, unknown>>;
+  /** True while the key is claimed but its response is not yet stored (see 0047). */
+  response_pending: ColumnType<boolean, boolean | undefined, boolean>;
   created_at: Timestamp;
 }
 
@@ -944,6 +987,7 @@ export interface Database {
   schedule_slots: ScheduleSlotsTable;
   match_schedule_assignments: MatchScheduleAssignmentsTable;
   match_schedule_officials: MatchScheduleOfficialsTable;
+  match_schedule_history: MatchScheduleHistoryTable;
   seasons: SeasonsTable;
   stages: StagesTable;
   zones: ZonesTable;

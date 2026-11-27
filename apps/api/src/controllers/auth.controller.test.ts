@@ -1,7 +1,8 @@
 import { importJWK, jwtVerify } from 'jose';
 import type { Kysely } from 'kysely';
 import type { Database } from '@copalibre/persistence';
-import { assertPatScopesAllowed, getLocalKeys, issueLocalJwt } from './auth.controller.js';
+import { assertPatScopesAllowed, issueLocalJwt } from './auth.controller.js';
+import { getLocalKeys } from '../auth/local-signing-keys.js';
 import { SUPER_ADMIN_SCOPE } from '../auth/access-requirement.js';
 
 describe('assertPatScopesAllowed', () => {

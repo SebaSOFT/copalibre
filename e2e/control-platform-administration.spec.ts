@@ -1,5 +1,7 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectCompleteHeadingOutline } from './support/heading-outline.js';
+import { expectNoVisibleIdentifiers } from './support/visible-identifiers.js';
 
 function scopedToken(scopes: string): string {
   return `header.${Buffer.from(JSON.stringify({ scp: scopes })).toString('base64url')}.signature`;
@@ -25,10 +27,10 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
         if (url === tokenEndpoint) {
           return Response.json({ access_token: accessToken, expires_in: 3600 });
         }
-        if (url === '/installation/super-admins' && method === 'GET') {
+        if (url === '/api/installation/super-admins' && method === 'GET') {
           return Response.json(superAdmins);
         }
-        if (url === '/installation/super-admins' && method === 'POST') {
+        if (url === '/api/installation/super-admins' && method === 'POST') {
           const body = JSON.parse(String(init?.body));
           const created = {
             assignmentId: '01800000-0000-7000-8000-000000000009',
@@ -38,7 +40,7 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
           superAdmins = [...superAdmins, created];
           return Response.json(created, { status: 201 });
         }
-        if (url.startsWith('/installation/super-admins/') && method === 'DELETE') {
+        if (url.startsWith('/api/installation/super-admins/') && method === 'DELETE') {
           const assignmentId = url.split('/').at(-1);
           superAdmins = superAdmins.filter((row) => row.assignmentId !== assignmentId);
           return Response.json(
@@ -46,7 +48,7 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             { status: 409 },
           );
         }
-        if (url === '/organizations/liga-sur/roles' && method === 'GET') {
+        if (url === '/api/organizations/liga-sur/roles' && method === 'GET') {
           return Response.json([
             {
               assignmentId: '01800000-0000-7000-8000-000000000010',
@@ -57,12 +59,12 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             },
           ]);
         }
-        if (url === '/organizations/liga-sur/roles/grantable' && method === 'GET') {
+        if (url === '/api/organizations/liga-sur/roles/grantable' && method === 'GET') {
           return Response.json({
             roles: ['super-admin', 'admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
           });
         }
-        if (url === '/organizations?mine=true') {
+        if (url === '/api/organizations?mine=true') {
           return Response.json([
             {
               organizationId: '01800000-0000-7000-8000-000000000002',
@@ -72,14 +74,14 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             },
           ]);
         }
-        if (url === '/organizations' && method === 'POST') {
+        if (url === '/api/organizations' && method === 'POST') {
           const body = JSON.parse(String(init?.body));
           return Response.json(
             { organizationId: '01800000-0000-7000-8000-000000000003', ...body },
             { status: 201 },
           );
         }
-        if (url === '/organizations/copa-norte/invitations' && method === 'POST') {
+        if (url === '/api/organizations/copa-norte/invitations' && method === 'POST') {
           return Response.json(
             {
               invitationId: '01800000-0000-7000-8000-000000000004',
@@ -88,7 +90,7 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             { status: 201 },
           );
         }
-        if (url === '/admin/modules?outdated=true') {
+        if (url === '/api/admin/modules?outdated=true') {
           return Response.json([
             {
               alias: 'football',
@@ -98,7 +100,7 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             },
           ]);
         }
-        if (url === '/admin/modules/verify' && method === 'POST') {
+        if (url === '/api/admin/modules/verify' && method === 'POST') {
           return Response.json(
             modules.map((module_) => ({
               alias: module_.alias,
@@ -108,7 +110,7 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             })),
           );
         }
-        if (url === '/admin/modules' && method === 'POST') {
+        if (url === '/api/admin/modules' && method === 'POST') {
           const body = JSON.parse(String(init?.body));
           modules = [
             ...modules,
@@ -131,12 +133,12 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             { status: 201 },
           );
         }
-        if (url.startsWith('/admin/modules/') && method === 'DELETE') {
+        if (url.startsWith('/api/admin/modules/') && method === 'DELETE') {
           const alias = decodeURIComponent(url.split('/').at(-1) ?? '');
           modules = modules.filter((module_) => module_.alias !== alias);
           return Response.json({ alias, removedCount: 1 });
         }
-        if (url === '/admin/modules/football/document' && method === 'GET') {
+        if (url === '/api/admin/modules/football/document' && method === 'GET') {
           return Response.json({
             descriptorId: '01800000-0000-7000-8000-000000000001',
             alias: 'football',
@@ -169,7 +171,7 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             },
           });
         }
-        if (url === '/admin/diagnostics/summary' && method === 'GET') {
+        if (url === '/api/admin/diagnostics/summary' && method === 'GET') {
           return Response.json({
             status: 'degraded',
             version: '1.1.0',
@@ -219,14 +221,14 @@ async function mockPlatformApi(page: Page, scopes: string): Promise<void> {
             },
           });
         }
-        if (url === '/admin/diagnostics/outbox/retry' && method === 'POST') {
+        if (url === '/api/admin/diagnostics/outbox/retry' && method === 'POST') {
           const body = JSON.parse(String(init?.body));
           return Response.json({
             retried: body.eventIds ?? ['01800000-0000-7000-8000-000000000099'],
             skipped: [],
           });
         }
-        if (url === '/admin/modules') return Response.json(modules);
+        if (url === '/api/admin/modules') return Response.json(modules);
         return Response.json([]);
       };
     },
@@ -243,6 +245,7 @@ test('super-admin creates an organization and manages modules', async ({ page })
 
   await expect(page.getByRole('heading', { name: 'Administración de plataforma' })).toBeVisible();
   await expect(page.getByText('football')).toBeVisible();
+  await expectCompleteHeadingOutline(page, 'platform administration');
   await page.getByLabel('Alias', { exact: true }).fill('copa-norte');
   await page.getByLabel('Nombre').fill('Copa Norte');
   await page.getByRole('button', { name: 'Crear organización' }).click();
@@ -288,12 +291,15 @@ test('super-admin manages installation super-admins and drills into an organizat
 
   await expect(page.getByRole('heading', { name: 'Administración de usuarios' })).toBeVisible();
   await expect(page.getByText('Todavía no hay super-admins de la instalación.')).toBeVisible();
+  await expectCompleteHeadingOutline(page, 'platform administration users');
 
   await page.getByLabel('ID de principal').fill('01800000-0000-7000-8000-000000000009');
   await page.getByRole('button', { name: 'Otorgar super-admin' }).click();
-  await expect(page.getByText('01800000-0000-7000-8000-000000000009')).toBeVisible();
+  await expect(page.getByText('Super-admin 1', { exact: false })).toBeVisible();
+  await expect(page.getByText('Activo', { exact: false }).first()).toBeVisible();
+  await expectNoVisibleIdentifiers(page);
 
-  await page.getByRole('button', { name: 'Eliminar' }).first().click();
+  await page.getByRole('button', { name: 'Eliminar super-admin 1' }).click();
   await expect(
     page.getByText('The installation must always keep at least one active super-admin'),
   ).toBeVisible();
@@ -318,6 +324,7 @@ test("super-admin views an installed discipline's plain-language summary", async
   await expect(page.getByText('Eventos')).toBeVisible();
   await expect(page.getByText('Points per win')).toBeVisible();
   await expect(page.getByText('Cambia el resultado')).toBeVisible();
+  await expectCompleteHeadingOutline(page, 'discipline document');
 });
 
 test('ordinary organization admin cannot reach an installed discipline document', async ({
@@ -382,6 +389,7 @@ test('super-admin inspects platform diagnostics, views telemetry cards, and retr
   await expect(page.getByRole('heading', { name: 'Bandeja outbox transaccional' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Transmisiones en tiempo real' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Eventos outbox fallidos' })).toBeVisible();
+  await expectCompleteHeadingOutline(page, 'platform diagnostics');
 
   await expect(page.getByText('match.scored')).toBeVisible();
   await expect(page.getByText('HTTP 503 Service Unavailable')).toBeVisible();

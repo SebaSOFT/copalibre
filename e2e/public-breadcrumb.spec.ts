@@ -3,7 +3,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT = 'apertura-2026';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const MATCH_PATH = `/es/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/2/matches/3`;
 
 const matchReport = {
@@ -85,7 +85,7 @@ test.describe('public breadcrumb', () => {
     await page.goto(MATCH_PATH);
 
     const trail = page.getByRole('navigation', { name: 'Ruta de navegación' });
-    await expect(trail.getByRole('link')).toHaveCount(4);
+    await expect(trail.getByRole('link')).toHaveCount(3);
     await expect(trail.getByRole('link', { name: 'Liga Mendocina' })).toHaveAttribute(
       'href',
       `/es/${ORGANIZATION}`,
@@ -94,10 +94,7 @@ test.describe('public breadcrumb', () => {
       'href',
       `/es/${ORGANIZATION}/tournaments/${TOURNAMENT}`,
     );
-    await expect(trail.getByRole('link', { name: 'Partidos' })).toHaveAttribute(
-      'href',
-      `/es/${ORGANIZATION}/tournaments/${TOURNAMENT}/matches?stageNumber=2`,
-    );
+    await expect(trail.getByRole('link', { name: 'Partidos' })).toHaveCount(0);
     await expect(trail.getByRole('link', { name: 'Fase 2' })).toHaveAttribute(
       'href',
       `/es/${ORGANIZATION}/tournaments/${TOURNAMENT}/stages/2`,
@@ -106,7 +103,39 @@ test.describe('public breadcrumb', () => {
 
     // The English position tag is gone; the state tag stays, in the page language.
     await expect(page.getByText('Stage 2 · Round 1 · Match 3')).toHaveCount(0);
-    await expect(page.locator('.cl-match-hero__meta')).toContainText('FINALIZADO');
+    await expect(page.locator('.cl-match-hero__meta')).toContainText('Finalizado');
+  });
+
+  test('the trail reads organization, tournament, stage and match in that order', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(MATCH_PATH);
+
+    const items = page.locator('nav[aria-label="Ruta de navegación"] ol > li:visible');
+    const labels = (await items.allTextContents()).map((text) => text.replace(/›/g, '').trim());
+    expect(labels).toEqual(['Liga Mendocina', 'Apertura 2026', 'Fase 2', 'Ronda 1 · Partido 3']);
+    expect(labels).not.toContain('Partidos');
+  });
+
+  test('at 1440 px no wrapped line starts with a separator', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(MATCH_PATH);
+
+    const items = page.locator('nav[aria-label="Ruta de navegación"] ol > li:visible');
+    const count = await items.count();
+    for (let index = 0; index < count - 1; index += 1) {
+      const item = items.nth(index);
+      const separator = item.locator('.cl-crumb__sep');
+      await expect(separator).toHaveCount(1);
+      const itemBox = await item.boundingBox();
+      const separatorBox = await separator.boundingBox();
+      // The separator sits on the line of the crumb it follows, never on a line of its own.
+      expect(Math.abs((separatorBox?.y ?? 0) - (itemBox?.y ?? 0))).toBeLessThan(
+        itemBox?.height ?? 0,
+      );
+    }
+    await expect(items.last().locator('.cl-crumb__sep')).toHaveCount(0);
   });
 
   test('following the trail reaches the tournament page', async ({ page }) => {
@@ -132,12 +161,11 @@ test.describe('public breadcrumb', () => {
     const trail = page.getByRole('navigation', { name: 'Ruta de navegación' });
     await expect(trail.getByRole('link', { name: 'Liga Mendocina' })).toBeVisible();
     await expect(trail.getByRole('link', { name: 'Apertura 2026' })).toBeHidden();
-    await expect(trail.getByRole('link', { name: 'Partidos' })).toBeHidden();
     await expect(trail.getByRole('link', { name: 'Fase 2' })).toBeVisible();
     await expect(trail.locator('[aria-current="page"]')).toBeVisible();
     await expect(trail.getByRole('link', { name: 'Mostrar los niveles ocultos' })).toHaveAttribute(
       'href',
-      `/es/${ORGANIZATION}/tournaments/${TOURNAMENT}/matches?stageNumber=2`,
+      `/es/${ORGANIZATION}/tournaments/${TOURNAMENT}`,
     );
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

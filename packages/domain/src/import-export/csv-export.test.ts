@@ -1,7 +1,7 @@
 import { escapeCsvFormulaCell, stringifyCsv } from './csv-export.js';
 
 describe('escapeCsvFormulaCell', () => {
-  it.each(['=cmd|"/c calc"!A1', '+1+1', '-1+1', '@SUM(A1:A9)'])(
+  it.each(['=cmd|"/c calc"!A1', '+1+1', '-1+1', '@SUM(A1:A9)', '\t=1+1', '\r=1+1'])(
     'prefixes a value starting with a formula-lead character: %s',
     (value) => {
       expect(escapeCsvFormulaCell(value)).toBe(`'${value}`);

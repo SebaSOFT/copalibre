@@ -6,12 +6,25 @@ import { Command, Option } from 'clipanion';
 import type { CliContext } from '../cli-context.js';
 import { runCommand } from '../command-support.js';
 import {
+  discoverJwksUri,
   formatRequiredSecrets,
+  httpsAnswer,
+  httpsQuestion,
   repairInstallationAssets,
+  resolveOidcOptions,
   writeInstallationAssets,
 } from '../init.js';
+import {
+  askEmail,
+  emailAnswersFromFlags,
+  givenEmailAnswers,
+  type EmailAnswers,
+  type MailgunRegion,
+} from '../configurable-settings.js';
+import { LOCAL_DEFAULTS } from '../init.js';
 import { writeKubernetesInstallationAssets } from '../kubernetes-init.js';
 import { formatPreflightReport, runPreflight } from '../preflight.js';
+import { createPrompts } from '../prompts.js';
 
 const DEFAULT_KUBERNETES_NAMESPACE = 'default';
 const DEFAULT_KUBERNETES_RELEASE = 'copalibre';
@@ -42,6 +55,12 @@ export class InitCommand extends Command<CliContext> {
           'email-from': { type: 'string' },
           'email-credential': { type: 'string' },
           'email-domain': { type: 'string' },
+          'email-region': { type: 'string' },
+          'oidc-issuer': { type: 'string' },
+          'oidc-client-id': { type: 'string' },
+          'oidc-jwks-uri': { type: 'string' },
+          https: { type: 'boolean' },
+          'no-https': { type: 'boolean' },
         },
         strict: true,
       });
@@ -79,12 +98,31 @@ export class InitCommand extends Command<CliContext> {
             .filter(Boolean)
         : undefined;
       let proxyChoice = parsed.values.proxy;
-      let emailProvider = parseEmailProvider(parsed.values['email-provider']);
-      let emailFrom = parsed.values['email-from'];
-      let emailCredential = parsed.values['email-credential'];
-      let emailDomain = parsed.values['email-domain'];
+      const emailFlags = {
+        emailProvider: parsed.values['email-provider'],
+        emailCredential: parsed.values['email-credential'],
+        emailFrom: parsed.values['email-from'],
+        emailDomain: parsed.values['email-domain'],
+        emailRegion: parsed.values['email-region'],
+      };
+      // Checked before any question, so a wrong flag fails before the operator answers anything.
+      const givenEmail = givenEmailAnswers(emailFlags);
+      let oidcIssuer = parsed.values['oidc-issuer'];
+      let oidcClientId = parsed.values['oidc-client-id'];
+      let oidcJwksUri = parsed.values['oidc-jwks-uri'];
+      if (parsed.values.https && parsed.values['no-https']) {
+        throw new Error('--https and --no-https cannot be combined');
+      }
+      let https: boolean | undefined = parsed.values.https
+        ? true
+        : parsed.values['no-https']
+          ? false
+          : undefined;
 
       const isInteractive = process.stdin.isTTY && !parsed.values['non-interactive'];
+      let email: EmailAnswers | undefined = isInteractive
+        ? undefined
+        : emailAnswersFromFlags(emailFlags, {}, { requireAll: false });
       const hasExistingInstallation = [
         'docker-compose.yml',
         '.env',
@@ -145,6 +183,29 @@ export class InitCommand extends Command<CliContext> {
             const enteredApiUrl = await rl.question(`Public API URL [${appUrl}]: `);
             apiUrl = enteredApiUrl.trim() || appUrl;
           }
+          if (https === undefined) {
+            // The session cookies carry `Secure` only when browsers reach the
+            // installation over HTTPS; the URL's own scheme is the default.
+            https = httpsAnswer(await rl.question(httpsQuestion(appUrl)), appUrl);
+          }
+          if (!oidcIssuer) {
+            const wantsOidc = await rl.question(
+              'Sign in through an external OIDC identity provider? [y/N] ',
+            );
+            if (/^y(es)?$/i.test(wantsOidc.trim())) {
+              oidcIssuer = (await rl.question('OIDC issuer URL (its exact "iss"): ')).trim();
+            }
+          }
+          if (oidcIssuer && !oidcClientId) {
+            oidcClientId = (await rl.question('OIDC client ID for CopaLibre: ')).trim();
+          }
+          if (oidcIssuer && !oidcJwksUri) {
+            const discovered = await discoverJwksUri(oidcIssuer);
+            const enteredJwks = await rl.question(
+              discovered ? `OIDC JWKS URI [${discovered}]: ` : 'OIDC JWKS URI: ',
+            );
+            oidcJwksUri = enteredJwks.trim() || discovered;
+          }
           if (!starterDisciplines) {
             const enteredDisciplines = await rl.question(
               'Starter sport disciplines to provision [football, tennis]: ',
@@ -165,42 +226,31 @@ export class InitCommand extends Command<CliContext> {
               proxyChoice = 'nginx';
             }
           }
-          if (!emailProvider) {
-            const enteredProvider = await rl.question(
-              'Email delivery provider (smtp / resend / brevo / mailgun) [smtp]: ',
-            );
-            emailProvider = parseEmailProvider(enteredProvider.trim() || 'smtp');
-          }
-          if (!emailFrom) {
-            const enteredFrom = await rl.question(
-              'Email sender address [noreply@copalibre.local]: ',
-            );
-            emailFrom = enteredFrom.trim() || 'noreply@copalibre.local';
-          }
-          const credentialProvider = emailProvider ?? 'smtp';
-          const credentialLabel =
-            credentialProvider === 'smtp'
-              ? 'SMTP connection URL [smtp://host.docker.internal:1025]: '
-              : credentialProvider === 'mailgun'
-                ? 'Mailgun API key: '
-                : `${credentialProvider} API key: `;
-          if (!emailCredential) {
-            const enteredCredential = await rl.question(credentialLabel);
-            emailCredential = enteredCredential.trim() || undefined;
-            if (emailProvider === 'smtp' && !emailCredential) {
-              emailCredential = 'smtp://host.docker.internal:1025';
-            }
-          }
-          if (emailProvider === 'mailgun' && !emailDomain) {
-            const enteredDomain = await rl.question('Mailgun domain: ');
-            emailDomain = enteredDomain.trim() || undefined;
-          }
         } finally {
           rl.close();
         }
+        {
+          // The same questions doctor asks, with the local trial defaults one Enter away; what the
+          // flags already said is not asked.
+          const prompts = createPrompts();
+          try {
+            email = await askEmail(
+              prompts,
+              {
+                COPALIBRE_EMAIL_PROVIDER: LOCAL_DEFAULTS.COPALIBRE_EMAIL_PROVIDER,
+                COPALIBRE_SMTP_URL: LOCAL_DEFAULTS.COPALIBRE_SMTP_URL,
+                COPALIBRE_EMAIL_FROM: LOCAL_DEFAULTS.COPALIBRE_EMAIL_FROM,
+              },
+              { localSenderDefault: true, given: givenEmail },
+            );
+          } finally {
+            prompts.close();
+          }
+        }
       }
 
-      validateEmailOptions(emailProvider, emailCredential, emailDomain);
+      if (oidcIssuer && !oidcJwksUri) oidcJwksUri = await discoverJwksUri(oidcIssuer);
+      const oidc = resolveOidcOptions(oidcIssuer, oidcClientId, oidcJwksUri);
 
       const result = await writeInstallationAssets(process.cwd(), {
         moduleDev: parsed.values['module-dev'],
@@ -208,16 +258,16 @@ export class InitCommand extends Command<CliContext> {
         appUrl,
         apiUrl,
         starterDisciplines,
-        emailProvider,
-        emailFrom,
-        emailCredential,
-        emailDomain,
+        ...(email ? emailOptions(email) : {}),
+        ...(oidc ? { oidc } : {}),
+        ...(https === undefined ? {} : { https }),
       });
 
       const lines = [
         `Wrote ${result.composeFile}`,
         ...(result.moduleDevFile ? [`Wrote ${result.moduleDevFile}`] : []),
         `Wrote ${result.envFile}`,
+        `Session cookies: COPALIBRE_SESSION_COOKIE_SECURE=${result.sessionCookieSecure}`,
         ...(result.proxyConfigFile ? [`Wrote ${result.proxyConfigFile}`] : []),
         `Scaffolded local ./modules directory (disciplines and profiles)`,
         `Installation recorded: CopaLibre ${result.marker.version}, id ${result.marker.installId}`,
@@ -245,33 +295,18 @@ export class InitCommand extends Command<CliContext> {
   }
 }
 
-function parseEmailProvider(
-  value: string | undefined,
-): 'smtp' | 'resend' | 'brevo' | 'mailgun' | undefined {
-  if (value === undefined) return undefined;
-  if (value === 'smtp' || value === 'resend' || value === 'brevo' || value === 'mailgun') {
-    return value;
-  }
-  throw new Error('--email-provider must be one of: smtp, resend, brevo, mailgun');
-}
-
-function validateEmailOptions(
-  provider: 'smtp' | 'resend' | 'brevo' | 'mailgun' | undefined,
-  credential: string | undefined,
-  domain: string | undefined,
-): void {
-  if (!provider) {
-    if (credential || domain)
-      throw new Error('--email-credential and --email-domain require --email-provider');
-    return;
-  }
-  if (provider !== 'smtp' && !credential) {
-    throw new Error(`--email-credential is required for the ${provider} provider`);
-  }
-  if (provider === 'mailgun' && !domain) {
-    throw new Error('--email-domain is required for the mailgun provider');
-  }
-  if (provider !== 'mailgun' && domain) {
-    throw new Error('--email-domain is only valid with --email-provider mailgun');
-  }
+function emailOptions(email: EmailAnswers): {
+  emailProvider: EmailAnswers['provider'];
+  emailFrom: string;
+  emailCredential: string;
+  emailDomain?: string;
+  emailRegion?: MailgunRegion;
+} {
+  return {
+    emailProvider: email.provider,
+    emailFrom: email.from,
+    emailCredential: email.credential,
+    ...(email.mailgunDomain === undefined ? {} : { emailDomain: email.mailgunDomain }),
+    ...(email.mailgunRegion === undefined ? {} : { emailRegion: email.mailgunRegion }),
+  };
 }

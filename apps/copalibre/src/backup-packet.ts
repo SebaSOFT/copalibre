@@ -97,6 +97,13 @@ export async function restoreBackupPacket(
       throw new Error(compatibility.reason);
     }
 
+    // The roles first: a restore into a fresh volume has none, and pg_restore
+    // creates every object as the schema owner.
+    const setupResult = await processes.run('docker', ['compose', 'run', '--rm', 'database-setup']);
+    if (setupResult !== 0) {
+      throw new Error(`database setup failed with exit code ${setupResult}`);
+    }
+
     const restoreResult = await processes.run('docker', [
       'compose',
       'run',

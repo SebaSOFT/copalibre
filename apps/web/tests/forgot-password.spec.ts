@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../../../e2e/csp-guard.js';
 
 async function mockForgotPasswordApi(page: Page): Promise<void> {
   await page.addInitScript(() => {
@@ -6,9 +6,9 @@ async function mockForgotPasswordApi(page: Page): Promise<void> {
       const url = String(input);
       const method = init?.method ?? 'GET';
       if (
-        (url === '/auth/forgot-password' ||
+        (url === '/api/auth/forgot-password' ||
           url === '/api/auth/forgot-password' ||
-          url.endsWith('/auth/forgot-password')) &&
+          url.endsWith('/api/auth/forgot-password')) &&
         method === 'POST'
       ) {
         const body = JSON.parse(String(init?.body));
@@ -26,10 +26,10 @@ test('user can request password reset link', async ({ page }) => {
   await mockForgotPasswordApi(page);
   await page.goto('/control/forgot-password');
 
-  await expect(page.getByLabel('Email')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByLabel('Correo electrónico')).toBeVisible({ timeout: 15_000 });
 
-  await page.getByLabel('Email').fill('test@example.com');
-  await page.getByRole('button', { name: 'Send link' }).click();
+  await page.getByLabel('Correo electrónico').fill('test@example.com');
+  await page.getByRole('button', { name: 'Enviar enlace' }).click();
 
-  await expect(page.getByText('If the email exists, a link has been sent.')).toBeVisible();
+  await expect(page.getByText('Si el correo existe, te enviamos un enlace.')).toBeVisible();
 });

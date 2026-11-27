@@ -23,4 +23,5 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};
+export const LightL3: Story = { globals: { theme: 'light' } };
 export const Empty: Story = { args: { projection: { ...projection, rows: [] } } };

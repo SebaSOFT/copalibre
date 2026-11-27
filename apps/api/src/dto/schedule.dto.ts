@@ -1,6 +1,19 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { SCHEDULE_REASON_PRESETS } from '@copalibre/domain';
+import { FixtureSourcesResponse } from './fixture-side-source.dto.js';
+import {
+  Equals,
+  IsArray,
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
 
 /**
  * Scheduling wire shapes.
@@ -26,14 +39,56 @@ export class TimeWindowDto {
   durationMinutes!: number;
 }
 
+/** Why a published placement changes: a preset code with its rendered text, or typed text. */
+export class ScheduleReasonDto {
+  @ApiPropertyOptional({
+    enum: SCHEDULE_REASON_PRESETS,
+    description: 'The preset this reason was picked from; absent for a typed reason',
+  })
+  @IsOptional()
+  @IsIn(SCHEDULE_REASON_PRESETS)
+  code?: string;
+
+  @ApiProperty({
+    description: 'The reason as the organizer saw it, in their language',
+    example: 'Court 1 without lights',
+  })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(500)
+  text!: string;
+}
+
+/**
+ * One batch entry: a placement (`slotId`, optionally `officialIds`) or a withdrawal
+ * (`withdraw: true`, no `slotId`). Both commit atomically with the rest of the batch.
+ */
 export class ScheduleAssignmentDto {
   @ApiProperty({ format: 'uuid' })
   @IsString()
   matchId!: string;
 
-  @ApiProperty({ format: 'uuid' })
+  @ApiPropertyOptional({ format: 'uuid', description: 'The slot to place the match in' })
+  @IsOptional()
   @IsString()
-  slotId!: string;
+  slotId?: string;
+
+  @ApiPropertyOptional({
+    enum: [true],
+    description: 'Withdraws the match from its slot instead of placing it',
+  })
+  @IsOptional()
+  @Equals(true)
+  withdraw?: true;
+
+  @ApiPropertyOptional({
+    type: ScheduleReasonDto,
+    description: "This match's own exception reason, overriding the batch reason",
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ScheduleReasonDto)
+  reason?: ScheduleReasonDto;
 
   @ApiPropertyOptional({
     type: [String],
@@ -86,7 +141,24 @@ export class ScheduleRequest {
   @Type(() => ScheduleAssignmentDto)
   assignments!: ScheduleAssignmentDto[];
 
-  @ApiPropertyOptional({ type: RestRuleDto })
+  @ApiPropertyOptional({
+    type: ScheduleReasonDto,
+    description:
+      'Applies to every changed or withdrawn published match without its own reason. A batch ' +
+      'changing a published placement is refused unless each such match is covered.',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ScheduleReasonDto)
+  reason?: ScheduleReasonDto;
+
+  @ApiPropertyOptional({
+    type: RestRuleDto,
+    deprecated: true,
+    description:
+      'Deprecated and ignored: the minimum rest is the tournament setting ' +
+      '`minimumRestMinutes`, applied by every preview and publish.',
+  })
   @IsOptional()
   @ValidateNested()
   @Type(() => RestRuleDto)
@@ -95,7 +167,13 @@ export class ScheduleRequest {
 
 export class ScheduleConflictDto {
   @ApiProperty({
-    enum: ['venue-double-booked', 'official-double-booked', 'rest-rule', 'match-finalized'],
+    enum: [
+      'venue-double-booked',
+      'official-double-booked',
+      'rest-rule',
+      'match-finalized',
+      'match-in-progress',
+    ],
     description: 'Which rule the schedule breaks',
   })
   kind!: string;
@@ -128,11 +206,92 @@ export class SchedulePreviewResponse {
     description: 'Already-published matches this batch would move',
   })
   affectedPublishedMatches!: string[];
+
+  @ApiProperty({
+    type: [String],
+    format: 'uuid',
+    description: 'Published matches the batch changes or withdraws: each needs a reason',
+  })
+  reasonRequiredMatches!: string[];
+
+  @ApiProperty({ type: [String], format: 'uuid', description: 'Matches the batch withdraws' })
+  withdrawn!: string[];
+
+  @ApiProperty({
+    type: [String],
+    format: 'uuid',
+    description: 'Slots those withdrawals free',
+  })
+  freedSlotIds!: string[];
+}
+
+export class RecentScheduleReasonsResponse {
+  @ApiProperty({
+    type: [String],
+    description: "The organization's most recent distinct typed reasons, newest first",
+  })
+  reasons!: string[];
+}
+
+export class OrganizationScheduleEntryResponse {
+  @ApiProperty({ format: 'uuid' })
+  matchId!: string;
+
+  @ApiProperty({ enum: ['scheduled', 'in-progress', 'finalized', 'forfeited'] })
+  status!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  tournamentId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  stageId!: string;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  zoneId?: string;
+
+  @ApiProperty({ example: 1 })
+  round!: number;
+
+  @ApiProperty({ type: [String], format: 'uuid', description: 'Known entrants, home first' })
+  entrantIds!: string[];
+
+  @ApiProperty({ format: 'uuid' })
+  slotId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  venueId!: string;
+
+  @ApiProperty({ description: 'Start, epoch milliseconds' })
+  startsAt!: number;
+
+  @ApiProperty({
+    description:
+      "Start plus the discipline's estimated regulation length (the slot length when it has " +
+      'none), epoch milliseconds',
+  })
+  estimatedEnd!: number;
+
+  @ApiProperty()
+  published!: boolean;
+}
+
+export class OrganizationScheduleResponse {
+  @ApiProperty({ type: [OrganizationScheduleEntryResponse] })
+  assignments!: OrganizationScheduleEntryResponse[];
 }
 
 export class ScheduleResponse {
   @ApiProperty({ type: [ScheduleAssignmentResponse] })
   assignments!: ScheduleAssignmentResponse[];
+
+  @ApiProperty({
+    type: [ScheduleConflictDto],
+    description:
+      'Conflicts that exist now among published placements involving this stage, by the same ' +
+      'detection preview and publish use. One that arose after publication, for example when a ' +
+      'side resolved, is reported here and nothing is moved.',
+  })
+  conflicts!: ScheduleConflictDto[];
 }
 
 /**
@@ -162,6 +321,11 @@ export class FixtureMatchResponse {
       'anulled match that held one; the slot itself is free and open to anyone.',
   })
   releasedSlotId?: string;
+
+  @ApiPropertyOptional({
+    description: 'This game’s stream link, when the organizer attached one to it',
+  })
+  streamUrl?: string;
 }
 
 /**
@@ -211,7 +375,7 @@ export class FixtureSeriesResponse {
  * assigns a time and venue to. Distinct from the bracket graph's own node
  * ids, which are never persisted.
  */
-export class FixtureResponse {
+export class FixtureResponse extends FixtureSourcesResponse {
   @ApiProperty({ format: 'uuid' })
   fixtureId!: string;
 
@@ -224,11 +388,34 @@ export class FixtureResponse {
   @ApiProperty({ description: '1-based round within the stage', example: 1 })
   round!: number;
 
+  /**
+   * Deprecated alias for the first game's link, kept so a v1 client needs no change. Each game's own
+   * link is on `matches[].streamUrl`.
+   */
+  @ApiPropertyOptional({
+    deprecated: true,
+    description:
+      'Deprecated: the first game’s stream link. Read `matches[].streamUrl` for every game.',
+  })
+  streamUrl?: string;
+
   @ApiPropertyOptional({ format: 'uuid' })
   homeEntrantId?: string;
 
   @ApiPropertyOptional({ format: 'uuid' })
   awayEntrantId?: string;
+
+  @ApiPropertyOptional({ description: 'Resolved display name of the home entrant' })
+  homeName?: string;
+
+  @ApiPropertyOptional({ description: 'Persisted abbreviation of the home entrant' })
+  homeAbbreviation?: string;
+
+  @ApiPropertyOptional({ description: 'Resolved display name of the away entrant' })
+  awayName?: string;
+
+  @ApiPropertyOptional({ description: 'Persisted abbreviation of the away entrant' })
+  awayAbbreviation?: string;
 
   @ApiProperty({
     type: [FixtureMatchResponse],
@@ -246,4 +433,31 @@ export class StageFixturesResponse {
 
   @ApiProperty({ type: [FixtureResponse] })
   fixtures!: FixtureResponse[];
+}
+
+/** A match's stream link. `null` clears it; a value must be an absolute http(s) URL. */
+export class MatchStreamUrlRequest {
+  @ApiProperty({
+    description: 'Absolute http or https link to the broadcast, or null to clear it',
+    type: String,
+    nullable: true,
+    maxLength: 2048,
+    example: 'https://example.org/live/semifinal-1',
+  })
+  @ValidateIf((_, value: unknown) => value !== null)
+  @IsString()
+  @MaxLength(2048)
+  streamUrl!: string | null;
+}
+
+export class MatchStreamUrlResponse {
+  @ApiProperty({ description: 'The match whose link changed', format: 'uuid' })
+  matchId!: string;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'The stored link, or null when cleared',
+  })
+  streamUrl!: string | null;
 }

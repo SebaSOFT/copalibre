@@ -12,6 +12,7 @@ capabilities:
   - tournament-engine/scripting-hook-surface
   - tournament-engine/placement-stage-format
   - control-web/tournament-plain-language-summary
+  - platform/personal-data-publication
 roles:
   - admin
 ---
@@ -49,3 +50,20 @@ draft → published → started → finished → archived. Each step is an expli
 screen, never something this screen does for you. Once **started**, the discipline and the
 tournament profile freeze at the version they had at that moment — a tournament in progress never
 changes its rules midway through.
+
+## Minimum rest between matches
+
+A created tournament's **Settings** screen sets the minimum rest, in minutes, between the end of one
+of an entrant's matches and the start of their next. It is checked every time this tournament's
+matches are previewed or published in the [schedule builder](/help/control/schedule); a placement
+leaving less rest is a conflict naming both matches. Leave it empty to apply no rest rule. Changing it
+moves no match — it applies from the next preview on.
+
+## Participant public profiles
+
+Open a tournament's **Settings** screen and choose **Privacy**. The organization explicitly marks
+whether the tournament includes minors; a person's birth date does not set this choice. Public youth
+profiles are a separate setting. When minors are included and youth profiles are disabled, public
+surfaces show players by display name only, without photos, nationality or player-page links, and do
+not include them in public career pages. Changing these settings is audited. To hide one person's
+profile, use the [person profile controls](/help/control/person-profile).

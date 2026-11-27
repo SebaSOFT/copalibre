@@ -4,6 +4,7 @@ description: Ejecute CopaLibre desde el código fuente en Windows, macOS o Linux
 capabilities:
   - platform/self-hosted-deployment
   - platform/email-notifications
+  - platform/security-assurance
 roles:
   - super-admin
 ---
@@ -68,9 +69,17 @@ El gateway publica HTTP en `http://localhost:8080` (`COPALIBRE_PORT`). Compose t
 
 Enrute el host de la aplicación a `gateway:80` dentro de la red Compose, o a `127.0.0.1:8080` si el proxy corre en el host. El gateway distribuye API, autenticación, SSE y web en el mismo origen; el contenedor web reenvía las páginas dinámicas a `web-ssr`. Use `deploy/proxy/Caddyfile` o `deploy/proxy/nginx.conf`, configure TLS y URL públicas, y mantenga SSE sin buffer. Los hosts API/events separados son opcionales cuando se usa un solo origen.
 
+CopaLibre no carga fuentes, scripts ni estilos desde otro origen. El contenedor web sirve sus archivos de fuente bajo `/_astro/` como `font/woff2` y `font/woff`. Mantenga esas rutas proxificadas con su `Content-Type`: una regla de archivos estáticos de un panel de hosting para `.woff2`, `.css` o `.js` rompe la aplicación.
+
+Cada página aplica una política de seguridad de contenido: solo corren los scripts del propio build y el navegador se conecta únicamente al origen de la aplicación. Con un proveedor OIDC externo, configúrelo con `copalibre init` (lo pregunta, o use `--oidc-issuer` y `--oidc-client-id`); `init` define `COPALIBRE_CSP_IDENTITY_ORIGIN` para permitir el inicio de sesión. Deje pasar el encabezado `Content-Security-Policy` sin cambios por el proxy; `copalibre doctor --check-proxy` lo verifica.
+
+Iniciar sesión en Control define tres cookies estrictamente necesarias, ninguna en las páginas públicas: la cookie de sesión (`__Host-copalibre_session` con HTTPS, `copalibre_session` con HTTP sin cifrar), que guarda el token de acceso donde ningún script puede leerlo; `copalibre_csrf`; y, al ingresar con correo y contraseña, `copalibre_refresh_token`. No requieren aviso de consentimiento. `copalibre init` pregunta si se usa HTTPS y escribe `COPALIBRE_SESSION_COOKIE_SECURE`; mantenga `/api` y `/events` en el nombre de host de Control y deje pasar `Set-Cookie` sin cambios por el proxy.
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```
+
+La API y los eventos creen en `X-Forwarded-For` solo desde loopback y redes privadas. Un proxy con dirección pública debe figurar en `COPALIBRE_TRUSTED_PROXIES`; un rango que cubre todas las direcciones se rechaza. Una ráfaga de solicitudes rechazadas de una misma cuenta, 20 en diez minutos por defecto (`COPALIBRE_SECURITY_ALERT_THRESHOLD`), genera una alerta de seguridad: una línea de log y un correo a `COPALIBRE_SECURITY_ALERT_EMAIL` cuando está configurado.
 
 ### Opción B — Kubernetes (de K3s a clústeres empresariales)
 
@@ -79,7 +88,7 @@ Helm (`deploy/helm/copalibre/`) despliega las mismas imágenes, contrato de ento
 proceso de migración que la instalación con Compose — instalarlo con los valores por defecto se
 comporta idéntico al chart base solo.
 
-Ejecute Helm desde la raíz del repositorio después de crear y configurar `my-values.yaml` con base de datos, identidad, correo y URL públicas. Use una versión ya publicada para ambas imágenes; 1.2.6 estará disponible después de su publicación.
+Ejecute Helm desde la raíz del repositorio después de crear y configurar `my-values.yaml` con base de datos, identidad, correo y URL públicas. Use una versión ya publicada para ambas imágenes; 2.0.0 estará disponible después de su publicación.
 
 ```bash
 cd ..
@@ -88,8 +97,8 @@ helm show values deploy/helm/copalibre/ > my-values.yaml
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=2.0.0 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=2.0.0
 ```
 
 Agregue estos grupos aditivos de `values.yaml`, desactivados por defecto, según se necesite —
@@ -127,7 +136,7 @@ La actividad de torneos y de la organización se avisa por correo mediante el pr
 
 - Un torneo nuevo y un club nuevo se avisan a los administradores de la organización.
 - Una inscripción nueva, y un club que envía su plantel, se avisan a los administradores de la organización y a los administradores de ese torneo. Quien provocó el evento no recibe el correo.
-- Los correos usan el idioma principal de la organización, llevan su emblema y nombre en el encabezado, y van firmados por Copa Libre con un enlace a [copalibre.app](https://copalibre.app).
+- Los correos usan el idioma principal de la organización, llevan su emblema y nombre en el encabezado, y van firmados por CopaLibre con un enlace a [www.copalibre.app](https://www.copalibre.app).
 - Las importaciones CSV y `copalibre dev demo` no envían correo.
 - El mismo correo nunca se envía dos veces al mismo destinatario. Si un proveedor agota el tiempo antes de confirmar, ese correo no se reintenta, así que puede perderse en lugar de duplicarse.
 - Quien opera puede ver cuántos correos pudieron perderse: el worker cuenta cada intento de envío por resultado (enviado, ya enviado, rechazado, desconocido) en la respuesta de `/jobs/metrics`, bajo `emailDelivery`, y registra cada resultado desconocido sin la dirección del destinatario. Un `unknown` distinto de cero merece una alerta; los contadores vuelven a cero cuando el worker se reinicia.

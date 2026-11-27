@@ -8,12 +8,8 @@ rely on color alone to communicate match or result state.
 ## Requirements
 
 ### Requirement: Live competition dashboard reflects current match state
-The public live dashboard SHALL show the current live match's clock, score, and series progress, and
-SHALL update this view when the public SSE channel emits a relevant event, without a full page
-reload. The dashboard's initial (pre-SSE) state SHALL be fetched server-side, per request, from the
-tournament's real current match state — never from fixture/sample data — so the page is already
-correct before any script runs, and so a live match started after the site was last built is visible
-immediately.
+
+The public live dashboard SHALL show the current live match's running clock with its segment, score, and series progress, and SHALL update this view when the public SSE channel emits a relevant event, without a full page reload. The dashboard's initial state SHALL be fetched server-side, per request, from the tournament's real current match state, never from fixture or sample data.
 
 #### Scenario: Score update arrives over SSE
 - **WHEN** the public SSE channel emits a `match.updated` event with a new score for the currently displayed live match
@@ -26,6 +22,17 @@ immediately.
 #### Scenario: Dashboard reflects a match with no live activity
 - **WHEN** the requested tournament currently has no match in progress
 - **THEN** the dashboard renders without a fabricated live match, rather than showing sample match data
+
+#### Scenario: The page is right before any script runs
+
+- **WHEN** a visitor loads the dashboard while a match is live
+- **THEN** the server-rendered page already shows its current state, including a live match started
+  after the site was last built
+
+#### Scenario: A clock change arrives over SSE
+
+- **WHEN** the public SSE channel emits `match.clock-changed` pausing the displayed match at 09:45
+- **THEN** the dashboard's clock shows 09:45 as stopped without a page reload
 
 ### Requirement: Bracket view never encodes result state by color alone
 Every winner/loser or match-state indicator in the public bracket view SHALL pair its color with a
@@ -179,13 +186,12 @@ presentation resolves through declared tokens" requirement.
   full interactive structure inline
 
 ### Requirement: A spectator can highlight one entrant's path through the bracket
-The public bracket view SHALL let a visitor activate one entrant named in it and, on activation, SHALL
-visually emphasize every match on that entrant's path (every match it occupies a slot in, plus, only
-while it remains alive, its potential winning chain of not-yet-resolved matches) while every other match
-renders at reduced emphasis. The distinction SHALL NOT rely on reduced emphasis alone: a path match
-SHALL carry an explicit marker in addition to full presentation. The bracket SHALL remain fully correct
-and complete with no entrant highlighted and with JavaScript unavailable, identically to its behavior
-before this requirement existed.
+
+The public bracket view SHALL let a visitor activate one entrant named in it and, on activation,
+SHALL visually emphasize every match on that entrant's path while every other match renders at
+reduced emphasis. The distinction SHALL NOT rely on reduced emphasis alone: a path match SHALL carry
+an explicit marker. The bracket SHALL remain fully correct and complete with no entrant highlighted
+and with JavaScript unavailable.
 
 #### Scenario: Activating an entrant highlights its path
 - **WHEN** a visitor activates an entrant named in the bracket
@@ -219,12 +225,18 @@ before this requirement existed.
 - **WHEN** the visitor activates the selected entrant again or presses Escape within the bracket
 - **THEN** all matches return to normal emphasis and activation buttons expose their pressed state
 
+#### Scenario: The path covers played and potential matches
+
+- **WHEN** an entrant is activated
+- **THEN** its path is every match it occupies a slot in, plus, only while it remains alive, its
+  potential winning chain of not-yet-resolved matches
+
 ### Requirement: Public live dashboard renders unified match hero without duplicate cards
-The public live dashboard SHALL render active live matches through a single unified presentation tier, ensuring each in-progress match is displayed once with its state, score, and entrant names. An elapsed clock SHALL appear when the live projection supplies one. It SHALL NOT render a duplicate static card section alongside the interactive real-time island.
+The public live dashboard SHALL render active live matches through a single unified presentation tier, ensuring each in-progress match is displayed once with its state, score, entrant names and a link to its match page. A running clock with its segment SHALL appear when the live projection supplies a clock. It SHALL NOT render a duplicate static card section alongside the interactive real-time island.
 
 #### Scenario: Live matches are active
 - **WHEN** a tournament has one or more matches in state `live`
-- **THEN** each live match is rendered exactly once within the live match grid with live scores, state, entrant names, and elapsed time when supplied
+- **THEN** each live match is rendered exactly once within the live match grid with live scores, state, entrant names, and its running clock and segment when supplied
 
 #### Scenario: Persisted active match reaches the public live view
 - **WHEN** a published tournament has a persisted match with status `in-progress`
@@ -233,6 +245,11 @@ The public live dashboard SHALL render active live matches through a single unif
 #### Scenario: Server render and client island agree
 - **WHEN** the live dashboard renders server-side and hydrates the client island
 - **THEN** the initial server markup is adopted by the real-time client without re-rendering duplicate elements or shifting card positions
+
+#### Scenario: A live card opens its match
+
+- **WHEN** a visitor activates a live match on the dashboard
+- **THEN** the browser opens that match's public report page
 
 ### Requirement: Public live dashboard displays structured empty state when no matches are active
 When the requested tournament has no matches currently in state `live`, the public live dashboard SHALL display an explicit empty-state notification card explaining that no matches are currently in progress, rather than an empty void or an isolated last-known-state alert at the page footer.
@@ -253,3 +270,101 @@ The public live dashboard SHALL compose owned UI library components for standing
 #### Scenario: Upcoming matches display localized kickoff times
 - **WHEN** the live dashboard lists upcoming fixtures
 - **THEN** each scheduled time is formatted using the visitor's resolved locale and localized message descriptors, never a raw ISO 8601 string or hardcoded English separators
+
+### Requirement: Public live surfaces apply a reschedule without a reload
+
+While connected, the live dashboard, the matches view and the match page SHALL apply a received
+reschedule event: the match moves to its new start and venue, gains its rescheduled statement, or leaves
+the schedule when withdrawn or not-required. An event older than the version a surface already holds
+SHALL be ignored.
+
+#### Scenario: An open page moves the match
+
+- **WHEN** a spectator has the matches view open and the organizer publishes a move of a listed match
+- **THEN** the match appears at its new time and venue with its rescheduled statement, without a reload
+
+#### Scenario: A replayed event does not undo a newer one
+
+- **WHEN** a reconnecting page replays an older reschedule event for a match it already shows at a newer
+  placement
+- **THEN** the page keeps the newer placement
+
+### Requirement: An undecided side resolves live on public surfaces
+
+While connected, public live surfaces and TV SHALL replace an undecided side's source label with its
+entrant when the resolution event for that match arrives, without a reload. An event older than the
+version a surface already holds SHALL be ignored.
+
+#### Scenario: A semi-final learns its finalist
+
+- **WHEN** a spectator has the matches view open on a semi-final reading "Winner of Quarter-final 1", and
+  that quarter-final is finalized
+- **THEN** the semi-final's side shows the winning entrant without a reload
+
+#### Scenario: A replay does not revert a resolution
+
+- **WHEN** a reconnecting page replays events up to before the resolution and then the resolution itself
+- **THEN** the side ends showing the entrant, never reverting to its source label afterwards
+
+### Requirement: A live match carries its clock in every public projection
+
+While a match is in progress with an active timed segment, the public live projection and the matches view SHALL include a `clock` with the active segment number, elapsed seconds, whether it is running, and the server time it was read at. An untimed segment SHALL carry no clock.
+
+#### Scenario: The live projection has the clock the matches view has
+
+- **WHEN** a match's first segment has run for 585 seconds
+- **THEN** the live projection and the matches view both return a running clock with `elapsedSeconds: 585` and the same segment number
+
+#### Scenario: A set has no clock
+
+- **WHEN** the active segment's type is declared untimed
+- **THEN** neither projection includes a clock for that match
+
+### Requirement: A live match shows one scoreboard on every public surface
+
+Every public surface that shows a live match (overview, live page, matches list, match page) SHALL show its sides, score, segment label and a clock that advances on its own while running and stops when paused, and SHALL link to the match page. When the realtime connection is lost, each SHALL show the time of its last update.
+
+#### Scenario: The clock runs between events
+
+- **WHEN** a visitor watches a live match's card for 20 seconds with no event recorded
+- **THEN** its clock advances by 20 seconds
+
+#### Scenario: The same match reads the same everywhere
+
+- **WHEN** a live match appears on the overview, the live page, the matches list and its own page
+- **THEN** each shows the same score, segment label and clock
+
+#### Scenario: A lost connection says how old the score is
+
+- **WHEN** the public stream disconnects while a match is live
+- **THEN** its scoreboard shows the time of the last update it received, in the organization's time zone
+
+### Requirement: Public and TV standings previews follow the public table's ranking
+
+Every standings preview on public and TV surfaces SHALL use the same ranking as the public table route for that stage and layout, rank entrants within their group, and carry each row's group and zone. The live page SHALL show its leaders only while that stage has unplayed matches.
+
+#### Scenario: Two leaders level on points
+
+- **WHEN** two entrants have 9 points and the layout sorts by goal difference next
+- **THEN** the live page, the TV standings and the public table list them in the same order
+
+#### Scenario: The group stage is over
+
+- **WHEN** every match of the ranked group stage is final and the cup stage is in play
+- **THEN** the live page shows no leaders section
+
+### Requirement: Live and report projections carry declared match counters
+The public live projection and the public match report SHALL carry, for each effective match counter, its code, labels, scope, effective allowance and warning value, and one value per side, derived from recorded events. They SHALL omit counters when none are effective and SHALL never expose a per-person count.
+
+#### Scenario: A live match reports its counters
+- **WHEN** a live rink-hockey match has four recorded `team-foul` events for the home side
+- **THEN** the live projection's `team-fouls` counter reads 4 for home and 0 for away
+
+#### Scenario: Counters are derived from the recorded events on every projection
+- **WHEN** the live projection or the match report is built
+- **THEN** each counter value is computed from the match's recorded events at that moment, and no
+  running total is stored, so any change to the recorded events reaches the next projection
+
+#### Scenario: A person event is counted for the person's side
+- **WHEN** a `blue-card` is recorded for a player on the away roster
+- **THEN** the `blue-cards` counter rises for the away side

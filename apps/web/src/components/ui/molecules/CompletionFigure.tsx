@@ -10,6 +10,7 @@
  */
 import { Card } from '../atoms/Card.tsx';
 import { Badge } from '../atoms/Badge.tsx';
+import { Icon } from '../atoms/icon.tsx';
 import type { CompletionFigureLabels } from '../../../lib/i18n/public-intl.ts';
 
 export interface SegmentCompletionItem {
@@ -85,11 +86,11 @@ export function CompletionFigure({
       aria-label={labels.heading}
     >
       <div className="cl-completion-figure__header">
-        <h3 className="cl-completion-figure__heading">{labels.heading}</h3>
+        <h2 className="cl-completion-figure__heading">{labels.heading}</h2>
         <Badge
           className={`cl-completion-figure__badge cl-completion-figure__badge--${badgeModifier}`}
         >
-          <span aria-hidden="true">{labels.stateGlyph}</span>
+          <Icon name={labels.stateIcon} size={16} />
           <span>{labels.stateLabel}</span>
         </Badge>
       </div>
@@ -108,7 +109,10 @@ export function CompletionFigure({
         {hasBreakdown && (
           <ol className="cl-completion-figure__stages">
             {stages.map((stage) => (
-              <li key={stage.stageId} className="cl-completion-figure__stage-item">
+              <li
+                key={stage.stageId ?? `stage-${stage.stageNumber}`}
+                className="cl-completion-figure__stage-item"
+              >
                 <Bar
                   name={stage.stageName}
                   resolved={stage.resolvedMatches}
@@ -116,8 +120,14 @@ export function CompletionFigure({
                 />
                 {(stage.segments ?? []).length > 0 && (
                   <ul className="cl-completion-figure__segments">
-                    {(stage.segments ?? []).map((segment) => (
-                      <li key={segment.segmentId} className="cl-completion-figure__segment">
+                    {(stage.segments ?? []).map((segment, segmentIndex) => (
+                      <li
+                        key={
+                          segment.segmentId ??
+                          `${stage.stageNumber}-${segment.zoneName ?? ''}-${segment.name}-${segmentIndex}`
+                        }
+                        className="cl-completion-figure__segment"
+                      >
                         <Bar
                           name={
                             segment.zoneName === undefined

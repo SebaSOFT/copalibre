@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { loadSchedule } from './schedule-loader.js';
+import { filterRowsByDay, loadSchedule } from './schedule-loader.js';
 
 const row = (matchNumber: number, stageNumber: number, zoneName: string, groupName?: string) => ({
   matchId: `m-${matchNumber}`,
@@ -37,7 +37,7 @@ function serve(routes: Readonly<Record<string, unknown>>): void {
   }) as unknown as typeof fetch;
 }
 
-const BASE = '/organizations/liga/tournaments/apertura';
+const BASE = '/api/organizations/liga/tournaments/apertura';
 
 describe('loadSchedule', () => {
   const originalFetch = global.fetch;
@@ -57,7 +57,13 @@ describe('loadSchedule', () => {
       ],
     },
     [`${BASE}/matches-view`]: {
-      matches: [row(1, 1, 'Groups', 'A'), row(2, 1, 'Groups', 'B'), row(3, 2, 'Gold')],
+      matches: [
+        row(1, 1, 'Groups', 'A'),
+        row(2, 1, 'Groups', 'B'),
+        row(3, 2, 'Bronze'),
+        row(4, 2, 'Gold'),
+        row(5, 2, 'Silver'),
+      ],
     },
     [`${BASE}/stages/1/bracket`]: {
       format: 'round-robin',
@@ -65,7 +71,11 @@ describe('loadSchedule', () => {
     },
     [`${BASE}/stages/2/bracket`]: {
       format: 'single-elimination',
-      zones: [{ zoneName: 'Gold', format: 'single-elimination', matches: [bracketMatch] }],
+      zones: [
+        { zoneName: 'Gold', format: 'single-elimination', matches: [bracketMatch] },
+        { zoneName: 'Silver', format: 'single-elimination', matches: [bracketMatch] },
+        { zoneName: 'Bronze', format: 'single-elimination', matches: [bracketMatch] },
+      ],
     },
   };
 
@@ -75,29 +85,60 @@ describe('loadSchedule', () => {
       organization: 'liga',
       tournament: 'apertura',
       state: 'all',
+      undecidedSide: 'A definir',
     });
 
     expect(loaded?.stages.map((stage) => stage.stageName)).toEqual(['Groups', 'Cups']);
     expect(loaded?.stages[0]?.zones[0]?.kind).toBe('rows');
     expect(loaded?.stages[1]?.zones[0]?.kind).toBe('bracket');
-    expect(loaded?.stageRows).toHaveLength(3);
+    expect(loaded?.stageRows).toHaveLength(5);
+    expect(loaded?.zoneOrder).toEqual(['Groups', 'Gold', 'Silver', 'Bronze']);
   });
 
-  it('applies the zone and group to the rows and never fetches a bracket for a state filter', async () => {
+  it('applies the zone and group to rows and keeps promotion-band order available to filters', async () => {
     serve(routes);
     const loaded = await loadSchedule({
       organization: 'liga',
       tournament: 'apertura',
       state: 'final',
+      undecidedSide: 'A definir',
       zone: 'Groups',
       group: 'B',
     });
 
     expect(loaded?.rows.map((one) => one.matchNumber)).toEqual([2]);
-    expect(loaded?.stageRows).toHaveLength(3);
+    expect(loaded?.stageRows).toHaveLength(5);
     expect(loaded?.stages).toHaveLength(1);
+    expect(loaded?.zoneOrder).toEqual(['Groups', 'Gold', 'Silver', 'Bronze']);
     const asked = (global.fetch as jest.Mock).mock.calls.map((call) => String(call[0]));
-    expect(asked.some((url) => url.includes('/bracket'))).toBe(false);
+    expect(asked.some((url) => url.includes('/bracket'))).toBe(true);
+  });
+
+  it('filters states locally while retaining all stage rows for facets and featured matches', async () => {
+    serve({
+      ...routes,
+      [`${BASE}/matches-view`]: {
+        matches: [
+          { ...row(1, 1, 'Groups', 'A'), status: 'live' },
+          { ...row(2, 1, 'Groups', 'B'), status: 'upcoming' },
+          { ...row(3, 1, 'Groups', 'A'), status: 'final' },
+        ],
+      },
+    });
+
+    const loaded = await loadSchedule({
+      organization: 'liga',
+      tournament: 'apertura',
+      state: 'live',
+      undecidedSide: 'A definir',
+    });
+
+    expect(loaded?.stageRows.map((match) => match.state)).toEqual(['live', 'upcoming', 'final']);
+    expect(loaded?.rows.map((match) => match.state)).toEqual(['live']);
+    const matchRequest = (global.fetch as jest.Mock).mock.calls
+      .map((call) => String(call[0]))
+      .find((url) => url.includes('/matches-view'));
+    expect(matchRequest).toContain('state=all');
   });
 
   it('limits the stages to the requested one', async () => {
@@ -106,6 +147,7 @@ describe('loadSchedule', () => {
       organization: 'liga',
       tournament: 'apertura',
       state: 'all',
+      undecidedSide: 'A definir',
       stageNumber: 2,
     });
     expect(loaded?.stages.map((stage) => stage.stageNumber)).toEqual([2]);
@@ -117,6 +159,7 @@ describe('loadSchedule', () => {
       organization: 'liga',
       tournament: 'apertura',
       state: 'all',
+      undecidedSide: 'A definir',
     });
     expect(loaded?.stageOptions).toEqual([
       { stageNumber: 1, stageName: '' },
@@ -127,7 +170,64 @@ describe('loadSchedule', () => {
   it('is undefined when the matches view is not served', async () => {
     serve({});
     expect(
-      await loadSchedule({ organization: 'liga', tournament: 'apertura', state: 'all' }),
+      await loadSchedule({
+        organization: 'liga',
+        tournament: 'apertura',
+        state: 'all',
+        undecidedSide: 'A definir',
+      }),
     ).toBeUndefined();
+  });
+
+  it('filters by calendar day in the organization zone, preserves stageRows, and lists knockout zones as rows', async () => {
+    serve({
+      ...routes,
+      [`${BASE}/matches-view`]: {
+        matches: [
+          { ...row(1, 1, 'Groups', 'A'), scheduledAt: '2026-11-14T01:15:00.000Z' }, // Nov 13 in Buenos Aires
+          { ...row(2, 1, 'Groups', 'B'), scheduledAt: '2026-11-14T15:00:00.000Z' }, // Nov 14 in Buenos Aires
+          { ...row(3, 2, 'Gold'), scheduledAt: '2026-11-14T01:30:00.000Z' }, // Nov 13 in Buenos Aires
+          { ...row(4, 2, 'Silver') }, // undated
+        ],
+      },
+    });
+
+    const loaded = await loadSchedule({
+      organization: 'liga',
+      tournament: 'apertura',
+      state: 'all',
+      day: '2026-11-13',
+      timeZone: 'America/Argentina/Buenos_Aires',
+      undecidedSide: 'A definir',
+    });
+
+    expect(loaded?.stageRows).toHaveLength(4);
+    expect(loaded?.rows.map((one) => one.matchNumber)).toEqual([1, 3]);
+    expect(loaded?.stages[1]?.zones[0]?.kind).toBe('rows');
+
+    const combined = await loadSchedule({
+      organization: 'liga',
+      tournament: 'apertura',
+      state: 'all',
+      zone: 'Groups',
+      day: '2026-11-13',
+      timeZone: 'America/Argentina/Buenos_Aires',
+      undecidedSide: 'A definir',
+    });
+    expect(combined?.rows.map((one) => one.matchNumber)).toEqual([1]);
+  });
+});
+
+describe('filterRowsByDay', () => {
+  it('keeps undated rows when day is undefined and excludes them when day is set', () => {
+    const items = [
+      { id: '1', scheduledAt: '2026-11-14T01:15:00.000Z' },
+      { id: '2', scheduledAt: undefined },
+      { id: '3', scheduledAt: 'invalid' },
+    ];
+    expect(filterRowsByDay(items, undefined, 'UTC')).toHaveLength(3);
+    expect(
+      filterRowsByDay(items, '2026-11-13', 'America/Argentina/Buenos_Aires').map((one) => one.id),
+    ).toEqual(['1']);
   });
 });

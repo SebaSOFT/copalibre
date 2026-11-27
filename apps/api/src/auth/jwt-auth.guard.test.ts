@@ -111,6 +111,68 @@ describe('JwtAuthGuard', () => {
     expect(request.subject).toBeUndefined();
   });
 
+  describe('with the session cookie', () => {
+    const SECURE = { secure: true } as const;
+    const cookie = (value: string) => ({ cookie: `__Host-copalibre_session=${value}` });
+
+    function verifierRecording(subject: AuthenticatedSubject) {
+      const verify = vi.fn<(token: string) => Promise<AuthenticatedSubject>>();
+      verify.mockResolvedValue(subject);
+      return { verifier: { verify } as unknown as TokenVerifier, verify };
+    }
+
+    it('authenticates a GET from the cookie alone and records the source', async () => {
+      const request: RequestWithSubject = { method: 'GET', headers: cookie('cookie-token') };
+      const { context, reflector } = contextFor(request, 'admin-control');
+      const { verifier, verify } = verifierRecording(controlSubject);
+      const guard = new JwtAuthGuard(reflector, verifier, {} as Kysely<Database>, SECURE);
+
+      await expect(guard.canActivate(context)).resolves.toBe(true);
+      expect(verify).toHaveBeenCalledWith('cookie-token');
+      expect(request.subject).toEqual(controlSubject);
+      expect(request.authSource).toBe('cookie');
+      expect(request.accessToken).toBe('cookie-token');
+    });
+
+    it('lets the Authorization header win over the cookie', async () => {
+      const request: RequestWithSubject = {
+        headers: { authorization: 'Bearer header-token', ...cookie('cookie-token') },
+      };
+      const { context, reflector } = contextFor(request, 'admin-control');
+      const { verifier, verify } = verifierRecording(controlSubject);
+      const guard = new JwtAuthGuard(reflector, verifier, {} as Kysely<Database>, SECURE);
+
+      await expect(guard.canActivate(context)).resolves.toBe(true);
+      expect(verify).toHaveBeenCalledWith('header-token');
+      expect(request.authSource).toBe('header');
+    });
+
+    it('treats a personal access token in the cookie as unauthenticated', async () => {
+      const { context, reflector } = contextFor(
+        { headers: cookie('clpat_secret') },
+        'admin-control',
+      );
+      const { verifier, verify } = verifierRecording(controlSubject);
+      const guard = new JwtAuthGuard(reflector, verifier, {} as Kysely<Database>, SECURE);
+
+      await expect(guard.canActivate(context)).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(verify).not.toHaveBeenCalled();
+    });
+
+    it('ignores a token in the query string even with no header or cookie', async () => {
+      const request: RequestWithSubject = { headers: {}, query: { access_token: 'leaked' } };
+      const { context, reflector } = contextFor(request, 'admin-control');
+      const guard = new JwtAuthGuard(
+        reflector,
+        verifierReturning(controlSubject),
+        {} as Kysely<Database>,
+        SECURE,
+      );
+
+      await expect(guard.canActivate(context)).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+  });
+
   it('fails closed on an untagged route: treated as admin-control', async () => {
     const { context, reflector } = contextFor({ headers: {} }, undefined);
     const guard = new JwtAuthGuard(

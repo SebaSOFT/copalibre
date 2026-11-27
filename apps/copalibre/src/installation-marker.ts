@@ -90,6 +90,24 @@ export async function writeInstallationMarker(
   return marker;
 }
 
+/** Records that the installation in `cwd` now runs `version`, keeping its id, mode and creation date. */
+export async function updateInstallationMarkerVersion(
+  cwd: string,
+  version: string,
+  now: Date = new Date(),
+): Promise<boolean> {
+  const existing = await readInstallationMarker(cwd);
+  if (!existing) return false;
+  const path = markerPath(cwd);
+  await writeFile(
+    path,
+    `${JSON.stringify({ ...existing, version, upgradedAt: now.toISOString() }, null, 2)}\n`,
+    { encoding: 'utf8', mode: 0o600 },
+  );
+  await chmod(path, 0o600);
+  return true;
+}
+
 /** `undefined` when the current directory holds no installation marker. */
 export async function readInstallationMarker(cwd: string): Promise<InstallationMarker | undefined> {
   try {

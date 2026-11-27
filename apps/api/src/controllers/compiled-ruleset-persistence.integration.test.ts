@@ -22,6 +22,7 @@ import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
 import { StagesController } from './stages.controller.js';
 import { TournamentsController } from './tournaments.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * End-to-end coverage of the write path this change adds: real
@@ -39,7 +40,7 @@ describe('compiled-ruleset persistence (integration)', () => {
   async function createTournament(alias: string) {
     const response = await (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: '/organizations/liga-prueba-cr/tournaments',
+      url: '/api/organizations/liga-prueba-cr/tournaments',
       headers: { authorization: 'Bearer admin' },
       payload: {
         alias,
@@ -82,6 +83,7 @@ describe('compiled-ruleset persistence (integration)', () => {
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -142,7 +144,7 @@ describe('compiled-ruleset persistence (integration)', () => {
 
     const withSeries = await (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: '/organizations/liga-prueba-cr/tournaments/fase-mixta/stages',
+      url: '/api/organizations/liga-prueba-cr/tournaments/fase-mixta/stages',
       headers: { authorization: 'Bearer admin' },
       payload: {
         // createTournament's own request already declares stage 1.
@@ -157,7 +159,7 @@ describe('compiled-ruleset persistence (integration)', () => {
 
     const withoutSeries = await (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: '/organizations/liga-prueba-cr/tournaments/fase-mixta/stages',
+      url: '/api/organizations/liga-prueba-cr/tournaments/fase-mixta/stages',
       headers: { authorization: 'Bearer admin' },
       payload: { number: 3, name: 'Sin serie', format: 'round-robin' },
     });
@@ -185,7 +187,7 @@ describe('compiled-ruleset persistence (integration)', () => {
 
     const updated = await (app as NestFastifyApplication).inject({
       method: 'PUT',
-      url: '/organizations/liga-prueba-cr/tournaments/fase-scripts/custom-scripts',
+      url: '/api/organizations/liga-prueba-cr/tournaments/fase-scripts/custom-scripts',
       headers: { authorization: 'Bearer admin' },
       payload: { customScripts: [] },
     });
@@ -292,7 +294,7 @@ describe('compiled-ruleset persistence (integration)', () => {
 
     const eventResponse = await (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: `/organizations/liga-prueba-cr/tournaments/fase-scripts/matches/${matchId}/events`,
+      url: `/api/organizations/liga-prueba-cr/tournaments/fase-scripts/matches/${matchId}/events`,
       headers: { authorization: 'Bearer admin', 'idempotency-key': crypto.randomUUID() },
       payload: {
         definitionCode: 'goal',

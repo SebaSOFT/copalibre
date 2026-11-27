@@ -1,8 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 const matchId = '00000000-0000-7000-8000-000000000001';
-const matchPath = `/organizations/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+const matchPath = `/api/organizations/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
 
 interface CapturedRequest {
   readonly url: string;
@@ -167,6 +167,13 @@ function projection(input: { readonly capabilities?: readonly string[] } = {}) {
     rosters: [],
     rosterRoles: [],
     eligibleStaffIds: [],
+    segmentPlan: {
+      regulation: { type: 'half', typeLabel: 'Tiempo', count: 2, maximum: 2 },
+      addable: [
+        { type: 'half', typeLabel: 'Tiempo', withinPlan: true },
+        { type: 'extra-time', typeLabel: 'Tiempo extra', withinPlan: true },
+      ],
+    },
     entrants: [
       { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
       { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },
@@ -187,6 +194,9 @@ async function mockMatchConsole(
     readonly capabilities?: readonly string[];
     readonly loseFirstFinalize?: boolean;
     readonly keepAuthoritativeScore?: boolean;
+    readonly withoutSegments?: boolean;
+    readonly status?: 'scheduled' | 'in-progress';
+    readonly segmentPlan?: Record<string, unknown>;
   } = {},
 ): Promise<void> {
   await page.addInitScript(
@@ -249,18 +259,56 @@ async function mockMatchConsole(
         }
 
         if (url === `${path}/clock` && method === 'POST') {
+          // A correction sets the time and keeps every segment's state.
           state = {
             ...state,
-            segments: state.segments.map((segment) => ({
-              ...segment,
-              state: segment.segmentId === body.segmentId ? 'active' : 'pending',
-              elapsedSeconds:
-                segment.segmentId === body.segmentId ? body.elapsedSeconds : segment.elapsedSeconds,
-            })),
+            segments: state.segments.map((segment) =>
+              segment.segmentId === body.segmentId
+                ? { ...segment, elapsedSeconds: body.elapsedSeconds }
+                : segment,
+            ),
             projectionVersion: state.projectionVersion + 1,
           };
           persist();
           return Response.json(state);
+        }
+
+        const reopenMatch = url.match(new RegExp(`^${path}/segments/([^/]+)/reopen$`));
+        if (reopenMatch && method === 'POST') {
+          state = {
+            ...state,
+            segments: state.segments.map((segment) =>
+              segment.segmentId === reopenMatch[1] ? { ...segment, state: 'pending' } : segment,
+            ),
+            projectionVersion: state.projectionVersion + 1,
+          };
+          persist();
+          return Response.json(state);
+        }
+
+        if (url === `${path}/segments` && method === 'POST') {
+          const number = state.segments.length + 1;
+          state = {
+            ...state,
+            segments: [
+              ...state.segments,
+              {
+                segmentId: `segment-added-${number}`,
+                type: body.type,
+                number,
+                state: 'pending',
+                elapsedSeconds: 0,
+              },
+            ],
+            projectionVersion: state.projectionVersion + 1,
+          };
+          persist();
+          return Response.json({
+            matchId: state.matchId,
+            status: state.status,
+            clockRunning: false,
+            runningTimers: [],
+          });
         }
 
         if (url === `${path}/timers/timer-1/resolve` && method === 'POST') {
@@ -276,13 +324,35 @@ async function mockMatchConsole(
           if (!state.capabilities.includes('match.control-clock')) {
             return new Response('Forbidden', { status: 403 });
           }
+          // A start with no segments creates the regulation, as the server does.
+          if (clockCommand === 'start' && state.segments.length === 0) {
+            state = {
+              ...state,
+              status: 'in-progress',
+              segments: [1, 2].map((number) => ({
+                segmentId: `segment-${number}`,
+                type: 'half',
+                number,
+                state: 'pending',
+                elapsedSeconds: 0,
+              })),
+            };
+          }
+          const target = body.segmentId || 'segment-1';
           const resulting =
             clockCommand === 'end' ? 'completed' : clockCommand === 'pause' ? 'pending' : 'active';
           state = {
             ...state,
             segments: state.segments.map((segment) =>
-              segment.segmentId === body.segmentId
-                ? { ...segment, state: resulting }
+              segment.segmentId === target
+                ? {
+                    ...segment,
+                    state: resulting,
+                    // The clock ran for a minute before it was stopped.
+                    ...(clockCommand === 'pause'
+                      ? { elapsedSeconds: segment.elapsedSeconds + 60 }
+                      : {}),
+                  }
                 : resulting === 'active' && segment.state === 'active'
                   ? { ...segment, state: 'pending' }
                   : segment,
@@ -315,7 +385,12 @@ async function mockMatchConsole(
       };
     },
     {
-      initial: projection({ capabilities: options.capabilities }),
+      initial: {
+        ...projection({ capabilities: options.capabilities }),
+        ...(options.withoutSegments ? { segments: [] } : {}),
+        ...(options.status === undefined ? {} : { status: options.status }),
+        ...(options.segmentPlan === undefined ? {} : { segmentPlan: options.segmentPlan }),
+      },
       path: matchPath,
       loseFirstFinalize: options.loseFirstFinalize ?? false,
       keepAuthoritativeScore: options.keepAuthoritativeScore ?? false,
@@ -401,8 +476,8 @@ test('renders clock and declared timer resolution from refreshed authoritative s
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByLabel('Segundos transcurridos').fill('245');
-  await page.getByRole('button', { name: 'Aplicar reloj' }).click();
+  await page.getByLabel('Tiempo (mm:ss)').fill('04:05');
+  await page.getByRole('button', { name: 'Corregir', exact: true }).click();
   await expect(page.getByLabel('Reloj 04:05')).toBeVisible();
   await page.getByRole('button', { name: 'Resolver' }).click();
   await expect(page.getByText('Sin timers activos.')).toBeVisible();
@@ -431,7 +506,7 @@ test('guards duplicate finalization and retries a lost response with the same ke
   // exactly that silent-requeue path, the same key reused, now getting
   // through.
   // The queued count is on-demand detail behind the connectivity icon now.
-  await page.getByRole('status', { name: /^Estado de sincronización: / }).focus();
+  await page.locator('.cl-connection-status').focus();
   await expect(page.getByText('1 acción en cola')).toBeVisible();
   await page.getByRole('button', { name: 'Confirmar finalización' }).click();
   await expect(page.getByText('FINALIZED')).toBeVisible();
@@ -509,53 +584,210 @@ test('names both sides in the score header before any roster exists', async ({ p
   await expect(scoreboard).not.toContainText('entrant-b');
 });
 
-test('reduces connectivity to one icon whose detail opens on focus', async ({ page }) => {
+test('keeps connection and sync state visible in the console header', async ({ page }) => {
   await mockMatchConsole(page);
   const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  const indicator = page.getByRole('status', { name: 'Estado de sincronización: En línea' });
+  const indicator = page.locator('.cl-connection-status');
   await expect(indicator).toBeVisible();
+  await expect(indicator).toContainText('En línea');
+  await expect(indicator).toContainText('Última sincronización');
   await expect(page.getByText('Sin acciones en cola')).toHaveCount(0);
-
-  await indicator.focus();
-  await expect(page.getByText('Sin acciones en cola')).toBeVisible();
 });
 
-test('starts, pauses and ends a segment’s clock from the console', async ({ page }) => {
-  await mockMatchConsole(page);
+test('starts a match, pauses its half, corrects the time, ends it and reopens it with a reason', async ({
+  page,
+}) => {
+  await mockMatchConsole(page, {
+    withoutSegments: true,
+    status: 'scheduled',
+    segmentPlan: {
+      regulation: { type: 'half', typeLabel: 'Tiempo', count: 2, maximum: 2 },
+      addable: [{ type: 'half', typeLabel: 'Tiempo', withinPlan: true }],
+    },
+  });
   const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  // The fixture's segment is already running, so the clock is advancing and
-  // Iniciar has nothing to start.
-  await expect(page.getByRole('button', { name: 'Iniciar' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Iniciar partido' }).click();
+  await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
+
+  // A stopped half with time on it is paused, and offers Resume.
   await page.getByRole('button', { name: 'Pausar' }).click();
-  await expect(page.getByRole('button', { name: 'Pausar' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Iniciar' })).toBeEnabled();
+  await expect(page.locator('#console-segment')).toContainText('pausado');
+  await expect(page.getByRole('button', { name: 'Reanudar' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Iniciar' }).click();
-  await expect(page.getByRole('button', { name: 'Pausar' })).toBeEnabled();
+  // Correcting the time keeps the half paused.
+  await page.locator('input#console-clock-time').fill('20:50');
+  await page.getByRole('button', { name: 'Corregir', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Reanudar' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pausar' })).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Terminar período' }).click();
-  // An ended period accepts no further clock command.
-  for (const name of ['Iniciar', 'Pausar', 'Terminar período']) {
-    await expect(page.getByRole('button', { name })).toBeDisabled();
-  }
+  await page.getByRole('button', { name: 'Terminar segmento' }).click();
+  await expect(page.getByRole('button', { name: 'Reanudar' })).toHaveCount(0);
 
-  // Polled, not read once: the buttons disable on the optimistic patch, which
-  // lands before the request that caused it does.
+  // The console follows the match to the next unplayed half, so the ended one is picked again.
+  await page.getByLabel('Segmento activo').selectOption('segment-1');
+
+  // Reopening asks for a reason, and returns the half to paused with its time kept.
+  await page.getByRole('button', { name: 'Reabrir segmento…' }).click();
+  const confirm = page.getByRole('button', { name: 'Reabrir segmento', exact: true });
+  await expect(confirm).toBeDisabled();
+  await page.getByLabel('Motivo').fill('Terminado por error');
+  await confirm.click();
+  await expect(page.getByRole('button', { name: 'Reanudar' })).toBeVisible();
+
   await expect
     .poll(async () =>
       (await capturedRequests(page))
-        .filter((request) => request.url.includes('/commands/'))
-        .map((request) => request.url.split('/commands/')[1]),
+        .filter(
+          (request) =>
+            request.url.includes('/commands/') ||
+            request.url.endsWith('/clock') ||
+            request.url.includes('/reopen'),
+        )
+        .map((request) => [request.url.split(matchPath)[1], request.body]),
     )
-    .toEqual(['pause', 'resume', 'end']);
+    .toEqual([
+      ['/commands/start', { segmentId: '' }],
+      ['/commands/pause', { segmentId: 'segment-1' }],
+      ['/clock', { segmentId: 'segment-1', elapsedSeconds: 1250 }],
+      ['/commands/end', { segmentId: 'segment-1' }],
+      ['/segments/segment-1/reopen', { reason: 'Terminado por error' }],
+    ]);
+});
+
+test('shows the running time in the time field, and corrects only a value typed into it', async ({
+  page,
+}) => {
+  await mockMatchConsole(page);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  // The running segment reads 02:00. Correct is unavailable until the operator types a time, and
+  // nothing reaches the server in the meantime.
+  const time = page.locator('input#console-clock-time');
+  const correct = page.getByRole('button', { name: 'Corregir', exact: true });
+  await expect(time).toHaveValue('02:00');
+  await expect(correct).toBeDisabled();
+  await expect
+    .poll(async () =>
+      (await capturedRequests(page)).filter((request) => request.url.endsWith('/clock')),
+    )
+    .toEqual([]);
+
+  await time.fill('20:50');
+  await expect(correct).toBeEnabled();
+  await correct.click();
+
+  await expect
+    .poll(async () =>
+      (await capturedRequests(page))
+        .filter((request) => request.url.endsWith('/clock'))
+        .map((request) => request.body),
+    )
+    .toEqual([{ segmentId: 'segment-1', elapsedSeconds: 1250 }]);
+  await expect(time).toHaveValue('20:50');
+  await expect(correct).toBeDisabled();
+  // The running half keeps running.
+  await expect(page.getByRole('button', { name: 'Pausar' })).toBeVisible();
+});
+
+test('a scheduled match with no segments says what Start creates, and sends Start', async ({
+  page,
+}) => {
+  await mockMatchConsole(page, {
+    withoutSegments: true,
+    status: 'scheduled',
+    segmentPlan: {
+      regulation: { type: 'half', typeLabel: 'Tiempo', count: 2, maximum: 2 },
+      addable: [{ type: 'half', typeLabel: 'Tiempo', withinPlan: true }],
+    },
+  });
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await expect(page.getByText('Iniciar crea 2 segmentos de tipo Tiempo')).toBeVisible();
+  await page.getByRole('button', { name: 'Iniciar partido', exact: true }).click();
+  await expect
+    .poll(() => capturedRequests(page))
+    .toContainEqual(
+      expect.objectContaining({ url: `${matchPath}/commands/start`, method: 'POST' }),
+    );
+});
+
+test('an in-progress match adds extra time from Add segment', async ({ page }) => {
+  await mockMatchConsole(page);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await page.getByRole('combobox', { name: 'Segmento a agregar' }).selectOption('extra-time');
+  await page.getByRole('button', { name: 'Agregar segmento', exact: true }).click();
+
+  await expect
+    .poll(() => capturedRequests(page))
+    .toContainEqual(
+      expect.objectContaining({
+        url: `${matchPath}/segments`,
+        method: 'POST',
+        body: { type: 'extra-time' },
+      }),
+    );
+});
+
+test('an addition beyond the plan is labelled as outside it', async ({ page }) => {
+  await mockMatchConsole(page, {
+    segmentPlan: {
+      regulation: { type: 'half', typeLabel: 'Tiempo', count: 2, maximum: 2 },
+      addable: [{ type: 'half', typeLabel: 'Tiempo', withinPlan: false }],
+    },
+  });
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await expect(page.getByRole('combobox', { name: 'Segmento a agregar' })).toContainText(
+    'Tiempo (fuera del plan)',
+  );
+});
+
+test('a match in progress with no segments offers Add segment beside Finalize', async ({
+  page,
+}) => {
+  await mockMatchConsole(page, { withoutSegments: true });
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await expect(page.getByRole('button', { name: 'Agregar segmento', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Finalizar partido' })).toBeVisible();
+});
+
+test('a match with no segments offers no clock, and says why', async ({ page }) => {
+  await mockMatchConsole(page, { withoutSegments: true });
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  await expect(page.getByText('Este partido todavía no tiene segmentos.')).toBeVisible();
+  for (const name of ['Iniciar partido', 'Iniciar segmento', 'Pausar', 'Reanudar', 'Corregir']) {
+    await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0);
+  }
+  await expect(page.getByRole('button', { name: 'Finalizar partido' })).toBeVisible();
 });
 
 test('does not offer clock commands without the clock-control capability', async ({ page }) => {
@@ -565,9 +797,34 @@ test('does not offer clock commands without the clock-control capability', async
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  for (const name of ['Iniciar', 'Pausar', 'Terminar período']) {
+  // The running segment offers Pause and End; without the capability they are disabled.
+  for (const name of ['Pausar', 'Terminar segmento']) {
     await expect(page.getByRole('button', { name })).toBeDisabled();
   }
+  await expect(page.getByRole('button', { name: 'Iniciar segmento' })).toHaveCount(0);
+});
+
+test('shows the running segment and one primary action while the match is in progress', async ({
+  page,
+}) => {
+  await mockMatchConsole(page);
+  const target = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+
+  // The segment select names the half in play, not an empty box.
+  await expect(page.locator('#console-segment')).toContainText('en juego');
+  await expect(page.getByRole('button', { name: 'Iniciar segmento' })).toHaveCount(0);
+
+  // One primary action for the state: the clock is running, so it is Pausar.
+  const primary = page.locator('main button.cl-btn--primary:visible');
+  await expect(primary).toHaveCount(1);
+  await expect(primary).toHaveText('Pausar');
+
+  // Nothing recorded yet: the ledger says so instead of drawing an empty bordered list.
+  await expect(page.getByText('No hay eventos para mostrar.')).toBeVisible();
+  await expect(page.locator('ol.cl-platform-update-list')).toHaveCount(0);
 });
 
 test('collapses the ledger to a peek strip that still shows what was just recorded', async ({

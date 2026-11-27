@@ -2,7 +2,7 @@
 /**
  * The public header.
  *
- * One navigation landmark, expanded by default. That ordering is deliberate:
+ * Both navigation landmarks, expanded by default. That ordering is deliberate:
  * the markup a browser with no JavaScript receives already has every link in
  * it, and the script's first act is to *close* the menu and reveal the control
  * that reopens it. Building it the other way round — hidden markup that script
@@ -10,14 +10,27 @@
  * behind a proxy that strips scripts, which is the one place these pages have
  * to keep working.
  *
+ * Closing after first paint would shift the whole page up, so when scripting
+ * runs the compact menu is painted closed from the start: the classic script
+ * that runs before paint marks `<html>` with `data-scripting`, and the design
+ * system's styles hide the panels until this script marks the header
+ * `data-nav-ready`. Without scripting none of that applies.
+ *
  * The operator surface's modal drawer is untouched. A dense task surface wants
  * the page held still behind its menu; a public page wants the page to move.
  */
 import type { IntlShape } from 'react-intl';
+import Container from '../atoms/layout/Container.astro';
 import Logo from '../atoms/Logo.astro';
+import Icon from '../atoms/Icon.astro';
+import Button from '../atoms/Button.astro';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import { getLocaleHomePath } from '../../../lib/locale.ts';
 import { swapLocale } from '../../../lib/locale-routing.ts';
+import type {
+  PublicTournamentNavigation,
+  PublicTournamentSection,
+} from '../../../lib/public-tournament-navigation.js';
 
 export interface LocaleOption {
   readonly locale: string;
@@ -31,8 +44,11 @@ interface Props {
    * a locale the page does not exist in.
    */
   readonly localeOptions?: readonly LocaleOption[];
+  readonly tournamentNavigation?: PublicTournamentNavigation;
+  /** The teams tab opens the club index only when the tournament has clubs; otherwise it keeps its anchor. */
+  readonly tournamentHasClubs?: boolean;
 }
-const { intl, localeOptions = [] } = Astro.props;
+const { intl, localeOptions = [], tournamentNavigation, tournamentHasClubs = false } = Astro.props;
 
 const locale = intl.locale;
 const currentPathname = Astro.url.pathname;
@@ -47,11 +63,64 @@ const links = [
   // The TV display launcher: it has no locale segment, so the language travels as its query.
   { href: `/tv?lang=${locale}`, label: intl.formatMessage(messages.headerNavTv) },
 ];
+const tournamentLinks: readonly {
+  readonly section: PublicTournamentSection;
+  readonly href: string;
+  readonly label: string;
+}[] =
+  tournamentNavigation === undefined
+    ? []
+    : [
+        {
+          section: 'overview',
+          href: tournamentNavigation.destinations.overview,
+          label: intl.formatMessage(messages.headerTournamentOverview),
+        },
+        {
+          section: 'matches',
+          href: tournamentNavigation.destinations.matches,
+          label: intl.formatMessage(messages.headerTournamentMatches),
+        },
+        {
+          section: 'live',
+          href: tournamentNavigation.destinations.live,
+          label: intl.formatMessage(messages.headerTournamentLive),
+        },
+        ...(tournamentNavigation.destinations.standings === undefined
+          ? []
+          : [
+              {
+                section: 'standings' as const,
+                href: tournamentNavigation.destinations.standings,
+                label: intl.formatMessage(messages.headerTournamentStandings),
+              },
+            ]),
+        ...(tournamentNavigation.destinations.brackets === undefined
+          ? []
+          : [
+              {
+                section: 'brackets' as const,
+                href: tournamentNavigation.destinations.brackets,
+                label: intl.formatMessage(messages.headerTournamentBrackets),
+              },
+            ]),
+        {
+          section: 'teams',
+          href: tournamentHasClubs
+            ? tournamentNavigation.tournamentPath + '/clubs'
+            : tournamentNavigation.tournamentPath + '#teams',
+          label: intl.formatMessage(messages.headerTournamentTeams),
+        },
+      ];
 
 const controlLabel = intl.formatMessage(messages.headerControlPanel);
 const navLabel = intl.formatMessage(messages.layoutNavAriaLabel);
+const globalSectionLabel = intl.formatMessage(messages.headerGlobalSection);
+const tournamentSectionLabel = intl.formatMessage(messages.headerTournamentSection);
 const openLabel = intl.formatMessage(messages.headerOpenMenu);
 const closeLabel = intl.formatMessage(messages.headerCloseMenu);
+const controlledNavigationIds =
+  tournamentLinks.length > 0 ? 'cl-public-nav cl-public-tournament-nav' : 'cl-public-nav';
 
 /** Endonyms, so a reader looking for their own language finds it written in it. */
 const languageName = (code: string): string => {
@@ -64,43 +133,62 @@ const languageName = (code: string): string => {
 ---
 
 <header class="cl-public-header">
-  <div class="cl-public-header__row">
-    <Logo href={homeUrl} />
+  <Container class="cl-public-header__row" variant="public">
+    <div class="cl-public-header__brand">
+      <Logo href={homeUrl} />
+    </div>
 
     <nav aria-label={navLabel} class="cl-public-header__nav" id="cl-public-nav">
+      <span aria-hidden="true" class="cl-public-header__global-label">
+        {globalSectionLabel}
+      </span>
       <ul class="cl-public-header__links">
-        {
-          links.map((link) => (
-            <li>
-              <a class="cl-public-header__link cl-focusable" href={link.href}>
-                {link.label}
-              </a>
-            </li>
-          ))
-        }
+        {links.map((link) => (
+          <li>
+            <a class="cl-public-header__link cl-focusable" href={link.href}>
+              {link.label}
+            </a>
+          </li>
+        ))}
+        <li class="cl-public-header__theme" data-public-theme-picker hidden>
+          <details>
+            <summary>
+              <span>{intl.formatMessage(messages.headerTheme)}</span>
+              <span aria-hidden="true">·</span>
+              <span data-theme-current>{intl.formatMessage(messages.headerThemeSystem)}</span>
+              <Icon class="cl-public-header__caret" name="chevron-down" size={16} />
+            </summary>
+            <ul class="cl-public-header__theme-list">
+              <li>
+                <Button aria-pressed="false" data-theme-choice="system" variant="secondary">
+                  {intl.formatMessage(messages.headerThemeSystem)}
+                </Button>
+              </li>
+              <li>
+                <Button aria-pressed="false" data-theme-choice="light" variant="secondary">
+                  {intl.formatMessage(messages.headerThemeLight)}
+                </Button>
+              </li>
+              <li>
+                <Button aria-pressed="false" data-theme-choice="dark" variant="secondary">
+                  {intl.formatMessage(messages.headerThemeDark)}
+                </Button>
+              </li>
+            </ul>
+          </details>
+        </li>
       </ul>
-      {
-        /*
-        No repeated action here. The reference puts one in its drawer because
-        its drawer covers the row; this one displaces the page instead, so the
-        row — and the action in it — stays on screen the whole time. A second
-        link with the same text and destination, visible simultaneously, would
-        be a duplicate rather than a convenience.
-      */
-      }
     </nav>
 
     <div class="cl-public-header__actions">
-      {
-        localeOptions.length > 1 && (
+      {localeOptions.length > 1 && (
+        <div class="cl-public-header__locale-item">
           <details class="cl-public-header__locale">
-            <summary
-              aria-label={intl.formatMessage(messages.headerLanguage)}
-              class="cl-chamfer cl-chamfer--control cl-focusable"
-            >
-              <span aria-hidden="true" class="cl-public-header__translation-mark" />
+            <summary class="cl-chamfer cl-chamfer--control cl-focusable">
+              <Icon name="language" size={16} />
+              <span class="cl-visually-hidden">{intl.formatMessage(messages.headerLanguage)}</span>
               <span>{locale.toUpperCase()}</span>
-              <span aria-hidden="true">⌄</span>
+              <Icon class="cl-public-header__caret" name="chevron-down" size={16} />
             </summary>
             <ul class="cl-public-header__locale-list cl-chamfer cl-chamfer--control">
               {localeOptions.map((option) => (
@@ -118,25 +206,21 @@ const languageName = (code: string): string => {
               ))}
             </ul>
           </details>
-        )
-      }
-
+        </div>
+      )}
       <a
-        class="cl-public-header__cta cl-btn cl-btn--primary cl-chamfer cl-chamfer--control cl-focusable"
+        class="cl-public-header__cta cl-btn cl-btn--secondary cl-chamfer cl-chamfer--control cl-focusable"
         href="/control/"
       >
         {controlLabel}
       </a>
-
-      {
-        /*
+      {/*
         Hidden until the script that gives it meaning has run — see the note at
         the top of this file. `hidden` rather than a class, so a browser that
         never runs the script leaves it out of the tab order too.
-      */
-      }
+      */}
       <button
-        aria-controls="cl-public-nav"
+        aria-controls={controlledNavigationIds}
         aria-expanded="true"
         aria-label={closeLabel}
         class="cl-public-header__toggle cl-focusable"
@@ -146,56 +230,70 @@ const languageName = (code: string): string => {
         hidden
         type="button"
       >
-        <svg
-          aria-hidden="true"
-          class="cl-public-header__toggle-closed"
-          fill="none"
-          height="18"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-width="2"
-          viewBox="0 0 24 24"
-          width="18"
-        >
-          <path d="M4 7h16M4 12h16M4 17h16"></path>
-        </svg>
-        <svg
-          aria-hidden="true"
-          class="cl-public-header__toggle-open"
-          fill="none"
-          height="18"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-width="2"
-          viewBox="0 0 24 24"
-          width="18"
-        >
-          <path d="M6 6l12 12M18 6L6 18"></path>
-        </svg>
+        <Icon name="menu" size={20} class="cl-public-header__toggle-closed" />
+        <Icon name="close" size={20} class="cl-public-header__toggle-open" />
       </button>
     </div>
-  </div>
+  </Container>
+  {tournamentLinks.length > 0 && (
+    <div class="cl-public-header__context-band" id="cl-public-tournament-nav">
+      <Container class="cl-public-header__context-row" variant="public">
+        <nav aria-label={tournamentSectionLabel} class="cl-public-header__tournament-nav">
+          <span aria-hidden="true" class="cl-public-header__context-label">
+            {tournamentSectionLabel}
+          </span>
+          <ul class="cl-public-header__tournament-links">
+            {tournamentLinks.map((link) => (
+              <li>
+                <a
+                  aria-current={link.section === tournamentNavigation?.current ? 'page' : undefined}
+                  class="cl-public-header__link cl-public-header__tournament-link cl-focusable"
+                  href={link.href}
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </Container>
+    </div>
+  )}
 </header>
 
 <script>
+  import {
+    applyThemePreference,
+    isThemePreference,
+    readThemePreference,
+  } from '../../../lib/theme-preference.js';
+
   /*
     Enhancement only. Everything below starts from a page whose navigation is
     already there and already reachable; this closes it, reveals the control
     that reopens it, and keeps the two in step.
   */
-  const MEDIUM = '(min-width: 768px)';
+  const COMPACT = '(max-width: 768px)';
 
   function enhanceHeader(toggle: HTMLButtonElement) {
-    const nav = document.getElementById(toggle.getAttribute('aria-controls') ?? '');
-    if (!nav) return;
+    // Hands the compact menu's state from the pre-paint styles to this script.
+    const markReady = () => toggle.closest('.cl-public-header')?.setAttribute('data-nav-ready', '');
+    const panels = (toggle.getAttribute('aria-controls') ?? '')
+      .split(/\s+/)
+      .map((id) => document.getElementById(id))
+      .filter((panel): panel is HTMLElement => panel !== null);
+    if (panels.length === 0) {
+      markReady();
+      return;
+    }
 
-    const wide = window.matchMedia(MEDIUM);
+    const compact = window.matchMedia(COMPACT);
 
     const setExpanded = (expanded: boolean) => {
       toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
       const label = expanded ? toggle.dataset.closeLabel : toggle.dataset.openLabel;
       if (label) toggle.setAttribute('aria-label', label);
-      nav.hidden = !expanded;
+      for (const panel of panels) panel.hidden = !expanded;
     };
 
     /*
@@ -205,9 +303,8 @@ const languageName = (code: string): string => {
       menu it can no longer open.
     */
     const apply = () => {
-      toggle.hidden = wide.matches;
-      setExpanded(wide.matches ? true : toggle.getAttribute('aria-expanded') === 'true');
-      if (wide.matches) nav.hidden = false;
+      toggle.hidden = !compact.matches;
+      setExpanded(!compact.matches || toggle.getAttribute('aria-expanded') === 'true');
     };
 
     toggle.addEventListener('click', () => {
@@ -217,24 +314,51 @@ const languageName = (code: string): string => {
     // Escape closes it and puts the focus back on the control that opened it,
     // rather than leaving the reader at the top of a page they did not move to.
     document.addEventListener('keydown', (event) => {
-      if (event.key !== 'Escape' || wide.matches) return;
+      if (event.key !== 'Escape' || !compact.matches) return;
       if (toggle.getAttribute('aria-expanded') !== 'true') return;
       setExpanded(false);
       toggle.focus();
     });
 
-    wide.addEventListener('change', apply);
+    compact.addEventListener('change', apply);
+    // The pre-paint styles already show this closed state, so taking over changes nothing on screen.
     setExpanded(false);
     apply();
+    markReady();
   }
 
   for (const toggle of document.querySelectorAll<HTMLButtonElement>('[data-public-nav-toggle]')) {
     enhanceHeader(toggle);
   }
+
+  const themePicker = document.querySelector<HTMLElement>('[data-public-theme-picker]');
+  const themeDetails = themePicker?.querySelector('details');
+  const currentThemeLabel = themePicker?.querySelector<HTMLElement>('[data-theme-current]');
+  const themeChoices = Array.from(
+    themePicker?.querySelectorAll<HTMLButtonElement>('[data-theme-choice]') ?? [],
+  );
+  if (themePicker && themeDetails && currentThemeLabel && themeChoices.length > 0) {
+    const updateThemePicker = () => {
+      const preference = readThemePreference();
+      for (const choice of themeChoices) {
+        const selected = choice.dataset.themeChoice === preference;
+        choice.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        if (selected) currentThemeLabel.textContent = choice.textContent?.trim() ?? '';
+      }
+    };
+
+    themePicker.hidden = false;
+    updateThemePicker();
+    for (const choice of themeChoices) {
+      choice.addEventListener('click', () => {
+        const preference = choice.dataset.themeChoice;
+        if (!isThemePreference(preference)) return;
+        applyThemePreference(preference);
+        updateThemePicker();
+        themeDetails.open = false;
+      });
+    }
+  }
 </script>
 
-<style>
-  .cl-public-header__translation-mark::before {
-    content: '文A';
-  }
-</style>
+<style></style>

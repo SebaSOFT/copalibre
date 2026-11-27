@@ -1,3 +1,4 @@
+import { finalRoundOf } from './side-source.js';
 import type { PublicBracketResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 import type { ResultReason } from '@copalibre/domain';
 import type { BracketMatch, SlotSource } from './bracket.js';
@@ -10,12 +11,18 @@ export interface BracketZone {
   readonly zoneName?: string;
   /** The format this zone plays (its own, else its stage's); decides how it is drawn. */
   readonly format?: string;
+  /** 0-based overall place offset when incoming promotion bands map 1-to-1 contiguously from 1. */
+  readonly overallPlaceOffset?: number;
   readonly matches: readonly BracketMatch[];
 }
 
 function mapBracketZoneMatches(
   matches: PublicBracketResponse['zones'][number]['matches'],
+  undecidedSide: string,
 ): readonly BracketMatch[] {
+  const finalRound = finalRoundOf(matches);
+  const zoneNodeKeys = matches.map((match) => match.nodeKey);
+  const hasPlacementKeys = zoneNodeKeys.some((key) => /^PL\d+-/.test(key ?? ''));
   // Sources are scoped to one zone; positions from another zone can collide.
   const sourcePositions = new Map(matches.map((match) => [match.matchId, match.position]));
   const sourceNumber = (matchId?: string): number | undefined => {
@@ -26,6 +33,9 @@ function mapBracketZoneMatches(
   };
   return matches.map((m) => ({
     matchId: m.matchId,
+    nodeKey: m.nodeKey,
+    sourceFinalRound: finalRound,
+    ...(hasPlacementKeys ? { zoneNodeKeys } : {}),
     matchNumber: m.matchNumber ?? m.position,
     roundNumber: m.round,
     position: m.position,
@@ -36,34 +46,70 @@ function mapBracketZoneMatches(
       : m.status === 'scheduled'
         ? 'upcoming'
         : m.status) as MatchState,
+    ...(m.winnerEntrantId === undefined ? {} : { winnerEntrantId: m.winnerEntrantId }),
     scores: m.slots.map((s) => s.score),
     resultReasons: m.slots.map((s) => s.resultReason as ResultReason | undefined),
-    slots: m.slots.map((s): SlotSource => {
+    slots: m.slots.map((s, index): SlotSource => {
       if (s.kind === 'winner-of' || s.kind === 'loser-of') {
         const matchNumber = sourceNumber(s.matchId);
+        const persisted = index === 0 ? m.homeSource : m.awaySource;
+        // A persisted source names its feeder; a legacy slot borrows the feeder's own position.
+        const source =
+          persisted?.kind === 'winner-of' || persisted?.kind === 'loser-of'
+            ? persisted
+            : s.matchId === undefined
+              ? undefined
+              : matches.find((match) => match.matchId === s.matchId);
         return {
+          ...(source?.nodeKey === undefined ? {} : { nodeKey: source.nodeKey }),
+          ...(source?.round === undefined ? {} : { round: source.round }),
+          ...(source?.position === undefined ? {} : { position: source.position }),
           kind: s.kind,
           matchId: s.matchId,
           ...(matchNumber === undefined ? {} : { matchNumber }),
         };
       }
+      const persisted = index === 0 ? m.homeSource : m.awaySource;
+      if (s.entrantId === undefined && persisted?.kind === 'qualifier') {
+        return {
+          kind: 'qualifier',
+          promotionPlanId: persisted.promotionPlanId,
+          position: persisted.position,
+          ...(persisted.qualifierLabel === undefined
+            ? {}
+            : { qualifierLabel: persisted.qualifierLabel }),
+        };
+      }
       return {
         kind: 'entrant',
         entrantId: s.entrantId,
-        name: s.name ?? 'TBD',
+        name: s.name ?? undecidedSide,
         abbreviation: s.abbreviation,
         clubId: s.clubId,
         emblemObjectId: s.emblemObjectId,
         ...(s.from === undefined
           ? {}
           : { from: { matchId: s.from.matchId, outcome: s.from.outcome } }),
+        ...(persisted?.kind === 'qualifier'
+          ? {
+              qualifierOrigin: {
+                ...(persisted.position === undefined ? {} : { position: persisted.position }),
+                ...(persisted.qualifierLabel === undefined
+                  ? {}
+                  : { qualifierLabel: persisted.qualifierLabel }),
+              },
+            }
+          : {}),
       };
     }),
     ...(m.series === undefined ? {} : { series: m.series as PublicSeriesState }),
   }));
 }
 
-export function mapBracketResponse(response: PublicBracketResponse): {
+export function mapBracketResponse(
+  response: PublicBracketResponse,
+  undecidedSide: string,
+): {
   format?: string;
   zones: readonly BracketZone[];
 } {
@@ -73,7 +119,10 @@ export function mapBracketResponse(response: PublicBracketResponse): {
       zoneId: zone.zoneId,
       zoneName: zone.zoneName,
       format: zone.format,
-      matches: mapBracketZoneMatches(zone.matches),
+      ...(zone.overallPlaceOffset === undefined
+        ? {}
+        : { overallPlaceOffset: zone.overallPlaceOffset }),
+      matches: mapBracketZoneMatches(zone.matches, undecidedSide),
     })),
   };
 }

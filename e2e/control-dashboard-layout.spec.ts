@@ -1,14 +1,21 @@
-import { expect, test, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectNoBrokenWords, expectTablesFitTheirFrame } from './support/table-assertions.js';
+import { expectNoVisibleIdentifiers } from './support/visible-identifiers.js';
 
 /**
- * Organization dashboard layout: summary-tile grid, page gutters, and mobile
- * scrolling.
+ * Organization dashboard layout: summary-tile grid, page gutters, scope rail,
+ * and mobile scrolling.
  */
 
 const ORG_ALIAS = 'liga-mendocina';
 const DESKTOP = { width: 1440, height: 900 } as const;
 const MOBILE = { width: 375, height: 667 } as const;
+const REVIEW_VIEWPORTS = [
+  ['mobile', MOBILE],
+  ['desktop', DESKTOP],
+] as const;
 
 /** Enough tournaments and activity that the mobile page is taller than its viewport. */
 const TOURNAMENT_COUNT = 6;
@@ -22,7 +29,7 @@ async function setupMockApi(page: Page): Promise<void> {
         organizationId: 'org-1',
         alias: `torneo-${index + 1}`,
         name: `Torneo Apertura ${index + 1}`,
-        status: 'in_progress',
+        status: 'started',
       }));
       const auditRecords = Array.from({ length: auditRecordCount }, (_, index) => ({
         auditId: `audit-${index + 1}`,
@@ -43,7 +50,7 @@ async function setupMockApi(page: Page): Promise<void> {
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url === '/organizations?mine=true' && method === 'GET') {
+        if (url === '/api/organizations?mine=true' && method === 'GET') {
           return Response.json([
             {
               organizationId: 'org-1',
@@ -53,15 +60,45 @@ async function setupMockApi(page: Page): Promise<void> {
             },
           ]);
         }
-        if (url === `/organizations/${orgAlias}/tournaments` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/tournaments` && method === 'GET') {
           return Response.json(tournaments);
         }
-        if (url.includes(`/organizations/${orgAlias}/audit-trail`) && method === 'GET') {
+        const tournamentSettingsPrefix = `/api/organizations/${orgAlias}/tournaments/`;
+        if (
+          method === 'GET' &&
+          url.startsWith(tournamentSettingsPrefix) &&
+          url.endsWith('/settings')
+        ) {
+          const alias = url.slice(tournamentSettingsPrefix.length, -'/settings'.length);
+          const tournament = tournaments.find((one) => one.alias === alias);
+          return Response.json({ name: tournament?.name ?? alias });
+        }
+        if (url.includes(`/api/organizations/${orgAlias}/audit-trail`) && method === 'GET') {
           return Response.json({
             records: auditRecords,
             total: auditRecords.length,
             limit: 10,
             offset: 0,
+          });
+        }
+        if (url.startsWith(`/api/organizations/${orgAlias}/schedule?`) && method === 'GET') {
+          // One published match per tournament kicking off right now: today in whatever zone the
+          // page counts days in.
+          const startsAt = Date.now();
+          return Response.json({
+            assignments: tournaments.map((tournament) => ({
+              matchId: `match-${tournament.tournamentId}`,
+              status: 'scheduled',
+              tournamentId: tournament.tournamentId,
+              stageId: 'stage-1',
+              round: 1,
+              entrantIds: [],
+              slotId: `slot-${tournament.tournamentId}`,
+              venueId: 'venue-1',
+              startsAt,
+              estimatedEnd: startsAt + 3_600_000,
+              published: true,
+            })),
           });
         }
         if (url.includes('/exports/') || url.endsWith('/export')) {
@@ -72,7 +109,7 @@ async function setupMockApi(page: Page): Promise<void> {
         if (url.includes('/registrations') || url.includes('/display-tokens')) {
           return Response.json([]);
         }
-        if (url === '/disciplines' && method === 'GET') {
+        if (url === '/api/disciplines' && method === 'GET') {
           return Response.json([
             {
               descriptorId: 'football.default',
@@ -82,7 +119,7 @@ async function setupMockApi(page: Page): Promise<void> {
             },
           ]);
         }
-        if (url === `/organizations/${orgAlias}/tournaments/custom-script-vocabulary`) {
+        if (url === `/api/organizations/${orgAlias}/tournaments/custom-script-vocabulary`) {
           return Response.json({ hooks: [], entries: [] });
         }
         if (url === `/events/control/${orgAlias}`) {
@@ -100,13 +137,18 @@ async function setupMockApi(page: Page): Promise<void> {
   );
 }
 
-async function openDashboard(page: Page): Promise<void> {
+async function openDashboard(page: Page, language: 'es' | 'de' = 'es'): Promise<void> {
+  await page.addInitScript((value) => localStorage.setItem('copalibre.language', value), language);
   await setupMockApi(page);
   const target = `/control/${ORG_ALIAS}`;
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
   await expect(page.getByTestId('activeTournaments')).toBeVisible();
+  await expectNoVisibleIdentifiers(page, [
+    ORG_ALIAS,
+    ...Array.from({ length: TOURNAMENT_COUNT }, (_, index) => `torneo-${index + 1}`),
+  ]);
   // `TYPOGRAPHY` loads Barlow/Barlow Condensed from Google Fonts with
   // `display=swap` (packages/design-tokens/src/primitives.ts): text renders
   // in the fallback stack first, then reflows once the real font swaps in.
@@ -116,14 +158,16 @@ async function openDashboard(page: Page): Promise<void> {
   await page.evaluate(() => document.fonts.ready);
 }
 
-test('4.1: summary tiles sit in a row on desktop, stack on mobile, and keep a page gutter', async ({
+test('summary tiles sit in a row on desktop, stack on mobile, and keep a page gutter @visible-identifier-lint', async ({
   page,
 }) => {
   await page.setViewportSize(DESKTOP);
   await openDashboard(page);
 
   const tiles = page.locator('.cl-stat-tile');
+  // Active tournaments, pending registrations, and the matches kicking off today.
   await expect(tiles).toHaveCount(3);
+  await expect(page.getByTestId('matchesToday')).toHaveText(String(TOURNAMENT_COUNT));
 
   const desktopBoxes = await tiles.evaluateAll((elements) =>
     elements.map((element) => element.getBoundingClientRect()).map(({ x, y }) => ({ x, y })),
@@ -160,9 +204,12 @@ test('4.1: summary tiles sit in a row on desktop, stack on mobile, and keep a pa
   expect(mobileGutter).toBeGreaterThan(0);
 });
 
-test('4.2: the dashboard scrolls to its last section at a mobile viewport', async ({ page }) => {
+test('the dashboard scrolls to its last section at a mobile viewport', async ({ page }) => {
   await page.setViewportSize(MOBILE);
   await openDashboard(page);
+
+  await expect(page.locator('.cl-control__mobile-header')).toBeVisible();
+  await expect(page.locator('.cl-control__nav')).toBeHidden();
 
   const scroll = await page.evaluate(() => {
     const element = document.scrollingElement ?? document.documentElement;
@@ -178,6 +225,124 @@ test('4.2: the dashboard scrolls to its last section at a mobile viewport', asyn
     () => (document.scrollingElement ?? document.documentElement).scrollTop,
   );
   expect(scrolled).toBeGreaterThan(0);
+});
+
+test('the list and TV rail stack below the container width threshold', async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await openDashboard(page);
+
+  const template = page.locator('.cl-list-with-rail-template');
+  const listing = page.locator('.cl-list-with-rail-template__list');
+  const rail = page.locator('.cl-list-with-rail-template__rail');
+  const placeTemplate = (width: number) =>
+    template.evaluate((element, nextWidth) => {
+      (element as HTMLElement).style.width = `${nextWidth}px`;
+    }, width);
+
+  await placeTemplate(1000);
+  const stacked = await Promise.all([
+    listing.evaluate((element) => element.getBoundingClientRect().top),
+    rail.evaluate((element) => element.getBoundingClientRect().top),
+  ]);
+  expect(stacked[1]).toBeGreaterThan(stacked[0]);
+
+  await placeTemplate(1024);
+  const columns = await Promise.all([
+    listing.evaluate((element) => element.getBoundingClientRect()),
+    rail.evaluate((element) => element.getBoundingClientRect()),
+  ]);
+  expect(columns[0].y).toBe(columns[1].y);
+  expect(columns[1].x).toBeGreaterThan(columns[0].x);
+});
+
+for (const language of ['es', 'de'] as const) {
+  for (const [viewportName, viewport] of REVIEW_VIEWPORTS) {
+    test(`dashboard has no horizontal overflow and passes axe in ${language} at ${viewportName}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(viewport);
+      await openDashboard(page, language);
+
+      await expect(page.getByRole('heading', { level: 1 })).toHaveCSS(
+        'text-transform',
+        'uppercase',
+      );
+
+      const scrollWidth = await page.evaluate(() =>
+        Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+      );
+      expect(scrollWidth).toBeLessThanOrEqual(viewport.width);
+
+      const { violations } = await new AxeBuilder({ page }).analyze();
+      expect(
+        violations.map(({ id, impact, nodes }) => ({
+          id,
+          impact,
+          targets: nodes.map(({ target }) => target),
+        })),
+      ).toEqual([]);
+    });
+  }
+
+  test(`dashboard filter search keeps its own row at tablet width in ${language}`, async ({
+    page,
+  }) => {
+    const tablet = { width: 768, height: 900 };
+    await page.setViewportSize(tablet);
+    await openDashboard(page, language);
+
+    const filterBar = page.locator('.cl-filter-bar');
+    const search = page.locator('.cl-filter-bar > .cl-form-field');
+    const filters = page.locator('.cl-filter-bar__filters');
+    const resultCount = page.locator('.cl-filter-bar__result-count');
+    const [barBox, searchBox, filtersBox, countBox] = await Promise.all([
+      filterBar.boundingBox(),
+      search.boundingBox(),
+      filters.boundingBox(),
+      resultCount.boundingBox(),
+    ]);
+
+    expect(barBox).not.toBeNull();
+    expect(searchBox).not.toBeNull();
+    expect(filtersBox).not.toBeNull();
+    expect(countBox).not.toBeNull();
+    if (!barBox || !searchBox || !filtersBox || !countBox) {
+      throw new Error('Dashboard filter controls must have measurable bounds');
+    }
+    expect(searchBox.width).toBeGreaterThanOrEqual(barBox.width * 0.95);
+    expect(filtersBox.y).toBeGreaterThanOrEqual(searchBox.y + searchBox.height);
+    expect(countBox.x).toBeGreaterThanOrEqual(filtersBox.x + filtersBox.width);
+    expect(
+      Math.abs(countBox.y + countBox.height - (filtersBox.y + filtersBox.height)),
+    ).toBeLessThanOrEqual(1);
+
+    const scrollWidth = await page.evaluate(() =>
+      Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+    );
+    expect(scrollWidth).toBeLessThanOrEqual(tablet.width);
+  });
+}
+
+test('the active dashboard filter reads as a cyan well', async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
+  await openDashboard(page);
+
+  const activeFilter = page.locator('.cl-filter-bar__option[aria-pressed="true"]');
+  const primaryAction = page.locator('.cl-control__nav .cl-btn--primary').first();
+  await expect(activeFilter).toHaveCount(1);
+  await expect(activeFilter).toHaveClass(/cl-btn--secondary/);
+  const [filterColors, actionColors] = await Promise.all([
+    activeFilter.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { background: style.backgroundColor, color: style.color };
+    }),
+    primaryAction.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { background: style.backgroundColor, color: style.color };
+    }),
+  ]);
+  expect(filterColors.background).not.toBe(actionColors.background);
+  expect(filterColors.color).not.toBe(actionColors.color);
 });
 
 /**
@@ -230,7 +395,7 @@ test('tournament actions stay within two rows at 375px with public and TV shortc
   });
   expect(rows).toBeLessThanOrEqual(2);
 
-  await expect(footer.getByRole('link', { name: 'Sitio público' })).toHaveAttribute(
+  await expect(footer.getByRole('link', { name: 'Público' })).toHaveAttribute(
     'href',
     '/liga-mendocina/tournaments/torneo-1',
   );
@@ -248,14 +413,22 @@ test('the export menu works from the keyboard and gives focus back to its trigge
 }) => {
   await openDashboard(page);
 
-  const trigger = page.getByRole('button', { name: 'Exportar' }).first();
+  const trigger = page.getByRole('button', { name: 'Más acciones' }).first();
   await trigger.focus();
   await page.keyboard.press('Enter');
 
   const menu = page.getByRole('menu').first();
   await expect(menu).toBeVisible();
 
-  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Home');
+  await page.keyboard.press('Enter');
+
+  const columnsDialog = page.getByRole('dialog');
+  await expect(columnsDialog).toBeVisible();
+  await expect(columnsDialog.getByRole('checkbox').nth(0)).toBeChecked();
+  await expect(columnsDialog.getByRole('checkbox').nth(1)).not.toBeChecked();
+  const download = columnsDialog.getByRole('button').last();
+  await download.focus();
   await page.keyboard.press('Enter');
 
   await expect
@@ -267,8 +440,36 @@ test('the export menu works from the keyboard and gives focus back to its trigge
   await expect(trigger).toBeFocused();
 });
 
-test('a card title opens that tournament’s matches view', async ({ page }) => {
+test('the skip link is the first Tab stop and moves focus past the rail', async ({ page }) => {
+  await page.setViewportSize(DESKTOP);
   await openDashboard(page);
+  const skipLink = page.getByRole('link', { name: 'Saltar al contenido' });
+
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press('Tab');
+  await expect(skipLink).toBeFocused();
+  await expect(skipLink).toBeInViewport();
+
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('main')).toBeFocused();
+  await expect(skipLink).not.toBeInViewport();
+  expect(new URL(page.url()).hash).toBe('');
+
+  await page.keyboard.press('Tab');
+  const nextStopIsInMain = await page.evaluate(
+    () => document.activeElement?.closest('main') !== null,
+  );
+  expect(nextStopIsInMain).toBe(true);
+});
+
+test('the rail follows organization and tournament scope as navigation changes', async ({
+  page,
+}) => {
+  await openDashboard(page);
+
+  const organizationScope = page.locator('.cl-context-rail-header[data-scope="organization"]');
+  await expect(organizationScope).toBeVisible();
+  await expect(organizationScope.getByText('Liga Mendocina')).toBeVisible();
 
   await page.getByRole('link', { name: 'Torneo Apertura 1' }).click();
 
@@ -276,6 +477,9 @@ test('a card title opens that tournament’s matches view', async ({ page }) => 
   expect(new URL(page.url()).pathname).toBe(
     `/control/${ORG_ALIAS}/tournaments/torneo-1/matches-view`,
   );
+  const tournamentScope = page.locator('.cl-context-rail-header[data-scope="tournament"]');
+  await expect(tournamentScope).toBeVisible();
+  await expect(tournamentScope.getByText('Torneo Apertura 1')).toBeVisible();
 });
 
 test('clicking "Crear torneo" from the dashboard arrives at the tournament setup wizard', async ({
@@ -289,3 +493,54 @@ test('clicking "Crear torneo" from the dashboard arrives at the tournament setup
   expect(new URL(page.url()).pathname).toBe(`/control/${ORG_ALIAS}/tournaments/new`);
   await expect(page.getByLabel('Nombre')).toBeVisible();
 });
+
+test('recent activity stacks into labelled cards on a phone in German, with nothing cut off', async ({
+  page,
+}) => {
+  await page.setViewportSize(MOBILE);
+  await openDashboard(page, 'de');
+
+  const feed = page.locator('.cl-activity-feed');
+  await expect(feed.getByRole('table')).toBeVisible();
+  await expectTablesFitTheirFrame(page, 'stacked');
+  await expectNoBrokenWords(page, '.cl-activity-feed');
+
+  // Each event reads as action, actor and time, each beside its label.
+  const firstCard = feed.getByRole('row').nth(1);
+  const labels = await firstCard
+    .getByRole('cell')
+    .evaluateAll((cells) => cells.map((cell) => cell.getAttribute('data-label')));
+  expect(labels).toEqual(['Aktion', 'Wer', 'Wann']);
+
+  const { violations } = await new AxeBuilder({ page })
+    .withRules(['th-has-data-cells', 'scope-attr-valid'])
+    .analyze();
+  expect(violations).toEqual([]);
+});
+
+for (const colorScheme of ['dark', 'light'] as const) {
+  test(`the scope rail meets AA contrast in the ${colorScheme} theme`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme });
+    await openDashboard(page);
+    await expect(page.locator('.cl-context-rail-header__scope')).toBeVisible();
+
+    const { violations } = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
+    expect(violations.map(({ nodes }) => nodes.map(({ target }) => target))).toEqual([]);
+  });
+}
+
+for (const colorScheme of ['dark', 'light'] as const) {
+  test(`the scope rail status meets AA contrast in the ${colorScheme} theme`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme });
+    await openDashboard(page);
+    await page.getByRole('link', { name: 'Torneo Apertura 1' }).first().click();
+    const status = page.locator('.cl-context-rail-header__status');
+    await expect(status).toBeVisible();
+
+    const { violations } = await new AxeBuilder({ page })
+      .include('.cl-context-rail-header')
+      .withRules(['color-contrast'])
+      .analyze();
+    expect(violations.map(({ nodes }) => nodes.map(({ target }) => target))).toEqual([]);
+  });
+}

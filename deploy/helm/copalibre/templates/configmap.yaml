@@ -15,6 +15,10 @@ metadata:
 data:
   {{- range $key, $value := .Values.env }}
   {{- if not (has $key $.Values.secretKeys) }}
+  {{- if eq $key "COPALIBRE_SESSION_COOKIE_SECURE" }}
+  {{ $key }}: {{ include "copalibre.sessionCookieSecure" $ | quote }}
+  {{- else }}
   {{ $key }}: {{ $value | quote }}
+  {{- end }}
   {{- end }}
   {{- end }}

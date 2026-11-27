@@ -10,7 +10,7 @@ self.addEventListener('message', (event: MessageEvent<WorkerRequest>) => {
     proxyToWorker: false,
     publicPath,
     output: { format: 'image/png' },
-    progress: (key, current, total) => {
+    progress: (key: string, current: number, total: number) => {
       self.postMessage({ id, type: 'progress', key, current, total });
     },
   }).then(

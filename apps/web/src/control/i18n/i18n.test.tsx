@@ -2,9 +2,11 @@ import { render, screen } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { StandingsTemplate } from '../components/screens/StandingsTemplate.js';
 import { SeedingBuilderTemplate } from '../components/screens/SeedingBuilderTemplate.js';
+import { LiveConsoleTemplate } from '../components/screens/LiveConsoleTemplate.js';
 import { RolesPermissionsTemplate } from '../components/screens/RolesPermissionsTemplate.js';
+import { tournament } from '../components/screen-story-fixtures.js';
 import { ToastProvider } from '../components/ToastProvider.js';
-import { activeControlLanguage } from './ControlIntl.js';
+import { activeControlLanguage, ControlIntl } from './ControlIntl.js';
 import { messages } from './messages.en.js';
 import { messages as esMessages } from './messages.es.js';
 import { messages as frMessages } from './messages.fr.js';
@@ -75,6 +77,43 @@ describe('message-catalog completeness', () => {
   });
 });
 
+describe('auth catalogue', () => {
+  const authIds = Object.values(messages)
+    .map((descriptor) => descriptor.id)
+    .filter((id): id is string => id?.startsWith('auth.') === true);
+
+  it('covers every auth screen string', () => {
+    expect(authIds).toContain('auth.loginTitle');
+    expect(authIds).toContain('auth.passwordWithMinimum');
+  });
+
+  it.each(Object.keys(NON_ENGLISH_CATALOGS))('%s translates every auth string', (lang) => {
+    for (const id of authIds) {
+      expect(NON_ENGLISH_CATALOGS[lang][id]).toBeTruthy();
+    }
+  });
+});
+
+describe('document language', () => {
+  afterEach(() => {
+    localStorage.clear();
+    document.documentElement.lang = '';
+  });
+
+  it('declares the active interface language', () => {
+    localStorage.setItem('copalibre.language', 'de');
+    render(<ControlIntl>content</ControlIntl>);
+    expect(document.documentElement.lang).toBe('de');
+  });
+
+  it('follows a language change without a reload', () => {
+    const { rerender } = render(<ControlIntl locale="es">content</ControlIntl>);
+    expect(document.documentElement.lang).toBe('es');
+    rerender(<ControlIntl locale="fr">content</ControlIntl>);
+    expect(document.documentElement.lang).toBe('fr');
+  });
+});
+
 describe('activeControlLanguage resolution', () => {
   afterEach(() => localStorage.clear());
 
@@ -109,7 +148,7 @@ describe('Spanish catalog reproduces pre-extraction wording', () => {
     );
 
     expect(screen.getByText('Posiciones')).toBeTruthy();
-    expect(screen.getByText(/Proyección v3/)).toBeTruthy();
+    expect(screen.queryByText(/Proyección v/)).toBeNull();
     expect(screen.getByText('Todavía no hay resultados en esta fase.')).toBeTruthy();
   });
 
@@ -143,7 +182,6 @@ describe('Spanish catalog reproduces pre-extraction wording', () => {
           onChange={async () => undefined}
           onDelete={async () => undefined}
           onInvite={async () => undefined}
-          organizationAlias="liga-mendocina"
           rows={[]}
         />,
       ),
@@ -184,6 +222,40 @@ describe('Non-English catalogs render real translated text, not an English fallb
       expect(screen.getByText(title)).toBeTruthy();
       expect(screen.getByText(emptyState)).toBeTruthy();
       expect(screen.queryByText('Standings')).toBeNull();
+    },
+  );
+});
+
+describe('LiveConsoleTemplate renders localized tournament links', () => {
+  const expectedLinks: Record<string, readonly [string, string]> = {
+    es: ['Ver partidos', 'Informes de partidos'],
+    fr: ['Voir les matchs', 'Rapports de match'],
+    pt: ['Ver partidas', 'Relatórios de partidas'],
+    it: ['Vedi le partite', 'Report delle partite'],
+    de: ['Spiele ansehen', 'Spielberichte'],
+    ru: ['Посмотреть матчи', 'Отчёты о матчах'],
+    zh: ['查看比赛', '比赛报告'],
+  };
+
+  it.each(Object.entries(expectedLinks))(
+    '%s renders both links from its locale catalogue',
+    (lang, [viewMatches, matchReports]) => {
+      render(
+        withLanguage(
+          lang,
+          <LiveConsoleTemplate
+            failed={false}
+            loading={false}
+            onRetry={() => undefined}
+            organizationAlias="liga-mendocina"
+            staleSince={undefined}
+            tournaments={[tournament]}
+          />,
+        ),
+      );
+
+      expect(screen.getByRole('link', { name: viewMatches })).toBeTruthy();
+      expect(screen.getByRole('link', { name: matchReports })).toBeTruthy();
     },
   );
 });

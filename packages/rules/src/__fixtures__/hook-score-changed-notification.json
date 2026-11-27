@@ -70,12 +70,12 @@
           "draws": [
             {
               "element": "element:1",
-              "uuid": "019c1c38-a400-7ade-87dd-e599ba5036f0",
+              "uuid": "019c1c38-a400-753e-87dd-e599ba5036f0",
               "random": 0.9999796558766694
             },
             {
               "element": "element:2",
-              "uuid": "019c1c38-a400-72da-b5ba-164eca481911",
+              "uuid": "019c1c38-a400-753a-b5ba-164eca481911",
               "random": 0.2370510301212332
             }
           ]

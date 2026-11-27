@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -25,7 +25,7 @@ async function mockArchiveApi(page: Page): Promise<void> {
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url === '/organizations/liga-mendocina/tournaments' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/tournaments' && method === 'GET') {
           return Response.json([
             {
               tournamentId: 't-2025',
@@ -59,7 +59,7 @@ async function mockArchiveApi(page: Page): Promise<void> {
   );
 }
 
-test('archives a finished tournament and it disappears from the active dashboard (6.1)', async ({
+test('archives a finished tournament and it disappears from the active dashboard', async ({
   page,
 }) => {
   await mockArchiveApi(page);
@@ -67,10 +67,11 @@ test('archives a finished tournament and it disappears from the active dashboard
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${DASHBOARD_PATH}`);
 
-  await expect(page.getByText('Torneo Apertura 2025')).toBeVisible();
+  const archivedTournament = page.getByRole('link', { name: 'Torneo Apertura 2025' });
+  await expect(archivedTournament).toBeVisible();
   await page.getByRole('button', { name: 'Archivar' }).click();
-  await expect(page.getByText('Torneo Apertura 2025')).toHaveCount(0);
+  await expect(archivedTournament).toHaveCount(0);
 
   // Every other card is unaffected by one archival.
-  await expect(page.getByText('Torneo Apertura 2026')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Torneo Apertura 2026' })).toBeVisible();
 });

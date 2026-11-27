@@ -16,8 +16,7 @@ affecte l'installation entière.
 
 ## Organisations
 
-Une nouvelle organisation se crée ici — son alias, son nom affiché, sa langue principale et son fuseau
-horaire — et son premier administrateur est invité par email dans la même étape. Une organisation créée
+Une nouvelle organisation se crée ici — son alias, son nom affiché, sa langue principale et son fuseau horaire (un nom IANA, comme `America/Argentina/Buenos_Aires` ; un fuseau inconnu est refusé) — et son premier administrateur est invité par email dans la même étape. Une organisation créée
 sans administrateur invité n'a personne pour se connecter et la gérer, c'est pourquoi les deux se font
 ensemble.
 

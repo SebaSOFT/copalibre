@@ -1,0 +1,27 @@
+---
+import { resolvePathLocale } from '../lib/locale.ts';
+import { publicIntl } from '../lib/i18n/public-intl.ts';
+import { messages } from '../lib/i18n/public-messages.en.ts';
+import PublicLayout from '../layouts/PublicLayout.astro';
+import { Card } from '../components/ui/atoms/Card.tsx';
+import Button from '../components/ui/atoms/Button.astro';
+
+const locale = resolvePathLocale(Astro.url.pathname);
+const intl = publicIntl(locale);
+const title = intl.formatMessage(messages.devHelpUnavailableTitle);
+---
+
+<PublicLayout title={title} canonicalPath={Astro.url.pathname} noindex={true} intl={intl}>
+  <div class="cl-home-container">
+    <Card as="section" className="cl-orientation-card">
+      <h1 class="cl-orientation-card__title">{title}</h1>
+      <p class="cl-orientation-card__body">{intl.formatMessage(messages.devHelpUnavailableBody)}</p>
+      <code>{intl.formatMessage(messages.devHelpUnavailableCommand)}</code>
+      <div class="cl-orientation-card__action">
+        <Button href="/" variant="secondary">
+          {intl.formatMessage(messages.notFoundHomeLink)}
+        </Button>
+      </div>
+    </Card>
+  </div>
+</PublicLayout>

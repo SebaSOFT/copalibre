@@ -66,6 +66,34 @@ describe('buildSchedule', () => {
     expect(zone.groups[1]?.rounds).toHaveLength(1);
   });
 
+  it('orders scheduled matches chronologically within each round', () => {
+    const schedule = buildSchedule({
+      stages,
+      rows: [
+        row({
+          matchNumber: 1,
+          round: 1,
+          zoneName: 'Groups',
+          groupName: 'A',
+          scheduledAt: '2026-10-22T00:15:00Z',
+        }),
+        row({
+          matchNumber: 2,
+          round: 1,
+          zoneName: 'Groups',
+          groupName: 'A',
+          scheduledAt: '2026-10-21T12:00:00Z',
+        }),
+        row({ matchNumber: 3, round: 1, zoneName: 'Groups', groupName: 'A' }),
+      ],
+      knockoutAsBracket: false,
+    });
+    const zone = schedule[0]?.zones[0];
+    expect(zone?.kind).toBe('rows');
+    if (zone?.kind !== 'rows') return;
+    expect(zone.groups[0]?.rounds[0]?.matches.map((match) => match.matchNumber)).toEqual([2, 1, 3]);
+  });
+
   it('draws a knockout zone as its bracket and does not list its matches as rows', () => {
     const cups = buildSchedule({ stages, rows, knockoutAsBracket: true })[1];
     expect(cups?.zones.map((zone) => zone.kind)).toEqual(['bracket', 'bracket']);
@@ -132,9 +160,25 @@ describe('defaultOpenStage', () => {
 });
 
 describe('offersViewChoice', () => {
-  it('offers the choice only up to the threshold', () => {
-    expect(offersViewChoice(SCHEDULE_TABLE_THRESHOLD)).toBe(true);
-    expect(offersViewChoice(SCHEDULE_TABLE_THRESHOLD + 1)).toBe(false);
-    expect(offersViewChoice(0)).toBe(false);
+  const groupRow = { stageNumber: 1, zoneName: 'Grupos' };
+  const cupRow = { stageNumber: 2, zoneName: 'Copa Oro' };
+  const isCup = (candidate: { zoneName?: string }) => candidate.zoneName === 'Copa Oro';
+  const rowsOf = (count: number, sample: typeof groupRow) =>
+    Array.from({ length: count }, () => sample);
+
+  it('offers the choice up to the threshold', () => {
+    expect(offersViewChoice(rowsOf(SCHEDULE_TABLE_THRESHOLD, groupRow), () => false)).toBe(true);
+    expect(offersViewChoice(rowsOf(SCHEDULE_TABLE_THRESHOLD + 1, groupRow), () => false)).toBe(
+      false,
+    );
+    expect(offersViewChoice([], () => false)).toBe(false);
+  });
+
+  it('offers nothing for a scope drawn entirely as brackets', () => {
+    expect(offersViewChoice(rowsOf(7, cupRow), isCup)).toBe(false);
+  });
+
+  it('offers the choice for a small group scope', () => {
+    expect(offersViewChoice(rowsOf(6, groupRow), isCup)).toBe(true);
   });
 });

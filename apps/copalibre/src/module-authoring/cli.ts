@@ -1,5 +1,9 @@
 import { parseArgs } from 'node:util';
-import { submitModule, type ModuleKind } from '@copalibre/module-distribution';
+import {
+  runningCopalibreVersion,
+  submitModule,
+  type ModuleKind,
+} from '@copalibre/module-distribution';
 import { systemProcessRunner } from '../process-runner.js';
 import { scaffoldModule } from './scaffold.js';
 import { validateLocalModule } from './validate-local.js';
@@ -8,11 +12,6 @@ const MODULE_KINDS: readonly ModuleKind[] = ['discipline', 'tournament-profile']
 
 function isModuleKind(value: string): value is ModuleKind {
   return (MODULE_KINDS as readonly string[]).includes(value);
-}
-
-/** `apps/*`'s own `role.ts` files read the same variable the same way. */
-function runningCopalibreVersion(environment: NodeJS.ProcessEnv): string {
-  return environment.COPALIBRE_VERSION ?? '0.0.0';
 }
 
 /** `copalibre module scaffold <discipline|tournament-profile> <alias>`. */

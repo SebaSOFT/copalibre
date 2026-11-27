@@ -1,0 +1,99 @@
+import { useEffect, useRef, useState } from 'react';
+import { emblemMonogramStep } from '../../../lib/entrant-emblem.js';
+import { emblemSizes, emblemSrcset } from '../../../lib/public-image-paths.js';
+import { Icon } from '../atoms/icon.js';
+
+/**
+ * Entrant emblem with the stored abbreviation or shield fallback.
+ *
+ * @level Molecule
+ * @composition Icon
+ */
+export function EntrantEmblem({
+  abbreviation,
+  alt,
+  bare = false,
+  className = '',
+  decorative = false,
+  eager = false,
+  size = 48,
+  src,
+  control = false,
+}: {
+  readonly abbreviation?: string;
+  readonly alt: string;
+  readonly bare?: boolean;
+  readonly className?: string;
+  readonly control?: boolean;
+  readonly decorative?: boolean;
+  /** Above the first screen: load at once instead of when scrolled near. */
+  readonly eager?: boolean;
+  readonly size?: number | string;
+  readonly src?: string;
+}): React.JSX.Element {
+  const [failedSrc, setFailedSrc] = useState<string>();
+  const imageRef = useRef<HTMLImageElement>(null);
+  const imageVisible = src !== undefined && failedSrc !== src;
+  const hiddenFromAssistiveTechnology = bare || decorative;
+  const monogramStep = emblemMonogramStep(abbreviation);
+  const sizes = emblemSizes(size);
+  const srcSet = src !== undefined && sizes !== undefined ? emblemSrcset(src) : undefined;
+  const pixels = typeof size === 'number' ? size : undefined;
+
+  useEffect(() => {
+    const image = imageRef.current;
+    if (image?.complete && image.naturalWidth === 0) setFailedSrc(src);
+  }, [src]);
+  const classes = [
+    'cl-image-frame',
+    'cl-entrant-emblem',
+    control && 'cl-image-frame--control',
+    typeof size === 'number' && size <= 32 && 'cl-entrant-emblem--small',
+    typeof size === 'number' && size <= 24 && 'cl-entrant-emblem--micro',
+    bare && 'cl-entrant-emblem--bare',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <span
+      aria-hidden={hiddenFromAssistiveTechnology ? 'true' : undefined}
+      aria-label={hiddenFromAssistiveTechnology ? undefined : alt}
+      className={classes}
+      role={hiddenFromAssistiveTechnology ? undefined : 'img'}
+      style={
+        {
+          '--entrant-emblem-size': typeof size === 'number' ? `${size}px` : size,
+        } as React.CSSProperties
+      }
+    >
+      {imageVisible ? (
+        <img
+          alt=""
+          decoding="async"
+          height={pixels}
+          loading={eager ? 'eager' : 'lazy'}
+          onError={() => setFailedSrc(src)}
+          ref={imageRef}
+          sizes={srcSet ? sizes : undefined}
+          src={src}
+          srcSet={srcSet}
+          width={pixels}
+        />
+      ) : (
+        <span aria-hidden="true" className="cl-entrant-emblem__fallback">
+          {monogramStep && abbreviation !== undefined ? (
+            <span
+              className={`cl-entrant-emblem__monogram cl-entrant-emblem__monogram--${monogramStep}`}
+            >
+              {abbreviation}
+            </span>
+          ) : (
+            <Icon name="club" size={24} />
+          )}
+        </span>
+      )}
+    </span>
+  );
+}

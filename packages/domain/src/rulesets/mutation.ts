@@ -44,6 +44,26 @@ export function evaluateMutation(
   fieldPath: string,
   context: MutationContext,
 ): Result<MutationDecision, MutationBlockedError> {
+  // Match counters are display only: they change no record, result or standing, at any time.
+  if (fieldPath === 'matchCounters' || fieldPath.startsWith('matchCounters.')) {
+    return ok({ allowed: true, mutationClass: 'safe' });
+  }
+  // Placement play changes the engine's structure independently of the discipline's rules.
+  if (fieldPath === 'placementPlay' || /^zones\.[^.]+\.placementPlay$/.test(fieldPath)) {
+    if (context.hasRecordedResults) {
+      return err(
+        new MutationBlockedError(
+          `Field "${fieldPath}" is blocked after results; use the audited correction workflow`,
+          { fieldPath },
+        ),
+      );
+    }
+    return ok({
+      allowed: true,
+      mutationClass: 'requires_rebuild',
+      invalidates: context.generatedFixtures ?? [],
+    });
+  }
   const policy = policies[fieldPath];
   if (!policy) {
     return err(new MutationBlockedError(`No field policy declares "${fieldPath}"`, { fieldPath }));

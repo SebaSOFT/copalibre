@@ -156,7 +156,7 @@ describe('VenueManagementPage', () => {
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Cancha 1');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit venue'));
 
     const nameInput = await screen.findByLabelText('Name');
     fireEvent.change(nameInput, { target: { value: 'Cancha Renombrada' } });
@@ -185,7 +185,7 @@ describe('VenueManagementPage', () => {
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Cancha 1');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit venue'));
     await screen.findByLabelText('Name');
     await act(async () => {
       fireEvent.click(screen.getByText('Save venue'));
@@ -271,7 +271,7 @@ describe('VenueManagementPage', () => {
 
     await screen.findByText('Ana Gómez');
     await screen.findByText('Referee');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit official'));
     await screen.findByLabelText('Name');
     fireEvent.click(screen.getByLabelText('Observer'));
     await act(async () => {
@@ -306,7 +306,7 @@ describe('VenueManagementPage', () => {
     const client = stubClient({ listVenues: () => Promise.reject(new Error('down')) });
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
-    await screen.findByText('Could not load venues and officials.');
+    await screen.findByText('Retry');
   });
 
   it('does nothing when the alias guard trips on venue create', async () => {
@@ -396,7 +396,7 @@ describe('VenueManagementPage', () => {
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Cancha 1');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit venue'));
     await screen.findByLabelText('Name');
 
     fireEvent.change(screen.getByLabelText('Detail name'), { target: { value: 'surface' } });
@@ -430,7 +430,7 @@ describe('VenueManagementPage', () => {
 
     await screen.findByText('Ana Gómez');
     await screen.findByText('Referee');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit official'));
     await screen.findByLabelText('Name');
     await act(async () => {
       fireEvent.click(screen.getByText('Save official'));
@@ -447,7 +447,7 @@ describe('VenueManagementPage', () => {
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
     await screen.findByText('Cancha 1');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit venue'));
     await screen.findByLabelText('Name');
     await act(async () => {
       fireEvent.click(screen.getByText('Save venue'));
@@ -482,7 +482,7 @@ describe('VenueManagementPage', () => {
 
     await screen.findByText('Ana Gómez');
     await screen.findByText('Referee');
-    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Edit official'));
     await screen.findByLabelText('Name');
     await act(async () => {
       fireEvent.click(screen.getByText('Save official'));
@@ -575,8 +575,10 @@ describe('VenueManagementPage', () => {
     });
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
-    const scheduleRegion = await screen.findByRole('region', { name: 'Schedules' });
-    fireEvent.click(within(scheduleRegion).getByText('Edit'));
+    const scheduleRegion = (
+      await screen.findByRole('heading', { level: 2, name: 'Schedules' })
+    ).closest('section') as HTMLElement;
+    fireEvent.click(within(scheduleRegion).getByText('Edit schedule'));
 
     const editCard = await screen.findByRole('region', { name: 'Edit schedule' });
     fireEvent.change(within(editCard).getByLabelText('Schedule name'), {
@@ -603,9 +605,14 @@ describe('VenueManagementPage', () => {
       venueIds: ['venue-1'],
       slots: [],
     };
-    const deleteSchedule = jest.fn<NonNullable<ControlApiClient['deleteSchedule']>>(async () => ({
-      success: true,
-    }));
+    const deleteSchedule = jest.fn<NonNullable<ControlApiClient['deleteSchedule']>>(
+      async (_organizationAlias, _scheduleId, dryRun) => ({
+        dryRun: dryRun ?? false,
+        success: dryRun !== true,
+        slots: 5,
+        matchesUnassigned: 2,
+      }),
+    );
     const client = stubClient({
       listVenues: () => Promise.resolve(oneVenue),
       listSchedules: () => Promise.resolve([existingSchedule]),
@@ -613,11 +620,34 @@ describe('VenueManagementPage', () => {
     });
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
-    const scheduleRegion = await screen.findByRole('region', { name: 'Schedules' });
+    const scheduleRegion = (
+      await screen.findByRole('heading', { level: 2, name: 'Schedules' })
+    ).closest('section') as HTMLElement;
     await act(async () => {
       fireEvent.click(within(scheduleRegion).getByText('Delete schedule'));
     });
-    expect(deleteSchedule).toHaveBeenCalledWith('liga-mendocina', 'sched-1');
+    const dialog = await screen.findByRole('dialog', { name: 'Delete schedule' });
+    expect(
+      within(dialog).getByText(
+        'Deletes 5 slots and unassigns 2 matches. Match results stay unchanged.',
+      ),
+    ).toBeDefined();
+    expect(within(dialog).getByText('5')).toBeDefined();
+    expect(within(dialog).getByText('2')).toBeDefined();
+    const confirm = within(dialog).getByRole('button', { name: 'Delete schedule' });
+    expect((confirm as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(within(dialog).getByLabelText('Type the exact name to confirm'), {
+      target: { value: 'Horario Apertura' },
+    });
+    expect((confirm as HTMLButtonElement).disabled).toBe(false);
+    expect(deleteSchedule).toHaveBeenCalledWith('liga-mendocina', 'sched-1', true);
+    await act(async () => fireEvent.click(confirm));
+    expect(deleteSchedule).toHaveBeenLastCalledWith(
+      'liga-mendocina',
+      'sched-1',
+      false,
+      'Horario Apertura',
+    );
     await screen.findByText('Schedule removed.');
   });
 
@@ -641,7 +671,9 @@ describe('VenueManagementPage', () => {
     });
     render(withIntl(<VenueManagementPage client={client} organizationAlias="liga-mendocina" />));
 
-    const scheduleRegion = await screen.findByRole('region', { name: 'Schedules' });
+    const scheduleRegion = (
+      await screen.findByRole('heading', { level: 2, name: 'Schedules' })
+    ).closest('section') as HTMLElement;
     await act(async () => {
       fireEvent.click(within(scheduleRegion).getByText('Delete schedule'));
     });

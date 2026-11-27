@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
     "outDir": "dist",
     "rootDir": "src"
   },
@@ -14,6 +15,9 @@
     },
     {
       "path": "../../packages/module-distribution/tsconfig.json"
+    },
+    {
+      "path": "../../packages/email-delivery/tsconfig.json"
     },
     {
       "path": "../../packages/object-storage/tsconfig.json"

@@ -2,15 +2,14 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 /**
- * The tournament overview's discipline hero backdrop and its
- * spacing from the progress figure below it. The consolidated match-schedule
+ * The tournament overview's discipline hero backdrop. The consolidated match-schedule
  * filter bar's own zone/group facet behavior is covered alongside the rest
  * of the matches view in `e2e/public-matches-view.spec.ts`.
  */
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const TOURNAMENT = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const PUBLIC_TOURNAMENT_PATH = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const ONE_PIXEL_PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
@@ -108,6 +107,7 @@ for (const viewport of [
   test(`the page has one fixed, faint, blurred discipline image and the hero has none (${viewport.name})`, async ({
     page,
   }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.route(/\/objects\/discipline-background-image\?key=/, (route) =>
       route.fulfill({
@@ -183,15 +183,6 @@ test('the ruleset section falls back to English for a field with no declared lab
   await expect(page.getByText('Round Robin')).toBeVisible();
 });
 
-test('the progress figure keeps a 24px gap from the hero above it', async ({ page }) => {
-  await page.goto(PUBLIC_TOURNAMENT_PATH);
-
-  const marginTop = await page
-    .locator('.cl-completion-figure')
-    .evaluate((el) => getComputedStyle(el).marginTop);
-  expect(marginTop).toBe('24px');
-});
-
 test('switching the zone facet on the matches page narrows the list and updates the URL', async ({
   page,
   context,
@@ -200,15 +191,18 @@ test('switching the zone facet on the matches page narrows the list and updates 
   await context.route('**/*.js', (route) => route.abort());
   await page.goto(`${PUBLIC_TOURNAMENT_PATH}/matches`);
 
-  await expect(page.getByText('Club Andes', { exact: true })).toBeVisible();
-  await expect(page.getByText('River', { exact: true })).toBeVisible();
+  // The desktop layout; a phone's day list beside it carries the same names, hidden.
+  const visible = (name: string) => page.getByText(name, { exact: true }).filter({ visible: true });
+  await expect(visible('Club Andes')).toBeVisible();
+  await expect(visible('River')).toBeVisible();
 
+  await page.locator('.cl-match-schedule-filters > summary').click();
   const zoneNav = page.getByRole('navigation', { name: 'Filter by zone' });
   await expect(zoneNav).toBeVisible();
   await zoneNav.getByRole('link', { name: 'Copa de Plata' }).click();
 
   await expect(page).toHaveURL(/[?&]zone=Copa\+de\+Plata/);
-  await expect(page.getByText('River', { exact: true })).toBeVisible();
+  await expect(visible('River')).toBeVisible();
   await expect(page.getByText('Club Andes', { exact: true })).toHaveCount(0);
 
   // Selecting a zone narrows the group facet to that zone's own groups too.

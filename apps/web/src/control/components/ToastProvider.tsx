@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import { useIntl } from 'react-intl';
+import { Button } from './ui/atoms/button.js';
 import { messages } from '../i18n/messages.en.js';
 import { errorPresentation, type ErrorDetails } from '../lib/error-messages.js';
 
@@ -17,6 +18,8 @@ export interface ToastInput {
   readonly severity: ToastSeverity;
   readonly message: string;
   readonly details?: ErrorDetails;
+  readonly action?: { readonly label: string; readonly onAction: () => void };
+  readonly durationMs?: number;
 }
 
 export interface ToastApi {
@@ -47,6 +50,7 @@ export function ToastProvider({
 }: {
   readonly children: React.ReactNode;
 }): React.JSX.Element {
+  const inheritedToastApi = useContext(ToastContext);
   const intl = useIntl();
   const [toasts, setToasts] = useState<readonly ToastRecord[]>([]);
   const sequence = useRef(0);
@@ -95,7 +99,7 @@ export function ToastProvider({
       ) {
         autoDismissTimers.current.set(
           toast.id,
-          setTimeout(() => dismiss(toast.id), AUTO_DISMISS_MS),
+          setTimeout(() => dismiss(toast.id), toast.durationMs ?? AUTO_DISMISS_MS),
         );
       }
     }
@@ -110,6 +114,8 @@ export function ToastProvider({
   );
 
   const api = useMemo(() => ({ push, pushError, dismiss }), [dismiss, push, pushError]);
+
+  if (inheritedToastApi !== undefined) return <>{children}</>;
 
   return (
     <ToastContext.Provider value={api}>
@@ -137,6 +143,19 @@ export function ToastProvider({
                   {toast.details.errorCode && <code>{toast.details.errorCode}</code>}
                   <span>{toast.details.message}</span>
                 </details>
+              )}
+              {toast.action && (
+                <Button
+                  className="cl-toast__action"
+                  onClick={() => {
+                    toast.action?.onAction();
+                    dismiss(toast.id);
+                  }}
+                  type="button"
+                  variant="secondary"
+                >
+                  {toast.action.label}
+                </Button>
               )}
             </div>
             <button
@@ -209,6 +228,7 @@ const toastStyles = `
     text-transform: uppercase;
   }
   .cl-toast__message { margin: 0; font-size: var(--cl-font-size-sm); }
+  .cl-toast__action { justify-self: start; min-height: var(--cl-touch-target); }
   .cl-toast__details { color: var(--cl-text-secondary); font-size: var(--cl-font-size-xs); }
   .cl-toast__details summary { cursor: pointer; }
   .cl-toast__details code, .cl-toast__details span { display: block; margin-block-start: var(--cl-space-1); }

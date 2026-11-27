@@ -2,17 +2,32 @@ import { access, mkdir } from 'node:fs/promises';
 import { lookup } from 'node:dns/promises';
 import { randomUUID } from 'node:crypto';
 import { dirname } from 'node:path';
-import { authConfigFromEnv } from '@copalibre/auth';
+import {
+  authConfigFromEnv,
+  sessionCookieConfigFromEnv,
+  sessionCookieMismatch,
+  trustedProxiesFromEnv,
+} from '@copalibre/auth';
 import { createObjectStorageAdapter, objectStorageConfigFromEnv } from '@copalibre/object-storage';
 import {
   CompetitionRecordRepository,
   InstalledModuleRepository,
   createDatabase,
+  runtimePrivilegeProblems,
 } from '@copalibre/persistence';
 import { sql } from 'kysely';
 import { createRemoteJWKSet, customFetch, type FetchImplementation } from 'jose';
-import { LOCAL_DEFAULTS } from './init.js';
-import { evaluateDataIntegrity, type DataIntegritySnapshot } from './doctor-data.js';
+import { GENERATED_DATABASE_SECRETS, LOCAL_DEFAULTS } from './init.js';
+import {
+  CONFIGURABLE_SETTINGS,
+  detectEmailProblem,
+  type SettingContext,
+} from './configurable-settings.js';
+import {
+  DATA_INTEGRITY_CHECKS,
+  evaluateDataIntegrity,
+  type DataIntegritySnapshot,
+} from './doctor-data.js';
 import {
   evaluateModuleAssets,
   probeModuleAssets,
@@ -48,6 +63,8 @@ export interface DoctorDependencies {
   readonly retirableModules: (connectionString: string) => Promise<readonly RetirableModule[]>;
   /** Puts, reads back, and deletes a small probe object against the configured profile. */
   readonly objectStorageRoundTrip: (environment: NodeJS.ProcessEnv) => Promise<void>;
+  /** What the `DATABASE_URL` role can do beyond reading and writing rows; empty when nothing. */
+  readonly runtimePrivilegeProblems: (connectionString: string) => Promise<readonly string[]>;
   /** Structural data-integrity snapshot for `evaluateDataIntegrity`. */
   readonly probeDataIntegrity: (connectionString: string) => Promise<DataIntegritySnapshot>;
   /** Every installed module asset, read through the active storage profile. */
@@ -61,18 +78,29 @@ export interface DoctorOptions {
   readonly checkProxy?: boolean;
   readonly proxyUrl?: string;
   readonly smoke?: boolean;
+  /**
+   * `copalibre start` and `restart` run doctor before the application services exist.
+   * A key set served by this installation's own `api` cannot answer yet, so it is not checked.
+   */
+  readonly beforeStart?: boolean;
 }
 
-const EMAIL_PROVIDERS = ['resend', 'brevo', 'mailgun', 'smtp'] as const;
-type EmailProvider = (typeof EMAIL_PROVIDERS)[number];
+/** `start` and `restart` set this on the doctor container; an older doctor image ignores it. */
+export const BEFORE_START_VARIABLE = 'COPALIBRE_DOCTOR_BEFORE_START';
 
+/** The Compose service that serves the built-in key set, as `copalibre init` writes the URI. */
+const STACK_API_HOST = 'api';
+
+/**
+ * Placeholders doctor reports but never rewrites: a running service or the database holds each of
+ * them, so changing `.env` alone would lock that service out. The bootstrap token, which nothing
+ * holds, is in the configurable settings instead.
+ */
 const PLACEHOLDER_SECRETS: Readonly<Record<string, readonly string[]>> = {
   POSTGRES_PASSWORD: [LOCAL_DEFAULTS.POSTGRES_PASSWORD],
-  COPALIBRE_BOOTSTRAP_TOKEN: [
-    LOCAL_DEFAULTS.COPALIBRE_BOOTSTRAP_TOKEN,
-    'copalibre_dev_bootstrap_only',
-  ],
   GARAGE_RPC_SECRET: [LOCAL_DEFAULTS.GARAGE_RPC_SECRET],
+  COPALIBRE_DATABASE_OWNER_PASSWORD: [LOCAL_DEFAULTS.COPALIBRE_DATABASE_OWNER_PASSWORD],
+  COPALIBRE_DATABASE_APP_PASSWORD: [LOCAL_DEFAULTS.COPALIBRE_DATABASE_APP_PASSWORD],
 };
 
 export async function runDoctor(
@@ -84,15 +112,22 @@ export async function runDoctor(
     ...validateRequiredConfiguration(environment),
     ...validateServicePorts(environment),
   ];
-  checks.push(...(await validatePublicUrls(environment, dependencies)));
-  checks.push(...(await validateJwksContent(environment, dependencies)));
+  checks.push(...(await validatePublicUrls(environment, dependencies, options)));
+  checks.push(...(await validateJwksContent(environment, dependencies, options)));
   checks.push(...(await validateDatabase(environment, dependencies)));
+  checks.push(await validateRuntimePrivileges(environment, dependencies));
   checks.push(await validateRetirableModules(environment, dependencies));
   checks.push(...(await validateDataIntegrity(environment, dependencies)));
   checks.push(await validateModuleAssets(environment, dependencies));
   checks.push(await validateObjectStorage(environment, dependencies));
   checks.push(...(await validatePersistentPath(environment, dependencies)));
-  if (options.checkProxy) checks.push(await validateReverseProxy(options, dependencies));
+  if (isHybridDevelopmentEnvironment(environment)) {
+    checks.push(...(await validateDevelopmentRoleHeartbeats(environment, dependencies.fetch)));
+  }
+  if (options.checkProxy) {
+    checks.push(await validateReverseProxy(options, dependencies));
+    checks.push(await validateEdgeSecurityHeaders(options, dependencies));
+  }
   if (options.smoke) checks.push(...(await validateSmokeTests(environment, dependencies)));
   return { checks, ok: checks.every((check) => check.status !== 'fail') };
 }
@@ -106,35 +141,139 @@ export function validateRequiredConfiguration(
   }
 
   try {
-    authConfigFromEnv(environment);
+    const authConfig = authConfigFromEnv(environment);
     if (!environment.COPALIBRE_OIDC_CLIENT_ID?.trim()) {
       throw new Error('COPALIBRE_OIDC_CLIENT_ID is required');
     }
     checks.push(
-      pass('oidc-config', 'OIDC JWKS, issuer, audience and browser client are configured'),
+      pass(
+        'oidc-config',
+        authConfig.jwksUri
+          ? `OIDC and native JWT verification are configured (native issuer: ${authConfig.nativeIssuer})`
+          : `Native JWT verification is configured; external OIDC is disabled (native issuer: ${authConfig.nativeIssuer})`,
+      ),
     );
   } catch (error) {
     checks.push(fail('oidc-config', errorMessage(error)));
   }
   checks.push(validateEmailConfiguration(environment));
+  checks.push(validateCspIdentityOrigin(environment));
+  checks.push(validateSessionCookieSetting(environment));
+  checks.push(validateTrustedProxiesSetting(environment));
   return checks;
 }
 
+function originOf(value: string | undefined): string | undefined {
+  try {
+    return value?.trim() ? new URL(value.trim()).origin : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The web role's Content Security Policy allows connections, frames and form
+ * posts to the application origin only, plus COPALIBRE_CSP_IDENTITY_ORIGIN.
+ * An external OIDC issuer missing from it means sign-in and silent renewal
+ * are blocked in the browser while every server-side check still passes.
+ */
+export function validateCspIdentityOrigin(environment: NodeJS.ProcessEnv): DoctorCheck {
+  const issuer = originOf(environment.COPALIBRE_JWT_ISSUER);
+  const application = originOf(environment.COPALIBRE_APP_URL);
+  const configured = environment.COPALIBRE_CSP_IDENTITY_ORIGIN?.trim() ?? '';
+  if (!issuer || !application) {
+    return skip('csp-identity-origin', 'Issuer or application URL is not set');
+  }
+  if (issuer === application) {
+    return configured
+      ? warn(
+          'csp-identity-origin',
+          `COPALIBRE_CSP_IDENTITY_ORIGIN is set to ${configured}, but the issuer is the application itself; leave it empty`,
+        )
+      : pass('csp-identity-origin', 'The built-in identity provider needs no extra policy origin');
+  }
+  return configured === issuer
+    ? pass(
+        'csp-identity-origin',
+        `The Content Security Policy allows the identity provider ${issuer}`,
+      )
+    : fail(
+        'csp-identity-origin',
+        `Sign-in will be blocked by the Content Security Policy: set COPALIBRE_CSP_IDENTITY_ORIGIN=${issuer}` +
+          (configured ? ` (currently ${configured})` : ''),
+      );
+}
+
+/**
+ * `COPALIBRE_SESSION_COOKIE_SECURE` must agree with how browsers reach the
+ * installation. Off on an `https` URL drops the cookies' transport protection
+ * (the API also refuses to report ready); on for plain HTTP to another host
+ * makes browsers refuse the cookies, so nobody can sign in.
+ */
+export function validateSessionCookieSetting(environment: NodeJS.ProcessEnv): DoctorCheck {
+  const name = 'session-cookie-secure';
+  let config;
+  try {
+    config = sessionCookieConfigFromEnv(environment);
+  } catch (error) {
+    return fail(name, error instanceof Error ? error.message : String(error));
+  }
+  const appUrl = environment.COPALIBRE_APP_URL?.trim();
+  if (!appUrl || !URL.canParse(appUrl)) return skip(name, 'COPALIBRE_APP_URL is not a usable URL');
+  const mismatch = sessionCookieMismatch(config, appUrl);
+  return mismatch === undefined
+    ? pass(name, `Session cookies ${config.secure ? 'carry' : 'omit'} Secure, matching ${appUrl}`)
+    : warn(name, mismatch);
+}
+
+/**
+ * The API and events processes refuse to start when COPALIBRE_TRUSTED_PROXIES
+ * is unreadable or trusts every address; doctor says so before they do.
+ */
+export function validateTrustedProxiesSetting(environment: NodeJS.ProcessEnv): DoctorCheck {
+  const name = 'trusted-proxies';
+  try {
+    const trusted = trustedProxiesFromEnv(environment);
+    return pass(
+      name,
+      trusted === false
+        ? 'No proxy is trusted: client addresses are the connecting peer'
+        : `Forwarded client addresses are believed from ${trusted.join(', ')}`,
+    );
+  } catch (error) {
+    return fail(name, error instanceof Error ? error.message : String(error));
+  }
+}
+
 /** Validates an installation's parsed `.env` before the host starts Compose. */
-export function validateHostEnvironment(environment: NodeJS.ProcessEnv): DoctorReport {
+export function validateHostEnvironment(
+  environment: NodeJS.ProcessEnv,
+  context: SettingContext = {},
+): DoctorReport {
   const checks: DoctorCheck[] = [];
   if (!environment.DATABASE_URL?.trim() && !environment.POSTGRES_PASSWORD?.trim()) {
     checks.push(fail('host-env:database', 'DATABASE_URL or POSTGRES_PASSWORD must be configured'));
   }
+  // The Compose install builds both database URLs from these; an external DATABASE_URL does not.
+  if (!environment.DATABASE_URL?.trim()) {
+    for (const name of GENERATED_DATABASE_SECRETS) {
+      if (!environment[name]?.trim()) {
+        checks.push(
+          fail(
+            `host-env:${name}`,
+            `${name} is required; run "copalibre upgrade" or "copalibre repair" to generate it`,
+          ),
+        );
+      }
+    }
+  }
 
   for (const name of [
     'COPALIBRE_APP_URL',
-    'COPALIBRE_BOOTSTRAP_TOKEN',
     'COPALIBRE_JWKS_URI',
     'COPALIBRE_JWT_ISSUER',
     'COPALIBRE_JWT_AUDIENCE',
     'COPALIBRE_OIDC_CLIENT_ID',
-    'COPALIBRE_EMAIL_FROM',
     'GARAGE_RPC_SECRET',
   ]) {
     if (!environment[name]?.trim()) {
@@ -147,36 +286,19 @@ export function validateHostEnvironment(environment: NodeJS.ProcessEnv): DoctorR
   for (const [name, placeholders] of Object.entries(PLACEHOLDER_SECRETS)) {
     const value = environment[name]?.trim();
     if (value && placeholders.includes(value)) {
-      checks.push(
-        fail(
-          `host-env:${name}`,
-          `${name} still has its default placeholder; replace it with a unique secret`,
-        ),
-      );
+      checks.push(fail(`host-env:${name}`, placeholderMessage(name, environment)));
     }
   }
 
-  const emailProvider = environment.COPALIBRE_EMAIL_PROVIDER;
-  if (!isEmailProvider(emailProvider)) {
-    checks.push(
-      fail('host-env:email', 'COPALIBRE_EMAIL_PROVIDER must be resend, brevo, mailgun, or smtp'),
-    );
-  } else {
-    const providerSecrets: Record<EmailProvider, readonly string[]> = {
-      resend: ['COPALIBRE_RESEND_API_KEY'],
-      brevo: ['COPALIBRE_BREVO_API_KEY'],
-      mailgun: ['COPALIBRE_MAILGUN_API_KEY', 'COPALIBRE_MAILGUN_DOMAIN'],
-      smtp: ['COPALIBRE_SMTP_URL'],
-    };
-    const missing = providerSecrets[emailProvider].filter((name) => !environment[name]?.trim());
-    checks.push(
-      missing.length === 0
-        ? pass('host-env:email', `Email provider ${emailProvider} is configured`)
-        : fail(
-            'host-env:email',
-            `Email provider ${emailProvider} is missing: ${missing.join(', ')}`,
-          ),
-    );
+  for (const setting of CONFIGURABLE_SETTINGS) {
+    const problem = setting.detect(environment, context);
+    if (problem) {
+      checks.push({ name: setting.check, status: problem.severity, message: problem.message });
+    } else if (setting.id === 'email') {
+      checks.push(
+        pass(setting.check, `Email provider ${environment.COPALIBRE_EMAIL_PROVIDER} is configured`),
+      );
+    }
   }
 
   return { checks, ok: checks.every((check) => check.status !== 'fail') };
@@ -204,9 +326,65 @@ export function validateServicePorts(environment: NodeJS.ProcessEnv): readonly D
   ];
 }
 
+export async function validateDevelopmentRoleHeartbeats(
+  environment: NodeJS.ProcessEnv,
+  requestFetch: typeof fetch = fetch,
+): Promise<readonly DoctorCheck[]> {
+  const roles = [
+    ['events', environment.COPALIBRE_EVENTS_PORT ?? '3002'],
+    ['worker', environment.COPALIBRE_WORKER_PORT ?? '3003'],
+    ['scheduler', environment.COPALIBRE_SCHEDULER_PORT ?? '3004'],
+  ] as const;
+  return Promise.all(
+    roles.map(async ([role, port]) => {
+      const url = `http://127.0.0.1:${port}/health`;
+      try {
+        const response = await requestFetch(url, { signal: AbortSignal.timeout(1500) });
+        if (!response.ok)
+          return fail(`dev-heartbeat:${role}`, `HTTP ${response.status} from ${url}`);
+        const body = (await response.json()) as { role?: unknown; version?: unknown };
+        if (body.role !== role || typeof body.version !== 'string') {
+          return fail(`dev-heartbeat:${role}`, `Unexpected heartbeat response from ${url}`);
+        }
+        return pass(`dev-heartbeat:${role}`, `${role} heartbeat is responding (${body.version})`);
+      } catch (error) {
+        return fail(
+          `dev-heartbeat:${role}`,
+          `${role} heartbeat is unavailable: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }),
+  );
+}
+
+export function isHybridDevelopmentEnvironment(environment: NodeJS.ProcessEnv): boolean {
+  if (environment.COPALIBRE_DEV_HYBRID === 'true') return true;
+  // A containerized doctor is a Compose or Kubernetes install, whatever port it serves on:
+  // its roles are other containers, not heartbeats on this host's loopback.
+  if (environment.COPALIBRE_IN_CONTAINER === 'true') return false;
+  try {
+    return new URL(environment.COPALIBRE_APP_URL ?? '').port === '4321';
+  } catch {
+    return false;
+  }
+}
+
+function notStartedYet(value: string | undefined, options: DoctorOptions): boolean {
+  if (!options.beforeStart || !value) return false;
+  try {
+    return new URL(value).hostname === STACK_API_HOST;
+  } catch {
+    return false;
+  }
+}
+
+const NOT_STARTED_YET =
+  "COPALIBRE_JWKS_URI is served by this installation's api, which starts after this check; copalibre doctor checks it once the stack runs";
+
 export async function validatePublicUrls(
   environment: NodeJS.ProcessEnv,
   dependencies: Pick<DoctorDependencies, 'lookupHost'>,
+  options: DoctorOptions = {},
 ): Promise<readonly DoctorCheck[]> {
   const checks: DoctorCheck[] = [];
   for (const [name, value] of [
@@ -214,6 +392,10 @@ export async function validatePublicUrls(
     ['COPALIBRE_JWKS_URI', environment.COPALIBRE_JWKS_URI],
   ] as const) {
     if (!value) continue;
+    if (name === 'COPALIBRE_JWKS_URI' && notStartedYet(value, options)) {
+      checks.push(skip(`dns:${name}`, NOT_STARTED_YET));
+      continue;
+    }
     try {
       const url = new URL(value);
       if (!['http:', 'https:'].includes(url.protocol)) throw new Error('must use http or https');
@@ -237,9 +419,11 @@ export async function validatePublicUrls(
 export async function validateJwksContent(
   environment: NodeJS.ProcessEnv,
   dependencies: Pick<DoctorDependencies, 'fetch'>,
+  options: DoctorOptions = {},
 ): Promise<readonly DoctorCheck[]> {
   const value = environment.COPALIBRE_JWKS_URI;
   if (!value) return [];
+  if (notStartedYet(value, options)) return [skip('jwks-content', NOT_STARTED_YET)];
 
   let url: URL;
   try {
@@ -287,6 +471,37 @@ export async function validateDatabase(
   }
 }
 
+export const RUNTIME_PRIVILEGES_CHECK = 'database:runtime-privileges';
+
+/**
+ * The credential every request-serving role uses must read and write rows and
+ * do nothing else: a superuser, or a role that owns the schema, turns any SQL
+ * injection into control of the database server. Skipped when there is no
+ * database to ask; doctor's `postgresql` check reports that.
+ */
+export async function validateRuntimePrivileges(
+  environment: NodeJS.ProcessEnv,
+  dependencies: Pick<DoctorDependencies, 'runtimePrivilegeProblems'>,
+): Promise<DoctorCheck> {
+  const connectionString = environment.DATABASE_URL;
+  if (!connectionString) return skip(RUNTIME_PRIVILEGES_CHECK, 'DATABASE_URL is not configured');
+  let problems: readonly string[];
+  try {
+    problems = await dependencies.runtimePrivilegeProblems(connectionString);
+  } catch (error) {
+    return skip(
+      RUNTIME_PRIVILEGES_CHECK,
+      `Could not read the database role's privileges: ${errorMessage(error)}`,
+    );
+  }
+  return problems.length === 0
+    ? pass(RUNTIME_PRIVILEGES_CHECK, 'DATABASE_URL connects with row access only')
+    : fail(
+        RUNTIME_PRIVILEGES_CHECK,
+        `DATABASE_URL has more privileges than the runtime needs: ${problems.join('; ')}. Connect the runtime as copalibre_app and migrations as copalibre_owner; see docs/self-hosting.md#database-roles`,
+      );
+}
+
 /** Reports installed community discipline versions no live tournament references — informational, never `fail`. */
 export async function validateRetirableModules(
   environment: NodeJS.ProcessEnv,
@@ -312,7 +527,8 @@ export async function validateRetirableModules(
 
 /**
  * Structural data diagnostics — non-canonical tournament
- * statuses. Always `pass` when the probe itself succeeds (see
+ * statuses and organizations holding a reserved alias. Never `fail`: `pass`, or
+ * `warn` for a reserved alias, when the probe itself succeeds (see
  * `evaluateDataIntegrity`'s doc comment for why, and for the further checks
  * the proposal named that turned out to have no sound, false-positive-free
  * signal against this domain's real rules); `skip` only when the database is
@@ -325,18 +541,14 @@ export async function validateDataIntegrity(
 ): Promise<readonly DoctorCheck[]> {
   const connectionString = environment.DATABASE_URL;
   if (!connectionString) {
-    return [skip('data:tournament-status', 'DATABASE_URL is not configured')];
+    return DATA_INTEGRITY_CHECKS.map((name) => skip(name, 'DATABASE_URL is not configured'));
   }
   try {
     const snapshot = await dependencies.probeDataIntegrity(connectionString);
     return evaluateDataIntegrity(snapshot);
   } catch (error) {
-    return [
-      skip(
-        'data:tournament-status',
-        `Could not run data integrity diagnostics: ${errorMessage(error)}`,
-      ),
-    ];
+    const reason = `Could not run data integrity diagnostics: ${errorMessage(error)}`;
+    return DATA_INTEGRITY_CHECKS.map((name) => skip(name, reason));
   }
 }
 
@@ -426,6 +638,32 @@ export async function validateReverseProxy(
   }
 }
 
+/**
+ * The edge must pass the web role's Content Security Policy through: a proxy
+ * that strips or replaces it removes the protection with nothing visibly
+ * broken. `/runtime-config.json` is answered by the web role itself, so it
+ * always carries the header.
+ */
+export async function validateEdgeSecurityHeaders(
+  options: DoctorOptions,
+  dependencies: Pick<DoctorDependencies, 'fetch'>,
+): Promise<DoctorCheck> {
+  if (!options.proxyUrl) return skip('edge-security-headers', '--proxy-url is required');
+  const target = new URL('/runtime-config.json', options.proxyUrl).toString();
+  try {
+    const response = await dependencies.fetch(target, { signal: AbortSignal.timeout(5_000) });
+    const policy = response.headers.get('content-security-policy') ?? '';
+    if (!response.ok) throw new Error(`returned HTTP ${response.status}`);
+    if (!policy.includes("frame-ancestors 'self'"))
+      throw new Error('the Content Security Policy is missing or was replaced');
+    if (response.headers.get('x-content-type-options') !== 'nosniff')
+      throw new Error('X-Content-Type-Options: nosniff is missing');
+    return pass('edge-security-headers', "The edge passes the web role's security headers through");
+  } catch (error) {
+    return fail('edge-security-headers', `${target}: ${errorMessage(error)}`);
+  }
+}
+
 async function validateHeartbeatDelivery(response: Response): Promise<void> {
   const reader = response.body?.getReader();
   if (!reader) throw new Error('does not provide an SSE response body');
@@ -467,22 +705,28 @@ async function readWithin(
 }
 
 function validateEmailConfiguration(environment: NodeJS.ProcessEnv): DoctorCheck {
-  const provider = environment.COPALIBRE_EMAIL_PROVIDER;
-  const common = ['COPALIBRE_APP_URL', 'COPALIBRE_EMAIL_FROM'];
-  const missing = common.filter((name) => !environment[name]?.trim());
-  if (!isEmailProvider(provider)) {
-    return fail('smtp', 'COPALIBRE_EMAIL_PROVIDER must be resend, brevo, mailgun, or smtp');
+  if (!environment.COPALIBRE_APP_URL?.trim()) {
+    return fail('smtp', 'Email delivery is missing: COPALIBRE_APP_URL');
   }
-  const providerSecrets: Record<EmailProvider, readonly string[]> = {
-    resend: ['COPALIBRE_RESEND_API_KEY'],
-    brevo: ['COPALIBRE_BREVO_API_KEY'],
-    mailgun: ['COPALIBRE_MAILGUN_API_KEY', 'COPALIBRE_MAILGUN_DOMAIN'],
-    smtp: ['COPALIBRE_SMTP_URL'],
-  };
-  missing.push(...providerSecrets[provider].filter((name) => !environment[name]?.trim()));
-  return missing.length === 0
-    ? pass('smtp', `Email provider ${provider} is configured`)
-    : fail('smtp', `Email delivery is missing: ${missing.join(', ')}`);
+  const problem = detectEmailProblem(environment);
+  return problem
+    ? { name: 'smtp', status: problem.severity, message: problem.message }
+    : pass('smtp', `Email provider ${environment.COPALIBRE_EMAIL_PROVIDER} is configured`);
+}
+
+/** What to do about a placeholder doctor must not rewrite itself. */
+function placeholderMessage(name: string, environment: NodeJS.ProcessEnv): string {
+  if (name !== 'POSTGRES_PASSWORD') {
+    return `${name} still has its default placeholder; replace it with a unique secret`;
+  }
+  const user = environment.POSTGRES_USER?.trim() || LOCAL_DEFAULTS.POSTGRES_USER;
+  return (
+    'POSTGRES_PASSWORD still has its default placeholder. The database keeps the password it was ' +
+    'created with, so change both together: with the stack running, ' +
+    `docker compose exec postgres psql -U ${user} -d postgres -c "ALTER ROLE ${user} PASSWORD '<new password>'", ` +
+    'then set POSTGRES_PASSWORD=<new password> in .env. Only database-setup and the backup tools ' +
+    'connect with it, so nothing needs a restart'
+  );
 }
 
 function requiredCheck(environment: NodeJS.ProcessEnv, name: string): DoctorCheck {
@@ -531,6 +775,14 @@ function systemDoctorDependencies(): DoctorDependencies {
             version: row.version,
           }))
           .filter((row): row is RetirableModule => row.alias !== undefined);
+      } finally {
+        await database.destroy();
+      }
+    },
+    runtimePrivilegeProblems: async (connectionString) => {
+      const database = createDatabase({ connectionString, maxConnections: 1 });
+      try {
+        return await runtimePrivilegeProblems(database);
       } finally {
         await database.destroy();
       }
@@ -595,7 +847,7 @@ export async function validateSmokeTests(
 
   // 2. Auth / JWKS endpoint
   try {
-    const res = await dependencies.fetch(`${apiUrl}/.well-known/jwks.json`);
+    const res = await dependencies.fetch(`${apiUrl}/api/auth/jwks.json`);
     if (res.ok) {
       const body = (await res.json()) as { keys?: unknown[] };
       if (Array.isArray(body?.keys)) {
@@ -612,7 +864,7 @@ export async function validateSmokeTests(
       checks.push(
         fail(
           'smoke:auth',
-          `Auth endpoint returned HTTP ${res.status} at ${apiUrl}/.well-known/jwks.json`,
+          `Auth endpoint returned HTTP ${res.status} at ${apiUrl}/api/auth/jwks.json`,
         ),
       );
     }
@@ -620,14 +872,14 @@ export async function validateSmokeTests(
     checks.push(
       fail(
         'smoke:auth',
-        `Auth endpoint unreachable at ${apiUrl}/.well-known/jwks.json: ${errorMessage(error)}`,
+        `Auth endpoint unreachable at ${apiUrl}/api/auth/jwks.json: ${errorMessage(error)}`,
       ),
     );
   }
 
   // 3. Organization discovery
   try {
-    const res = await dependencies.fetch(`${apiUrl}/organizations?mine=true`);
+    const res = await dependencies.fetch(`${apiUrl}/api/organizations?mine=true`);
     if (res.ok || res.status === 401) {
       checks.push(
         pass('smoke:organizations', `Organizations endpoint responded with HTTP ${res.status}`),
@@ -687,8 +939,8 @@ function skip(name: string, message: string): DoctorCheck {
   return { name, status: 'skip', message };
 }
 
-function isEmailProvider(value: string | undefined): value is EmailProvider {
-  return (EMAIL_PROVIDERS as readonly string[]).includes(value ?? '');
+function warn(name: string, message: string): DoctorCheck {
+  return { name, status: 'warn', message };
 }
 
 function isLocalHost(hostname: string): boolean {

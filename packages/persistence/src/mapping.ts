@@ -163,7 +163,13 @@ export function toTournament(row: TournamentRow): Tournament {
     ...(row.emblem_object_id === null || row.emblem_object_id === undefined
       ? {}
       : { emblemObjectId: row.emblem_object_id }),
-    featured: row.featured ?? false,
+    // SQLite has no boolean column: it hands back 0 or 1.
+    featured: Boolean(row.featured),
+    includesMinors: Boolean(row.includes_minors),
+    showYouthProfiles: Boolean(row.show_youth_profiles),
+    ...(row.minimum_rest_minutes === null || row.minimum_rest_minutes === undefined
+      ? {}
+      : { minimumRestMinutes: row.minimum_rest_minutes }),
   };
 }
 
@@ -185,7 +191,7 @@ export function toClub(row: ClubRow): Club {
   return {
     clubId: row.club_id,
     organizationId: row.organization_id,
-    alias: row.alias ?? undefined,
+    alias: row.alias,
     name: row.name,
     abbreviation: row.abbreviation ?? undefined,
     emblemObjectId: row.emblem_object_id ?? undefined,
@@ -318,7 +324,7 @@ export function toFixture(row: FixtureRow): Fixture {
   };
 }
 
-export function toMatch(row: MatchRow): Match {
+export function toMatch(row: Omit<MatchRow, 'stream_url'>): Match {
   return {
     matchId: row.match_id,
     fixtureId: row.fixture_id,

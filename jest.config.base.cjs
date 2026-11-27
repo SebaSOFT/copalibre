@@ -6,6 +6,12 @@ const esmExtensionMapper = require('./jest.esm-mapper.cjs');
  */
 module.exports = {
   testEnvironment: 'node',
+  // Undici 8.12+ closes ReadableStream response bodies inside pull() via
+  // queueMicrotask. Faking queueMicrotask while V8 Promise microtasks remain
+  // native causes node:stream/web to re-invoke pull() in an infinite loop.
+  fakeTimers: {
+    doNotFake: ['queueMicrotask'],
+  },
   extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: { ...esmExtensionMapper },
   transform: {

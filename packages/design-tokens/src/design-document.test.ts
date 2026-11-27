@@ -8,6 +8,30 @@ import {
 
 const wrap = (body: string) => `---\n${body}\n---\n# Kept narrative\n`;
 const document = readFileSync(new URL('../../../DESIGN.md', import.meta.url), 'utf8');
+const requiredNarrativeSections = [
+  'Surfaces and Devices',
+  'References',
+  'Interaction States',
+  'Iconography',
+  'Data Visualization',
+  'Motion',
+  'Imagery',
+  'Voice',
+  'Public Casing',
+  'Non-Latin Scripts',
+  'Reading Width',
+  'Accessibility Target',
+  'Deliberate Choices',
+];
+
+function assertNarrativeSections(content: string, sections: string[]): void {
+  const headings = new Set(content.split(/\r?\n/));
+  const missing = sections.filter((section) => !headings.has(`## ${section}`));
+
+  if (missing.length > 0) {
+    throw new Error(`Missing DESIGN.md sections: ${missing.join(', ')}`);
+  }
+}
 
 describe('generated design frontmatter', () => {
   it('reads nested typography while preserving exact CSS quotes and hex case', () => {
@@ -20,6 +44,22 @@ describe('generated design frontmatter', () => {
     ).toEqual({
       colors: { ink: '#0A0E1A' },
       typography: { display: { fontFamily: "'Barlow', sans-serif", fontWeight: '700' } },
+    });
+  });
+
+  it('reads layout container, gutter and split tokens from the verified frontmatter', () => {
+    expect(
+      readDesignTokens(
+        wrap(
+          'layout:\n  container:\n    public: "75rem"\n  gutter:\n    sm: "1rem"\n  split:\n    main-rail: "minmax(0, 8fr) minmax(0, 4fr)"',
+        ),
+      ),
+    ).toEqual({
+      layout: {
+        container: { public: '75rem' },
+        gutter: { sm: '1rem' },
+        split: { 'main-rail': 'minmax(0, 8fr) minmax(0, 4fr)' },
+      },
     });
   });
 
@@ -95,5 +135,30 @@ describe('generated design frontmatter', () => {
     const refreshed = refreshDesignTokens(wrap('colors:\n  extra: "bad"'));
     expect(designTokenDifferences(readDesignTokens(refreshed))).toEqual([]);
     expect(refreshed).toContain('# Kept narrative');
+  });
+
+  it('inserts missing verified groups before component metadata', () => {
+    const partial = wrap('colors:\n  extra: "bad"\ncomponents:\n  custom:\n    label: "keep"');
+    const refreshed = refreshDesignTokens(partial);
+
+    expect(designTokenDifferences(readDesignTokens(refreshed))).toEqual([]);
+    expect(refreshed.indexOf('\nlayout:')).toBeLessThan(refreshed.indexOf('\ncomponents:'));
+    expect(refreshed.slice(refreshed.indexOf('\ncomponents:'))).toBe(
+      partial.slice(partial.indexOf('\ncomponents:')),
+    );
+  });
+});
+
+describe('design narrative sections', () => {
+  it('keeps every review rule in a named DESIGN.md section', () => {
+    expect(() => assertNarrativeSections(document, requiredNarrativeSections)).not.toThrow();
+  });
+
+  it('names a missing section', () => {
+    const fixture = '# Design System\n\n## References\n';
+
+    expect(() => assertNarrativeSections(fixture, ['Interaction States'])).toThrow(
+      'Interaction States',
+    );
   });
 });

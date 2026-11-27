@@ -30,19 +30,21 @@ se fait ici est diffusé en direct sur l'écran public du tournoi.
 
 ## Gérer l'horloge
 
-Chaque segment a sa propre horloge, pilotée par trois boutons sous le segment sélectionné :
+Chaque segment a sa propre horloge. Les boutons sous le segment sélectionné dépendent de son état :
 
-- **Démarrer** lance l'horloge de ce segment et arrête celle qui tournait — une seule tourne à la
-  fois.
-- **Pause** l'arrête où elle en est. Un match en pause reste en cours : la pause arrête une horloge,
-  pas la compétition.
-- **Terminer la période** clôt ce segment. Il n'accepte ensuite ni Démarrer ni Pause, et il ne
-  termine pas le match — enregistrer le résultat est une action distincte.
+- **Démarrer le match** lance un match programmé et démarre son premier segment.
+- **Démarrer le segment** lance un segment qui n'a pas encore tourné.
+- **Pause** et **Terminer le segment** apparaissent pendant qu'un segment tourne. Pause arrête l'horloge là où elle en est ; un match en pause reste en cours.
+- **Reprendre** et **Terminer le segment** apparaissent lorsque le segment est arrêté avec du temps écoulé.
+- **Rouvrir le segment…** apparaît sur un segment terminé. Il demande un motif, remet le segment en pause avec son temps conservé et ne relance pas l'horloge : pour la faire tourner à nouveau, utilisez Reprendre.
 
-Ils enregistrent le moment où vous avez réellement sifflé. Le champ de secondes écoulées à côté
-reste ce qu'il a toujours été : le moyen de corriger après coup une valeur mal saisie. Les deux
-chemins aboutissent au même journal d'audit, avec qui, quand, et ce qu'indiquait l'horloge avant et
-après.
+Un seul segment tourne à la fois. Démarrer le segment et Reprendre ne sont pas proposés tant qu'un autre segment tourne, et la console l'indique : mettez-le en pause ou terminez-le d'abord.
+
+Le sélecteur de segment affiche « en pause » un segment arrêté avec du temps. Un match clos (finalisé, par forfait ou non requis) ne propose aucune action d'horloge.
+
+**Corriger** fixe le temps du segment sélectionné, saisi dans le champ **Temps (mm:ss)**, en minutes et secondes (`20:50`) ou en minutes entières (`45`). L'état est conservé : un segment qui tourne continue, un segment en pause reste en pause. Ce n'est pas disponible sur un match clos (finalisé, par forfait ou non requis).
+
+Ces boutons enregistrent le moment où vous avez réellement sifflé. Pour corriger une valeur mal enregistrée, utilisez **Corriger**. Chaque modification va dans le même journal d'audit, avec qui, quand, et l'état et l'horloge avant et après. Une réouverture enregistre aussi son motif.
 
 ## Lire le journal des événements
 

@@ -152,6 +152,26 @@ Avoid: using the seeding/bracket-draw term for a tied result or vice versa — i
 above, the two senses are genuinely different words, so a wrong choice reads as an outright
 mistranslation, not a stylistic difference.
 
+### `segment`
+
+English meaning: a division of one match with its own clock or score, such as a half, a set or a
+round. Never a tournament stage.
+
+| es       | fr      | pt       | it       | de      | ru                | zh                                                            |
+| -------- | ------- | -------- | -------- | ------- | ----------------- | ------------------------------------------------------------- |
+| segmento | segment | segmento | segmento | Segment | сегмент (segment) | 分段 (fēnduàn). Promotion bands are 分档 (fēndàng), not 分段. |
+
+Avoid: for the generic concept, período/period/Periode/période/periodo/период, fase/fasi/phase/Phase/фаза,
+Abschnitt/Spielabschnitt, отрезок, tiempo/tempo/Spielzeit used as a generic count, 赛段 and 阶段. The
+tournament stage keeps its own word (阶段, fase, Phase).
+
+Exception: example type names and labels a discipline declares for its own segments keep their
+words, such as "half, period, set" in a placeholder or "(a set, a period)" in help. A discipline
+may really call its segments that.
+
+**Owner decision 2026-11-19; Chinese 分段, owner decision 2026-11-20.** The promotion bands
+(`control.promotion.bandsHeading`, zh 分档) are confirmed 2026-11-21.
+
 ## Using the glossary in a review
 
 `scripts/i18n-content-review.mjs` loads this file's terms (parsed from the `###` headings and

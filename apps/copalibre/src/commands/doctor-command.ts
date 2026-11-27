@@ -1,13 +1,12 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { parseArgs, parseEnv } from 'node:util';
+import { parseArgs } from 'node:util';
 import { Command, Option } from 'clipanion';
 import { createDatabase, databaseConfigFromEnv } from '@copalibre/persistence';
 import type { CliContext } from '../cli-context.js';
 import { runCommand } from '../command-support.js';
 import { isContainer, refuseForKubernetesMode, requireComposeTarget } from '../compose-target.js';
-import { runDoctor, validateHostEnvironment, type DoctorOptions } from '../doctor.js';
-import { runPreflight } from '../preflight.js';
+import { BEFORE_START_VARIABLE, runDoctor, type DoctorOptions } from '../doctor.js';
+import { sendTestEmail } from '../doctor-test-email.js';
+import { runHostDoctor } from '../host-doctor.js';
 import { probeDataIntegrity } from '../doctor-data-probe.js';
 import {
   createPrompter,
@@ -15,14 +14,7 @@ import {
   runInteractiveRepair,
 } from '../doctor-data-repair.js';
 
-/**
- * `missing`, not `never`: an image already on the host is never refreshed by a diagnostic run, but a
- * clean host that has not pulled PostgreSQL yet (`init` then `doctor` then `start`) must still be
- * able to start the one dependency the doctor service waits for.
- */
-export function dockerComposeDoctorRunArgs(arguments_: readonly string[]): readonly string[] {
-  return ['compose', 'run', '--pull', 'missing', '--rm', 'doctor', ...arguments_];
-}
+export { dockerComposeDoctorRunArgs, runHostDoctor } from '../host-doctor.js';
 
 export class DoctorCommand extends Command<CliContext> {
   static override paths = [['doctor']];
@@ -37,35 +29,7 @@ export class DoctorCommand extends Command<CliContext> {
           'run job-doctor.yaml instead (helm install --set doctor.enabled=true, or equivalent)',
         );
         await requireComposeTarget(environment);
-        let envContent: string;
-        try {
-          envContent = await readFile(join(process.cwd(), '.env'), 'utf8');
-        } catch (error) {
-          const detail =
-            (error as NodeJS.ErrnoException).code === 'ENOENT'
-              ? '.env is missing; run "copalibre init" in this directory'
-              : `could not read .env: ${(error as Error).message}`;
-          process.stdout.write(`FAIL host-env: ${detail}\n`);
-          return 1;
-        }
-        const hostEnvReport = validateHostEnvironment(parseEnv(envContent));
-        for (const check of hostEnvReport.checks) {
-          process.stdout.write(`${check.status.toUpperCase()} ${check.name}: ${check.message}\n`);
-        }
-        if (!hostEnvReport.ok) return 1;
-
-        const preflight = await runPreflight();
-        const socketFailure = preflight.checks.find(
-          (c) => c.name === 'preflight:docker-socket' && c.status === 'fail',
-        );
-        if (socketFailure) {
-          process.stderr.write(
-            `FAIL ${socketFailure.name}: ${socketFailure.message}\n` +
-              `Actionable remediation: ${socketFailure.remediation}\n`,
-          );
-          return 1;
-        }
-        return this.context.processes.run('docker', dockerComposeDoctorRunArgs(this.args));
+        return runHostDoctor(this.context.processes, this.args);
       }
       const parsed = parseArgs({
         args: [...this.args],
@@ -75,13 +39,21 @@ export class DoctorCommand extends Command<CliContext> {
           smoke: { type: 'boolean', default: false },
           fix: { type: 'boolean', default: false },
           interactive: { type: 'boolean', default: false },
+          'send-test-email': { type: 'string' },
         },
         strict: true,
       });
+      const testAddress = parsed.values['send-test-email'];
+      if (testAddress !== undefined) {
+        const check = await sendTestEmail(environment, testAddress);
+        process.stdout.write(`${check.status.toUpperCase()} ${check.name}: ${check.message}\n`);
+        return check.status === 'pass' ? 0 : 1;
+      }
       const options: DoctorOptions = {
         checkProxy: parsed.values['check-proxy'],
         proxyUrl: parsed.values['proxy-url'],
         smoke: parsed.values.smoke,
+        beforeStart: environment[BEFORE_START_VARIABLE] === 'true',
       };
       const report = await runDoctor(environment, undefined, options);
       for (const check of report.checks) {

@@ -2,8 +2,12 @@ import {
   buildOverview,
   displayName,
   groupStandingsByZone,
+  overviewLeadFor,
+  selectNowStripMatches,
   shortLabel,
   shouldShowChampionPodium,
+  summarizeOverviewMatches,
+  type OverviewMatch,
 } from './overview.js';
 import { PUBLIC_ROUTES } from './public-routes.js';
 import { sampleOverview } from './sample-data.js';
@@ -22,6 +26,27 @@ describe('the overview model', () => {
     expect(displayName({ ...model, seasonName: undefined })).toBe('Torneo Apertura');
   });
 
+  it('chooses the overview lead from tournament state', () => {
+    expect(overviewLeadFor('live')).toBe('now-strip');
+    expect(overviewLeadFor('finished')).toBe('honour-board');
+    expect(overviewLeadFor('upcoming')).toBe('schedule-preview');
+    expect(overviewLeadFor(undefined)).toBe('schedule-preview');
+  });
+
+  it('carries the discipline name and the public venues it is given', () => {
+    const venues = [
+      { alias: 'olimpia', name: 'Olimpia', address: 'Av. Central 100', courtCount: 2 },
+    ];
+    const withFacts = buildOverview({
+      ...sampleOverview('liga-mendocina', 'apertura-2026'),
+      disciplineName: 'Hockey sobre patines',
+      venues,
+    });
+    expect(withFacts.disciplineName).toBe('Hockey sobre patines');
+    expect(withFacts.venues).toEqual(venues);
+    expect(model).not.toHaveProperty('venues');
+  });
+
   it('omits the season entirely when a tournament has never named one', () => {
     const sample = sampleOverview('liga-mendocina', 'apertura-2026');
     const built = buildOverview({ ...sample, seasonName: undefined });
@@ -32,6 +57,136 @@ describe('the overview model', () => {
 
   it('counts what is live, so the badge carries a number and not just a colour', () => {
     expect(model.liveCount).toBe(1);
+  });
+
+  it('bounds live, upcoming and latest-result summaries in kickoff order', () => {
+    const match = (
+      matchId: string,
+      state: OverviewMatch['state'],
+      startsAt: string,
+      score?: number,
+    ): OverviewMatch => ({
+      matchId,
+      stageNumber: 1,
+      matchNumber: Number(matchId.replace('m', '')),
+      state,
+      startsAt,
+      home: { name: 'Home', ...(score === undefined ? {} : { score }) },
+      away: { name: 'Away', ...(score === undefined ? {} : { score: 1 }) },
+    });
+    const summary = summarizeOverviewMatches(
+      [
+        match('m1', 'upcoming', '2026-10-23T12:00:00Z'),
+        match('m2', 'live', '2026-10-22T12:00:00Z'),
+        match('m3', 'final', '2026-10-20T12:00:00Z', 1),
+        match('m4', 'upcoming', '2026-10-21T12:00:00Z'),
+        match('m5', 'final', '2026-10-19T12:00:00Z'),
+        match('m6', 'final', '2026-10-21T12:00:00Z', 2),
+      ],
+      1,
+      new Date('2026-10-21T11:00:00Z'),
+    );
+
+    expect(summary.live.map((one) => one.matchId)).toEqual(['m2']);
+    expect(summary.delayed).toEqual([]);
+    expect(summary.upcoming.map((one) => one.matchId)).toEqual(['m4']);
+    expect(summary.latestResults.map((one) => one.matchId)).toEqual(['m6']);
+  });
+
+  it('keeps the default overview summary to four upcoming matches and four results', () => {
+    const upcoming = Array.from({ length: 6 }, (_, index) => ({
+      matchId: `upcoming-${index}`,
+      stageNumber: 1,
+      matchNumber: index + 1,
+      state: 'upcoming' as const,
+      startsAt: `2026-10-${String(21 + index).padStart(2, '0')}T12:00:00Z`,
+      home: { name: 'Home' },
+      away: { name: 'Away' },
+    }));
+    const results = Array.from({ length: 6 }, (_, index) => ({
+      matchId: `final-${index}`,
+      stageNumber: 1,
+      matchNumber: index + 1,
+      state: 'final' as const,
+      startsAt: `2026-10-${String(15 + index).padStart(2, '0')}T12:00:00Z`,
+      home: { name: 'Home', score: 2 },
+      away: { name: 'Away', score: 1 },
+    }));
+
+    const summary = summarizeOverviewMatches(
+      [...upcoming, ...results],
+      4,
+      new Date('2026-10-21T11:00:00Z'),
+    );
+
+    expect(summary.upcoming.map((one) => one.matchId)).toEqual([
+      'upcoming-0',
+      'upcoming-1',
+      'upcoming-2',
+      'upcoming-3',
+    ]);
+    expect(summary.latestResults.map((one) => one.matchId)).toEqual([
+      'final-5',
+      'final-4',
+      'final-3',
+      'final-2',
+    ]);
+  });
+
+  it('separates delayed matches from upcoming and builds the now strip without finals', () => {
+    const match = (
+      matchId: string,
+      state: OverviewMatch['state'],
+      startsAt: string,
+      score?: number,
+    ): OverviewMatch => ({
+      matchId,
+      stageNumber: 1,
+      matchNumber: Number(matchId.replace(/\D/g, '') || 1),
+      state,
+      startsAt,
+      home: { name: 'Home', ...(score === undefined ? {} : { score }) },
+      away: { name: 'Away', ...(score === undefined ? {} : { score: 0 }) },
+    });
+
+    const now = new Date('2026-11-23T14:20:00Z');
+    const summary = summarizeOverviewMatches(
+      [
+        match('m1', 'final', '2026-11-23T12:00:00Z', 2),
+        match('m2', 'upcoming', '2026-11-23T14:00:00Z'), // +20 min -> delayed
+        match('m3', 'upcoming', '2026-11-23T14:10:00Z'), // +10 min -> still upcoming
+        match('m4', 'upcoming', '2026-11-23T16:00:00Z'), // future upcoming
+      ],
+      4,
+      now,
+    );
+
+    expect(summary.delayed.map((one) => one.matchId)).toEqual(['m2']);
+    expect(summary.upcoming.map((one) => one.matchId)).toEqual(['m3', 'm4']);
+
+    // No live match -> delayed + first upcoming only (never m4 or final m1).
+    expect(selectNowStripMatches(summary).map((one) => one.matchId)).toEqual(['m2', 'm3']);
+
+    // When a live match exists, upcoming is omitted from the now strip.
+    const withLive = summarizeOverviewMatches(
+      [
+        match('m1', 'final', '2026-11-23T12:00:00Z', 2),
+        match('m2', 'upcoming', '2026-11-23T14:00:00Z'),
+        match('m3', 'upcoming', '2026-11-23T14:10:00Z'),
+        match('m5', 'live', '2026-11-23T14:05:00Z', 1),
+      ],
+      4,
+      now,
+    );
+    expect(selectNowStripMatches(withLive).map((one) => one.matchId)).toEqual(['m5', 'm2']);
+
+    // Only finished matches -> now strip is empty (never shows a final).
+    const onlyFinal = summarizeOverviewMatches(
+      [match('m1', 'final', '2026-11-23T12:00:00Z', 2)],
+      4,
+      now,
+    );
+    expect(selectNowStripMatches(onlyFinal)).toEqual([]);
   });
 
   it('shows the podium only for a finished overview with multiple resolved zones', () => {
@@ -102,12 +257,13 @@ describe('what the sitemap advertises', () => {
 });
 
 describe('groupStandingsByZone', () => {
-  const row = (name: string, zoneName?: string) => ({
+  const row = (name: string, zoneName?: string, groupName?: string) => ({
     position: 1,
     name,
     played: 1,
     points: 3,
     ...(zoneName === undefined ? {} : { zoneName }),
+    ...(groupName === undefined ? {} : { groupName }),
   });
 
   it('keeps rows that name no zone together as one unnamed block', () => {
@@ -115,6 +271,7 @@ describe('groupStandingsByZone', () => {
 
     expect(blocks).toHaveLength(1);
     expect(blocks[0]?.zoneName).toBeUndefined();
+    expect(blocks[0]?.groupName).toBeUndefined();
     expect(blocks[0]?.rows.map((r) => r.name)).toEqual(['A', 'B']);
   });
 
@@ -130,7 +287,73 @@ describe('groupStandingsByZone', () => {
     expect(blocks[1]?.rows.map((r) => r.name)).toEqual(['B1']);
   });
 
+  it('splits rows into one block per group within a zone in segment order', () => {
+    const blocks = groupStandingsByZone([
+      row('Team A1', 'Grupos', 'Grupo A'),
+      row('Team A2', 'Grupos', 'Grupo A'),
+      row('Team B1', 'Grupos', 'Grupo B'),
+      row('Team B2', 'Grupos', 'Grupo B'),
+      row('Team C1', 'Zona Sur', 'Grupo A'),
+    ]);
+
+    expect(blocks).toHaveLength(3);
+    expect(blocks[0]).toMatchObject({ zoneName: 'Grupos', groupName: 'Grupo A' });
+    expect(blocks[0]?.rows.map((r) => r.name)).toEqual(['Team A1', 'Team A2']);
+    expect(blocks[1]).toMatchObject({ zoneName: 'Grupos', groupName: 'Grupo B' });
+    expect(blocks[1]?.rows.map((r) => r.name)).toEqual(['Team B1', 'Team B2']);
+    expect(blocks[2]).toMatchObject({ zoneName: 'Zona Sur', groupName: 'Grupo A' });
+    expect(blocks[2]?.rows.map((r) => r.name)).toEqual(['Team C1']);
+  });
+
   it('returns nothing for no rows', () => {
     expect(groupStandingsByZone([])).toEqual([]);
+  });
+});
+
+describe('groupOverviewMatchesByDay', () => {
+  it('groups ordered matches by calendar day in the organization zone with relative headings within ±1 day', async () => {
+    const { groupOverviewMatchesByDay } = await import('./overview.js');
+    const referenceDate = Date.parse('2026-11-23T15:00:00.000Z');
+    const matches = [
+      {
+        matchId: 'm1',
+        stageNumber: 1,
+        state: 'upcoming' as const,
+        startsAt: '2026-11-24T12:00:00.000Z',
+        home: { name: 'A' },
+        away: { name: 'B' },
+      },
+      {
+        matchId: 'm2',
+        stageNumber: 1,
+        state: 'upcoming' as const,
+        startsAt: '2026-11-24T18:00:00.000Z',
+        home: { name: 'C' },
+        away: { name: 'D' },
+      },
+      {
+        matchId: 'm3',
+        stageNumber: 1,
+        state: 'upcoming' as const,
+        startsAt: '2026-11-27T12:00:00.000Z',
+        home: { name: 'E' },
+        away: { name: 'F' },
+      },
+    ];
+
+    const groups = groupOverviewMatchesByDay(matches, {
+      locale: 'es',
+      timeZone: 'America/Argentina/Buenos_Aires',
+      referenceDate,
+      tbdLabel: 'A definir',
+    });
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0]?.key).toBe('2026-11-24');
+    expect(groups[0]?.heading).toContain('Mañana');
+    expect(groups[0]?.matches).toHaveLength(2);
+    expect(groups[1]?.key).toBe('2026-11-27');
+    expect(groups[1]?.heading).not.toContain('Mañana');
+    expect(groups[1]?.matches).toHaveLength(1);
   });
 });

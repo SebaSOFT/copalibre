@@ -39,16 +39,59 @@ export class TableRowResponse {
   @ApiPropertyOptional({ description: 'Tournament-scoped entrant abbreviation, when resolved' })
   entrantAbbreviation?: string;
 
+  @ApiPropertyOptional({ format: 'uuid', description: 'The entrant club, when one is resolved' })
+  clubId?: string;
+
+  @ApiPropertyOptional({ description: "The entrant club's alias, when one is resolved" })
+  clubAlias?: string;
+
+  @ApiPropertyOptional({ description: "The entrant club's uploaded emblem, when one is present" })
+  emblemObjectId?: string;
+
   @ApiPropertyOptional({
     description: 'ISO 3166-1 alpha-2 nationality code, present only at person granularity',
   })
   nationality?: string;
+
+  @ApiPropertyOptional({
+    oneOf: [{ type: 'number' }, { type: 'string' }],
+    description:
+      'Shirt number from the person’s most recent finalized match roster in the tournament, when recorded',
+  })
+  shirtNumber?: number | string;
+
+  @ApiPropertyOptional({ description: 'The person requested to be hidden from public pages' })
+  hiddenAtRequest?: boolean;
+
+  @ApiPropertyOptional({ description: 'A public player profile may be linked from this row' })
+  publicProfileAvailable?: boolean;
 
   @ApiProperty({ description: '1-based; rows sharing a rank were not separated by `defaultSort`' })
   rank!: number;
 
   @ApiProperty({ description: 'True when another row holds the same rank' })
   sharedRank!: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Code of the sort column that put this row below the row above, when the two compare equal on ' +
+      'the leading sort column. Absent on the first row, when the leading column separates them, and ' +
+      'when they share a rank.',
+  })
+  separatedFromAboveBy?: string;
+
+  @ApiPropertyOptional({
+    description: 'Destination zone from the saved promotion band this entrant qualifies for',
+  })
+  promotionBandLabel?: string;
+
+  @ApiPropertyOptional({
+    description: 'Zero-based position used to give each configured promotion band a visual rail',
+  })
+  promotionBandIndex?: number;
+
+  @ApiPropertyOptional({ description: '1-based seed position in the saved promotion plan' })
+  promotionSeed?: number;
 
   @ApiProperty({
     description: 'One cell per declared column, keyed by column code',
@@ -129,6 +172,25 @@ export class TableSortRuleResponse {
   direction!: string;
 }
 
+export class TablePromotionBandResponse {
+  @ApiProperty({ description: 'Destination zone name configured in the promotion plan' })
+  label!: string;
+
+  @ApiPropertyOptional({
+    description: 'Source zone whose entrants are shown in this table, when named',
+  })
+  sourceZoneName?: string;
+
+  @ApiProperty({ description: 'Zero-based position used to give each band a visual rail' })
+  index!: number;
+
+  @ApiProperty({ description: 'First seed position in this band, inclusive' })
+  firstSeed!: number;
+
+  @ApiProperty({ description: 'Last seed position in this band, inclusive' })
+  lastSeed!: number;
+}
+
 export class TableLayoutListResponse {
   @ApiProperty({ type: TableLayoutSummaryResponse, isArray: true })
   layouts!: TableLayoutSummaryResponse[];
@@ -189,4 +251,11 @@ export class TableProjectionResponse {
       'column `grain` changes the unit of. Present only alongside `grain`.',
   })
   countColumnCode?: string;
+
+  @ApiPropertyOptional({
+    type: TablePromotionBandResponse,
+    isArray: true,
+    description: 'Configured promotion bands for a stage-scoped public standings projection',
+  })
+  promotionBands?: TablePromotionBandResponse[];
 }

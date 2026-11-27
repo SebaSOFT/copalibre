@@ -7,7 +7,8 @@ Example config: [`deploy/proxy/nginx.conf`](../../../deploy/proxy/nginx.conf).
 1. Replace `app.copalibre.example`, `api.copalibre.example`, and `events.copalibre.example` with your
    real host names.
 2. Add TLS to each `server` block (the example listens on plain `:80` and documents where certificate
-   directives belong) before exposing it publicly.
+   directives belong) before exposing it publicly. Once a block answers HTTPS, uncomment its
+   `Strict-Transport-Security` line so browsers stay on HTTPS.
 3. Copy the config into `conf.d/` (or wherever your NGINX installation includes site configs) and
    reload NGINX.
 
@@ -57,6 +58,30 @@ window. Do not reopen traffic to a partially upgraded stack.
 If only the proxy reload fails, keep its previous known-good configuration and diagnose the error.
 If the application upgrade fails after migration, use the documented backup recovery procedure;
 reverting proxy routes or old container tags does not roll back the database.
+
+## Static assets and font types
+
+CopaLibre serves its own fonts from the application origin, under `/_astro/` with the scripts and
+styles. The web container sends them as `font/woff2` and `font/woff`. NGINX passes that
+`Content-Type` through on proxied responses, so the shipped configurations need nothing more.
+
+Hosting panels such as CloudPanel or Plesk often add a static-file block like
+`location ~* \.(css|js|woff2?)$` that serves those extensions from a local directory. On a
+CopaLibre host that block answers 404 for every script, style and font. Remove it or exclude the
+CopaLibre server from it, and do not override `Content-Type` with `default_type` or
+`proxy_hide_header`.
+
+If you serve the built web files from NGINX yourself instead of the web container, make sure
+`mime.types` maps `woff2` to `font/woff2` and `woff` to `font/woff`. Recent NGINX releases already
+do.
+
+## Security headers
+
+The web container sends a `Content-Security-Policy` and its companion headers on every page;
+server-rendered pages carry two policies, and a browser needs both. NGINX passes upstream headers through, so the shipped configurations need nothing more. Do not
+use `proxy_hide_header Content-Security-Policy`, and do not `add_header` a policy of your own: that
+adds a third policy or, in a hosting panel's template, can replace the application's.
+`copalibre doctor --check-proxy` fails when the policy does not reach the browser.
 
 ## SSE conformance
 

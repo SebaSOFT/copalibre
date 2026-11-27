@@ -33,6 +33,42 @@ COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.1
       expect(result.content).toContain('NEW_SETTING=default_val');
     });
 
+    it.each([
+      ['https://copa.example', 'true'],
+      ['http://localhost:8080', 'true'],
+      ['http://192.168.1.10:8080', 'false'],
+    ])(
+      'adds COPALIBRE_SESSION_COOKIE_SECURE derived from COPALIBRE_APP_URL=%s',
+      (appUrl, expected) => {
+        const result = reconcileEnvContent(`COPALIBRE_APP_URL=${appUrl}\n`, '1.3.0', {
+          COPALIBRE_SESSION_COOKIE_SECURE: 'true',
+        });
+
+        expect(result.addedKeys).toEqual(['COPALIBRE_SESSION_COOKIE_SECURE']);
+        expect(result.addedSessionCookieSecure).toBe(expected);
+        expect(result.content).toContain(`COPALIBRE_SESSION_COOKIE_SECURE=${expected}`);
+      },
+    );
+
+    it('adds the session cookie setting once and leaves an existing value alone', () => {
+      const defaults = { COPALIBRE_SESSION_COOKIE_SECURE: 'true' };
+      const first = reconcileEnvContent('COPALIBRE_APP_URL=http://10.0.0.5\n', '1.3.0', defaults);
+      const second = reconcileEnvContent(first.content, '1.3.0', defaults);
+
+      expect(second.addedKeys).toEqual([]);
+      expect(second.addedSessionCookieSecure).toBeUndefined();
+      expect(second.content.match(/COPALIBRE_SESSION_COOKIE_SECURE=/g)).toHaveLength(1);
+    });
+
+    it('falls back to the default when COPALIBRE_APP_URL is missing or unusable', () => {
+      const defaults = { COPALIBRE_SESSION_COOKIE_SECURE: 'true' };
+      expect(reconcileEnvContent('', '1.3.0', defaults).addedSessionCookieSecure).toBe('true');
+      expect(
+        reconcileEnvContent('COPALIBRE_APP_URL=not a url\n', '1.3.0', defaults)
+          .addedSessionCookieSecure,
+      ).toBe('true');
+    });
+
     it('updates COPALIBRE_VERSION to the requested release', () => {
       const result = reconcileEnvContent(
         'COPALIBRE_VERSION=1.2.5 # set by deployment automation',
@@ -53,9 +89,56 @@ COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.1
       expect(result.addedKeys).toContain('GARAGE_RPC_SECRET');
       expect(result.content).toMatch(/GARAGE_RPC_SECRET=[0-9a-f]{64}/);
     });
+
+    it('adds the two database passwords as distinct random secrets when missing', () => {
+      const result = reconcileEnvContent('COPALIBRE_PORT=8080\n', '1.3.0');
+
+      expect(result.addedKeys).toEqual(
+        expect.arrayContaining([
+          'COPALIBRE_DATABASE_OWNER_PASSWORD',
+          'COPALIBRE_DATABASE_APP_PASSWORD',
+        ]),
+      );
+      const owner = /^COPALIBRE_DATABASE_OWNER_PASSWORD=([0-9a-f]{64})$/m.exec(result.content)?.[1];
+      const app = /^COPALIBRE_DATABASE_APP_PASSWORD=([0-9a-f]{64})$/m.exec(result.content)?.[1];
+      expect(owner).toBeDefined();
+      expect(app).toBeDefined();
+      expect(owner).not.toBe(app);
+    });
+
+    it('never overwrites database passwords an installation already has', () => {
+      const existing =
+        'COPALIBRE_DATABASE_OWNER_PASSWORD=kept-owner\nCOPALIBRE_DATABASE_APP_PASSWORD=kept-app\n';
+      const result = reconcileEnvContent(existing, '1.3.0');
+
+      expect(result.addedKeys).not.toContain('COPALIBRE_DATABASE_OWNER_PASSWORD');
+      expect(result.addedKeys).not.toContain('COPALIBRE_DATABASE_APP_PASSWORD');
+      expect(result.content).toContain('COPALIBRE_DATABASE_OWNER_PASSWORD=kept-owner\n');
+      expect(result.content).toContain('COPALIBRE_DATABASE_APP_PASSWORD=kept-app\n');
+      expect(result.content.match(/COPALIBRE_DATABASE_APP_PASSWORD=/g)).toHaveLength(1);
+    });
   });
 
   describe('reconcileComposeContent', () => {
+    it('reports a compose file without the database-setup service, and leaves it to the operator', () => {
+      const legacy = 'services:\n  migrate:\n    image: ghcr.io/sebasoft/copalibre:1.2.1\n';
+      const result = reconcileComposeContent(legacy, '1.4.0');
+      expect(result.lacksDatabaseRoles).toBe(true);
+      expect(result.content).not.toContain('database-setup');
+
+      const shipped = `${legacy}  database-setup:\n    image: ghcr.io/sebasoft/copalibre:1.2.1\n`;
+      expect(reconcileComposeContent(shipped, '1.4.0').lacksDatabaseRoles).toBe(false);
+    });
+
+    it('finds the database-setup service in the shipped docker-compose.yml', async () => {
+      const { readFile } = await import('node:fs/promises');
+      const shipped = await readFile(
+        new URL('../../../docker-compose.yml', import.meta.url),
+        'utf8',
+      );
+      expect(reconcileComposeContent(shipped, '1.4.0').lacksDatabaseRoles).toBe(false);
+    });
+
     it('updates image tags in compose content while preserving custom volumes and ports', () => {
       const composeYaml = `services:
   api:
@@ -94,6 +177,54 @@ COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.1
       const result = reconcileComposeContent(composeYaml, 'v1.3.0');
 
       expect(result.content).toContain('copalibre-${COPALIBRE_VERSION:-1.3.0}');
+    });
+
+    it('moves the shipped internal port mappings to 127.0.0.1 and leaves the gateway alone', () => {
+      const composeYaml = [
+        'services:',
+        '  api:',
+        '    ports:',
+        "      - '3001:3001'",
+        '  object-storage:',
+        '    ports:',
+        '      - "9000:3900"',
+        '  clamd:',
+        '    ports:',
+        '      - 3310:3310',
+        '  gateway:',
+        '    ports:',
+        "      - '${COPALIBRE_PORT:-8080}:80'",
+        '',
+      ].join('\n');
+
+      const result = reconcileComposeContent(composeYaml, 'v1.3.0');
+
+      expect(result.loopbackPorts).toEqual(['3001:3001', '9000:3900', '3310:3310']);
+      expect(result.content).toContain("- '127.0.0.1:3001:3001'");
+      expect(result.content).toContain('- "127.0.0.1:9000:3900"');
+      expect(result.content).toContain("- '127.0.0.1:3310:3310'");
+      expect(result.content).toContain("- '${COPALIBRE_PORT:-8080}:80'");
+    });
+
+    it('is idempotent once the ports are on loopback', () => {
+      const once = reconcileComposeContent("    ports:\n      - '3002:3002'\n", 'v1.3.0');
+      const twice = reconcileComposeContent(once.content, 'v1.3.0');
+      expect(twice.content).toBe(once.content);
+      expect(twice.loopbackPorts).toEqual([]);
+    });
+
+    it('ships a compose file that publishes only the gateway on every interface', async () => {
+      const { readFile } = await import('node:fs/promises');
+      const shipped = await readFile(
+        new URL('../../../docker-compose.yml', import.meta.url),
+        'utf8',
+      );
+      const published = [...shipped.matchAll(/^\s*-\s*['"]?([^'"\s]+:\d+)['"]?\s*$/gm)]
+        .map((match) => match[1] ?? '')
+        .filter((mapping) => /^(\$\{[^}]+\}|[\d.]+:)?\d+:\d+$|^\$\{[^}]+\}:\d+$/.test(mapping));
+      const everyInterface = published.filter((mapping) => !mapping.startsWith('127.0.0.1:'));
+      expect(everyInterface).toEqual(['${COPALIBRE_PORT:-8080}:80']);
+      expect(reconcileComposeContent(shipped, 'v9.9.9').loopbackPorts).toEqual([]);
     });
   });
 
@@ -135,5 +266,38 @@ COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:1.2.1
       );
       expect(updatedMarker.version).toBe('1.3.0');
     });
+  });
+});
+
+describe('retired .env defaults', () => {
+  it('rewrite the key set URL every release before 2.0 shipped, quoted or not', () => {
+    for (const line of [
+      'COPALIBRE_JWKS_URI=http://api:3001/.well-known/jwks.json',
+      'COPALIBRE_JWKS_URI="http://api:3001/.well-known/jwks.json"',
+    ]) {
+      const result = reconcileEnvContent(`${line}\n`, '2.0.0', {});
+      expect(result.content).toBe('COPALIBRE_JWKS_URI=http://api:3001/api/auth/jwks.json\n');
+      expect(result.updatedKeys).toEqual(['COPALIBRE_JWKS_URI']);
+    }
+  });
+
+  it('keep an external identity provider key set and every other operator value', () => {
+    const env = [
+      '# operator notes',
+      'COPALIBRE_JWKS_URI=https://id.example.test/.well-known/jwks.json',
+      'COPALIBRE_EMAIL_FROM=torneos@liga.example',
+      '',
+    ].join('\n');
+    const result = reconcileEnvContent(env, '2.0.0', {});
+    expect(result.content).toBe(env);
+    expect(result.updatedKeys).toEqual([]);
+  });
+});
+
+describe('images added to an .env that had none', () => {
+  it('follow the target version, not the release that built the CLI', () => {
+    const result = reconcileEnvContent('COPALIBRE_APP_URL=http://localhost:4321\n', '2.0.0');
+    expect(result.content).toContain('COPALIBRE_IMAGE=ghcr.io/sebasoft/copalibre:2.0.0\n');
+    expect(result.content).toContain('COPALIBRE_WEB_IMAGE=ghcr.io/sebasoft/copalibre-web:2.0.0\n');
   });
 });

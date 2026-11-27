@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -89,7 +89,7 @@ async function setupMockApi(page: Page): Promise<void> {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
 
-        if (url === '/organizations?mine=true' && method === 'GET') {
+        if (url === '/api/organizations?mine=true' && method === 'GET') {
           return Response.json([
             {
               organizationId: 'org-1',
@@ -100,7 +100,7 @@ async function setupMockApi(page: Page): Promise<void> {
           ]);
         }
 
-        if (url === `/organizations/${orgAlias}` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}` && method === 'GET') {
           return Response.json({
             organizationId: 'org-1',
             alias: orgAlias,
@@ -110,7 +110,7 @@ async function setupMockApi(page: Page): Promise<void> {
           });
         }
 
-        if (url === `/organizations/${orgAlias}/tournaments` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/tournaments` && method === 'GET') {
           return Response.json([
             {
               tournamentId: 't-1',
@@ -123,7 +123,7 @@ async function setupMockApi(page: Page): Promise<void> {
         }
 
         if (
-          url === `/organizations/${orgAlias}/tournaments/${tournamentAlias}` &&
+          url === `/api/organizations/${orgAlias}/tournaments/${tournamentAlias}` &&
           method === 'GET'
         ) {
           return Response.json({
@@ -135,7 +135,7 @@ async function setupMockApi(page: Page): Promise<void> {
           });
         }
 
-        if (url.includes(`/organizations/${orgAlias}/audit-trail`) && method === 'GET') {
+        if (url.includes(`/api/organizations/${orgAlias}/audit-trail`) && method === 'GET') {
           const loaded = await (
             window as unknown as { __getAuditTrail: () => Promise<unknown> }
           ).__getAuditTrail();
@@ -165,6 +165,13 @@ async function setupMockApi(page: Page): Promise<void> {
         }
 
         if (
+          url.endsWith(`/tournaments/${tournamentAlias}/entrants/needing-abbreviation`) &&
+          method === 'GET'
+        ) {
+          return Response.json([]);
+        }
+
+        if (
           url.includes(
             `/tournaments/${tournamentAlias}/registrations/${teamEntrantId}/team-memberships`,
           ) &&
@@ -191,15 +198,18 @@ async function setupMockApi(page: Page): Promise<void> {
           });
         }
 
-        if (url.endsWith(`/organizations/${orgAlias}/clubs`) && method === 'GET') {
+        if (url.endsWith(`/api/organizations/${orgAlias}/clubs`) && method === 'GET') {
           return Response.json([]);
         }
 
-        if (url.endsWith(`/organizations/${orgAlias}/venues`) && method === 'GET') {
+        if (url.endsWith(`/api/organizations/${orgAlias}/venues`) && method === 'GET') {
           return Response.json([]);
         }
 
-        if (url.endsWith(`/organizations/${orgAlias}/officials`) && method === 'GET') {
+        if (url.endsWith(`/api/organizations/${orgAlias}/officials`) && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url.endsWith(`/api/organizations/${orgAlias}/schedules`) && method === 'GET') {
           return Response.json([]);
         }
 
@@ -239,7 +249,7 @@ async function setupMockApi(page: Page): Promise<void> {
 }
 
 test.describe('Control Panel Activity Feed and Theme Polish', () => {
-  test('5.1: populated dashboard renders "Actividad reciente" event cards with relative timestamps', async ({
+  test('populated dashboard renders "Actividad reciente" event cards with relative timestamps', async ({
     page,
   }) => {
     await setupMockApi(page);
@@ -257,14 +267,14 @@ test.describe('Control Panel Activity Feed and Theme Polish', () => {
     await expect(page.getByText('Club creado')).toBeVisible();
 
     // Verify actor tag and reason appear
-    await expect(page.getByText('user:referee-1')).toBeVisible();
+    await expect(page.getByText('Usuario')).toHaveCount(3);
     await expect(page.getByText('Inscripción confirmada')).toBeVisible();
 
     // Verify empty placeholder is NOT visible
     await expect(page.getByText('No hay actividad reciente registrada.')).toBeHidden();
   });
 
-  test('5.2: team roster role editor changes member role to Coach and renders persisted badge', async ({
+  test('team roster role editor changes member role to Coach and renders persisted badge', async ({
     page,
   }) => {
     await setupMockApi(page);
@@ -273,10 +283,10 @@ test.describe('Control Panel Activity Feed and Theme Polish', () => {
     await page.goto(loginCallbackUrl());
     await page.waitForURL(`**${target}`);
 
-    // Expand the team entrant accordion
-    const summary = page.locator('summary', { hasText: 'Boca Juniors' });
-    await expect(summary).toBeVisible();
-    await summary.click();
+    // Open the team entrant's detail row
+    const toggle = page.getByRole('button', { name: 'Mostrar detalles: Boca Juniors' });
+    await expect(toggle).toBeVisible();
+    await toggle.click();
 
     // Check initial members are displayed with Jugador badges
     await expect(page.getByText('Carlos Bianchi')).toBeVisible();
@@ -310,9 +320,10 @@ test.describe('Control Panel Activity Feed and Theme Polish', () => {
     await expect(carlosRow.getByText('Coach')).toBeVisible();
   });
 
-  test('5.3: form controls on Clubs and Venues views do not render white browser defaults', async ({
+  test('form controls on Clubs and Venues views do not render white browser defaults', async ({
     page,
   }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
     await setupMockApi(page);
 
     // 1. Check Clubs view form controls

@@ -36,37 +36,106 @@ export const COLOR_PRIMITIVES = {
   'red-500': '#EF4444',
   /** Example only. An organizer replaces it; it may never override a state token. */
   'team-accent': '#FF2E88',
+  'light-ink-950': '#E3E8EF',
+  'light-ink-900': '#F8FAFC',
+  'light-ink-930': '#EDF1F6',
+  'light-ink-850': '#D3DAE4',
+  'light-ink-700': '#8C9AB5',
+  'light-control-border': '#5B6884',
+  'light-text-950': '#05070D',
+  'light-text-900': '#263049',
+  'light-text-800': '#46536B',
+  'light-cyan-800': '#00586B',
+  'light-cyan-100': '#C4EEF8',
+  'light-amber-900': '#6B3A00',
+  'light-green-800': '#116B32',
+  'light-red-800': '#B01818',
 } as const;
 
 export type ColorPrimitive = keyof typeof COLOR_PRIMITIVES;
+export type ColorTheme = 'dark' | 'light';
 
 /**
- * Where the three brand faces come from.
+ * Where the Latin and script-specific brand faces come from: package
+ * stylesheets the generated CSS imports first, which the web build bundles and
+ * serves from the application's own origin.
  *
- * They were named in `TYPOGRAPHY` from the beginning and never loaded: no
- * `@font-face`, no link, no files. Every surface silently fell back to a system
- * sans, which is why nothing matched the identity the marketing site shows —
- * measured before this was added, all three families rendered the same string
- * at an identical width, which only happens when none of them is present.
+ * They were named in `TYPOGRAPHY` from the beginning and once never loaded at
+ * all: every surface fell back to a system sans. They then came from a
+ * third-party font host, which made every page wait on it (a hanging host
+ * timed out page loads everywhere), sent visitors' addresses to it, and left
+ * an installation with no internet egress without its faces. Nothing here may
+ * name another origin.
  *
- * `display=swap` so text is readable while the faces arrive rather than
- * invisible; the fallback stacks in `TYPOGRAPHY` are what renders until then.
+ * Each stylesheet splits its family by `unicode-range`, so a page downloads
+ * only the scripts it shows. Every face uses `font-display: swap`; the
+ * fallback stacks in `TYPOGRAPHY` render until it arrives.
  *
- * Weights are the four `FONT_WEIGHTS` defines, all of which the stylesheet
- * references: 400 as the body default, 500, 600 and 700 by name.
+ * Weights are the four `FONT_WEIGHTS` defines. Barlow has no variable build,
+ * so it takes one stylesheet per weight; the others use their variable build,
+ * one file per script covering the whole range, whose family name carries the
+ * `Variable` suffix the package declares.
  */
-export const FONT_SOURCE =
-  'https://fonts.googleapis.com/css2?' +
-  'family=Barlow:wght@400;500;600;700&' +
-  'family=Barlow+Condensed:wght@400;500;600;700&' +
-  'family=JetBrains+Mono:wght@400;500;600;700&' +
-  'display=swap';
+export const FONT_STYLESHEETS = [
+  '@fontsource/barlow/400.css',
+  '@fontsource/barlow/500.css',
+  '@fontsource/barlow/600.css',
+  '@fontsource/barlow/700.css',
+  '@fontsource/barlow-condensed/400.css',
+  '@fontsource/barlow-condensed/500.css',
+  '@fontsource/barlow-condensed/600.css',
+  '@fontsource/barlow-condensed/700.css',
+  '@fontsource-variable/jetbrains-mono/wght.css',
+  '@fontsource-variable/roboto-condensed/wght.css',
+  '@fontsource-variable/roboto/wght.css',
+  '@fontsource-variable/noto-sans-sc/wght.css',
+] as const;
 
+/**
+ * The stylesheets public pages load after their first paint rather than with the page's own
+ * stylesheet. A public page paints with two Latin faces: Barlow 400 for its text and Barlow
+ * Condensed 700 for its main heading, the largest paint. Every other weight, and JetBrains Mono,
+ * swaps in afterwards over a metric-matched fallback, so nothing moves. On the slow mobile profile
+ * the five faces a tournament overview also used cost about 130 KB before its first paint, which
+ * put the heading's paint over its budget.
+ *
+ * Noto Sans SC splits Chinese into 101 `unicode-range` faces, three fifths of the compressed
+ * stylesheet. The Cyrillic Roboto faces stay with the page: they have no metric-matched fallback,
+ * and a browser downloads them only for Cyrillic text. A page in Chinese loads every deferred face
+ * before it paints; Control, TV and help load the whole stylesheet as before.
+ */
+export const DEFERRED_PUBLIC_FONT_STYLESHEETS = [
+  '@fontsource/barlow/500.css',
+  '@fontsource/barlow/600.css',
+  '@fontsource/barlow/700.css',
+  '@fontsource/barlow-condensed/400.css',
+  '@fontsource/barlow-condensed/500.css',
+  '@fontsource/barlow-condensed/600.css',
+  '@fontsource-variable/jetbrains-mono/wght.css',
+  '@fontsource-variable/noto-sans-sc/wght.css',
+] as const satisfies readonly (typeof FONT_STYLESHEETS)[number][];
+
+/** The family each stylesheet in `FONT_STYLESHEETS` declares. */
+export const FONT_FAMILIES = [
+  'Barlow',
+  'Barlow Condensed',
+  'JetBrains Mono Variable',
+  'Roboto Condensed Variable',
+  'Roboto Variable',
+  'Noto Sans SC Variable',
+] as const;
+
+/**
+ * Each brand face is followed by its metric-matched fallback (`font-fallbacks.ts`
+ * declares those faces), so the text that paints before the brand face arrives
+ * already occupies the brand face's space.
+ */
 export const TYPOGRAPHY = {
   /** Scores, team names, ranks, state labels. Tabular figures are not optional. */
-  display: "'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif",
-  body: "'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif",
-  mono: "'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace",
+  display:
+    "'Barlow Condensed', 'Barlow Condensed Fallback', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif",
+  body: "'Barlow', 'Barlow Fallback', 'Roboto Variable', 'Noto Sans SC Variable', system-ui, -apple-system, 'Segoe UI', sans-serif",
+  mono: "'JetBrains Mono Variable', 'JetBrains Mono Fallback', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace",
 } as const;
 
 export const FONT_WEIGHTS = {
@@ -103,10 +172,27 @@ export const FONT_SIZE = {
   sm: '0.875rem',
   base: '1rem',
   md: '1.125rem',
+  lg: 'clamp(1.125rem, 1.099rem + 0.1127vw, 1.2rem)',
+  xl: 'clamp(1.266rem, 1.204rem + 0.262vw, 1.44rem)',
+  '2xl': 'clamp(1.424rem, 1.317rem + 0.457vw, 1.728rem)',
+  '3xl': 'clamp(1.602rem, 1.436rem + 0.7088vw, 2.074rem)',
+} as const;
+
+/** Fixed sizes for scores and other values that update while someone reads them. */
+export const FIGURE_SIZE = {
   lg: '1.25rem',
   xl: '1.5rem',
   '2xl': '1.875rem',
-  '3xl': '2.25rem',
+} as const;
+
+/** Line-height ratios for the typography roles documented in DESIGN.md. */
+export const LINE_HEIGHT = {
+  display: '1.1',
+  headline: '1.2',
+  title: '1.3',
+  body: '1.5',
+  label: '1.4',
+  figure: '1.2',
 } as const;
 
 /**
@@ -119,6 +205,27 @@ export const BREAKPOINTS = {
   lg: '1024px',
   xl: '1440px',
 } as const;
+
+/** Shared icon geometry for both React components and build-time Astro SVGs. */
+export const ICON_TOKENS = {
+  size: { inline: 16, control: 20, header: 24 },
+  stroke: 1.5,
+  tablerOpticalScale: 1.1,
+} as const;
+
+/** Fixed data-series order; theme variants stay inside plot areas only. */
+export const CHART_TOKENS = {
+  series: {
+    '1': { dark: '#796CE0', light: '#6351CA' },
+    '2': { dark: '#00D4FF', light: '#0094C3' },
+    '3': { dark: '#11A68B', light: '#007E57' },
+    '4': { dark: '#FF9C1E', light: '#CF7100' },
+    '5': { dark: '#C959A9', light: '#B43694' },
+  },
+  other: { dark: '#8C9AB5', light: '#46536B' },
+} as const;
+
+export type ChartTheme = keyof typeof CHART_TOKENS.other;
 
 /**
  * A 4px scale.
@@ -141,6 +248,26 @@ export const SPACING = {
   '16': '64px',
 } as const;
 
+/** Page and control containers share widths and responsive gutters in rem. */
+export const LAYOUT_TOKENS = {
+  container: {
+    public: '75rem',
+    reading: '45rem',
+    control: '90rem',
+    form: '45rem',
+  },
+  gutter: {
+    sm: '1rem',
+    md: '1.5rem',
+    lg: '2rem',
+  },
+  split: {
+    'main-rail': 'minmax(0, 8fr) minmax(0, 4fr)',
+    'chart-panel': 'minmax(0, 7fr) minmax(0, 5fr)',
+    'media-form': 'minmax(0, 4fr) minmax(0, 8fr)',
+  },
+} as const;
+
 export const RADIUS = {
   none: '0',
   sm: '2px',
@@ -151,7 +278,7 @@ export const RADIUS = {
    * that literal was the only value it ever had.
    */
   lg: '8px',
-  /** The chamfer's cut, not a corner radius: see `generate/css.ts`. */
+  /** The chamfer's cut, not a corner radius: see `generate/css/geometry.ts`. */
   chamfer: '14px',
   'chamfer-control': '8px',
   /** Same cut size as `chamfer` — the framed-image border matches it visually. */
@@ -171,6 +298,8 @@ export const MOTION = {
   fast: '120ms',
   base: '200ms',
   slow: '320ms',
+  flash: '600ms',
+  pulse: '2000ms',
   easing: 'cubic-bezier(0.2, 0, 0, 1)',
 } as const;
 

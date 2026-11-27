@@ -70,4 +70,49 @@ describe('probeDataIntegrity (integration)', () => {
       status: 'completed',
     });
   });
+
+  it('finds an organization that holds a reserved alias, which still loads', async () => {
+    // The repository refuses a reserved alias now, so this row stands for an
+    // organization created before the name joined the list.
+    const reservedId = newId();
+    await scratch.db
+      .insertInto('organizations')
+      .values({
+        organization_id: reservedId,
+        alias: 'platform',
+        name: 'Plataforma Deportiva',
+        primary_language: 'es',
+        timezone: 'America/Argentina/Buenos_Aires',
+        emblem_object_id: null,
+        created_at: new Date(),
+      })
+      .execute();
+    const snapshot = await probeDataIntegrity(scratch.db);
+    expect(snapshot.reservedAliasOrganizations).toEqual([
+      { organizationId: reservedId, alias: 'platform', name: 'Plataforma Deportiva' },
+    ]);
+    const loaded = await new OrganizationRepository(scratch.db).findByAlias('platform');
+    expect(loaded?.organizationId).toBe(reservedId);
+  });
+
+  it('finds an organization whose stored time zone the runtime does not know', async () => {
+    // The API refuses an unknown zone now, so this row stands for one stored before it did.
+    const organizationId = newId();
+    await scratch.db
+      .insertInto('organizations')
+      .values({
+        organization_id: organizationId,
+        alias: 'zona-rota',
+        name: 'Zona Rota',
+        primary_language: 'es',
+        timezone: 'Not/A_Zone',
+        emblem_object_id: null,
+        created_at: new Date(),
+      })
+      .execute();
+    const snapshot = await probeDataIntegrity(scratch.db);
+    expect(snapshot.unknownTimeZoneOrganizations).toEqual([
+      { organizationId, alias: 'zona-rota', name: 'Zona Rota', timezone: 'Not/A_Zone' },
+    ]);
+  });
 });

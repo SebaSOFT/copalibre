@@ -4,8 +4,15 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
+import {
+  extractAccessToken,
+  PERSONAL_ACCESS_TOKEN_PREFIX,
+  sessionCookieConfigFromEnv,
+  type SessionCookieConfig,
+} from '@copalibre/auth';
 import { Reflector } from '@nestjs/core';
 import {
   PLANE_REQUIRED_SCOPES,
@@ -19,6 +26,9 @@ import { REQUIRED_SCOPES_KEY } from './required-scopes.js';
 import { PersonalAccessTokenRepository, hashToken, type Database } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { DATABASE } from '../database.token.js';
+import { SESSION_COOKIE_CONFIG } from './session-cookie-config.js';
+
+export { extractBearerToken } from '@copalibre/auth';
 
 /**
  * Authentication only: is this token valid, and does the subject hold the coarse
@@ -34,6 +44,9 @@ export class JwtAuthGuard implements CanActivate {
     @Inject(Reflector) private readonly reflector: Reflector,
     @Inject(TokenVerifier) private readonly verifier: TokenVerifier,
     @Inject(DATABASE) private readonly db: Kysely<Database>,
+    @Optional()
+    @Inject(SESSION_COOKIE_CONFIG)
+    private readonly cookieConfig: SessionCookieConfig = sessionCookieConfigFromEnv(),
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -44,16 +57,17 @@ export class JwtAuthGuard implements CanActivate {
       ]) ?? 'admin-control';
 
     const request = context.switchToHttp().getRequest<RequestWithSubject>();
-    const token = extractBearerToken(request);
-    if (!token) {
+    const extracted = extractAccessToken(request, this.cookieConfig);
+    if (!extracted) {
       if (!planeRequiresAuthentication(plane)) {
         return true;
       }
       throw new UnauthorizedException('Missing bearer token');
     }
+    const { token, source } = extracted;
 
     let subject;
-    if (token.startsWith('clpat_')) {
+    if (token.startsWith(PERSONAL_ACCESS_TOKEN_PREFIX)) {
       try {
         subject = await this.verifyPat(token);
       } catch (err) {
@@ -89,6 +103,8 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     request.subject = subject;
+    request.authSource = source;
+    request.accessToken = token;
     return true;
   }
 
@@ -122,21 +138,4 @@ export class JwtAuthGuard implements CanActivate {
       principalId: scope.principalId,
     };
   }
-}
-
-/**
- * Header-only extraction. A token in the query string is ignored on purpose —
- * "Never place an access or refresh token in an SSE URL query string. URLs leak
- * into proxy logs, browser history, metrics, traces, screenshots, and error
- * reports." A caller who passes `?access_token=` is therefore unauthenticated.
- */
-export function extractBearerToken(request: RequestWithSubject): string | undefined {
-  const header = request.headers.authorization ?? request.headers.Authorization;
-  const value = Array.isArray(header) ? header[0] : header;
-  if (typeof value !== 'string') return undefined;
-
-  const [scheme, token, ...rest] = value.split(' ');
-  if (rest.length > 0) return undefined;
-  if (scheme?.toLowerCase() !== 'bearer') return undefined;
-  return token && token.length > 0 ? token : undefined;
 }

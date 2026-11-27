@@ -4,7 +4,7 @@ import type {
   MutationClass,
   RulesetConfig,
 } from '@copalibre/domain';
-import { Ajv } from 'ajv';
+import { Validator, type Schema } from '@cfworker/json-schema';
 import { renderTemplate } from '@copalibre/rules';
 import type { MessageDescriptor } from 'react-intl';
 import { messages } from '../i18n/messages.en.js';
@@ -21,7 +21,7 @@ import {
   type StageSeriesDraft,
   type WizardStageDraft,
 } from './stage-authoring.js';
-import { nextStepId, previousStepId, stepProgress } from './wizard-steps.js';
+import { nextStepId, previousStepId } from './wizard-steps.js';
 
 export {
   appendStage,
@@ -59,13 +59,14 @@ export {
  */
 
 export type WizardStepId =
-  'name' | 'discipline' | 'format' | 'ruleset' | 'rules' | 'window' | 'summary';
+  'name' | 'privacy' | 'discipline' | 'format' | 'ruleset' | 'rules' | 'window' | 'summary';
 
 export const WIZARD_STEPS: readonly {
   readonly id: WizardStepId;
   readonly label: MessageDescriptor;
 }[] = [
   { id: 'name', label: messages.wizardStepName },
+  { id: 'privacy', label: messages.wizardStepPrivacy },
   { id: 'discipline', label: messages.wizardStepDiscipline },
   { id: 'format', label: messages.wizardStepFormat },
   { id: 'ruleset', label: messages.wizardStepRuleset },
@@ -133,6 +134,8 @@ export interface WizardState {
   readonly publicRegistration: boolean;
   readonly requiresCheckIn: boolean;
   readonly checkInClosesAt?: string;
+  /** Explicit organizer choice; undefined until the privacy-step question is answered. */
+  readonly includesMinors?: boolean;
   /** Dot-path → value for a discipline-declared ruleset field beyond format/registration.*. */
   readonly ruleOverrides: Readonly<Record<string, unknown>>;
   readonly customRuleEnabled: boolean;
@@ -235,6 +238,8 @@ export function stepProblems(
           ? [messages.wizardProblemAliasFormat]
           : []),
       ];
+    case 'privacy':
+      return state.includesMinors === undefined ? [messages.wizardProblemChooseMinors] : [];
     case 'discipline':
       return state.descriptorId === undefined ? [messages.wizardProblemChooseDiscipline] : [];
     case 'format': {
@@ -295,8 +300,10 @@ export function previousStep(state: WizardState): WizardStepId {
   return previousStepId(WIZARD_STEPS, state.step);
 }
 
-export function progress(state: WizardState): number {
-  return stepProgress(WIZARD_STEPS, state.step);
+export function progress(state: WizardState, currentStepComplete: boolean): number {
+  const currentStepIndex = WIZARD_STEPS.findIndex((step) => step.id === state.step);
+  const completedSteps = currentStepIndex + Number(currentStepComplete);
+  return Math.round((completedSteps / WIZARD_STEPS.length) * 100);
 }
 
 /**
@@ -314,6 +321,7 @@ export function toCreateRequest(
     state.name === undefined ||
     state.descriptorId === undefined ||
     state.descriptorVersion === undefined ||
+    state.includesMinors === undefined ||
     state.stages.length === 0
   ) {
     throw new Error('The wizard is not complete');
@@ -326,6 +334,7 @@ export function toCreateRequest(
     stages: state.stages.map(stageRequestFrom),
     publicRegistration: state.publicRegistration,
     requiresCheckIn: state.requiresCheckIn,
+    includesMinors: state.includesMinors,
     ...(state.checkInClosesAt !== undefined && state.checkInClosesAt.trim() !== ''
       ? { checkInClosesAt: state.checkInClosesAt }
       : {}),
@@ -556,7 +565,25 @@ export function removeCustomRule(state: WizardState, index: number): WizardState
   return { ...state, customRules: state.customRules.filter((_, candidate) => candidate !== index) };
 }
 
-const schemaValidator = new Ajv({ allErrors: true, strict: false });
+/**
+ * Validates operator input against the JSON Schemas a module declares. An
+ * interpreting validator, not a compiling one: Ajv generates code with
+ * `new Function`, which the Content Security Policy forbids (no
+ * `unsafe-eval`). Draft 7 matches the schemas the modules publish. One
+ * validator per schema object, since the vocabulary is fixed per session.
+ */
+const schemaValidators = new WeakMap<object, Validator>();
+
+function matchesSchema(schema: unknown, value: unknown): boolean {
+  if (typeof schema === 'boolean') return schema;
+  if (schema === null || typeof schema !== 'object') return true;
+  let validator = schemaValidators.get(schema);
+  if (!validator) {
+    validator = new Validator(schema as Schema, '7', false);
+    schemaValidators.set(schema, validator);
+  }
+  return validator.validate(value).valid;
+}
 
 function invalidAuthoringInput(
   kind: 'condition' | 'action',
@@ -568,17 +595,14 @@ function invalidAuthoringInput(
     const raw = draft.values[parameterValueKey(kind, entry.type, parameter.name)] ?? '';
     if (raw.trim() === '') return parameter.required;
     if (parameter.allowExpression && /\{\{.+\}\}/.test(raw)) return false;
-    return !schemaValidator.validate(
-      parameter.valueSchema,
-      valueFromSchema(raw, parameter.valueSchema),
-    );
+    return !matchesSchema(parameter.valueSchema, valueFromSchema(raw, parameter.valueSchema));
   });
   if (invalidParameter) return true;
   const optionsSchema = entry.authoring?.optionsSchema;
   if (!optionsSchema) return false;
   try {
     const options = JSON.parse(draft.options[elementOptionsKey(kind, entry.type)] ?? '{}');
-    return !schemaValidator.validate(optionsSchema, options);
+    return !matchesSchema(optionsSchema, options);
   } catch {
     return true;
   }

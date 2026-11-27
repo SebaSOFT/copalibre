@@ -21,7 +21,11 @@ import { DomainError } from '../errors.js';
  */
 
 export type ConflictKind =
-  'venue-double-booked' | 'official-double-booked' | 'rest-rule' | 'match-finalized';
+  | 'venue-double-booked'
+  | 'official-double-booked'
+  | 'rest-rule'
+  | 'match-finalized'
+  | 'match-in-progress';
 
 export interface ScheduleConflict {
   readonly kind: ConflictKind;
@@ -46,7 +50,7 @@ export class ScheduleConflictError extends DomainError {
   }
 }
 
-/** A rest rule as the discipline or profile configures it. */
+/** A rest rule as a tournament declares it. */
 export interface RestRule {
   /** Minimum minutes between an entrant's consecutive matches. */
   readonly minimumMinutes: number;
@@ -56,6 +60,8 @@ export interface SlotInfo {
   readonly slotId: string;
   readonly venueId: string;
   readonly window: TimeWindow;
+  /** Minutes the venue stays held after a match here ends: its schedule's changeover. */
+  readonly changeoverMinutes?: number;
 }
 
 export interface ScheduleContext {
@@ -66,9 +72,21 @@ export interface ScheduleContext {
   /** Which entrants play which match — a rest rule is about people, not slots. */
   readonly entrantsByMatch: ReadonlyMap<string, readonly string[]>;
   readonly venues: ReadonlyMap<string, Venue>;
-  readonly restRule?: RestRule;
-  /** Matches whose result has already finalized — a fact now, not a plan. */
-  readonly finalizedMatchIds?: ReadonlySet<string>;
+  /**
+   * Each match's tournament minimum rest, in minutes. A match absent here belongs to a
+   * tournament declaring none. Two matches compare under the stricter of their two rules.
+   */
+  readonly restMinutesByMatch?: ReadonlyMap<string, number>;
+  /**
+   * How long each placed match occupies its entrants, officials and venue
+   * (`estimatedMatchMinutes`). A match absent here occupies its slot's length.
+   */
+  readonly occupancyMinutesByMatch?: ReadonlyMap<string, number>;
+  /**
+   * Matches whose schedule can no longer change: a finalized result is a fact, and a match in
+   * progress is being played where and when it is.
+   */
+  readonly lockedMatches?: ReadonlyMap<string, 'finalized' | 'in-progress'>;
 }
 
 /**
@@ -83,8 +101,13 @@ export interface ScheduleContext {
 export function detectConflicts(
   proposed: readonly ResourceAssignment[],
   context: ScheduleContext,
+  /** Matches the batch withdraws from their slots: refused when locked, and no longer in anyone's way. */
+  withdrawn: readonly string[] = [],
 ): readonly ScheduleConflict[] {
-  const conflicts: ScheduleConflict[] = [];
+  const conflicts: ScheduleConflict[] = withdrawn.flatMap((matchId) =>
+    lockedMatchClash(matchId, context),
+  );
+  const freed = new Set([...withdrawn, ...proposed.map((assignment) => assignment.matchId)]);
 
   for (const [index, assignment] of proposed.entries()) {
     const slot = context.slots.get(assignment.slotId);
@@ -114,22 +137,25 @@ export function detectConflicts(
     // A finalized match's schedule is a record, not a plan — the preview and
     // the commit must refuse it the same way they refuse a double-booking, so
     // this rides the same conflict list rather than a separate check.
-    conflicts.push(...matchFinalizedClash(assignment, context));
+    conflicts.push(...lockedMatchClash(assignment.matchId, context));
 
     // Committed assignments, then the rest of this batch — a match never
-    // conflicts with its own earlier version within one publish.
+    // conflicts with its own earlier version within one publish, and a match
+    // this batch moves or withdraws no longer holds its old slot.
     const others = [
-      ...context.existing.filter((other) => other.matchId !== assignment.matchId),
+      ...context.existing.filter((other) => !freed.has(other.matchId)),
       ...proposed.slice(index + 1),
     ];
 
     conflicts.push(...venueClash(assignment, slot, others, context));
 
+    const occupied = occupancyOf(assignment.matchId, slot, context);
     for (const other of others) {
       const otherSlot = context.slots.get(other.slotId);
       if (!otherSlot) continue;
-      conflicts.push(...officialClash(assignment, slot, other, otherSlot));
-      conflicts.push(...restClash(assignment, slot, other, otherSlot, context));
+      const otherOccupied = occupancyOf(other.matchId, otherSlot, context);
+      conflicts.push(...officialClash(assignment, occupied, other, otherOccupied));
+      conflicts.push(...restClash(assignment, occupied, other, otherOccupied, context));
     }
   }
 
@@ -137,27 +163,54 @@ export function detectConflicts(
 }
 
 /**
+ * The window a placed match occupies: its slot's start plus its estimated duration, or the
+ * slot's own length when the discipline gives no estimate.
+ */
+export function occupancyOf(matchId: string, slot: SlotInfo, context: ScheduleContext): TimeWindow {
+  return {
+    startsAt: slot.window.startsAt,
+    durationMinutes: context.occupancyMinutesByMatch?.get(matchId) ?? slot.window.durationMinutes,
+  };
+}
+
+/** The window a match holds its venue for: its occupancy plus the schedule's changeover. */
+function venueHoldOf(matchId: string, slot: SlotInfo, context: ScheduleContext): TimeWindow {
+  const occupied = occupancyOf(matchId, slot, context);
+  return {
+    ...occupied,
+    durationMinutes: occupied.durationMinutes + (slot.changeoverMinutes ?? 0),
+  };
+}
+
+/**
  * A finalized match's schedule row is a fact, not a plan. Rescheduling it here
  * would silently move the record of when and where a concluded match was
  * played — the audited correction workflow exists precisely so that never
- * happens without an actor, a reason, and a trace.
+ * happens without an actor, a reason, and a trace. A match in progress is
+ * refused the same way: it is being played where and when it is.
  */
-function matchFinalizedClash(
-  assignment: ResourceAssignment,
-  context: ScheduleContext,
-): readonly ScheduleConflict[] {
-  if (!context.finalizedMatchIds?.has(assignment.matchId)) return [];
+function lockedMatchClash(matchId: string, context: ScheduleContext): readonly ScheduleConflict[] {
+  const lock = context.lockedMatches?.get(matchId);
+  if (lock === undefined) return [];
 
   return [
-    {
-      kind: 'match-finalized',
-      matchId: assignment.matchId,
-      conflictsWithMatchId: assignment.matchId,
-      resourceId: assignment.matchId,
-      detail:
-        `Match "${assignment.matchId}" has already been finalized; its schedule is a ` +
-        'record now — use the audited correction workflow, not a new publish',
-    },
+    lock === 'finalized'
+      ? {
+          kind: 'match-finalized',
+          matchId,
+          conflictsWithMatchId: matchId,
+          resourceId: matchId,
+          detail:
+            `Match "${matchId}" has already been finalized; its schedule is a ` +
+            'record now — use the audited correction workflow, not a new publish',
+        }
+      : {
+          kind: 'match-in-progress',
+          matchId,
+          conflictsWithMatchId: matchId,
+          resourceId: matchId,
+          detail: `Match "${matchId}" is in progress; it cannot be moved or withdrawn while it is played`,
+        },
   ];
 }
 
@@ -175,12 +228,16 @@ function venueClash(
 ): readonly ScheduleConflict[] {
   const venueId = slot.venueId;
   const capacity = context.venues.get(venueId)?.concurrentCapacity ?? 1;
+  const held = venueHoldOf(assignment.matchId, slot, context);
 
   const concurrent: Array<{ assignment: ResourceAssignment; slot: SlotInfo }> = [];
   for (const other of others) {
     const otherSlot = context.slots.get(other.slotId);
     if (!otherSlot) continue;
-    if (otherSlot.venueId === venueId && overlaps(slot.window, otherSlot.window)) {
+    if (
+      otherSlot.venueId === venueId &&
+      overlaps(held, venueHoldOf(other.matchId, otherSlot, context))
+    ) {
       concurrent.push({ assignment: other, slot: otherSlot });
     }
   }
@@ -208,11 +265,11 @@ function venueClash(
  */
 function officialClash(
   assignment: ResourceAssignment,
-  slot: SlotInfo,
+  occupied: TimeWindow,
   other: ResourceAssignment,
-  otherSlot: SlotInfo,
+  otherOccupied: TimeWindow,
 ): readonly ScheduleConflict[] {
-  if (!overlaps(slot.window, otherSlot.window)) return [];
+  if (!overlaps(occupied, otherOccupied)) return [];
 
   const shared = (assignment.officialIds ?? []).filter((officialId) =>
     (other.officialIds ?? []).includes(officialId),
@@ -232,23 +289,29 @@ function officialClash(
 /**
  * Rest is about an entrant, not a slot: the same team playing twice in twenty
  * minutes is the problem, wherever those matches are and whoever officiates.
+ * Rest runs from one match's estimated end to the next one's start, under the
+ * stricter of the two matches' tournament rules.
  */
 function restClash(
   assignment: ResourceAssignment,
-  slot: SlotInfo,
+  occupied: TimeWindow,
   other: ResourceAssignment,
-  otherSlot: SlotInfo,
+  otherOccupied: TimeWindow,
   context: ScheduleContext,
 ): readonly ScheduleConflict[] {
-  const rule = context.restRule;
-  if (!rule) return [];
+  const rules = [
+    context.restMinutesByMatch?.get(assignment.matchId),
+    context.restMinutesByMatch?.get(other.matchId),
+  ].filter((minutes): minutes is number => minutes !== undefined);
+  if (rules.length === 0) return [];
+  const rule: RestRule = { minimumMinutes: Math.max(...rules) };
 
   const here = context.entrantsByMatch.get(assignment.matchId) ?? [];
   const there = context.entrantsByMatch.get(other.matchId) ?? [];
   const shared = here.filter((entrantId) => there.includes(entrantId));
   if (shared.length === 0) return [];
 
-  const gap = gapMinutes(slot.window, otherSlot.window);
+  const gap = gapMinutes(occupied, otherOccupied);
   if (gap >= rule.minimumMinutes) return [];
 
   return shared.map((entrantId) => ({
@@ -256,7 +319,7 @@ function restClash(
     matchId: assignment.matchId,
     conflictsWithMatchId: other.matchId,
     resourceId: entrantId,
-    detail: overlaps(slot.window, otherSlot.window)
+    detail: overlaps(occupied, otherOccupied)
       ? `Entrant "${entrantId}" would play "${assignment.matchId}" and "${other.matchId}" at the same time`
       : `Entrant "${entrantId}" gets ${gap} minute(s) between "${assignment.matchId}" and ` +
         `"${other.matchId}"; ${rule.minimumMinutes} are required`,

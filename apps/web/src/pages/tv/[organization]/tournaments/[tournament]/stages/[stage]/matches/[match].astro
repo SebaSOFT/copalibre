@@ -5,7 +5,8 @@ import {
   tvDashboardLabels,
   tvStatisticsLabels,
 } from '../../../../../../../../lib/i18n/public-intl.ts';
-import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import { loadTvLanguage } from '../../../../../../../../lib/tv-language.ts';
+import { messages } from '../../../../../../../../lib/i18n/public-messages.en.ts';
 import { TvDashboard } from '../../../../../../../../components/tv/TvDashboard.tsx';
 import { tvStreamPath } from '@copalibre/routing';
 import { sampleDashboard } from '../../../../../../../../lib/live-sample.ts';
@@ -21,6 +22,8 @@ import {
   mapBracketResponse,
   clubEmblemUrl,
   tournamentEmblemUrl,
+  fetchPublicTableLayouts,
+  fetchPublicTableProjection,
 } from '../../../../../../../../lib/public-api-client.ts';
 import {
   buildActorDirectory,
@@ -42,6 +45,11 @@ import { winnerZonesOf } from '../../../../../../../../lib/tv-winners.ts';
 import { bracketZonesOf } from '../../../../../../../../lib/bracket.ts';
 import type { BracketZone } from '../../../../../../../../lib/bracket-projection.ts';
 import { TV_BACKGROUNDS, type TvBackground } from '../../../../../../../../lib/tv-background.ts';
+import {
+  tvMatchEntriesOfView,
+  tvMatchLabelTextOf,
+  type TvMatchEntry,
+} from '../../../../../../../../lib/tv-match-list.ts';
 
 export const prerender = false;
 
@@ -52,6 +60,9 @@ const stageNumber = Number(stage ?? '1');
 // Named the way the public match route names it: by its ordinal within the stage.
 const matchOrdinal = Number(match ?? '1');
 const streamPath = tvStreamPath({ organizationAlias, tournamentAlias });
+/* Same query-param language the tournament kiosk takes; TV routes carry no locale segment. */
+const language = await loadTvLanguage(Astro.url.searchParams.get('lang'), organizationAlias);
+const intl = publicIntl(language);
 
 // Reuses the same fetch the public match report page makes (`fetchMatchReport`) — a second
 // consumer of that data, not a new endpoint. Kept in its own guard, same
@@ -59,6 +70,7 @@ const streamPath = tvStreamPath({ organizationAlias, tournamentAlias });
 // only the event ticker, never replace the whole live dashboard with sample data.
 let matchEvents: readonly TvMatchEvent[] = [];
 let pinnedSegments: PublicMatchReportResponse['segments'];
+let pinnedReport: PublicMatchReportResponse | undefined;
 let rosterActors: Readonly<Record<string, string>> = {};
 try {
   const report = await fetchMatchReport(
@@ -68,7 +80,12 @@ try {
     matchOrdinal,
   );
   if (report) {
-    matchEvents = buildTvMatchEvents(report);
+    pinnedReport = report;
+    matchEvents = buildTvMatchEvents(
+      report,
+      intl.formatMessage(messages.personHiddenAtRequest),
+      language,
+    );
     // Resolves a *live* event's actor the same way the initial
     // timeline above already resolves one, for `BroadcastAlertBanner`.
     rosterActors = buildActorDirectory(report.rosters);
@@ -83,8 +100,9 @@ let dashboard: LiveDashboard = {
   standingsVersion: 0,
   usingLastKnown: true,
 };
-let tournamentName = tournamentAlias;
-let organizationName = organizationAlias;
+let tournamentName: string | undefined;
+let organizationName: string | undefined;
+let standingsStageNumber: number | undefined;
 let tournamentEmblem: string | undefined;
 let clubs: { name: string; emblemUrl?: string }[] = [];
 let winnerZones: readonly TvWinnerZone[] = [];
@@ -102,21 +120,24 @@ try {
   ]);
 
   if (overview) {
-    const mappedOverview = mapOverviewResponse(overview);
+    const mappedOverview = mapOverviewResponse(overview, language);
     disciplineImages = overview.disciplineImages;
-    tournamentName = mappedOverview.tournamentName || tournamentAlias;
-    organizationName = mappedOverview.organizationName || organizationAlias;
+    tournamentName = mappedOverview.tournamentName || undefined;
+    organizationName = mappedOverview.organizationName || undefined;
     if (mappedOverview.emblemObjectId) {
       tournamentEmblem = tournamentEmblemUrl(organizationAlias, tournamentAlias);
     }
-    winnerZones = winnerZonesOf(organizationAlias, mappedOverview.winners);
+    winnerZones = winnerZonesOf(organizationAlias, mappedOverview.winners, language);
     if (mappedOverview.clubs) {
       clubs = mappedOverview.clubs.map((c) => ({
+        clubId: c.clubId,
         name: c.name,
+        ...(c.abbreviation === undefined ? {} : { abbreviation: c.abbreviation }),
         ...(c.emblemObjectId ? { emblemUrl: clubEmblemUrl(organizationAlias, c.clubId) } : {}),
       }));
     }
     standings = mappedOverview.standings ? [...mappedOverview.standings] : [];
+    standingsStageNumber = mappedOverview.standingsStageNumber;
     organizationTimeZone = mappedOverview.organizationTimeZone;
     overviewLastMatchAt = lastMatchAt(mappedOverview.matches);
 
@@ -143,14 +164,32 @@ try {
   the match, is fresher and is left as it is. The series it belongs to comes from the matches view of
   its stage, in its own guard so that a failure costs the series indication and nothing else.
 */
-if (pinnedSegments !== undefined) {
+if (pinnedSegments !== undefined || pinnedReport !== undefined) {
   dashboard = {
     ...dashboard,
     matches: dashboard.matches.map((candidate) =>
-      candidate.stageNumber === stageNumber &&
-      candidate.stageOrdinal === matchOrdinal &&
-      candidate.segments === undefined
-        ? { ...candidate, segments: pinnedSegments }
+      candidate.stageNumber === stageNumber && candidate.stageOrdinal === matchOrdinal
+        ? {
+            ...candidate,
+            ...(candidate.segments === undefined && pinnedSegments !== undefined
+              ? { segments: pinnedSegments }
+              : {}),
+            ...(pinnedReport?.stageName === undefined
+              ? {}
+              : { stageName: candidate.stageName ?? pinnedReport.stageName }),
+            ...(pinnedReport?.zoneName === undefined
+              ? {}
+              : { zoneName: candidate.zoneName ?? pinnedReport.zoneName }),
+            ...(pinnedReport?.groupName === undefined
+              ? {}
+              : { groupName: candidate.groupName ?? pinnedReport.groupName }),
+            ...(pinnedReport?.round === undefined
+              ? {}
+              : { round: candidate.round ?? pinnedReport.round }),
+            ...(pinnedReport?.nodeKey === undefined
+              ? {}
+              : { nodeKey: candidate.nodeKey ?? pinnedReport.nodeKey }),
+          }
         : candidate,
     ),
   };
@@ -160,9 +199,11 @@ try {
   const view = await fetchMatchesView(organizationAlias, tournamentAlias, { stageNumber });
   if (view) {
     seriesByMatchId = Object.fromEntries(
-      mapMatchesViewResponse(view).matches.flatMap((row) =>
-        row.series === undefined ? [] : [[row.matchId, row.series]],
-      ),
+      mapMatchesViewResponse(
+        view,
+        intl.formatMessage(messages.personHiddenAtRequest),
+        language,
+      ).matches.flatMap((row) => (row.series === undefined ? [] : [[row.matchId, row.series]])),
     );
   }
 } catch {
@@ -176,68 +217,134 @@ try {
  */
 const modeParam = Astro.url.searchParams.get('mode');
 const overlayMode =
-  modeParam === 'overlay' || modeParam === 'overlay-lower'
-    ? 'lower'
-    : modeParam === 'overlay-full'
-      ? 'full'
-      : undefined;
+  modeParam === 'overlay' || modeParam === 'overlay-scorebug'
+    ? 'scorebug'
+    : modeParam === 'overlay-lower'
+      ? 'lower'
+      : modeParam === 'overlay-full'
+        ? 'full'
+        : undefined;
 const chromaKey = Astro.url.searchParams.get('chroma') ?? undefined;
 const requestedBackground =
   Astro.url.searchParams.get('bg') ?? Astro.url.searchParams.get('background');
 const background = TV_BACKGROUNDS.find((value) => value === requestedBackground) as
   TvBackground | undefined;
 const presentation = overlayMode ?? 'kiosk';
+const layoutParam = Astro.url.searchParams.get('layout');
+const layoutVariant =
+  layoutParam === 'presentation' || layoutParam === 'dashboard' ? layoutParam : 'kiosk';
 
+// The bracket of the pinned match's stage: it names the match's overall place, as the tournament route does.
 let initialBracket: { stageNumber: number; zones: readonly BracketZone[] } | undefined;
-if (presentation !== 'lower') {
+try {
+  const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, stageNumber);
+  if (rawBracket) {
+    const mapped = mapBracketResponse(rawBracket, intl.formatMessage(messages.resultStateTbd));
+    const zones = bracketZonesOf(mapped);
+    if (zones.length > 0) {
+      initialBracket = { stageNumber, zones };
+    }
+  }
+} catch {
+  // A bracket outage does not affect the pinned match or event ticker.
+}
+
+/*
+ * The featured performers come from the tournament's declared player-ranking layout, the same source
+ * the tournament route reads, so both routes rank the same players. In its own guard: a failure
+ * costs the performers tab, and the tab falls back to ranking teams.
+ */
+let performerProjection: Awaited<ReturnType<typeof fetchPublicTableProjection>> | undefined;
+try {
+  const layouts = await fetchPublicTableLayouts(organizationAlias, tournamentAlias);
+  const performerLayout = (layouts?.layouts ?? []).find((one) => one.target === 'player-ranking');
+  if (performerLayout) {
+    performerProjection = await fetchPublicTableProjection(
+      organizationAlias,
+      tournamentAlias,
+      performerLayout.code,
+    );
+  }
+} catch {
+  performerProjection = undefined;
+}
+
+/*
+  The matches view names the pinned match's competition and round, and its court, for the lower third
+  and the scorebug. A failure costs those two labels, never the match.
+*/
+let matchList: readonly TvMatchEntry[] = [];
+let venueNameByMatchId: Record<string, string> = {};
+// Overlays and the full-frame layouts name courts and competitions from the matches view; only the plain
+// pinned kiosk shows neither, so only it skips the tournament's whole matches view.
+if (presentation !== 'kiosk' || layoutVariant !== 'kiosk') {
   try {
-    const rawBracket = await fetchBracket(organizationAlias, tournamentAlias, stageNumber);
-    if (rawBracket) {
-      const mapped = mapBracketResponse(rawBracket);
-      const zones = bracketZonesOf(mapped);
-      if (zones.length > 0) {
-        initialBracket = { stageNumber, zones };
-      }
+    const view = await fetchMatchesView(organizationAlias, tournamentAlias, { state: 'all' });
+    if (view) {
+      const rows = mapMatchesViewResponse(
+        view,
+        intl.formatMessage(messages.personHiddenAtRequest),
+        language,
+      ).matches;
+      venueNameByMatchId = Object.fromEntries(
+        rows.flatMap((row) => (row.venueName === undefined ? [] : [[row.matchId, row.venueName]])),
+      );
+      matchList = tvMatchEntriesOfView(
+        rows,
+        tvMatchLabelTextOf(tvDashboardLabels(intl)),
+        initialBracket,
+        Date.now(),
+      );
     }
   } catch {
-    // A bracket outage does not affect the pinned match or event ticker.
+    // No competition label and no court name is a degraded overlay, not a broken one.
   }
 }
 
-/* Same query-param language the tournament kiosk takes; TV routes carry no locale segment. */
-const langParam = Astro.url.searchParams.get('lang');
-const language: SupportedLanguage = isSupportedLanguage(langParam) ? langParam : 'en';
+const referenceDate = Date.now();
+const tournamentDisplayName = tournamentName ?? intl.formatMessage(messages.pageHeaderLoading);
+const organizationDisplayName = organizationName ?? intl.formatMessage(messages.pageHeaderLoading);
 ---
 
 <TvLayout
-  title={`TV — ${tournamentName} — Partido ${matchOrdinal}`}
+  language={language}
+  title={`TV — ${tournamentDisplayName} — Partido ${matchOrdinal}`}
   overlayMode={overlayMode}
   chromaKey={chromaKey}
   background={background}
   disciplineImages={disciplineImages}
 >
+  <h1 aria-busy={!tournamentName ? 'true' : undefined} class="cl-visually-hidden">
+    {tournamentDisplayName}
+  </h1>
   <TvDashboard
-    labels={tvStatisticsLabels(publicIntl(language))}
-    dashboardLabels={tvDashboardLabels(publicIntl(language))}
+    labels={tvStatisticsLabels(intl)}
+    dashboardLabels={tvDashboardLabels(intl)}
     language={language}
     client:load
     presentation={presentation}
+    layoutVariant={layoutVariant}
     initial={dashboard}
     initialBracket={initialBracket}
+    performerProjection={performerProjection}
     streamPath={streamPath}
     branding={tournamentEmblem ? { logoUrl: tournamentEmblem } : undefined}
     pinnedMatch={{ stageNumber, ordinal: matchOrdinal }}
+    matchList={presentation === 'kiosk' && layoutVariant === 'kiosk' ? undefined : matchList}
+    venueNameByMatchId={venueNameByMatchId}
     seriesByMatchId={seriesByMatchId}
     timeZone={organizationTimeZone}
+    referenceDate={referenceDate}
     lastMatchAt={overviewLastMatchAt}
     matchEvents={matchEvents}
     rosterActors={rosterActors}
-    tournamentName={tournamentName}
-    organizationName={organizationName}
+    tournamentName={tournamentDisplayName}
+    organizationName={organizationDisplayName}
     organizationAlias={organizationAlias}
     tournamentAlias={tournamentAlias}
     clubs={clubs}
     winners={winnerZones}
     standings={standings}
+    standingsStageNumber={standingsStageNumber}
   />
 </TvLayout>

@@ -95,16 +95,14 @@ const labels = ROLE_LABELS[lang] ?? ROLE_LABELS.en;
 ---
 
 <h1 id={PAGE_TITLE_ID}>{entry.data.title}</h1>
-{
-  roles.length > 0 && (
-    <p class="help-page-roles">
-      <span class="help-page-roles__heading">{heading}</span>
-      {roles.map((role) => (
-        <span class="help-page-roles__badge">{labels[role] ?? role}</span>
-      ))}
-    </p>
-  )
-}
+{roles.length > 0 && (
+  <p class="help-page-roles">
+    <span class="help-page-roles__heading">{heading}</span>
+    {roles.map((role) => (
+      <span class="help-page-roles__badge">{labels[role] ?? role}</span>
+    ))}
+  </p>
+)}
 
 <style>
   @layer starlight.core {

@@ -1,0 +1,92 @@
+---
+import { MatchCard } from './MatchCard.tsx';
+import type { MatchCardLabels } from '../../../lib/i18n/public-intl.ts';
+import type { MatchCardData } from '../../../lib/matches-view.ts';
+
+interface Props {
+  readonly heading: string;
+  readonly match: MatchCardData;
+  readonly href: string;
+  readonly labels: MatchCardLabels;
+  readonly locale: string;
+  readonly timeZone?: string;
+  readonly organizationAlias?: string;
+  readonly tournamentAlias?: string;
+  readonly localePrefix?: string;
+  readonly referenceDate?: number;
+}
+
+const {
+  heading,
+  match,
+  href,
+  labels,
+  locale,
+  timeZone,
+  organizationAlias,
+  tournamentAlias,
+  localePrefix,
+  referenceDate,
+} = Astro.props;
+---
+
+<section class="cl-featured-match" aria-labelledby="featured-match-heading">
+  <div class="cl-featured-match__heading">
+    <h2 id="featured-match-heading">{heading}</h2>
+  </div>
+  <div class="cl-featured-match__card">
+    {match.state === 'live' ? (
+      <MatchCard
+        client:load
+        labels={labels}
+        locale={locale}
+        localePrefix={localePrefix}
+        match={match}
+        organizationAlias={organizationAlias}
+        referenceDate={referenceDate}
+        reportUrl={href}
+        timeZone={timeZone}
+        tournamentAlias={tournamentAlias}
+      />
+    ) : (
+      <MatchCard
+        labels={labels}
+        locale={locale}
+        localePrefix={localePrefix}
+        match={match}
+        organizationAlias={organizationAlias}
+        referenceDate={referenceDate}
+        reportUrl={href}
+        timeZone={timeZone}
+        tournamentAlias={tournamentAlias}
+      />
+    )}
+  </div>
+</section>
+
+<style>
+  .cl-featured-match {
+    margin-block: var(--cl-space-5);
+    padding: var(--cl-space-4);
+    border: 1px solid var(--cl-border-strong);
+    background: var(--cl-surface-chrome);
+  }
+
+  .cl-featured-match__heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--cl-space-2);
+    margin-block-end: var(--cl-space-3);
+  }
+
+  .cl-featured-match__heading h2 {
+    margin: 0;
+  }
+
+  /* One match never stretches across the section; it keeps the width of a card in the schedule grid. */
+  .cl-featured-match__card {
+    inline-size: min(100%, 24rem);
+  }
+</style>

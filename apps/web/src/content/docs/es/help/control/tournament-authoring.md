@@ -41,3 +41,11 @@ borrador → publicado → iniciado → finalizado → archivado. Cada paso es u
 otra pantalla, no algo que esta pantalla haga por usted. Una vez **iniciado**, la disciplina y el
 perfil de torneo quedan congelados en la versión que tenían en ese momento — un torneo en curso
 nunca cambia de reglas a mitad de camino.
+
+## Descanso mínimo entre partidos
+
+La pantalla **Configuración** de un torneo creado define el descanso mínimo, en minutos, entre el
+final de un partido de un participante y el inicio del siguiente. Se controla cada vez que se
+previsualizan o publican partidos de este torneo en los [horarios](/help/control/schedule); una
+ubicación que deja menos descanso es un conflicto que nombra a los dos partidos. Dejalo vacío para no
+aplicar ninguna regla. Cambiarlo no mueve ningún partido: rige desde la próxima previsualización.

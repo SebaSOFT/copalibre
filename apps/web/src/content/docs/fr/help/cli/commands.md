@@ -3,6 +3,7 @@ title: Référence des commandes
 description: Chaque commande du CLI copalibre, son usage et ses options.
 capabilities:
   - platform/cli-tournament-operations
+  - platform/url-routing-contract
 roles:
   - super-admin
   - admin
@@ -45,22 +46,61 @@ Flux complet, y compris le bootstrap du premier administrateur comme un Job Helm
 - `--context <ctx>` : kube-context à enregistrer (par défaut : aucun — à passer explicitement à
   chaque fois)
 
+Options d’identité :
+
+- `--oidc-issuer <url>` : connexion via un fournisseur OIDC externe avec cet émetteur exact (`iss`). Sans cette option, CopaLibre utilise son fournisseur intégré. `init` écrit aussi l’origine de l’émetteur dans `COPALIBRE_CSP_IDENTITY_ORIGIN`, pour que la politique de sécurité du contenu autorise la connexion.
+- `--oidc-client-id <id>` : identifiant client enregistré pour CopaLibre chez le fournisseur. Requis avec `--oidc-issuer`.
+- `--oidc-jwks-uri <url>` : jeu de clés du fournisseur (par défaut : lu dans son document de découverte OpenID).
+
+En mode interactif, `init` demande si vous utilisez un fournisseur externe, puis demande ces valeurs.
+
+Options des cookies de session :
+
+- `--https` : les navigateurs atteignent l’installation en HTTPS, donc les cookies de session portent `Secure` et le préfixe `__Host-`.
+- `--no-https` : HTTP simple sur un hôte autre que `localhost` ; les cookies omettent `Secure`. Refusé avec une `--app-url` en `https`.
+
+Sans l’une ni l’autre, `init` déduit `COPALIBRE_SESSION_COOKIE_SECURE` du schéma de `--app-url` (`localhost` compte comme sûr). En mode interactif, il demande si HTTPS est utilisé.
+
 Options e-mail et réparation :
 
 - `--repair` : sauvegarde `.env` et `docker-compose.yml`, ajoute les valeurs et fichiers manquants et préserve le Compose existant. Les services par défaut absents sont affichés avec leurs extraits YAML à examiner manuellement.
 - `--email-provider <provider>` : `smtp`, `resend`, `brevo` ou `mailgun` (par défaut : SMTP local).
-- `--email-from <address>` : adresse d'expéditeur (par défaut : `noreply@copalibre.local`).
+- `--email-from <address>` : adresse d'expéditeur (par défaut : `noreply@copalibre.local`, depuis laquelle aucun service d'e-mail n'envoie ; `doctor` le signale tant que vous n'en mettez pas une réelle).
 - `--email-credential <value>` : URL de connexion SMTP ou clé API du fournisseur.
 - `--email-domain <domain>` : requis pour Mailgun.
+- `--email-region <us|eu>` : la région Mailgun qui héberge le domaine (par défaut : `us`).
+
+En mode interactif, `init` demande l'e-mail comme `doctor` : il liste les fournisseurs par numéro, lit la clé API ou le mot de passe SMTP sans l'afficher et demande l'expéditeur. Entrée garde les valeurs de test locales. Une option passée n'est pas redemandée.
 
 ## doctor
 
-`copalibre doctor [--check-proxy] [--proxy-url <url>]`
+`copalibre doctor [--check-proxy] [--proxy-url <url>] [--smoke] [--fix | --interactive] [--non-interactive] [--send-test-email <address>]`
+ou `copalibre doctor --configure <email|bootstrap-token|public-url> [options du réglage]`
 
-Valide la configuration et les dépendances avant de démarrer.
+Valide la configuration et les dépendances avant de démarrer, et propose de compléter les réglages qui manquent à l'installation.
+
+Doctor avertit aussi de chaque organisation dont le fuseau horaire n’est pas connu de l’environnement d’exécution, et la nomme ; cet avertissement ne bloque pas le démarrage.
 
 - `--check-proxy` : vérifie aussi la configuration du proxy inverse
 - `--proxy-url <url>` : URL publique à tester quand `--check-proxy` est utilisé
+- `--smoke` : teste de bout en bout la passerelle, le JWKS d'authentification, les organisations et le flux SSE
+- `--fix`, `--interactive` : après le rapport, parcourt par des questions chaque tournoi au statut non canonique (choisir le statut, confirmer, appliquer). Nécessite un terminal.
+
+### Réglages que doctor complète
+
+Doctor repère les réglages qui manquent à une installation et, dans un terminal, propose de les compléter. `copalibre upgrade` se termine par doctor : une installation mise à jour reçoit donc les mêmes questions.
+
+- **E-mail** (`email`) : l'expéditeur `noreply@copalibre.local`, écrit par défaut par toutes les versions, est signalé comme avertissement : aucun service d'e-mail n'envoie depuis une adresse `.local`, donc les invitations et les réinitialisations de mot de passe n'arrivent jamais. Un fournisseur sans sa clé API ou son URL SMTP est un échec. Doctor demande quel service envoie les e-mails (SMTP, Resend, Brevo ou Mailgun, par numéro), puis ses données de connexion : pour SMTP le serveur, le port, l'utilisateur et le mot de passe, ou une URL `smtp://` complète ; pour les autres la clé API, et pour Mailgun le domaine d'envoi et sa région. Les secrets ne s'affichent pas pendant la saisie. Il demande ensuite l'adresse d'expéditeur.
+- **Jeton d'amorçage** (`bootstrap-token`) : un `COPALIBRE_BOOTSTRAP_TOKEN` d'exemple est remplacé par un jeton aléatoire, après confirmation. Rien d'autre ne le conserve, donc rien ne casse.
+- **URL publique** (`public-url`) : une installation créée par la 1.0 envoie les navigateurs au service web sur le port 4321. Doctor propose de déplacer `COPALIBRE_APP_URL` (ainsi que `COPALIBRE_API_URL`, et l'émetteur quand il désignait la même adresse) vers la passerelle, le port 8080 par défaut, ou vers l'adresse de votre proxy.
+
+Doctor n'écrit que les clés configurées, garde le fichier précédent sous `.env.<date>.bak`, laisse `.env` lisible par son seul propriétaire et liste les clés modifiées sans leurs valeurs. Après l'e-mail, il propose un e-mail de test ; puis il propose de redémarrer les services qui lisent la modification et vérifie de nouveau.
+
+Doctor ne réécrit jamais un mot de passe que la base de données ou un service en cours d'exécution conserve : pour un `POSTGRES_PASSWORD` d'exemple, il affiche la commande qui change le mot de passe dans la base, à exécuter avant de modifier `.env`.
+
+- `--non-interactive` : ne pose aucune question, même dans un terminal. Sans terminal (un script ou une tâche de CI), doctor ne pose jamais de question : il affiche les options ci-dessous.
+- `--configure <setting>` : configure `email`, `bootstrap-token` ou `public-url` sans question, puis vérifie. Pour `email`, passez `--email-provider`, `--email-credential`, `--email-from` et, pour Mailgun, `--email-domain` et `--email-region` (les mêmes options que `init`). Pour `public-url`, `--app-url <url>`. Une valeur tapée en ligne de commande reste dans l'historique du shell ; lisez-la depuis un fichier, par exemple `--email-credential "$(cat resend-key.txt)"`.
+- `--send-test-email <address>` : envoie un e-mail par le fournisseur et la configuration de l'application, depuis l'intérieur de la pile, et indique ce que le fournisseur a répondu (une mauvaise clé API affiche la raison donnée par le fournisseur).
 
 ## dev
 
@@ -69,6 +109,23 @@ Valide la configuration et les dépendances avant de démarrer.
 Exécute un environnement de développement, conteneurisé ou hybride.
 
 - `--hybrid` : infrastructure dans Docker, processus applicatifs sur l'hôte
+
+### dev demo
+
+`copalibre dev demo [--list] [<dataset>] [--anchor <YYYY-MM-DD|today>] [--played-until <ISO-8601|now>]`
+
+Charge un jeu de données de démonstration versionné (par exemple `panamericano-clubes-2025`, un
+championnat de rink hockey de 24 clubs avec groupes, coupes, calendrier, résultats et emblèmes) dans
+l'environnement de développement en cours d'exécution. Lancez-le depuis votre checkout avec
+l'environnement démarré (`copalibre dev`). La discipline `rink-hockey` doit déjà être installée ; le
+chargement n'installe jamais de modules, et un jeu déjà chargé n'est pas modifié. Les noms des
+joueurs sont générés, pas réels.
+
+- `--list` : affiche les jeux disponibles et quitte
+- `--anchor <YYYY-MM-DD|today>` : déplace le premier jour de compétition à cette date ; chaque match garde son heure locale et son écart en jours avec le premier jour. `today` est aujourd'hui dans le fuseau horaire de l'organisation
+- `--played-until <ISO-8601|now>` : ne joue que les matchs terminés à ce moment-là ; les autres restent programmés dans leur créneau, et les matchs de coupe dont les participants en dépendent restent à déterminer. Un instant indique son décalage, par exemple `2026-10-18T15:00:00-03:00`
+- `copalibre dev demo panamericano-clubes-2025 --anchor today --played-until now` charge un tournoi en cours
+- réinitialisez les données de démonstration avec `docker compose -f docker-compose.dev.yml down -v` ; un jeu déjà chargé est ignoré, options comprises
 
 ## start
 
@@ -134,7 +191,7 @@ confirme que le schéma appliqué correspond à cette installation — tout en u
 
 Après un `pg_restore` réussi, `restore` exécute automatiquement `copalibre migrate` puis ouvre une
 connexion pour vérifier que la version du schéma appliqué correspond exactement à ce que cette
-installation attend (la même vérification que `GET /ready` utilise) — ainsi une restauration ne
+installation attend (la même vérification que `GET /api/ready` utilise) — ainsi une restauration ne
 laisse jamais silencieusement le code et la base de données désynchronisés. Si la migration échoue,
 `restore` le signale avec son code de sortie sans prétendre réussir ; réessayez avec `copalibre
 migrate` puis `copalibre doctor`.
@@ -155,11 +212,50 @@ Vérifie la compatibilité des modules installés et les migrations en attente a
 Se termine avec un code de sortie non nul si un module installé cesserait d'être compatible avec la
 version cible. Voir [mise à jour](/fr/help/cli/updating/) pour la séquence complète.
 
+## upgrade
+
+`copalibre upgrade [--check] [--target-version <v>] [--self] [--skip-self-update] [--skip-services] [--skip-modules] [--keep-old-volume] [--yes]`
+
+Fait passer l'installation du répertoire courant à une nouvelle version. Elle lit ce que contient
+l'installation (la version qui a livré son fichier Compose, sa version de PostgreSQL, son `.env`), pas
+seulement son marqueur ; télécharge les nouvelles images ; arrête la pile et sauvegarde la base ;
+remplace les fichiers Compose et du gateway livrés par une version, en gardant des copies `.bak` ;
+déplace les données de PostgreSQL 17 vers 18 et compare les lignes de chaque table ; démarre la
+nouvelle version ; exécute `doctor` ; et, une fois doctor passé, supprime le volume et l'image
+PostgreSQL 17. Un fichier Compose que vous avez modifié l'arrête avant tout changement. Un binaire
+mis à jour poursuit lui-même la mise à niveau. Voir [mise à jour](/fr/help/cli/updating/).
+
+- `--check` : affiche ce que ferait la mise à niveau dans ce répertoire, sans rien changer
+- `--target-version <v>` : version de CopaLibre visée (par défaut, la dernière publiée)
+- `--self` : met à jour uniquement le binaire du CLI, sans toucher Compose, les images ni les services
+- `--skip-self-update` : garde ce binaire du CLI et met à niveau l'installation avec lui
+- `--skip-services` : ne met à jour que `.env` et le marqueur ; refusé si la base doit être déplacée
+- `--skip-modules` : ne liste pas les modules obsolètes à la fin
+- `--keep-old-volume` : garde le volume et l'image PostgreSQL 17 après le déplacement des données
+- `--yes`, `-y` : exécute la mise à niveau sans demander de confirmation
+
 ## create-admin
 
 `copalibre create-admin --organization-alias <alias> --organization-name <nom> --email <email>`
 
 Crée le premier compte administrateur d'une organisation.
+
+L'alias ne peut pas être un nom que la plateforme utilise déjà dans ses adresses, comme `login`,
+`platform`, `tv`, `api` ou un code de langue comme `es` ; dans ce cas, la commande le refuse et explique pourquoi.
+
+## grant-first-super-admin
+
+`copalibre grant-first-super-admin --email <email>`
+
+Accorde le rôle de super-administrateur à un compte qui existe déjà, et seulement tant que
+l'installation n'en a aucun d'actif. Toute autre façon de l'accorder exige déjà un super-administrateur :
+c'est donc le chemin vers le premier.
+
+La personne doit avoir un compte : elle a accepté une invitation ou s'est connectée une fois. La commande
+lit `DATABASE_URL`, il faut donc l'exécuter là où la base de données est accessible. Le rôle prend effet à
+la prochaine connexion. Si un super-administrateur est déjà actif, la commande refuse, le dit et consigne
+la tentative dans le journal d'audit ; ensuite, les super-administrateurs se gèrent depuis l'écran de
+plateforme du panneau de contrôle.
 
 ## login
 
@@ -274,3 +370,15 @@ pull request.
 
 Démarre un serveur local Model Context Protocol (MCP) sur stdio, pour qu'une IA puisse exploiter
 CopaLibre. Voir le [détail des outils MCP](/fr/help/cli/mcp/).
+
+## organization add-admin
+
+`copalibre organization add-admin --organization <alias> --email <email>`
+
+Crée une invitation d’administration auditée pour une organisation existante. Cette commande se connecte directement à la base de données : utilisez-la uniquement depuis un environnement opérateur de confiance configuré avec `DATABASE_URL` et `COPALIBRE_APP_URL`. Elle ne crée ni compte ni mot de passe ; la personne invitée définit son mot de passe via le parcours normal d’acceptation. Le lien de configuration est affiché une seule fois.
+
+## dev demo --with-admin
+
+`copalibre dev demo panamericano-clubes-2025 --with-admin <email>`
+
+Après le chargement du jeu de données, crée une invitation d’administration auditée pour `panamericano-demo` et affiche son lien une seule fois. Cette option est réservée à la démo Panamericano.

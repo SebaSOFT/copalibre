@@ -1,29 +1,62 @@
 ---
+import {
+  fetchOverview,
+  fetchPublicTableLayouts,
+  mapOverviewResponse,
+} from '../../../../../../../../lib/public-api-client.ts';
+import { buildOverview, displayName } from '../../../../../../../../lib/overview.ts';
+import { StageSwitcher } from '../../../../../../../../components/ui/molecules/StageSwitcher.tsx';
+import { defaultStandingsLayoutCode } from '../../../../../../../../lib/public-tournament-navigation.ts';
 import PublicLayout from '../../../../../../../../layouts/PublicLayout.astro';
+import Container from '../../../../../../../../components/ui/atoms/layout/Container.astro';
 import Breadcrumb from '../../../../../../../../components/ui/organisms/Breadcrumb.astro';
+import PageHeader from '../../../../../../../../components/ui/organisms/PageHeader.astro';
 import { publicTrail, trailBaseOf } from '../../../../../../../../lib/breadcrumb.ts';
 import MatchHero from '../../../../../../../../components/ui/organisms/MatchHero.astro';
 import MatchOfficials from '../../../../../../../../components/ui/organisms/MatchOfficials.astro';
 import MatchRosters from '../../../../../../../../components/ui/organisms/MatchRosters.astro';
 import MatchTimeline from '../../../../../../../../components/ui/organisms/MatchTimeline.astro';
 import MatchBracketContext from '../../../../../../../../components/ui/organisms/MatchBracketContext.astro';
-import { buildMatchReport } from '../../../../../../../../lib/match-report.ts';
+import { buildMatchReport, matchStakeLines } from '../../../../../../../../lib/match-report.ts';
+import { competitionContext } from '../../../../../../../../lib/competition-context.ts';
+import type { MatchCardData } from '../../../../../../../../lib/matches-view.ts';
 import {
   fetchBracket,
+  fetchLive,
   fetchMatchReport,
+  fetchMatchesView,
   mapBracketResponse,
+  mapLiveResponse,
+  mapMatchesViewResponse,
 } from '../../../../../../../../lib/public-api-client.ts';
+import { publicStreamPath } from '@copalibre/routing';
 import { selectStageLayout } from '../../../../../../../../lib/bracket.ts';
 import { humanizeCode } from '../../../../../../../../lib/descriptor-label.ts';
 import { messages } from '../../../../../../../../lib/i18n/public-messages.en.ts';
-import { publicIntl, resultStateLabels } from '../../../../../../../../lib/i18n/public-intl.ts';
+import {
+  formatTimeZoneParts,
+  formatTimestamp,
+} from '../../../../../../../../lib/format-timestamp.ts';
+import { isDelayed } from '../../../../../../../../lib/match-state.ts';
+import {
+  competitionContextLabels,
+  publicIntl,
+  resultStateLabels,
+  sideSourceLabels,
+} from '../../../../../../../../lib/i18n/public-intl.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../../../../../lib/locale.ts';
+import { isPublicLocaleSegment } from '../../../../../../../../lib/public-route-guards.ts';
 
 export const prerender = false;
 
 const { locale, organization, tournament, stage, match } = Astro.params;
+if (!isPublicLocaleSegment(locale)) {
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvePathLocale(Astro.url.pathname)));
+}
 const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
 const intl = publicIntl(resolvedLocale);
+const notFoundPath = getLocalizedNotFoundPath(resolvedLocale);
 const stageNumber = Number(stage);
 const matchNumber = Number(match);
 
@@ -33,12 +66,22 @@ if (
   !Number.isSafeInteger(matchNumber) ||
   matchNumber < 1
 ) {
-  return Astro.rewrite('/404');
+  return Astro.rewrite(notFoundPath);
 }
 
-const response = await fetchMatchReport(organization!, tournament!, stageNumber, matchNumber);
+// A series game is read with `?game=N`. Anything but a positive whole number is ignored, so the fixture's first game shows.
+const requestedGame = Number(Astro.url.searchParams.get('game'));
+const gameNumber =
+  Number.isSafeInteger(requestedGame) && requestedGame >= 1 ? requestedGame : undefined;
+const response = await fetchMatchReport(
+  organization!,
+  tournament!,
+  stageNumber,
+  matchNumber,
+  gameNumber,
+);
 if (!response) {
-  return Astro.rewrite('/404');
+  return Astro.rewrite(notFoundPath);
 }
 
 const officialRoleMessages = {
@@ -47,13 +90,6 @@ const officialRoleMessages = {
   'table-official': messages.matchOfficialRoleTableOfficial,
   observer: messages.matchOfficialRoleObserver,
 } as const;
-const model = buildMatchReport(response, {
-  locale: resolvedLocale,
-  officialRoleLabel: (code) =>
-    code in officialRoleMessages
-      ? intl.formatMessage(officialRoleMessages[code as keyof typeof officialRoleMessages])
-      : humanizeCode(code),
-});
 
 // Gated on the stage's own format, already known from `response.stageFormat` — a round-robin/
 // league/placement match report issues no second request at all (a report is requested far more often per stage than a bracket changes).
@@ -62,39 +98,230 @@ const localePrefix = locale ? `/${locale}` : '';
 // reintroduce the cross-zone matchNumber collision the zone-scoped bracket endpoint exists to
 // avoid.
 let bracketMatches: ReturnType<typeof mapBracketResponse>['zones'][number]['matches'] = [];
+let ownZoneName: string | undefined;
+let ownZoneOffset: number | undefined;
+let zoneMatchesView: readonly MatchCardData[] = [];
 if (selectStageLayout(response.stageFormat) === 'bracket') {
-  const rawBracket = await fetchBracket(organization!, tournament!, stageNumber);
+  const [rawBracket, rawMatchesView] = await Promise.all([
+    fetchBracket(organization!, tournament!, stageNumber),
+    fetchMatchesView(organization!, tournament!, { stageNumber }),
+  ]);
   if (rawBracket) {
-    const { zones } = mapBracketResponse(rawBracket);
+    const { zones } = mapBracketResponse(rawBracket, intl.formatMessage(messages.resultStateTbd));
     const ownZone = zones.find((zone) => zone.matches.some((m) => m.matchNumber === matchNumber));
     bracketMatches = ownZone?.matches ?? [];
+    ownZoneName = ownZone?.zoneName;
+    ownZoneOffset = ownZone?.overallPlaceOffset;
+  }
+  if (rawMatchesView) {
+    const mapped = mapMatchesViewResponse(
+      rawMatchesView,
+      intl.formatMessage(messages.personHiddenAtRequest),
+      resolvedLocale,
+    ).matches;
+    const effectiveZone = ownZoneName ?? response.zoneName;
+    zoneMatchesView =
+      effectiveZone === undefined ? mapped : mapped.filter((m) => m.zoneName === effectiveZone);
   }
 }
 
+const zoneNodeKeys = bracketMatches.length > 0 ? bracketMatches.map((m) => m.nodeKey) : undefined;
+const sourceFinalRound = bracketMatches[0]?.sourceFinalRound;
+const model = buildMatchReport(response, {
+  locale: resolvedLocale,
+  hiddenPersonLabel: intl.formatMessage(messages.personHiddenAtRequest),
+  genericSegmentLabel: intl.formatMessage(messages.matchTimelineSegmentFallback),
+  sideSource: sideSourceLabels(intl),
+  sourceFinalRound,
+  zoneNodeKeys,
+  officialRoleLabel: (code) =>
+    code in officialRoleMessages
+      ? intl.formatMessage(officialRoleMessages[code as keyof typeof officialRoleMessages])
+      : humanizeCode(code),
+});
+
+// Both reads are optional for the tabs: when either fails, the page still renders with what is known.
+const [tournamentOverviewData, tableLayouts] = await Promise.all([
+  fetchOverview(organization!, tournament!).catch(() => undefined),
+  fetchPublicTableLayouts(organization!, tournament!).catch(() => undefined),
+]);
+const tournamentOverview = tournamentOverviewData
+  ? buildOverview(mapOverviewResponse(tournamentOverviewData, resolvedLocale))
+  : undefined;
+const tournamentStages = tournamentOverview?.stages;
+const tournamentDisplayName = tournamentOverview
+  ? displayName(tournamentOverview)
+  : model.tournamentName;
+const stageSwitcherItems = [...(tournamentStages ?? [])]
+  .sort((a, b) => a.stageNumber - b.stageNumber)
+  .map((stage) => ({
+    stageNumber: stage.stageNumber,
+    label:
+      stage.stageName?.trim() ||
+      intl.formatMessage(messages.breadcrumbStage, { stage: stage.stageNumber }),
+    href: `${localePrefix}/${encodeURIComponent(organization!)}/tournaments/${encodeURIComponent(tournament!)}/stages/${stage.stageNumber}`,
+  }));
+const standingsLayoutCode = defaultStandingsLayoutCode(tableLayouts?.layouts ?? []);
+
+const liveDashboard =
+  model.status === 'live'
+    ? await fetchLive(organization!, tournament!).then((data) =>
+        data ? mapLiveResponse(data) : undefined,
+      )
+    : undefined;
+const liveMatch = liveDashboard?.matches.find(
+  (candidate) =>
+    candidate.stageNumber === stageNumber &&
+    (candidate.stageOrdinal ?? candidate.matchNumber) === matchNumber,
+);
+// A live match streams; so does an upcoming one whose page follows its indicators, to hear it start.
+const liveStreamPath =
+  model.status === 'live' || (model.status === 'upcoming' && model.tracksLiveIndicators === true)
+    ? publicStreamPath({ organizationAlias: organization!, tournamentAlias: tournament! })
+    : undefined;
+const liveMatchSeed = liveMatch
+  ? {
+      matchId: liveMatch.matchId,
+      projectionVersion: liveMatch.projectionVersion,
+      state: liveMatch.state,
+      ...(liveMatch.clock === undefined ? {} : { clock: liveMatch.clock }),
+      ...(liveMatch.segments === undefined ? {} : { segments: liveMatch.segments }),
+      homeScore: liveMatch.sides[0]?.score,
+      awayScore: liveMatch.sides[1]?.score,
+      homeEntrantId: liveMatch.sides[0]?.entrantId,
+      awayEntrantId: liveMatch.sides[1]?.entrantId,
+    }
+  : undefined;
+
+// A live match leads with what is happening: its timeline and rosters come before the bracket.
+const liveFirst = model.status === 'live';
+const bracketProps = {
+  currentMatchNumber: matchNumber,
+  intl,
+  localePrefix,
+  matches: bracketMatches,
+  matchesView: zoneMatchesView,
+  organizationAlias: organization!,
+  organizationTimeZone: response.organizationTimeZone,
+  stageNumber,
+  tournamentAlias: tournament!,
+  zoneName: ownZoneName ?? response.zoneName,
+  overallPlaceOffset: ownZoneOffset,
+};
+
+const formatOverallPlace = (place: number): string =>
+  intl.formatMessage(messages.bracketOverallPlace, { place });
+const contextLabels = {
+  ...competitionContextLabels(intl),
+  formatOverallPlace,
+};
+const context = competitionContext(
+  {
+    stageNumber,
+    stageName: response.stageName,
+    zoneName: response.zoneName,
+    groupName: response.groupName,
+    round: model.round,
+    matchNumber,
+    nodeKey: response.nodeKey,
+    sourceFinalRound,
+    zoneNodeKeys,
+    ...(ownZoneOffset === undefined ? {} : { overallPlaceOffset: ownZoneOffset }),
+  },
+  contextLabels,
+);
+const referenceDate = Date.now();
+const scheduleTimeZone = response.organizationTimeZone ?? 'UTC';
+const tzParts = formatTimeZoneParts(resolvedLocale, scheduleTimeZone, referenceDate);
+const stakeLines =
+  bracketMatches.length > 0
+    ? matchStakeLines({
+        currentMatch: {
+          nodeKey: response.nodeKey,
+          matchNumber,
+          stageNumber,
+          stageName: response.stageName,
+          zoneName: response.zoneName ?? ownZoneName,
+          round: model.round,
+          sourceFinalRound,
+          ...(ownZoneOffset === undefined ? {} : { overallPlaceOffset: ownZoneOffset }),
+        },
+        bracketMatches,
+        stageMatches: zoneMatchesView,
+        labels: {
+          context: contextLabels,
+          stakeWinner: intl.formatMessage(messages.matchReportStakeWinner, {
+            match: '{match}',
+            when: '{when}',
+          }),
+          stakeLoser: intl.formatMessage(messages.matchReportStakeLoser, {
+            match: '{match}',
+            when: '{when}',
+          }),
+          stakePlace: intl.formatMessage(messages.matchReportStakePlace, { place: '{place}' }),
+          stakeChampion: intl.formatMessage(messages.matchReportStakeChampion, { zone: '{zone}' }),
+          fallbackChampionScope: model.tournamentName,
+          formatOverallPlace,
+        },
+        formatDate: (at) =>
+          formatTimestamp(at, {
+            locale: resolvedLocale,
+            timeZone: scheduleTimeZone,
+            referenceDate,
+          }),
+      })
+    : [];
+// The series switcher is the same pill group the stage switcher uses. Its items carry game numbers, shown
+// as the page's own game labels, and link to the same page with `?game=N`.
+const gameSwitcherItems = (response.games ?? []).map((game) => ({
+  stageNumber: game.number,
+  label: intl.formatMessage(messages.matchReportGameNumber, {
+    number: game.number,
+    total: (response.games ?? []).length,
+  }),
+  href: `${Astro.url.pathname}?game=${game.number}`,
+}));
 const trailBase = trailBaseOf({
   organizationAlias: organization!,
   organizationName: model.organizationName,
-  tournamentName: model.tournamentName,
+  tournamentName: tournamentDisplayName,
   canonicalPath: `/${encodeURIComponent(organization!)}/tournaments/${encodeURIComponent(tournament!)}`,
   localePrefix,
 });
 const trail = publicTrail(trailBase, [
   {
-    label: intl.formatMessage(messages.matchesViewPageTitle),
-    href: `${trailBase.tournamentPath}/matches?stageNumber=${stageNumber}`,
-  },
-  {
-    label: intl.formatMessage(messages.breadcrumbStage, { stage: stageNumber }),
+    label: context.stage,
     href: `${trailBase.tournamentPath}/stages/${stageNumber}`,
   },
   {
-    label: `${intl.formatMessage(messages.bracketRoundHeading, { round: model.round })} · ${intl.formatMessage(messages.breadcrumbMatch, { match: matchNumber })}`,
+    label:
+      [context.zone, context.group, context.round, context.matchLabel]
+        .filter(Boolean)
+        .join(' · ') || context.line,
   },
 ]);
 const statusLabels = resultStateLabels(intl);
+const matchDelayed = isDelayed(
+  { state: model.status, scheduledAt: model.scheduledAt },
+  referenceDate,
+);
+const heroStatusLabel = matchDelayed
+  ? intl.formatMessage(messages.resultStateDelayed)
+  : statusLabels[model.status];
+const formattedKickoff = model.scheduledAt
+  ? `${formatTimestamp(model.scheduledAt, {
+      locale: resolvedLocale,
+      format: 'full',
+      timeZone: scheduleTimeZone,
+    })} (${tzParts.isUtc ? 'UTC' : tzParts.offset || tzParts.zoneName})`
+  : undefined;
+const matchHeading = `${model.home.name} ${intl.formatMessage(messages.tickerVersus)} ${model.away.name}`;
+const matchHeadingDescription = [context.line, context.matchLabel, formattedKickoff]
+  .filter((part): part is string => part !== undefined)
+  .join(' · ');
 const structuredData = {
   '@type': 'SportsEvent' as const,
-  name: `${model.home.name} vs ${model.away.name} — ${model.tournamentName}`,
+  name: `${model.home.name} vs ${model.away.name} — ${model.tournamentName} · ${context.line}`,
   url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${Astro.url.pathname}`,
   ...(model.scheduledAt ? { startDate: model.scheduledAt } : {}),
 };
@@ -106,54 +333,187 @@ const structuredData = {
   intl={intl}
   disciplineImages={response.disciplineImages}
   structuredData={structuredData}
+  tournamentStages={tournamentStages}
+  standingsLayoutCode={standingsLayoutCode}
 >
-  <Breadcrumb
-    items={trail}
-    ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
-    collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
-  />
-  <article class="cl-match-page">
-    <MatchHero locale={intl.locale} model={model} statusLabel={statusLabels[model.status]} />
-
-    {
-      bracketMatches.length > 0 && (
-        <MatchBracketContext
-          currentMatchNumber={matchNumber}
-          intl={intl}
-          localePrefix={localePrefix}
-          matches={bracketMatches}
-          organizationAlias={organization!}
-          stageNumber={stageNumber}
-          tournamentAlias={tournament!}
-        />
-      )
-    }
-
-    <div class="cl-match-details">
-      <MatchOfficials model={model} intl={intl} />
-      <MatchRosters
-        model={model}
-        intl={intl}
-        locale={locale}
-        organization={organization!}
-        tournament={tournament!}
+  <Container variant="public">
+    <PageHeader
+      title={matchHeading}
+      description={matchHeadingDescription}
+      loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
+    >
+      <Breadcrumb
+        slot="breadcrumb"
+        items={trail}
+        ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+        collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
       />
-      <MatchTimeline model={model} intl={intl} />
-    </div>
-  </article>
+    </PageHeader>
+    <StageSwitcher
+      currentStageNumber={stageNumber}
+      label={intl.formatMessage(messages.stageSwitcherLabel)}
+      stages={stageSwitcherItems}
+    />
+    <article class="cl-match-page">
+      {gameSwitcherItems.length > 1 && (
+        <StageSwitcher
+          currentStageNumber={response.gameNumber ?? 1}
+          label={intl.formatMessage(messages.matchReportGamesLabel)}
+          stages={gameSwitcherItems}
+        />
+      )}
+      {liveStreamPath && (
+        <div
+          data-live-awaiting={model.status === 'live' ? undefined : ''}
+          data-live-stream={liveStreamPath}
+          hidden
+        >
+          {liveMatchSeed && <span data-live-match-seed={JSON.stringify(liveMatchSeed)} />}
+        </div>
+      )}
+      <MatchHero
+        intl={intl}
+        organizationAlias={organization!}
+        tournamentAlias={tournament!}
+        localePrefix={localePrefix}
+        rescheduledLabel={intl.formatMessage(messages.matchRescheduled, {
+          time: '{time}',
+          venue: '{venue}',
+        })}
+        locale={intl.locale}
+        timeZone={scheduleTimeZone}
+        model={model}
+        statusLabel={heroStatusLabel}
+        delayed={matchDelayed}
+        referenceDate={referenceDate}
+        liveMatchId={liveMatch?.matchId}
+        matchOrdinal={matchNumber}
+        homeEntrantId={liveMatch?.sides[0]?.entrantId}
+        awayEntrantId={liveMatch?.sides[1]?.entrantId}
+        liveClock={liveMatch?.clock}
+        liveSegments={liveMatch?.segments}
+        stakeLines={stakeLines}
+      />
+
+      {!liveFirst && bracketMatches.length > 0 && <MatchBracketContext {...bracketProps} />}
+
+      {liveFirst ? (
+        <div class="cl-match-details cl-match-details--live">
+          <div class="cl-match-details__timeline">
+            <MatchTimeline
+              model={model}
+              intl={intl}
+              organizationTimeZone={response.organizationTimeZone}
+              referenceDate={referenceDate}
+            />
+          </div>
+          <div class="cl-match-details__side">
+            <MatchRosters
+              model={model}
+              intl={intl}
+              locale={locale}
+              organization={organization!}
+              tournament={tournament!}
+            />
+            <MatchOfficials model={model} intl={intl} />
+          </div>
+          {bracketMatches.length > 0 && (
+            <div class="cl-match-details__bracket">
+              <MatchBracketContext {...bracketProps} />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div class="cl-match-details">
+          <div class="cl-match-details__primary">
+            <MatchRosters
+              model={model}
+              intl={intl}
+              locale={locale}
+              organization={organization!}
+              tournament={tournament!}
+            />
+          </div>
+          <div class="cl-match-details__side">
+            <MatchOfficials model={model} intl={intl} />
+            <MatchTimeline
+              model={model}
+              intl={intl}
+              organizationTimeZone={response.organizationTimeZone}
+              referenceDate={referenceDate}
+            />
+          </div>
+        </div>
+      )}
+    </article>
+  </Container>
 </PublicLayout>
 
 <style>
   .cl-match-page {
     /* The shared public width: no page-specific column. */
     margin: 0 auto;
-    padding: var(--cl-space-6) var(--cl-space-4);
+    padding-block: var(--cl-space-6);
     overflow-x: hidden;
   }
 
+  /* The stack gap between match sections, so the bracket's link does not sit on the panels. */
   .cl-match-details {
     display: flex;
     flex-direction: column;
     gap: var(--cl-space-6);
+    margin-top: var(--cl-space-6);
+  }
+
+  .cl-match-details__primary,
+  .cl-match-details__side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-6);
+    min-width: 0;
+  }
+
+  @media (min-width: 1024px) {
+    .cl-match-details {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      align-items: start;
+    }
+
+    /* A live match: the timeline opens the first column and the bracket sits under it; the rosters and
+       officials run down the second column beside both. */
+    .cl-match-details--live {
+      grid-template-areas:
+        'timeline side'
+        'bracket side';
+      grid-template-rows: auto 1fr;
+    }
+
+    .cl-match-details__timeline {
+      grid-area: timeline;
+      min-width: 0;
+    }
+
+    .cl-match-details__bracket {
+      grid-area: bracket;
+      min-width: 0;
+    }
+
+    .cl-match-details--live > .cl-match-details__side {
+      grid-area: side;
+    }
   }
 </style>
+
+<script>
+  import { mountPublicSchedule } from '../../../../../../../../lib/public-schedule-live.ts';
+
+  mountPublicSchedule();
+  if (document.querySelector('[data-live-stream]')) {
+    void import('../../../../../../../../lib/public-live-scoreboards.ts').then(
+      ({ mountPublicLiveScoreboards }) => {
+        mountPublicLiveScoreboards();
+      },
+    );
+  }
+</script>

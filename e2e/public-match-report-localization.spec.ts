@@ -1,5 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
+import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
+import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 
 /**
  * The match report page's officials, rosters, and event
@@ -13,11 +15,12 @@ const TOURNAMENT_ALIAS = 'apertura-2026';
 const STAGE = '1';
 const MATCH = '5';
 
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 
 const populatedMatchReport = {
   organizationAlias: ORGANIZATION,
   organizationName: 'Liga Mendocina',
+  organizationTimeZone: 'America/Argentina/Buenos_Aires',
   tournamentAlias: TOURNAMENT_ALIAS,
   tournamentName: 'Apertura 2026',
   stageNumber: 1,
@@ -73,6 +76,56 @@ const populatedMatchReport = {
   disciplineImages: {},
 };
 
+/** A finished match whose timeline carries game time, side markers, running scores and segment markers. */
+const timedMatchNumber = '6';
+const timedMatchReport = {
+  ...populatedMatchReport,
+  matchNumber: 6,
+  homeEntrantId: '00000000-0000-7000-8000-000000000301',
+  awayEntrantId: '00000000-0000-7000-8000-000000000302',
+  homeScore: 1,
+  awayScore: 1,
+  segments: [
+    {
+      number: 1,
+      type: 'half',
+      label: { en: 'Half', es: 'Tiempo' },
+      timed: true,
+      state: 'completed',
+      scores: [1, 1],
+    },
+  ],
+  timeline: [
+    {
+      eventId: '00000000-0000-7000-8000-000000000311',
+      definitionCode: 'goal',
+      label: 'Goal',
+      labels: { en: 'Goal', es: 'Gol' },
+      occurredAt: '2025-11-02T11:08:00.000Z',
+      sequence: 1,
+      segmentNumber: 1,
+      segmentElapsedSeconds: 480,
+      side: '00000000-0000-7000-8000-000000000301',
+      scoreAfter: [1, 0],
+      personId: '00000000-0000-7000-8000-000000000101',
+      payload: {},
+    },
+    {
+      eventId: '00000000-0000-7000-8000-000000000312',
+      definitionCode: 'goal',
+      label: 'Goal',
+      labels: { en: 'Goal', es: 'Gol' },
+      occurredAt: '2025-11-02T11:20:00.000Z',
+      sequence: 2,
+      segmentNumber: 1,
+      side: '00000000-0000-7000-8000-000000000302',
+      scoreAfter: [1, 1],
+      personId: '00000000-0000-7000-8000-000000000102',
+      payload: {},
+    },
+  ],
+};
+
 let apiServer: Server;
 
 test.beforeAll(async ({ workerPort }) => {
@@ -82,6 +135,11 @@ test.beforeAll(async ({ workerPort }) => {
 
     if (path === `${BASE}/stages/${STAGE}/matches/${MATCH}`) {
       res.end(JSON.stringify(populatedMatchReport));
+      return;
+    }
+
+    if (path === `${BASE}/stages/${STAGE}/matches/${timedMatchNumber}`) {
+      res.end(JSON.stringify(timedMatchReport));
       return;
     }
 
@@ -95,13 +153,38 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
 });
 
+test.describe('Match report timeline in game time', () => {
+  test('marks each event with its side, its time in the segment and the running score, and the segment ends', async ({
+    page,
+  }) => {
+    await page.goto(
+      `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${timedMatchNumber}`,
+    );
+    await expectNoVisibleIdentifiers(page, FIXTURE_ALIASES);
+
+    const timeline = page.locator('.cl-timeline-list');
+    await expect(timeline.locator('.cl-timeline-time').first()).toHaveText('Tiempo 1 · 08:00');
+    await expect(timeline.locator('.cl-timeline-side').first()).toContainText('AND');
+    await expect(timeline.locator('.cl-timeline-entry[data-side="away"]').first()).toBeVisible();
+    await expect(timeline.locator('.cl-timeline-score').first()).toHaveText('1–0');
+    await expect(timeline.locator('.cl-timeline-score').nth(1)).toHaveText('1–1');
+    await expect(timeline.locator('[data-segment-marker="segment-start"]')).toHaveText('Tiempo 1');
+    await expect(timeline.locator('[data-segment-marker="segment-end"]')).toHaveText(
+      'Fin · Tiempo 1 · 1–1',
+    );
+    // A finished match has no on-field column.
+    await expect(page.getByRole('columnheader', { name: 'En cancha' })).toHaveCount(0);
+  });
+});
+
 test.describe('Match report localization and timestamps', () => {
-  test('renders localized section headings and a humanized timestamp in a non-English locale', async ({
+  test('renders localized section headings and a humanized timestamp in a non-English locale @visible-identifier-lint', async ({
     page,
   }) => {
     await page.goto(
       `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${MATCH}`,
     );
+    await expectNoVisibleIdentifiers(page, FIXTURE_ALIASES);
 
     // Section headings render in Spanish, not the hardcoded English strings.
     await expect(page.getByRole('heading', { name: 'Árbitros' })).toBeVisible();
@@ -113,10 +196,11 @@ test.describe('Match report localization and timestamps', () => {
 
     // The rosters table's column headers are localized too (one table per side).
     await expect(page.getByRole('columnheader', { name: 'Jugador' }).first()).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: 'En cancha' }).first()).toBeVisible();
+    // A finished match has no on-field column: it would read as nobody having played.
+    await expect(page.getByRole('columnheader', { name: 'En cancha' })).toHaveCount(0);
 
-    // The event timeline's timestamp is humanized, not a raw ISO-8601 string.
-    const timelineTime = page.locator('.cl-timeline-time');
+    // The event timeline's wall-clock time is humanized, not a raw ISO-8601 string.
+    const timelineTime = page.locator('.cl-timeline-clock');
     await expect(timelineTime).toBeVisible();
     await expect(timelineTime).not.toContainText('2025-11-02T11:17:30');
     await expect(page.getByText('2025-11-02T11:17:30.000Z')).toHaveCount(0);
@@ -148,15 +232,17 @@ test.describe('Match report localization and timestamps', () => {
     await expect(page.getByRole('cell', { name: 'Captain' })).toBeVisible();
   });
 
-  test('uses the full public width and chamfered sections on a wide screen', async ({ page }) => {
+  test('uses the centered public width and chamfered sections at reference widths', async ({
+    page,
+  }) => {
+    const path = `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${MATCH}`;
+    await expectCenteredPageContainer(page, path);
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(
-      `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/${STAGE}/matches/${MATCH}`,
-    );
+    await page.goto(path);
 
     const widthOf = async (selector: string) =>
       (await page.locator(selector).first().boundingBox())?.width ?? 0;
-    expect(await widthOf('.cl-match-page')).toBeGreaterThan(1200);
+    expect(await widthOf('main > .cl-container--public')).toBeLessThanOrEqual(1200);
     const sections = page.locator('section.cl-section-card');
     await expect(sections).toHaveCount(3);
     for (const section of await sections.all()) {

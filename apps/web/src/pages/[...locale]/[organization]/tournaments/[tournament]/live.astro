@@ -1,23 +1,38 @@
 ---
+import { defaultStandingsLayoutCode } from '../../../../../lib/public-tournament-navigation.ts';
+import { fetchPublicTableLayouts } from '../../../../../lib/public-api-client.ts';
+import { rescheduledStatement } from '../../../../../lib/reschedule.ts';
+import Container from '../../../../../components/ui/atoms/layout/Container.astro';
 import Breadcrumb from '../../../../../components/ui/organisms/Breadcrumb.astro';
+import PageHeader from '../../../../../components/ui/organisms/PageHeader.astro';
 import { publicTrail, trailBaseOf } from '../../../../../lib/breadcrumb.ts';
 import PublicLayout from '../../../../../layouts/PublicLayout.astro';
 import ResultLegend from '../../../../../components/ui/molecules/ResultLegend.astro';
+import TimeZoneNote from '../../../../../components/ui/molecules/TimeZoneNote.astro';
 import StateBadge from '../../../../../components/ui/atoms/StateBadge.astro';
 import { Card, CardDescription, CardTitle } from '../../../../../components/ui/atoms/Card.tsx';
 import { ResponsiveTimestamp } from '../../../../../components/ui/atoms/ResponsiveTimestamp.tsx';
 import { LiveMatchHero } from '../../../../../components/ui/organisms/LiveMatchHero.tsx';
 import StandingsTable from '../../../../../components/ui/organisms/StandingsTable.astro';
-import { buildOverview, displayName } from '../../../../../lib/overview.ts';
+import { buildOverview, displayName, groupStandingsByZone } from '../../../../../lib/overview.ts';
+import { isDelayed } from '../../../../../lib/match-state.ts';
+import { isImplicitGroupZoneName } from '../../../../../lib/competition-context.ts';
 import {
   fetchLive,
   fetchOverview,
   mapOverviewResponse,
   mapLiveResponse,
 } from '../../../../../lib/public-api-client.ts';
-import { publicIntl, resultStateLabels } from '../../../../../lib/i18n/public-intl.ts';
+import {
+  liveClockLabels,
+  publicIntl,
+  resultStateLabels,
+  timeZoneNoteLabels,
+} from '../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../../lib/locale.ts';
+import { isPublicLocaleSegment } from '../../../../../lib/public-route-guards.ts';
 
 /**
  * B2, the live dashboard.
@@ -31,6 +46,9 @@ import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
 export const prerender = false;
 
 const { locale, organization, tournament } = Astro.params;
+if (!isPublicLocaleSegment(locale)) {
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvePathLocale(Astro.url.pathname)));
+}
 const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
 const intl = publicIntl(resolvedLocale);
 const labels = resultStateLabels(intl);
@@ -40,20 +58,40 @@ const liveData = await fetchLive(organization!, tournament!);
 const dashboard = liveData ? mapLiveResponse(liveData) : undefined;
 
 if (!overviewData || !dashboard) {
-  return Astro.rewrite('/404');
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
 
 const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const tableLayouts = await fetchPublicTableLayouts(organization!, tournament!).catch(
+  () => undefined,
+);
+const standingsLayoutCode = defaultStandingsLayoutCode(tableLayouts?.layouts ?? []);
 const localePrefix = locale ? `/${locale}` : '';
 const canonicalPath = `${localePrefix}${model.canonicalPath}/live`;
 const reportPath = (stageNumber: number, matchNumber: number) =>
   `${localePrefix}${model.canonicalPath}/stages/${stageNumber}/matches/${matchNumber}`;
-const upcomingMatches = model.matches.filter((match) => match.state === 'upcoming');
+/** Live lists only the next few matches; Matches holds the rest. */
+const UPCOMING_SHOWN = 5;
+const kickoffOf = (startsAt: string): number => {
+  const time = Date.parse(startsAt);
+  return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time;
+};
+const referenceDate = Date.now();
+const allUpcomingSorted = model.matches
+  .filter((match) => match.state === 'upcoming')
+  .sort(
+    (left, right) =>
+      kickoffOf(left.startsAt) - kickoffOf(right.startsAt) ||
+      left.stageNumber - right.stageNumber ||
+      (left.stageOrdinal ?? 0) - (right.stageOrdinal ?? 0),
+  );
+const delayedMatches = allUpcomingSorted.filter((match) => isDelayed(match, referenceDate));
+const upcomingMatches = allUpcomingSorted.filter((match) => !isDelayed(match, referenceDate));
+const nextUpcoming = upcomingMatches.slice(0, UPCOMING_SHOWN);
 const nextKickoffAt = upcomingMatches
   .map((match) => match.startsAt)
-  .filter((startsAt) => !Number.isNaN(Date.parse(startsAt)))
-  .sort((left, right) => Date.parse(left) - Date.parse(right))[0];
-const referenceDate = Date.now();
+  .find((startsAt) => !Number.isNaN(Date.parse(startsAt)));
+const upcomingOnMatches = `${localePrefix}${model.canonicalPath}/matches?state=upcoming`;
 const structuredData = {
   '@type': 'SportsEvent' as const,
   name: `${intl.formatMessage(messages.livePageTitle)} — ${displayName(model)}`,
@@ -67,59 +105,192 @@ const trailBase = trailBaseOf({
   localePrefix,
 });
 const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.livePageTitle) }]);
+const showLeaders =
+  model.standingsStageNumber === undefined ||
+  model.matches
+    .filter((match) => match.stageNumber === model.standingsStageNumber)
+    .some((match) => match.state !== 'final');
+const leaderBlocks = showLeaders ? groupStandingsByZone(model.standings) : [];
+const multipleZones = new Set(leaderBlocks.map((block) => block.zoneName).filter(Boolean)).size > 1;
+const leaderBlockHeading = (block: (typeof leaderBlocks)[number]): string | undefined => {
+  const showZone =
+    block.zoneName !== undefined &&
+    (!block.groupName || (!isImplicitGroupZoneName(block.zoneName) && multipleZones));
+  const parts = [showZone ? block.zoneName : undefined, block.groupName].filter(
+    (part): part is string => part !== undefined,
+  );
+  return parts.length > 0 ? parts.join(' · ') : undefined;
+};
 ---
 
 <PublicLayout
+  tournamentHasClubs={(model.clubs ?? []).length > 0}
+  tournamentStages={model.stages}
+  standingsLayoutCode={standingsLayoutCode}
   title={`${intl.formatMessage(messages.livePageTitle)} — ${displayName(model)}`}
   canonicalPath={canonicalPath}
   intl={intl}
   disciplineImages={overviewData.disciplineImages}
   structuredData={structuredData}
 >
-  <Breadcrumb
-    items={trail}
-    ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
-    collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
-  />
-  <h1>{intl.formatMessage(messages.livePageTitle)}</h1>
-  {/* The island server-renders its initial state, including the zero-live state. */}
-  <LiveMatchHero
-    client:idle
-    initial={dashboard}
-    streamPath={model.streamPath}
-    usingLastKnownText={intl.formatMessage(messages.liveUsingLastKnown)}
-    noMatchesText={intl.formatMessage(messages.livePageNoMatches)}
-    nextKickoffText={intl.formatMessage(messages.livePageNextKickoff)}
-    nextKickoffAt={nextKickoffAt}
-    locale={resolvedLocale}
-    referenceDate={referenceDate}
-    resultStateLabels={labels}
-  />
+  <Container variant="public">
+    <PageHeader
+      title={`${displayName(model)} — ${intl.formatMessage(messages.livePageTitle)}`}
+      loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}
+    >
+      <Breadcrumb
+        slot="breadcrumb"
+        items={trail}
+        ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+        collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+      />
+    </PageHeader>
+    {/* The island server-renders its initial state, including the zero-live state. */}
+    <LiveMatchHero
+      client:idle
+      initial={dashboard}
+      streamPath={model.streamPath}
+      organizationAlias={organization!}
+      tournamentAlias={tournament!}
+      localePrefix={localePrefix}
+      versusLabel={intl.formatMessage(messages.tickerVersus)}
+      openMatchLabel={intl.formatMessage(messages.liveOpenMatch, {
+        home: '{home}',
+        away: '{away}',
+      })}
+      clockLabels={liveClockLabels(intl)}
+      usingLastKnownText={intl.formatMessage(messages.liveUsingLastKnown)}
+      noMatchesText={intl.formatMessage(messages.livePageNoMatches)}
+      nextKickoffText={intl.formatMessage(messages.livePageNextKickoff)}
+      nextKickoffAt={nextKickoffAt}
+      locale={resolvedLocale}
+      timeZone={model.organizationTimeZone}
+      referenceDate={referenceDate}
+      resultStateLabels={labels}
+    />
 
-  <h2>{intl.formatMessage(messages.livePageUpcomingHeading)}</h2>
-  {upcomingMatches.length === 0 && <p>{intl.formatMessage(messages.livePageNoUpcoming)}</p>}
-  <div class="cl-match-card-grid">
-    {
-      upcomingMatches.map((match) => {
-        const Wrapper = match.matchNumber === undefined ? 'div' : 'a';
+    {delayedMatches.length > 0 && (
+      <section aria-labelledby="live-delayed-heading">
+        <h2 id="live-delayed-heading">{intl.formatMessage(messages.resultStateDelayed)}</h2>
+        <div class="cl-match-card-grid">
+          {delayedMatches.map((match) => {
+            const Wrapper = match.stageOrdinal === undefined ? 'div' : 'a';
+            return (
+              <Wrapper
+                href={
+                  match.stageOrdinal === undefined
+                    ? undefined
+                    : reportPath(match.stageNumber, match.stageOrdinal)
+                }
+              >
+                <Card
+                  as="article"
+                  data-match={match.matchId}
+                  data-schedule-version={match.scheduleVersion ?? 0}
+                >
+                  <StateBadge delayed state="upcoming" intl={intl} />
+                  {match.rescheduledFrom && (
+                    <CardDescription>
+                      {rescheduledStatement(
+                        match.rescheduledFrom,
+                        match.venueName,
+                        intl.locale,
+                        intl.formatMessage(messages.matchRescheduled, {
+                          time: '{time}',
+                          venue: '{venue}',
+                        }),
+                      )}
+                    </CardDescription>
+                  )}
+                  <CardTitle
+                    aria-label={intl.formatMessage(messages.livePageMatchup, {
+                      home: match.home.name,
+                      away: match.away.name,
+                    })}
+                    className="cl-live-matchup"
+                  >
+                    <span>{match.home.name}</span>
+                    <span aria-hidden="true" class="cl-live-matchup__versus">
+                      {intl.formatMessage(messages.tickerVersus)}
+                    </span>
+                    <span>{match.away.name}</span>
+                  </CardTitle>
+                  {match.startsAt && !Number.isNaN(Date.parse(match.startsAt)) && (
+                    <CardDescription>
+                      <ResponsiveTimestamp
+                        locale={resolvedLocale}
+                        referenceDate={referenceDate}
+                        timeZone={model.organizationTimeZone}
+                        timestamp={match.startsAt}
+                      />
+                    </CardDescription>
+                  )}
+                </Card>
+              </Wrapper>
+            );
+          })}
+        </div>
+      </section>
+    )}
+
+    <TimeZoneNote
+      locale={resolvedLocale}
+      referenceDate={referenceDate}
+      timeZone={model.organizationTimeZone}
+      {...timeZoneNoteLabels(intl)}
+    />
+    <h2>{intl.formatMessage(messages.livePageUpcomingHeading)}</h2>
+    {upcomingMatches.length === 0 && <p>{intl.formatMessage(messages.livePageNoUpcoming)}</p>}
+    <div class="cl-match-card-grid">
+      {nextUpcoming.map((match) => {
+        // The report route resolves a match by its ordinal in the stage, not its number in a group.
+        const Wrapper = match.stageOrdinal === undefined ? 'div' : 'a';
         return (
           <Wrapper
             href={
-              match.matchNumber === undefined
+              match.stageOrdinal === undefined
                 ? undefined
-                : reportPath(match.stageNumber, match.matchNumber)
+                : reportPath(match.stageNumber, match.stageOrdinal)
             }
           >
-            <Card as="article">
+            <Card
+              as="article"
+              data-match={match.matchId}
+              data-schedule-version={match.scheduleVersion ?? 0}
+            >
               <StateBadge state="upcoming" intl={intl} />
-              <CardTitle>
-                {match.home.name} {intl.formatMessage(messages.tickerVersus)} {match.away.name}
+              {match.rescheduledFrom && (
+                <CardDescription>
+                  {rescheduledStatement(
+                    match.rescheduledFrom,
+                    match.venueName,
+                    intl.locale,
+                    intl.formatMessage(messages.matchRescheduled, {
+                      time: '{time}',
+                      venue: '{venue}',
+                    }),
+                  )}
+                </CardDescription>
+              )}
+              <CardTitle
+                aria-label={intl.formatMessage(messages.livePageMatchup, {
+                  home: match.home.name,
+                  away: match.away.name,
+                })}
+                className="cl-live-matchup"
+              >
+                <span>{match.home.name}</span>
+                <span aria-hidden="true" class="cl-live-matchup__versus">
+                  {intl.formatMessage(messages.tickerVersus)}
+                </span>
+                <span>{match.away.name}</span>
               </CardTitle>
               {match.startsAt && !Number.isNaN(Date.parse(match.startsAt)) && (
                 <CardDescription>
                   <ResponsiveTimestamp
                     locale={resolvedLocale}
                     referenceDate={referenceDate}
+                    timeZone={model.organizationTimeZone}
                     timestamp={match.startsAt}
                   />
                 </CardDescription>
@@ -127,19 +298,77 @@ const trail = publicTrail(trailBase, [{ label: intl.formatMessage(messages.liveP
             </Card>
           </Wrapper>
         );
-      })
-    }
-  </div>
+      })}
+    </div>
+    {upcomingMatches.length > UPCOMING_SHOWN && (
+      <p class="cl-live-upcoming-more">
+        <a href={upcomingOnMatches}>{intl.formatMessage(messages.matchesViewSeeAll)}</a>
+      </p>
+    )}
 
-  <StandingsTable
-    headingText={intl.formatMessage(messages.livePageLeadersHeading)}
-    intl={intl}
-    previewGrain={model.standingsGrain}
-    previewRows={model.standings}
-  />
+    {showLeaders &&
+      (leaderBlocks.length > 1 ||
+      leaderBlocks.some((block) => leaderBlockHeading(block) !== undefined) ? (
+        <section aria-labelledby="standings-heading" class="cl-standings-section">
+          <StandingsTable
+            headingText={intl.formatMessage(messages.livePageLeadersHeading)}
+            intl={intl}
+            previewGrain={model.standingsGrain}
+            previewRows={model.standings}
+            renderPart="header"
+            showControls={false}
+          />
+          <div class="cl-standings-groups">
+            {leaderBlocks.map((block) => (
+              <StandingsTable
+                chrome="table-only"
+                heading={leaderBlockHeading(block)}
+                intl={intl}
+                previewGrain={model.standingsGrain}
+                previewRows={block.rows}
+                showControls={false}
+              />
+            ))}
+          </div>
+        </section>
+      ) : (
+        <StandingsTable
+          headingText={intl.formatMessage(messages.livePageLeadersHeading)}
+          intl={intl}
+          previewGrain={model.standingsGrain}
+          previewRows={model.standings}
+          showControls={false}
+        />
+      ))}
 
-  <ResultLegend
-    heading={intl.formatMessage(messages.legendHeading)}
-    labels={resultStateLabels(intl)}
-  />
+    <ResultLegend
+      heading={intl.formatMessage(messages.legendHeading)}
+      labels={resultStateLabels(intl)}
+    />
+  </Container>
 </PublicLayout>
+
+<script>
+  import { mountPublicSchedule } from '../../../../../lib/public-schedule-live.ts';
+  mountPublicSchedule();
+</script>
+
+<style is:global>
+  .cl-live-matchup {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: var(--cl-space-2);
+  }
+
+  .cl-live-matchup__versus {
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-mono);
+  }
+
+  .cl-standings-groups {
+    display: grid;
+    gap: var(--cl-space-4);
+    margin-block: var(--cl-space-3);
+  }
+</style>

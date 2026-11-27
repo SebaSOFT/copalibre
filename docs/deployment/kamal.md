@@ -49,7 +49,7 @@ compares Compose against Helm today.
 
 ## Health checks and migrations
 
-- Each role's `probePath` (`/health`, `api` additionally `/ready`) is the
+- Each role's `probePath` (`/health`; `api` uses `/api/health` and additionally `/api/ready`) is the
   same HTTP health check Kamal's `healthcheck` config points at — identical
   to `roles.<name>.probePath`/`readinessPath` in `values.yaml`.
 - The `migrate` role must run to completion before any `api`/`worker` traffic

@@ -3,6 +3,7 @@ title: Venues & officials
 description: List, create, and edit an organization's venues and officials — what the schedule builder assigns.
 capabilities:
   - tournament-engine/resource-scheduling
+  - design-system/destructive-actions
 roles:
   - admin
 ---
@@ -22,7 +23,13 @@ assigned as often as needed.
 - **Official name / roles**: an official's identity and the roles they may be assigned to (referee,
   assistant, table official, observer).
 
-## What you cannot do here
+## Removing a venue or schedule
 
-Deleting a venue or official is not available yet — one created by mistake and never used can simply be
-ignored. Assigning a venue or official to a specific fixture happens in the schedule builder, not here.
+A venue with no schedule assignments can be removed immediately. A success notification offers Undo
+for 10 seconds. Clear or move a venue's assignments before removing it. Official deletion is not
+available yet; an unused official can be ignored.
+
+Deleting a schedule is irreversible. Its confirmation preview lists the number of slots and assigned
+matches that will be removed. Type the schedule name to enable **Delete schedule**.
+
+Assigning a venue or official to a specific fixture happens in the schedule builder, not here.

@@ -1,37 +1,39 @@
 import { useId, type ReactNode } from 'react';
+import { Popover } from './Popover.js';
 
 /**
  * A table column header, optionally sortable and optionally described.
  *
- * One `<button>` carries both behaviours rather than a sort trigger nested
- * inside a separate description trigger — nesting two interactive elements is
- * invalid markup, and the header is one control either way: activating it
- * sorts, focusing or hovering it reveals what the column means.
- * `aria-describedby` links the button to the bubble so a screen reader
- * announces the description on focus without folding it into the button's own
- * accessible name.
+ * The label is the sort button and the information icon is its sibling:
+ * nesting two interactive elements is invalid markup, and a click has to keep
+ * meaning "sort". `aria-describedby` links the sort button to a hidden copy of
+ * the description, so a screen reader announces it on focus without folding it
+ * into the button's own accessible name.
  */
 export function ColumnHeaderTooltip({
   label,
   description,
+  infoLabel,
   indicator,
   onClick,
   className,
 }: {
   readonly label: string;
   readonly description?: string;
+  /** The information icon's accessible name, required with a description. */
+  readonly infoLabel?: string;
   /** The sort-direction glyph, rendered after the label — absent for an unsorted or unsortable column. */
   readonly indicator?: ReactNode;
   /** Absent for a described-but-unsortable column: the button still focuses, it just does nothing on click. */
   readonly onClick?: () => void;
   readonly className?: string;
 }): React.JSX.Element {
-  const bubbleId = useId();
+  const descriptionId = useId();
   return (
     <span className={`cl-column-header-tooltip ${className ?? ''}`.trim()}>
       <button
-        aria-describedby={description === undefined ? undefined : bubbleId}
-        className="cl-column-header cl-column-header-tooltip__trigger"
+        aria-describedby={description === undefined ? undefined : descriptionId}
+        className="cl-column-header"
         onClick={onClick}
         type="button"
       >
@@ -39,9 +41,14 @@ export function ColumnHeaderTooltip({
         {indicator}
       </button>
       {description !== undefined && (
-        <span className="cl-column-header-tooltip__bubble" id={bubbleId} role="tooltip">
-          {description}
-        </span>
+        <>
+          <span className="cl-visually-hidden" id={descriptionId}>
+            {description}
+          </span>
+          <Popover openOnHover triggerLabel={infoLabel ?? label}>
+            {description}
+          </Popover>
+        </>
       )}
     </span>
   );

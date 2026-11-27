@@ -22,8 +22,9 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     summary: 'Write a new installation into the current directory — no checkout required',
     usage:
       'copalibre init [--module-dev] [--repair] [--proxy <name>] [--non-interactive] [--skip-preflight] ' +
-      '[--app-url <url>] [--api-url <url>] [--disciplines <list>] [--email-provider <provider>] ' +
-      '[--email-from <address>] [--email-credential <value>] [--email-domain <domain>] | ' +
+      '[--app-url <url>] [--api-url <url>] [--https | --no-https] [--disciplines <list>] [--email-provider <provider>] ' +
+      '[--email-from <address>] [--email-credential <value>] [--email-domain <domain>] [--email-region <us|eu>] ' +
+      '[--oidc-issuer <url> --oidc-client-id <id> [--oidc-jwks-uri <url>]] | ' +
       'copalibre init --kubernetes [--namespace <ns>] [--release <name>] [--context <ctx>]',
     flags: [
       {
@@ -56,6 +57,16 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
         description: 'Public API domain URL (default: matches app-url)',
       },
       {
+        flag: '--https',
+        description:
+          'Browsers reach the installation over HTTPS: session cookies carry Secure (default: from the app-url scheme)',
+      },
+      {
+        flag: '--no-https',
+        description:
+          'Plain HTTP on a host other than localhost: session cookies omit Secure and the __Host- prefix',
+      },
+      {
         flag: '--disciplines <list>',
         description:
           'Comma-separated starter sport disciplines to provision (default: football, tennis)',
@@ -77,6 +88,23 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
         description: 'Mailgun sending domain (required for the mailgun provider)',
       },
       {
+        flag: '--email-region <us|eu>',
+        description: 'Mailgun region that holds the domain (default: us)',
+      },
+      {
+        flag: '--oidc-issuer <url>',
+        description:
+          'Sign in through an external OIDC provider with this exact issuer (default: the built-in provider)',
+      },
+      {
+        flag: '--oidc-client-id <id>',
+        description: 'Client ID registered for CopaLibre at the OIDC provider',
+      },
+      {
+        flag: '--oidc-jwks-uri <url>',
+        description: "The provider's key set (default: read from its OpenID discovery document)",
+      },
+      {
         flag: '--kubernetes',
         description: 'Scaffold a Helm values.yaml instead of a compose installation',
       },
@@ -96,9 +124,32 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   },
   {
     name: 'doctor',
-    summary: 'Validate configuration and dependencies before starting',
-    usage: 'copalibre doctor [--check-proxy] [--proxy-url <url>] [--smoke] [--fix | --interactive]',
+    summary:
+      'Validate configuration and dependencies, and offer to configure missing settings such as email',
+    usage:
+      'copalibre doctor [--check-proxy] [--proxy-url <url>] [--smoke] [--fix | --interactive] ' +
+      '[--non-interactive] [--send-test-email <address>] | ' +
+      'copalibre doctor --configure <email|bootstrap-token|public-url> [setting flags]',
     flags: [
+      {
+        flag: '--non-interactive',
+        description:
+          'Ask nothing, even in a terminal: report missing settings with the flags that configure them',
+      },
+      {
+        flag: '--configure <setting>',
+        description:
+          'Configure email, bootstrap-token (generated) or public-url without questions, then check',
+      },
+      {
+        flag: '--email-provider, --email-credential, --email-from, --email-domain, --email-region',
+        description: 'With --configure email: the same values copalibre init takes',
+      },
+      { flag: '--app-url <url>', description: 'With --configure public-url: the URL browsers use' },
+      {
+        flag: '--send-test-email <address>',
+        description: 'Send one email the way invitations are sent, and report the provider answer',
+      },
       { flag: '--check-proxy', description: 'Also verify the reverse-proxy configuration' },
       { flag: '--proxy-url <url>', description: 'Public URL to probe when --check-proxy is set' },
       { flag: '--smoke', description: 'Run post-setup end-to-end connectivity smoke tests' },
@@ -112,7 +163,9 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   {
     name: 'dev',
     summary: 'Run a development environment (containerized or hybrid)',
-    usage: 'copalibre dev [--hybrid]\n       copalibre dev demo [--list] [<dataset>]',
+    usage:
+      'copalibre dev [--hybrid]\n' +
+      '       copalibre dev demo [--list] [<dataset>] [--anchor <YYYY-MM-DD|today>] [--played-until <ISO-8601|now>] [--with-admin <email>]',
     flags: [
       {
         flag: '--hybrid',
@@ -121,6 +174,19 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
       {
         flag: 'demo [--list] [<dataset>]',
         description: 'Load a demo dataset into the running development stack, or list the datasets',
+      },
+      {
+        flag: 'demo --anchor <YYYY-MM-DD|today>',
+        description: "Move the dataset's first game day to that date, keeping local times",
+      },
+      {
+        flag: 'demo --played-until <ISO-8601|now>',
+        description:
+          'Play only the games finished by then; later games stay scheduled, cup sides undecided',
+      },
+      {
+        flag: 'demo --with-admin <email>',
+        description: 'Create an administrator invitation for the loaded demo organization',
       },
     ],
   },
@@ -209,13 +275,13 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   {
     name: 'upgrade',
     summary:
-      'Coordinate self-hosted upgrade lifecycle: CLI binary, compose, images, migrations, and modules',
+      'Take this installation to a new release: back up, replace shipped files, move the database, restart, run doctor',
     usage:
-      'copalibre upgrade [--check] [--target-version <v>] [--self] [--skip-self-update] [--yes]',
+      'copalibre upgrade [--check] [--target-version <v>] [--self] [--skip-self-update] [--skip-services] [--skip-modules] [--keep-old-volume] [--yes]',
     flags: [
       {
         flag: '--check',
-        description: 'Inspect available platform and module updates without applying changes',
+        description: 'Print what the upgrade would do here, changing nothing',
       },
       {
         flag: '--target-version <v>',
@@ -227,7 +293,19 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
       },
       {
         flag: '--skip-self-update',
-        description: 'Skip CLI binary update and only upgrade compose, images, and migrations',
+        description: 'Keep this CLI binary; upgrade the installation with it',
+      },
+      {
+        flag: '--skip-services',
+        description: 'Update .env and the marker only (refused when the database must move)',
+      },
+      {
+        flag: '--skip-modules',
+        description: 'Do not list outdated modules afterwards',
+      },
+      {
+        flag: '--keep-old-volume',
+        description: 'Keep the previous PostgreSQL volume and image after moving the data',
       },
       {
         flag: '--yes, -y',
@@ -240,6 +318,18 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
     summary: 'Bootstrap the first administrator account for an organization',
     usage:
       'copalibre create-admin --organization-alias <alias> --organization-name <name> --email <email>',
+  },
+  {
+    name: 'grant-first-super-admin',
+    summary: 'Grant super-admin to an existing account, only while the installation has none',
+    usage: 'copalibre grant-first-super-admin --email <email>',
+    flags: [
+      {
+        flag: '--email <email>',
+        description:
+          'The account to promote; it must exist (the person accepted an invitation or signed in once)',
+      },
+    ],
   },
   {
     name: 'login',
@@ -275,8 +365,8 @@ export const COMMAND_HELP: readonly CommandHelp[] = [
   },
   {
     name: 'organization',
-    summary: 'Read an organization by alias over the API (requires copalibre login)',
-    usage: 'copalibre organization get <alias>',
+    summary: 'Read organizations or create an administrator invitation',
+    usage: 'copalibre organization <get|add-admin>',
   },
   {
     name: 'tournament',
@@ -434,6 +524,23 @@ export const TOURNAMENT_SUBCOMMAND_HELP: readonly CommandHelp[] = [
   },
 ];
 
+export const ORGANIZATION_SUBCOMMAND_HELP: readonly CommandHelp[] = [
+  {
+    name: 'get',
+    summary: 'Read an organization by alias over the API (requires copalibre login)',
+    usage: 'copalibre organization get <alias>',
+  },
+  {
+    name: 'add-admin',
+    summary: 'Create an audited administrator invitation using direct database access',
+    usage: 'copalibre organization add-admin --organization <alias> --email <email>',
+    flags: [
+      { flag: '--organization <alias>', description: 'Organization to invite an administrator to' },
+      { flag: '--email <email>', description: 'Email address that will receive the invitation' },
+    ],
+  },
+];
+
 function calculateColumnWidth(commands: readonly { readonly name: string }[]): number {
   return Math.max(22, ...commands.map((c) => c.name.length + 3));
 }
@@ -494,6 +601,21 @@ export function renderTournamentHelp(): string {
     ),
     '',
     "Run 'copalibre tournament <subcommand> --help' for details on a specific subcommand.",
+  ];
+  return `${lines.join('\n')}\n`;
+}
+
+export function renderOrganizationHelp(): string {
+  const colWidth = calculateColumnWidth(ORGANIZATION_SUBCOMMAND_HELP);
+  const lines = [
+    'Usage: copalibre organization <subcommand> [options]',
+    '',
+    'Subcommands:',
+    ...ORGANIZATION_SUBCOMMAND_HELP.map(
+      (subcommand) => `  ${subcommand.name.padEnd(colWidth)}${subcommand.summary}`,
+    ),
+    '',
+    "Run 'copalibre organization <subcommand> --help' for details on a specific subcommand.",
   ];
   return `${lines.join('\n')}\n`;
 }

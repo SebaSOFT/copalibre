@@ -1,5 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsObject, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+
+/** A module alias, as the module manifest defines it. */
+export const MODULE_ALIAS_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const GITHUB_REPOSITORY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100}$/;
+const BRANCH_PATTERN = /^(?!-)(?!.*\.\.)(?!.*\/\/)(?!.*@\{)[A-Za-z0-9._/-]{1,200}(?<![./])$/;
 
 /** Wire DTOs are camelCase, per the naming-conventions casing rule. */
 export class AuthoredModuleRequest {
@@ -52,8 +57,10 @@ export class AuthoredModuleSubmitRequest {
   @IsIn(['discipline', 'tournament-profile'])
   kind!: 'discipline' | 'tournament-profile';
 
-  @ApiProperty({ example: 'orbital-frisbee' })
+  @ApiProperty({ example: 'orbital-frisbee', pattern: MODULE_ALIAS_PATTERN.source, maxLength: 64 })
   @IsString()
+  @MaxLength(64)
+  @Matches(MODULE_ALIAS_PATTERN)
   alias!: string;
 
   @ApiProperty({ example: '1.0.0' })
@@ -66,11 +73,15 @@ export class AuthoredModuleSubmitRequest {
   })
   @IsOptional()
   @IsString()
+  @Matches(GITHUB_REPOSITORY_PATTERN, {
+    message: 'upstreamRepository must be an owner/name GitHub repository',
+  })
   upstreamRepository?: string;
 
   @ApiPropertyOptional({ example: 'main' })
   @IsOptional()
   @IsString()
+  @Matches(BRANCH_PATTERN, { message: 'baseBranch must be a branch name' })
   baseBranch?: string;
 }
 

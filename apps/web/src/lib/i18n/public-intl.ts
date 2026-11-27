@@ -1,3 +1,5 @@
+import { formatMatchRef as formatSourceMatchRef, type SideSourceMessages } from '../side-source.js';
+import type { CompetitionContextLabels } from '../competition-context.js';
 import { createIntl, createIntlCache, type IntlShape } from 'react-intl';
 import type { SupportedLanguage } from '@copalibre/domain';
 import { messages as esMessages } from './public-messages.es.js';
@@ -10,9 +12,13 @@ import { messages as zhMessages } from './public-messages.zh.js';
 import { messages } from './public-messages.en.js';
 import type { ResultReason } from '@copalibre/domain';
 import type { ResultState, ResultStateLabels } from '../result-state.js';
+import type { IconName } from '../icon-registry.js';
 import { parseBracketRole } from '../bracket-role.js';
 import { seriesScore, seriesSegments, type SegmentState, type SeriesInput } from '../series.js';
 import { displayName, type OverviewModel } from '../overview.js';
+import { PUBLIC_TIEBREAKER_LABELS, tiebreakerLabelsForCatalog } from '../tiebreaker-labels.js';
+import type { TournamentStatusLineLabels } from '../tournament-status-line.js';
+import type { ClubStatus, KnockoutRoundKind } from '../club-page.js';
 
 /** Labels for every non-`played` `ResultReason` — `played` never renders one. */
 export type ResultReasonLabels = Readonly<Record<Exclude<ResultReason, 'played'>, string>>;
@@ -47,6 +53,64 @@ export function publicIntl(locale: SupportedLanguage): IntlShape {
   return createIntl({ locale, defaultLocale: 'en', messages: CATALOGS[locale] }, cache);
 }
 
+export interface PublicEntrantPresentation {
+  readonly fullName: string;
+  readonly abbreviation?: string;
+}
+
+/** Resolve a public entrant to its persisted display name and optional short label. */
+export function formatEntrant(
+  intl: IntlShape,
+  entrant: {
+    readonly name?: string;
+    readonly displayName?: string;
+    readonly abbreviation?: string;
+  },
+): PublicEntrantPresentation {
+  const name = entrant.displayName?.trim() || entrant.name?.trim();
+  const abbreviation = entrant.abbreviation?.trim();
+  return {
+    fullName: name || intl.formatMessage(messages.presentationEntrantUnknown),
+    ...(abbreviation ? { abbreviation } : {}),
+  };
+}
+
+/** Resolve a technical audit actor to a translated role label. */
+export function formatActor(intl: IntlShape, actor: string): string {
+  if (actor === 'system:demo-dataset') {
+    return intl.formatMessage(messages.presentationActorDemoDataset);
+  }
+  if (actor.startsWith('system:')) return intl.formatMessage(messages.presentationActorSystem);
+  if (actor.startsWith('user:') || /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(actor)) {
+    return intl.formatMessage(messages.presentationActorUser);
+  }
+  return actor.includes('@') ? actor : intl.formatMessage(messages.presentationActorSystem);
+}
+
+/** Human-readable name for a generated public bracket reference. */
+export function formatMatchRef(intl: IntlShape, key: string, finalRound?: number): string {
+  return formatSourceMatchRef(key, sideSourceLabels(intl), { finalRound });
+}
+
+/** Locale and organization-zone aware date/time for public and broadcast labels. */
+export function formatDateTime(
+  intl: IntlShape,
+  value: string | number | Date,
+  timeZone?: string,
+): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return intl.formatMessage(messages.rulesetValueUnknown);
+  try {
+    return new Intl.DateTimeFormat(intl.locale, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      ...(timeZone === undefined ? {} : { timeZone }),
+    }).format(date);
+  } catch {
+    return intl.formatMessage(messages.rulesetValueUnknown);
+  }
+}
+
 const RESULT_STATE_MESSAGE_KEY = {
   live: messages.resultStateLive,
   upcoming: messages.resultStateUpcoming,
@@ -72,11 +136,17 @@ export function resultStateLabels(intl: IntlShape): ResultStateLabels {
   };
 }
 
+/** Resolves the delayed result-state label once for atoms/organisms. */
+export function delayedStateLabel(intl: IntlShape): string {
+  return intl.formatMessage(messages.resultStateDelayed);
+}
+
 /** The ticker's own vocabulary; the state badges reuse `resultStateLabels`. */
 export function tickerLabels(intl: IntlShape) {
   const state = resultStateLabels(intl);
   return {
     live: state.live,
+    delayed: intl.formatMessage(messages.resultStateDelayed),
     upcoming: state.upcoming,
     final: state.final,
     leader: intl.formatMessage(messages.tickerLeader),
@@ -123,8 +193,15 @@ export function tvStatisticsLabels(intl: IntlShape) {
     unnamedActor: intl.formatMessage(messages.tvStatsUnnamedActor, {
       reference: '{reference}',
     }),
+    hiddenPerson: intl.formatMessage(messages.personHiddenAtRequest),
     scheduledMatches: intl.formatMessage(messages.tvStatsScheduledMatches),
     status: intl.formatMessage(messages.tvStatsStatus),
+    statusLabels: {
+      scheduled: intl.formatMessage(messages.resultStateUpcoming),
+      live: intl.formatMessage(messages.resultStateLive),
+      inProgress: intl.formatMessage(messages.completionInProgress),
+      finished: intl.formatMessage(messages.resultStateFinal),
+    },
     inProgress: intl.formatMessage(messages.tvStatsInProgress),
     matchesPlayed: intl.formatMessage(messages.tvStatsMatchesPlayed),
     totalScored: intl.formatMessage(messages.tvStatsTotalScored),
@@ -146,18 +223,48 @@ export function tvStatisticsLabels(intl: IntlShape) {
 /** `TvDashboard.tsx`'s own chrome — separate from `tvStatisticsLabels`'s derived-stat labels. */
 export function tvDashboardLabels(intl: IntlShape) {
   return {
+    stale: intl.formatMessage(messages.tickerStale),
+    sideSource: sideSourceLabels(intl),
+    homeSide: intl.formatMessage(messages.tvStatsHomeSide),
+    awaySide: intl.formatMessage(messages.tvStatsAwaySide),
+    rescheduled: intl.formatMessage(messages.matchRescheduled, {
+      time: '{time}',
+      venue: '{venue}',
+    }),
     resultState: resultStateLabels(intl),
+    /** The tournament-level badge for a started tournament between matches. */
+    inProgress: intl.formatMessage(messages.completionInProgress),
+    delayed: intl.formatMessage(messages.resultStateDelayed),
     noMatchesScheduled: intl.formatMessage(messages.tvDashboardNoMatchesScheduled),
     standingsUnavailable: intl.formatMessage(messages.tvDashboardStandingsUnavailable),
     clubColumn: intl.formatMessage(messages.tvDashboardClubColumn),
-    playedColumn: intl.formatMessage(messages.tvDashboardPlayedColumn),
+    playedShort: intl.formatMessage(messages.tvDashboardPlayedShort),
     noTopPerformers: intl.formatMessage(messages.tvDashboardNoTopPerformers),
     focalPanelLabel: intl.formatMessage(messages.tvDashboardFocalPanelLabel),
+    focalPanelTitle: intl.formatMessage(messages.tvDashboardFeaturedMatchTitle),
+    recapTitle: intl.formatMessage(messages.tvDashboardRecapTitle),
+    contextLabels: competitionContextLabels(intl),
+    bracketBranch: {
+      winners: intl.formatMessage(messages.tvDashboardBracketBranchWinners),
+      losers: intl.formatMessage(messages.tvDashboardBracketBranchLosers),
+      grandFinal: intl.formatMessage(messages.tvDashboardBracketBranchGrandFinal),
+      placement: intl.formatMessage(messages.tvDashboardBracketBranchPlacement),
+    },
+    bracketRoundFinal: intl.formatMessage(messages.bracketRoundFinal),
+    bracketRoundSemifinals: intl.formatMessage(messages.bracketRoundSemifinals),
+    bracketRoundQuarterfinals: intl.formatMessage(messages.bracketRoundQuarterfinals),
+    zonePrefix: intl.formatMessage(messages.placementZonePrefix, {
+      zone: '{zone}',
+      placement: '{placement}',
+    }),
+    overallPlace: overallPlaceTemplate(intl),
     matchEventsLabel: intl.formatMessage(messages.tvDashboardMatchEventsLabel),
     statsAndTablesLabel: intl.formatMessage(messages.tvDashboardStatsAndTablesLabel),
     sidebarSectionsLabel: intl.formatMessage(messages.tvDashboardSidebarSectionsLabel),
     standingsTab: intl.formatMessage(messages.tvDashboardStandingsTab),
     performersTab: intl.formatMessage(messages.tvDashboardPerformersTab),
+    performersTeamsTab: intl.formatMessage(messages.tvDashboardPerformersTeamsTab),
+    recentFormTab: intl.formatMessage(messages.tvDashboardRecentFormTab),
     statisticsTab: intl.formatMessage(messages.tvDashboardStatisticsTab),
     bracketTab: intl.formatMessage(messages.tvDashboardBracketTab),
     fixturesTab: intl.formatMessage(messages.tvDashboardFixturesTab),
@@ -165,7 +272,15 @@ export function tvDashboardLabels(intl: IntlShape) {
     bracketMatch: intl.formatMessage(messages.tvDashboardBracketMatch),
     possession: intl.formatMessage(messages.tvDashboardPossession),
     penalty: intl.formatMessage(messages.tvDashboardPenalty),
+    counters: matchCounterTexts(intl),
     clockLabel: intl.formatMessage(messages.tvDashboardClockLabel),
+    clockStopped: intl.formatMessage(messages.tvDashboardClockStopped),
+    clockAriaLabel: intl.formatMessage(messages.liveClockAriaLabel, {
+      segment: '{segment}',
+      time: '{time}',
+    }),
+    leading: intl.formatMessage(messages.tvDashboardLeading),
+    nextMatch: intl.formatMessage(messages.tvDashboardNextMatch),
     // Raw templates, filled in the island: a function would not survive its JSON props.
     finishedOn: intl.formatMessage(messages.tvDashboardFinishedOn, { date: '{date}' }),
     matchNotFound: intl.formatMessage(messages.tvDashboardMatchNotFound),
@@ -188,6 +303,32 @@ export function tvMultiCourtGridLabels(intl: IntlShape) {
     resultState: resultStateLabels(intl),
     noMatches: intl.formatMessage(messages.tvMultiCourtGridNoMatches),
     ariaLabel: intl.formatMessage(messages.tvMultiCourtGridAriaLabel),
+    clockStopped: intl.formatMessage(messages.tvDashboardClockStopped),
+    clockAriaLabel: intl.formatMessage(messages.liveClockAriaLabel, {
+      segment: '{segment}',
+      time: '{time}',
+    }),
+    inProgress: intl.formatMessage(messages.completionInProgress),
+    delayed: intl.formatMessage(messages.resultStateDelayed),
+    clockLabel: intl.formatMessage(messages.tvDashboardClockLabel),
+    pageOf: intl.formatMessage(messages.tvDashboardPageOf, { page: '{page}', total: '{total}' }),
+  };
+}
+
+export interface LiveClockLabels {
+  readonly clockStopped: string;
+  readonly clockAriaLabel: string;
+  readonly lastUpdated: string;
+}
+
+export function liveClockLabels(intl: IntlShape): LiveClockLabels {
+  return {
+    clockStopped: intl.formatMessage(messages.liveClockStopped),
+    clockAriaLabel: intl.formatMessage(messages.liveClockAriaLabel, {
+      segment: '{segment}',
+      time: '{time}',
+    }),
+    lastUpdated: intl.formatMessage(messages.liveLastUpdated, { time: '{time}' }),
   };
 }
 
@@ -210,7 +351,15 @@ export function resultReasonLabels(intl: IntlShape): ResultReasonLabels {
  * same way and the component itself stays free of any i18n import.
  */
 export interface MatchCardLabels {
+  readonly matchHeading: string;
+  /** "Round {round}", a card's title when it has no group and no knockout round name. */
+  readonly roundHeading?: string;
+  /** "{zone} · {placement}" when a placement card sits outside its own zone section. */
+  readonly zonePrefix?: string;
+  readonly sideSource: SideSourceMessages;
+  readonly rescheduled?: string;
   readonly state: ResultStateLabels;
+  readonly delayed?: string;
   readonly filters: {
     readonly all: string;
     readonly live: string;
@@ -224,6 +373,9 @@ export interface MatchCardLabels {
    * props are JSON-serialized, and a function does not survive that.
    */
   readonly clockAriaLabel: string;
+  readonly clockStopped?: string;
+  readonly liveClockAriaLabel?: string;
+  readonly lastUpdated?: string;
   readonly venueAriaLabel: string;
   /** Absent on a surface (e.g. control-web) that doesn't show kickoff time. */
   readonly scheduledAtAriaLabel?: string;
@@ -231,8 +383,7 @@ export interface MatchCardLabels {
   readonly zoneGroupAriaLabel: string;
   readonly positionInGroup: string;
   readonly position: string;
-  readonly decidedBy: string;
-  readonly decidedByAriaLabel: string;
+  readonly tiebreakers?: Readonly<Record<string, string>>;
   readonly fullTraceHeading: string;
   readonly seriesAriaLabel: string;
   readonly seriesPending: string;
@@ -248,7 +399,19 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
   // `formatMessage` path, just without supplying the real per-match value
   // yet. `MatchCard.tsx` fills it in later via `applyTemplate`.
   return {
+    matchHeading: intl.formatMessage(messages.breadcrumbMatch, { match: '{match}' }),
+    roundHeading: intl.formatMessage(messages.bracketRoundHeading, { round: '{round}' }),
+    zonePrefix: intl.formatMessage(messages.placementZonePrefix, {
+      zone: '{zone}',
+      placement: '{placement}',
+    }),
+    sideSource: sideSourceLabels(intl),
+    rescheduled: intl.formatMessage(messages.matchRescheduled, {
+      time: '{time}',
+      venue: '{venue}',
+    }),
     state: resultStateLabels(intl),
+    delayed: intl.formatMessage(messages.resultStateDelayed),
     filters: {
       all: intl.formatMessage(messages.matchesViewFilterAll),
       live: intl.formatMessage(messages.matchesViewFilterLive),
@@ -257,6 +420,12 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
     },
     empty: intl.formatMessage(messages.matchesViewEmpty),
     clockAriaLabel: intl.formatMessage(messages.matchesViewClockAriaLabel, { time: '{time}' }),
+    clockStopped: intl.formatMessage(messages.liveClockStopped),
+    liveClockAriaLabel: intl.formatMessage(messages.liveClockAriaLabel, {
+      segment: '{segment}',
+      time: '{time}',
+    }),
+    lastUpdated: intl.formatMessage(messages.liveLastUpdated, { time: '{time}' }),
     venueAriaLabel: intl.formatMessage(messages.matchesViewVenueAriaLabel, { venue: '{venue}' }),
     scheduledAtAriaLabel: intl.formatMessage(messages.matchesViewScheduledAtAriaLabel, {
       time: '{time}',
@@ -272,8 +441,7 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
       position: '{position}',
     }),
     position: intl.formatMessage(messages.matchesViewPosition, { position: '{position}' }),
-    decidedBy: intl.formatMessage(messages.matchesViewDecidedBy, { factor: '{factor}' }),
-    decidedByAriaLabel: intl.formatMessage(messages.matchesViewDecidedByAriaLabel),
+    tiebreakers: tiebreakerLabelsForCatalog(intl, PUBLIC_TIEBREAKER_LABELS),
     fullTraceHeading: intl.formatMessage(messages.matchesViewFullTraceHeading),
     seriesAriaLabel: intl.formatMessage(messages.seriesAriaLabel, {
       bestOf: '{bestOf}',
@@ -295,8 +463,13 @@ export function matchCardLabels(intl: IntlShape): MatchCardLabels {
 
 export interface SeriesStateBarSegment {
   readonly state: SegmentState;
-  readonly mark: string;
+  /** A registry icon: the brand faces have no glyph for these shapes. */
+  readonly mark: IconName;
   readonly label: string;
+  /** The game's own page, when it has been played or is in progress. */
+  readonly href?: string;
+  /** The link's accessible name: the game, its two sides and its score. */
+  readonly linkLabel?: string;
 }
 
 export interface SeriesStateBarProps {
@@ -314,12 +487,12 @@ export interface SeriesStateBarProps {
   something a spectator can guess from a shade, and the mark keeps it legible where the words
   will not fit — the two together mean a monochrome screen loses nothing.
 */
-const SERIES_SEGMENT_MARKS: Record<SegmentState, string> = {
-  'won-home': '▲',
-  'won-away': '▼',
-  current: '●',
-  upcoming: '·',
-  'not-required': '×',
+const SERIES_SEGMENT_MARKS: Record<SegmentState, IconName> = {
+  'won-home': 'winner',
+  'won-away': 'winner-away',
+  current: 'live',
+  upcoming: 'calendar',
+  'not-required': 'close',
 };
 
 /**
@@ -338,6 +511,8 @@ export function seriesStateBarLabels(
     readonly winner?: 'home' | 'away';
     /** Present on an `aggregate` tie: the summed score, home first. */
     readonly aggregateScores?: readonly number[];
+    /** Each linkable game's own page, keyed by its game number. */
+    readonly gameLinks?: ReadonlyMap<number, { readonly href: string; readonly linkLabel: string }>;
   },
 ): SeriesStateBarProps {
   const score = seriesScore(series);
@@ -348,11 +523,15 @@ export function seriesStateBarLabels(
     upcoming: messages.seriesGameUpcoming,
     'not-required': messages.seriesGameNotRequired,
   };
-  const segments = seriesSegments(series).map((state, index) => ({
-    state,
-    mark: SERIES_SEGMENT_MARKS[state],
-    label: intl.formatMessage(labelByState[state], { number: index + 1 }),
-  }));
+  const segments = seriesSegments(series).map((state, index) => {
+    const link = options.gameLinks?.get(index + 1);
+    return {
+      state,
+      mark: SERIES_SEGMENT_MARKS[state],
+      label: intl.formatMessage(labelByState[state], { number: index + 1 }),
+      ...(link === undefined ? {} : { href: link.href, linkLabel: link.linkLabel }),
+    };
+  });
   const winnerName =
     options.winner === 'home'
       ? options.homeName
@@ -413,12 +592,7 @@ export interface RulesetBriefingRow {
   readonly value: string;
 }
 
-/**
- * A finite, well-known enum of stage formats — every one of the bracket/
- * round-robin family the tournament engine declares. A format a future
- * discipline module adds and this map has not caught up with falls back to
- * the generic word-split below, same as any other unrecognized enum value.
- */
+/** Known public format labels. Unknown values use the translated generic label. */
 const RULESET_FORMAT_MESSAGE: Record<string, (typeof messages)['rulesetFormatSingleElimination']> =
   {
     'single-elimination': messages.rulesetFormatSingleElimination,
@@ -435,41 +609,175 @@ const RULESET_FORMAT_MESSAGE: Record<string, (typeof messages)['rulesetFormatSin
     'ffa-league': messages.rulesetFormatFfaLeague,
   };
 
+const RULESET_TIEBREAKER_MESSAGE: Record<string, (typeof messages)['rulesetTiebreakerPoints']> = {
+  points: messages.rulesetTiebreakerPoints,
+  'score-difference': messages.rulesetTiebreakerScoreDifference,
+  'goal-average': messages.rulesetTiebreakerGoalAverage,
+  'goals-for': messages.rulesetTiebreakerGoalsFor,
+  'goals-against': messages.rulesetTiebreakerGoalsAgainst,
+  'matches-won': messages.rulesetTiebreakerMatchesWon,
+  'sets-won': messages.rulesetTiebreakerSetsWon,
+  'games-won': messages.rulesetTiebreakerGamesWon,
+  'head-to-head': messages.rulesetTiebreakerHeadToHead,
+};
+
+export type PublicEnumKind = 'format' | 'tiebreaker';
+
+export const PUBLIC_ENUM_VALUES: Readonly<Record<PublicEnumKind, readonly string[]>> = {
+  format: Object.freeze(Object.keys(RULESET_FORMAT_MESSAGE)),
+  tiebreaker: Object.freeze(Object.keys(RULESET_TIEBREAKER_MESSAGE)),
+};
+
+/** A translated public enum label; future unknown codes resolve to a generic label. */
+export function formatEnum(intl: IntlShape, kind: PublicEnumKind, value: string): string {
+  const descriptor =
+    kind === 'format' ? RULESET_FORMAT_MESSAGE[value] : RULESET_TIEBREAKER_MESSAGE[value];
+  return descriptor
+    ? intl.formatMessage(descriptor)
+    : intl.formatMessage(messages.rulesetValueUnknown);
+}
+
 function rulesetValue(intl: IntlShape, value: string): string {
   if (value === 'true') return intl.formatMessage(messages.rulesetValueYes);
   if (value === 'false') return intl.formatMessage(messages.rulesetValueNo);
   const formatMessage = RULESET_FORMAT_MESSAGE[value];
   if (formatMessage) return intl.formatMessage(formatMessage);
   if (/^[a-z]+([-_][a-z]+)+$/i.test(value)) {
-    return value
-      .split(/[-_]+/)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ');
+    return intl.formatMessage(messages.rulesetValueUnknown);
   }
   return value;
+}
+
+export function timeZoneNoteLabels(intl: IntlShape): {
+  readonly template: string;
+  readonly utcTemplate: string;
+} {
+  return {
+    template: intl.formatMessage(messages.scheduleTimeZoneNote, {
+      zone: '{zone}',
+      offset: '{offset}',
+    }),
+    utcTemplate: intl.formatMessage(messages.scheduleTimeZoneNoteUtc, {
+      zone: '{zone}',
+    }),
+  };
 }
 
 /**
  * `RulesetBriefing.astro`'s rows, fully resolved — the field's label (already
  * localized by `mapOverviewResponse`) paired with its localized display value.
+ * When the tournament declares more than one stage (or a stage whose zone
+ * formats differ from the stage's), the format row lists each stage/zone
+ * format rather than collapsing the tournament to one format.
  * I18n formatting stays at this organism-and-above tier
  * (`check-atomic-composition.mjs` R6); the molecule only ever renders strings.
  */
+function formatStageFormats(
+  intl: IntlShape,
+  model: Pick<OverviewModel, 'stages'>,
+): string | undefined {
+  const stages = model.stages;
+  if (!stages || stages.length === 0) return undefined;
+  const hasMixedZone = stages.some((stage) =>
+    (stage.zones ?? []).some((zone) => zone.zoneName && zone.format !== stage.format),
+  );
+  if (stages.length <= 1 && !hasMixedZone) return undefined;
+
+  const lowerFormat = (code: string): string =>
+    formatEnum(intl, 'format', code).toLocaleLowerCase(intl.locale);
+  const entries: string[] = [];
+  for (const stage of stages) {
+    const stageName =
+      stage.stageName?.trim() ||
+      intl.formatMessage(messages.breadcrumbStage, { stage: stage.stageNumber });
+    entries.push(
+      intl.formatMessage(messages.rulesetStageFormat, {
+        stage: stageName,
+        format: lowerFormat(stage.format),
+      }),
+    );
+    for (const zone of stage.zones ?? []) {
+      if (zone.zoneName && zone.format !== stage.format) {
+        entries.push(
+          intl.formatMessage(messages.rulesetStageFormat, {
+            stage: `${stageName} (${zone.zoneName})`,
+            format: lowerFormat(zone.format),
+          }),
+        );
+      }
+    }
+  }
+  return entries.length > 0 ? intl.formatList(entries, { type: 'conjunction' }) : undefined;
+}
+
 export function rulesetBriefingRows(
   intl: IntlShape,
   model: OverviewModel,
 ): readonly RulesetBriefingRow[] {
-  return model.ruleset.map((entry) => ({
-    label: entry.label,
-    value: rulesetValue(intl, entry.value),
-  }));
+  const stageFormatValue = formatStageFormats(intl, model);
+  return model.ruleset.map((entry) => {
+    const isFormat = /(?:^|\.)format$/.test(entry.dotPath);
+    const isTiebreakerList = /(?:^|\.)tiebreakers$/.test(entry.dotPath);
+    const value =
+      isFormat && stageFormatValue !== undefined
+        ? stageFormatValue
+        : isTiebreakerList
+          ? intl.formatList(
+              entry.value
+                .split(',')
+                .map((kind) => kind.trim())
+                .filter(Boolean)
+                .map((kind) => formatEnum(intl, 'tiebreaker', kind)),
+              { type: 'conjunction' },
+            )
+          : rulesetValue(intl, entry.value);
+    return { label: entry.label, value };
+  });
+}
+
+export function tournamentStatusLineLabels(intl: IntlShape): TournamentStatusLineLabels {
+  return {
+    statusLine: intl.formatMessage(messages.overviewStatusLine, { stages: '{stages}' }),
+    stageFinished: intl.formatMessage(messages.overviewStageFinished, { stage: '{stage}' }),
+    stageInPlay: intl.formatMessage(messages.overviewStageInPlay, {
+      stage: '{stage}',
+      resolved: '{resolved}',
+      total: '{total}',
+    }),
+  };
+}
+
+/** How many tiebreakers the standings header names before it trails off. */
+const STANDINGS_TIEBREAK_PREVIEW = 3;
+
+/**
+ * The standings header's tiebreak line: the ruleset's tiebreakers in order, the first three
+ * only, then an ellipsis when more are declared. Undefined when the ruleset declares none.
+ */
+export function standingsTiebreakLine(
+  intl: IntlShape,
+  model: Pick<OverviewModel, 'ruleset'>,
+): string | undefined {
+  const entry = model.ruleset.find((one) => /(?:^|\.)tiebreakers$/.test(one.dotPath));
+  const kinds = (entry?.value ?? '')
+    .split(',')
+    .map((kind) => kind.trim())
+    .filter(Boolean);
+  if (kinds.length === 0) return undefined;
+  const shown = kinds
+    .slice(0, STANDINGS_TIEBREAK_PREVIEW)
+    .map((kind) => formatEnum(intl, 'tiebreaker', kind))
+    .join(' › ');
+  const list = kinds.length > STANDINGS_TIEBREAK_PREVIEW ? `${shown} …` : shown;
+  return intl.formatMessage(messages.standingsTiebreakLine, { list });
 }
 
 export interface CompletionFigureLabels {
   readonly heading: string;
   readonly summary: string;
   readonly stateLabel: string;
-  readonly stateGlyph: string;
+  /** A registry icon beside the state word, never a character the brand faces lack. */
+  readonly stateIcon: IconName;
   readonly unmeasuredLabel: string;
 }
 
@@ -482,17 +790,17 @@ export function completionFigureLabels(
     completion.totalMatches > 0 && completion.resolvedMatches === completion.totalMatches;
 
   let stateLabel: string;
-  let stateGlyph: string;
+  let stateIcon: IconName;
 
   if (isUnmeasured) {
     stateLabel = intl.formatMessage(messages.completionUnmeasured);
-    stateGlyph = '—';
+    stateIcon = 'minus';
   } else if (isComplete) {
     stateLabel = intl.formatMessage(messages.completionComplete);
-    stateGlyph = '✓';
+    stateIcon = 'check';
   } else {
     stateLabel = intl.formatMessage(messages.completionInProgress);
-    stateGlyph = '◐';
+    stateIcon = 'start-clock';
   }
 
   return {
@@ -502,7 +810,7 @@ export function completionFigureLabels(
       total: completion.totalMatches,
     }),
     stateLabel,
-    stateGlyph,
+    stateIcon,
     unmeasuredLabel: intl.formatMessage(messages.completionUnmeasured),
   };
 }
@@ -510,8 +818,10 @@ export function completionFigureLabels(
 /** A bracket band's name: the engine's own branch code, said in the page's language. */
 export function bracketBranchLabel(intl: IntlShape, branch: string): string {
   switch (branch) {
+    case 'winner':
     case 'winners':
       return intl.formatMessage(messages.bracketBranchWinners);
+    case 'loser':
     case 'losers':
       return intl.formatMessage(messages.bracketBranchLosers);
     case 'grand-final':
@@ -523,15 +833,201 @@ export function bracketBranchLabel(intl: IntlShape, branch: string): string {
   }
 }
 
-/** What a placement game decides, in the page's language: "3rd place", "Places 5–8". */
-export function bracketRoleLabel(intl: IntlShape, role: string): string {
+/** What a placement game decides, in the page's language: "3rd place", "5th–8th place". */
+export function bracketRoleLabel(
+  intl: IntlShape,
+  role: string,
+  overallPlaceOffset?: number,
+): string {
   const parsed = parseBracketRole(role);
   switch (parsed.kind) {
-    case 'place':
-      return intl.formatMessage(messages.bracketRolePlace, { place: parsed.place });
+    case 'place': {
+      const base = intl.formatMessage(messages.placementPlace, { place: parsed.place });
+      if (overallPlaceOffset === undefined) return base;
+      const overall = intl.formatMessage(messages.bracketOverallPlace, {
+        place: overallPlaceOffset + parsed.place,
+      });
+      return `${base} · ${overall}`;
+    }
     case 'places':
-      return intl.formatMessage(messages.bracketRolePlaces, { from: parsed.from, to: parsed.to });
+      return intl.formatMessage(messages.placementPlaces, { from: parsed.from, to: parsed.to });
     default:
       return parsed.code;
   }
+}
+
+function overallPlaceTemplate(intl: IntlShape): string {
+  const rendered = intl.formatMessage(messages.bracketOverallPlace, { place: 987654 });
+  if (intl.locale.startsWith('en')) {
+    return rendered.replace(/987[.,]?654(?:st|nd|rd|th)/, '{ordinal}');
+  }
+  if (intl.locale.startsWith('fr')) {
+    return rendered.replace(/987[.,]?654(?:er|re|e)/, '{ordinal}');
+  }
+  return rendered.replace(/987[.,]?654/g, '{place}');
+}
+
+/** Templates used by `competitionContext` across public pages and TV. */
+export function competitionContextLabels(intl: IntlShape): CompetitionContextLabels {
+  const stripPosition = (value: string): string =>
+    value.replace(/第?\s*\{position\}\s*场?/g, '').trim();
+  return {
+    stageHeading: intl.formatMessage(messages.breadcrumbStage, { stage: '{stage}' }),
+    roundHeading: intl.formatMessage(messages.bracketRoundHeading, { round: '{round}' }),
+    matchHeading: intl.formatMessage(messages.breadcrumbMatch, { match: '{match}' }),
+    finalLabel: intl.formatMessage(messages.bracketRoundFinal),
+    semiFinalLabel: stripPosition(
+      intl.formatMessage(messages.sideSourceSemiFinal, { position: '{position}' }),
+    ),
+    quarterFinalLabel: stripPosition(
+      intl.formatMessage(messages.sideSourceQuarterFinal, { position: '{position}' }),
+    ),
+    sideSource: sideSourceLabels(intl),
+    overallPlaceTemplate: overallPlaceTemplate(intl),
+  };
+}
+
+function placementPlaceTemplate(intl: IntlShape): string {
+  const direct = intl.formatMessage(messages.placementPlace, { place: '{place}' });
+  if (direct.includes('{place}')) return direct;
+  // ICU `selectordinal` ignores string placeholders (`NaNth`), so resolve with a large sentinel
+  // number and turn its rendered ordinal token back into `{ordinal}` for `side-source`.
+  return intl
+    .formatMessage(messages.placementPlace, { place: 987654 })
+    .replace(/987,?654[^\s–—-]*/, '{ordinal}');
+}
+
+function placementPlacesTemplate(intl: IntlShape): string {
+  const direct = intl.formatMessage(messages.placementPlaces, { from: '{from}', to: '{to}' });
+  if (direct.includes('{from}') && direct.includes('{to}')) return direct;
+  return intl
+    .formatMessage(messages.placementPlaces, { from: 987654, to: 987655 })
+    .replace(/987,?654[^\s–—-]*/, '{fromOrdinal}')
+    .replace(/987,?655[^\s–—-]*/, '{toOrdinal}');
+}
+
+/** Plain templates shared by server-rendered and client-rendered side sources. */
+export function sideSourceLabels(intl: IntlShape): SideSourceMessages {
+  return {
+    winner: intl.formatMessage(messages.sideSourceWinner, { match: '{match}' }),
+    loser: intl.formatMessage(messages.sideSourceLoser, { match: '{match}' }),
+    winnerShort: intl.formatMessage(messages.sideSourceWinnerShort, { match: '{match}' }),
+    loserShort: intl.formatMessage(messages.sideSourceLoserShort, { match: '{match}' }),
+    awaiting: intl.formatMessage(messages.sideSourceAwaiting, { source: '{source}' }),
+    round: intl.formatMessage(messages.sideSourceRound, {
+      round: '{round}',
+      position: '{position}',
+    }),
+    roundShort: intl.formatMessage(messages.sideSourceRoundShort, {
+      round: '{round}',
+      position: '{position}',
+    }),
+    match: intl.formatMessage(messages.sideSourceMatch, { position: '{position}' }),
+    matchShort: intl.formatMessage(messages.sideSourceMatchShort, { position: '{position}' }),
+    final: intl.formatMessage(messages.sideSourceFinal),
+    finalShort: intl.formatMessage(messages.sideSourceFinalShort),
+    semiFinal: intl.formatMessage(messages.sideSourceSemiFinal, { position: '{position}' }),
+    semiFinalShort: intl.formatMessage(messages.sideSourceSemiFinalShort, {
+      position: '{position}',
+    }),
+    quarterFinal: intl.formatMessage(messages.sideSourceQuarterFinal, { position: '{position}' }),
+    quarterFinalShort: intl.formatMessage(messages.sideSourceQuarterFinalShort, {
+      position: '{position}',
+    }),
+    place: placementPlaceTemplate(intl),
+    places: placementPlacesTemplate(intl),
+    feeder: intl.formatMessage(messages.placementFeeder, {
+      places: '{places}',
+      position: '{position}',
+    }),
+    unknown: intl.formatMessage(messages.sideSourceUnknown),
+    seed: intl.formatMessage(messages.sideSourceSeed, { seed: '{seed}' }),
+    bye: intl.formatMessage(messages.sideSourceBye),
+    qualifierGroup: intl.formatMessage(messages.sideSourceQualifierGroup, {
+      rank: '{rank}',
+      group: '{group}',
+    }),
+    qualifierGroupNumber: intl.formatMessage(messages.sideSourceQualifierGroupNumber, {
+      number: '{number}',
+    }),
+    qualifierBest: intl.formatMessage(messages.sideSourceQualifierBest, { rank: '{rank}' }),
+    qualifierNthBest: intl.formatMessage(messages.sideSourceQualifierNthBest, {
+      order: '{order}',
+      rank: '{rank}',
+    }),
+    qualifierRunnerUp: intl.formatMessage(messages.sideSourceQualifierRunnerUp),
+    qualifier: intl.formatMessage(messages.sideSourceQualifier, { number: '{number}' }),
+    qualifierShort: intl.formatMessage(messages.sideSourceQualifierShort, { number: '{number}' }),
+    ordinal1: intl.formatMessage(messages.sideSourceOrdinal1),
+    ordinal2: intl.formatMessage(messages.sideSourceOrdinal2),
+    ordinal3: intl.formatMessage(messages.sideSourceOrdinal3),
+    ordinalOther: intl.formatMessage(messages.sideSourceOrdinalOther, { n: '{n}' }),
+  };
+}
+
+/** Formats a knockout round kind into a localized display label. */
+export function knockoutRoundLabel(
+  intl: IntlShape,
+  roundKind: KnockoutRoundKind,
+  roundNumber?: number,
+): string {
+  if (roundKind === 'final') return intl.formatMessage(messages.bracketRoundFinal);
+  if (roundKind === 'semiFinal') return intl.formatMessage(messages.bracketRoundSemifinals);
+  if (roundKind === 'quarterFinal') return intl.formatMessage(messages.bracketRoundQuarterfinals);
+  return intl.formatMessage(messages.bracketRoundHeading, { round: roundNumber ?? 1 });
+}
+
+/** Formats a club's tournament status into words using the active catalogue. */
+export function formatClubStatus(
+  intl: IntlShape,
+  status: ClubStatus | undefined,
+  options: { readonly withBand?: boolean } = {},
+): string | undefined {
+  if (!status) return undefined;
+  if (status.kind === 'groupStage') {
+    return intl.formatMessage(messages.clubPageStatusGroupStage);
+  }
+  if (status.kind === 'groupStageEliminated') {
+    return intl.formatMessage(messages.clubPageStatusGroupStageEliminated);
+  }
+  // A band badge already names the competition, so the status keeps the round alone beside it.
+  const zone = options.withBand ? undefined : status.zone;
+  if (status.kind === 'champion') {
+    return zone
+      ? intl.formatMessage(messages.clubPageStatusChampion, { zone })
+      : intl.formatMessage(messages.clubPageStatusChampionNoZone);
+  }
+  const round = knockoutRoundLabel(intl, status.roundKind, status.roundNumber);
+  if (status.kind === 'inCompetition') {
+    return zone
+      ? intl.formatMessage(messages.clubPageStatusInCompetition, { zone, round })
+      : intl.formatMessage(messages.clubPageStatusInCompetitionRoundOnly, { round });
+  }
+  return zone
+    ? intl.formatMessage(messages.clubPageStatusEliminated, { zone, round })
+    : intl.formatMessage(messages.clubPageStatusEliminatedRoundOnly, { round });
+}
+
+/** The match counter templates, raw for the island to fill: a function would not survive its JSON props. */
+export function matchCounterTexts(intl: IntlShape) {
+  return {
+    accessibleValue: intl.formatMessage(messages.matchCountersAccessibleValue, {
+      label: '{label}',
+      value: '{value}',
+    }),
+    accessibleAllowance: intl.formatMessage(messages.matchCountersAccessibleAllowance, {
+      label: '{label}',
+      value: '{value}',
+      allowance: '{allowance}',
+    }),
+    warning: intl.formatMessage(messages.matchCountersWarning),
+  };
+}
+
+/** The penalty template for a match page, with "{side}" and "{time}" left for the island to fill. */
+export function matchPenaltyTemplate(intl: IntlShape): string {
+  return intl.formatMessage(messages.matchCountersPenaltyRemaining, {
+    side: '{side}',
+    time: '{time}',
+  });
 }

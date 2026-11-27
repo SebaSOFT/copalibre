@@ -2,8 +2,8 @@ import { messages } from '../i18n/messages.en.js';
 import type { SeriesResolutionClass } from './api-client.js';
 
 /**
- * The localized name of each stage format the control panel offers. A format absent here is shown
- * by its own code, which is also what a discipline's own, unlisted format reads as.
+ * The localized name of each stage format the control panel offers. Unknown values use the generic
+ * translated fallback in `formatEnum`; best-of match formats are handled there as parameterized labels.
  */
 export const STAGE_FORMAT_LABELS: Readonly<Record<string, typeof messages.stageFormatLeague>> = {
   league: messages.stageFormatLeague,

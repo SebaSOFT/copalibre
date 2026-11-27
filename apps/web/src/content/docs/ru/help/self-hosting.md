@@ -4,6 +4,7 @@ description: Запустите CopaLibre из исходного кода на 
 capabilities:
   - platform/self-hosted-deployment
   - platform/email-notifications
+  - platform/security-assurance
 roles:
   - super-admin
 ---
@@ -68,9 +69,17 @@ mkdir my-league && cd my-league
 
 Направьте домен приложения на `gateway:80` в сети Compose или `127.0.0.1:8080`, если прокси работает на хосте. Шлюз маршрутизирует API, аутентификацию, SSE и web на одном origin; web-контейнер передаёт динамические страницы в `web-ssr`. Используйте `deploy/proxy/Caddyfile` или `deploy/proxy/nginx.conf`, настройте TLS и публичные URL, отключите буферизацию SSE. Отдельные домены API/events необязательны при едином origin.
 
+CopaLibre не загружает шрифты, скрипты и стили с других источников. Веб-контейнер отдаёт свои файлы шрифтов из `/_astro/` с типами `font/woff2` и `font/woff`. Проксируйте эти пути, сохраняя их `Content-Type`: правило панели хостинга, отдающее `.woff2`, `.css` или `.js` как статические файлы, ломает приложение.
+
+Каждая страница применяет политику безопасности контента: выполняются только скрипты самой сборки, а браузер подключается только к источнику приложения. Внешний OIDC-провайдер настраивается через `copalibre init` (он спросит об этом, или используйте `--oidc-issuer` и `--oidc-client-id`); `init` задаёт `COPALIBRE_CSP_IDENTITY_ORIGIN`, чтобы вход был разрешён. Пропускайте заголовок `Content-Security-Policy` через прокси без изменений; `copalibre doctor --check-proxy` это проверяет.
+
+Вход в Control устанавливает три строго необходимых cookie, ни одного на публичных страницах: cookie сессии (`__Host-copalibre_session` при HTTPS, `copalibre_session` при обычном HTTP), который хранит токен доступа там, где его не прочитает ни один скрипт; `copalibre_csrf`; и при входе по электронной почте и паролю — `copalibre_refresh_token`. Запрос согласия для них не нужен. `copalibre init` спрашивает, используется ли HTTPS, и записывает `COPALIBRE_SESSION_COOKIE_SECURE`; держите `/api` и `/events` на имени хоста Control и пропускайте `Set-Cookie` через прокси без изменений.
+
 ```bash
 ../copalibre doctor --check-proxy --proxy-url https://app.example/events/proxy-check
 ```
+
+API и события доверяют `X-Forwarded-For` только из loopback и частных сетей. Прокси с публичным адресом нужно указать в `COPALIBRE_TRUSTED_PROXIES`; диапазон, охватывающий все адреса, отклоняется. Серия отклонённых запросов от одной учётной записи, по умолчанию 20 за десять минут (`COPALIBRE_SECURITY_ALERT_THRESHOLD`), вызывает одно оповещение безопасности: строку в журнале и письмо на `COPALIBRE_SECURITY_ALERT_EMAIL`, если он задан.
 
 ### Вариант B — Kubernetes (от K3s до корпоративных кластеров)
 
@@ -79,7 +88,7 @@ mkdir my-league && cd my-league
 процесс миграции, что и установка через Compose — установка со значениями по умолчанию ведёт себя
 идентично одному базовому чарту.
 
-Запускайте Helm из корня репозитория после настройки `my-values.yaml`: база данных, идентификация, почта и публичные URL. Для обоих образов используйте опубликованную версию; 1.2.6 станет доступна после публикации.
+Запускайте Helm из корня репозитория после настройки `my-values.yaml`: база данных, идентификация, почта и публичные URL. Для обоих образов используйте опубликованную версию; 2.0.0 станет доступна после публикации.
 
 ```bash
 cd ..
@@ -88,8 +97,8 @@ helm show values deploy/helm/copalibre/ > my-values.yaml
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre/ -f my-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=2.0.0 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=2.0.0
 ```
 
 Накладывайте эти аддитивные, отключённые по умолчанию группы `values.yaml` по мере необходимости — ни
@@ -127,7 +136,7 @@ k3d cluster create --config deploy/helm/k3s-dev-cluster.yaml
 
 - О новом турнире и новом клубе сообщается администраторам организации.
 - О новой регистрации и об отправке клубом состава сообщается администраторам организации и администраторам этого турнира. Инициатор события письмо не получает.
-- Письма используют основной язык организации, содержат её эмблему и название в шапке и подписаны Copa Libre со ссылкой на [copalibre.app](https://copalibre.app).
+- Письма используют основной язык организации, содержат её эмблему и название в шапке и подписаны CopaLibre со ссылкой на [www.copalibre.app](https://www.copalibre.app).
 - Импорт CSV и `copalibre dev demo` письма не отправляют.
 - Одно и то же письмо никогда не отправляется одному получателю дважды. Если провайдер не успевает подтвердить отправку, письмо не повторяется, поэтому оно может не дойти, но не продублируется.
 - Оператор видит, сколько писем могло не дойти: worker считает каждую попытку отправки по результату (отправлено, уже отправлено, отклонено, неизвестно) в ответе `/jobs/metrics` под ключом `emailDelivery` и записывает в журнал каждый неизвестный результат без адреса получателя. Ненулевое значение `unknown` стоит настроить как оповещение; счётчики обнуляются при перезапуске worker.

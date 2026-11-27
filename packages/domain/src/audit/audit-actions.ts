@@ -43,6 +43,7 @@ export const AUDIT_ACTIONS = [
   'person.registered',
   'person.natural-key-attached',
   'person.nationality-set',
+  'person.public-visibility-updated',
   'person.photo-set',
   'person.birth-date-set',
   'person.identity-updated',
@@ -84,6 +85,8 @@ export const AUDIT_ACTIONS = [
   'tournament.renamed',
   'tournament.emblem_updated',
   'tournament.featured_updated',
+  'tournament.minimum_rest_updated',
+  'tournament.publication-privacy-updated',
   'ruleset.versioned',
   'ruleset.compiled',
   'stage-configuration.created',
@@ -96,14 +99,17 @@ export const AUDIT_ACTIONS = [
   'zone.renamed',
   'zone.format-set',
   'zone.deleted',
+  'zone.restored',
   'group.created',
   'group.renamed',
   'group.deleted',
+  'group.restored',
   'zones.drawn',
   'zones.manually-assigned',
   'groups.drawn',
   'groups.manually-assigned',
   'promotion-plan.saved',
+  'promotion-plan.confirmed',
   'stage.created',
   'stage.renamed',
   'stage.format-changed',
@@ -112,6 +118,7 @@ export const AUDIT_ACTIONS = [
   // Fixtures and matches
   'fixtures.generated',
   'fixtures.regenerated',
+  'fixture.entrant-resolved',
   'match.created',
   'match.anulled',
   'match.reinstated',
@@ -144,16 +151,22 @@ export const AUDIT_ACTIONS = [
 
   // Statistics
   'statistic.adjusted',
+  'statistics.rebuilt',
 
   // Scheduling
   'venue.created',
   'venue.updated',
+  'venue.deleted',
+  'venue.restored',
   'official.created',
   'official.updated',
   'schedule.created',
   'schedule.updated',
   'schedule.deleted',
   'schedule.published',
+  'schedule.placement-changed',
+  'schedule.placement-withdrawn',
+  'schedule.stream-url-changed',
 
   // Display tokens
   'display-token.issued',
@@ -166,6 +179,7 @@ export const AUDIT_ACTIONS = [
   // Personal access tokens
   'pat.created',
   'pat.revoked',
+  'pat.restored',
 
   // Aliases
   'alias.renamed',
@@ -208,6 +222,11 @@ export const AUDIT_ACTIONS = [
   'authorization.refused',
   /** A change was refused by lifecycle-state or mutation-classification (blocked_after_results, a competition-state conflict, an invariant). */
   'mutation.refused',
+
+  // Suspicious activity — the security watch raised an alert for a burst of
+  // refusals from one actor; the actor is in `reason`, the counts in
+  // `resultingState`.
+  'security.alert-raised',
 ] as const satisfies readonly string[];
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

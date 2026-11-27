@@ -7,41 +7,20 @@ built inside.
 
 ## Requirements
 
-### Requirement: JWT access token held in memory only
-The control application SHALL hold the JWT access token in memory only and SHALL NOT persist it in
-`localStorage`, `sessionStorage`, or a cookie.
-
-#### Scenario: Access token absent from persistent storage
-- **WHEN** a user is authenticated in the control application
-- **THEN** inspecting `localStorage` and `sessionStorage` finds no access token value
-
-#### Scenario: Reload requires re-authentication in strict mode
-- **WHEN** the browser is reloaded with no persistent refresh credential configured
-- **THEN** the user is returned to the authentication flow rather than silently remaining logged in
-
-### Requirement: Authenticated requests use a Bearer header, never a URL
-Every authenticated API request and authenticated SSE connection SHALL send the access token via the
-`Authorization: Bearer` header and SHALL NOT place it in a URL query string.
-
-#### Scenario: SSE connection carries the token in a header
-- **WHEN** the control application opens the authenticated SSE stream
-- **THEN** the request is made via Fetch streaming with an `Authorization` header, and the resulting URL contains no token value
-
 ### Requirement: Authorization Code with PKCE completes to a working session
 
 The control application's `/control/callback` route SHALL exchange the identity provider's returned
-authorization code for an access token directly with the provider's token endpoint (no client secret —
-PKCE is the public-client substitute), verify the callback's `state` against the value stored when the
-flow began, and write the resulting token into the in-memory session store used by every authenticated
-request — so completing the identity provider's login screen results in a usable, authenticated control
-panel, not a dead end.
+authorization code for an access token directly with the provider's token endpoint, with no client
+secret, verify the callback's `state` against the value stored when the flow began, and hand the
+resulting token to the API's session handover endpoint, which sets the session cookie. Control SHALL drop its
+own reference to the token as soon as the handover answers, whether it succeeded or failed.
 
 #### Scenario: A successful callback establishes a working session
 
 - **WHEN** the identity provider redirects back to `/control/callback` with a valid authorization code
   and the `state` matching what the login attempt stored
-- **THEN** the control application holds a valid access token in memory and subsequent API requests
-  carry it as a Bearer header
+- **THEN** the API sets the session cookie, Control holds no copy of the token, and subsequent API requests
+  authenticate with the cookie
 
 #### Scenario: A mismatched or missing state is refused
 
@@ -56,16 +35,20 @@ panel, not a dead end.
 - **THEN** the control application shows the operator that authorization failed rather than attempting
   a token exchange or silently doing nothing
 
-### Requirement: Every authenticated request carries the session's access token
+#### Scenario: A refused handover is shown, not swallowed
 
-Every control-panel screen's API client SHALL be constructed with the shared session store's token
-reader, so every authenticated request automatically carries the current access token — an operator's
-API calls SHALL NOT be able to reach the backend with no `Authorization` header while a session exists.
+- **WHEN** the API refuses the handed-over token (invalid signature, wrong issuer or audience, expired)
+- **THEN** no cookie is set, Control holds no token, and the operator sees that sign-in failed
 
-#### Scenario: A request made after login carries the Bearer header
+#### Scenario: Login ends in a usable panel
 
-- **WHEN** an operator with a valid session performs an action that calls the control API (any screen)
-- **THEN** the request carries `Authorization: Bearer <token>` with the session's current access token
+- **WHEN** an operator completes the identity provider's login screen
+- **THEN** the control panel is authenticated and usable, not a dead end
+
+#### Scenario: PKCE replaces the client secret
+
+- **WHEN** the callback exchanges the code
+- **THEN** no client secret is sent: PKCE stands in for it, as the public client's substitute
 
 ### Requirement: An unauthenticated visit to a protected screen redirects to login
 
@@ -86,16 +69,12 @@ return the operator to their original destination after a successful callback.
 - **THEN** they land on the screen they originally requested, not a generic default
 
 ### Requirement: Owned component layer, not Chakra UI
-The control application SHALL use the owned shadcn/ui-style component source and Radix Primitives for
-its interactive UI, and SHALL NOT include Chakra UI as a production dependency. This owned layer SHALL
-span all five Atomic Design tiers — atoms, molecules, organisms, templates under
-`apps/web/src/control/components/ui/`, and the page/route components that consume them — not only
-badge/button/card; any Control-web screen, present at the time this requirement changes or added at any
-later point, SHALL compose its form controls, tabular listings, cards, modals, and operation feedback
-from this owned layer rather than defining a new one-off inline style object for a pattern the layer
-already covers. The organization dashboard (`Dashboard.tsx`) SHALL compose inside `ControlShell.tsx`
-(or inherit its `.cl-control__nav` navigation chrome), guaranteeing consistent typography, active states,
-and no unstyled browser default hyperlinks.
+
+The control application SHALL use the owned shadcn/ui-style component source and Radix Primitives
+for its interactive UI, and SHALL NOT include Chakra UI as a production dependency. This owned layer
+SHALL span all five Atomic Design tiers, and every Control-web screen, present or later, SHALL
+compose the patterns it covers from it rather than defining a one-off inline style. The organization
+dashboard SHALL compose inside `ControlShell.tsx` or inherit its navigation chrome.
 
 #### Scenario: No Chakra dependency in production build
 - **WHEN** the control application's production dependency list is inspected
@@ -117,6 +96,23 @@ and no unstyled browser default hyperlinks.
 - **WHEN** an administrator views the organization dashboard
 - **THEN** the sidebar navigation displays styled uppercase labels with active state highlights and no raw blue unstyled browser links.
 
+#### Scenario: The tiers the layer spans
+
+- **WHEN** a component is added to the control application
+- **THEN** it belongs to the atoms, molecules, organisms or templates under
+  `apps/web/src/control/components/ui/`, or is a page/route component consuming them
+
+#### Scenario: What a screen composes from the layer
+
+- **WHEN** a screen needs form controls, tabular listings, cards, modals or operation feedback
+- **THEN** it takes them from the owned layer
+
+#### Scenario: The dashboard looks like every other screen
+
+- **WHEN** the organization dashboard (`Dashboard.tsx`) renders
+- **THEN** its typography and active states match the shell's `.cl-control__nav` chrome and no link
+  is an unstyled browser default
+
 ### Requirement: Third-party notice inventory stays current
 Every copied shadcn/ui component file or direct Radix dependency added to the control application
 SHALL have a corresponding entry in `THIRD_PARTY_NOTICES.md` preserving its MIT copyright/permission
@@ -128,13 +124,10 @@ notice.
 
 ### Requirement: Control-panel interface strings are extracted and language-switchable
 
-Every user-facing control-panel string (labels, buttons, validation messages, status words) SHALL be
-sourced from a message catalog keyed by a stable ID, never hardcoded inline, so a screen's interface
-language can change without touching its logic. The active language SHALL resolve via the platform's
-client-side language-preference order: an explicit stored preference, then a supported browser
-language, then English — with an explicit switcher available to change the stored preference.
-Organizer-entered content (tournament names, participant names, organization names) is never
-translated by this mechanism.
+Every user-facing control-panel string SHALL be sourced from a message catalog keyed by a stable ID,
+never hardcoded inline. The active language SHALL resolve through the platform's client-side
+language-preference order, with an explicit switcher available to change the stored preference.
+Organizer-entered content is never translated by this mechanism.
 
 #### Scenario: Selecting a language changes control-panel chrome without changing content
 
@@ -152,6 +145,23 @@ translated by this mechanism.
 
 - **WHEN** the control panel renders a date or time value
 - **THEN** it formats using the active interface language, never a hardcoded locale tag
+
+#### Scenario: What counts as interface text
+
+- **WHEN** a control-panel screen renders labels, buttons, validation messages or status words
+- **THEN** each comes from the catalog, so the interface language can change without touching the
+  screen's logic
+
+#### Scenario: The preference order
+
+- **WHEN** no other signal applies
+- **THEN** the language resolves from an explicit stored preference, then a supported browser
+  language, then English
+
+#### Scenario: Organizer content stays as written
+
+- **WHEN** a screen shows a tournament, participant or organization name
+- **THEN** it is shown as entered, whatever the interface language
 
 ### Requirement: Control-panel chrome is available in all eight supported interface languages
 
@@ -300,10 +310,10 @@ The primary sidebar navigation SHALL remain fully reachable at mobile viewport w
   hamburger menu or drawer), and no section SHALL be clipped off-screen with no way to reach it
 
 ### Requirement: Composable Canonical Table Molecule
-The system SHALL provide a canonical table molecule conforming to the reference visual specification, supporting optional composable sub-widgets:
-1. Optional Header: Title, monospace descriptor subtitle (`Reglamento: [Discipline] (DisciplineDescriptor vX.Y.Z)`), and verification status badge (`• POSICIONES VERIFICADAS`).
-2. Table Core: Compact row height (~44px), floating sticky column headers, signed colored goal difference cells (`+` green, `-` red), highlighted cyan points, and optional `TIEBREAKER STATUS` badges.
-3. Optional Footer: Sequential tiebreaker pipeline flowchart with the triggered criterion highlighted in cyan, and an audit proof code (`Prueba de Auditoría #...`).
+
+The system SHALL provide a canonical table molecule conforming to the reference visual
+specification, with an optional header, a table core, and an optional footer, each composable on its
+own.
 
 #### Scenario: Table with full tiebreaker explainability
 - **WHEN** rendering verified group standings
@@ -313,15 +323,34 @@ The system SHALL provide a canonical table molecule conforming to the reference 
 - **WHEN** rendering a table that does not involve group tiebreakers (e.g. player goals)
 - **THEN** the table renders the canonical card frame, floating headers, and compact rows, cleanly omitting the tiebreaker status badges and flowchart footer.
 
+#### Scenario: The optional header
+
+- **WHEN** a table shows its header
+- **THEN** it carries a title, a monospace descriptor subtitle (`Reglamento: [Discipline]
+  (DisciplineDescriptor vX.Y.Z)`), and a verification status badge (`• POSICIONES VERIFICADAS`)
+
+#### Scenario: The table core
+
+- **WHEN** a table renders its rows
+- **THEN** rows are compact (~44px) under floating sticky column headers, goal difference cells are
+  signed and colored (`+` green, `-` red), points are highlighted cyan, and an optional `TIEBREAKER
+  STATUS` badge may appear
+
+#### Scenario: The optional footer
+
+- **WHEN** a table shows its footer
+- **THEN** it carries the sequential tiebreaker pipeline flowchart with the triggered criterion
+  highlighted in cyan, and an audit proof code (`Prueba de Auditoría #...`)
+
 ### Requirement: Interactive Column Headers with Descriptions and Tri-State Bidirectional Ordering
 Column headers in the canonical table molecule SHALL support:
 1. Column name / label.
-2. Descriptive tooltip explaining metric definitions or acronyms (e.g. "Partidos Jugados", "Diferencia de Gol") accessible on hover, focus, and via `aria-describedby`.
+2. Description explaining metric definitions or acronyms (e.g. "Partidos Jugados", "Diferencia de Gol"), shown in a popover from an information icon beside the label. The sort control references the text via `aria-describedby`.
 3. Tri-state bidirectional ordering: `none` (original/natural standings order), `ascending`, and `descending`, communicating with the sorting algorithm and updating `aria-sort`.
 
 #### Scenario: Inspecting column description tooltip
-- **WHEN** an operator or spectator hovers over or focuses a column header with a description
-- **THEN** an accessible tooltip displays the full metric description without obscuring adjacent headers.
+- **WHEN** an operator or spectator hovers over, clicks, taps or activates by keyboard the information icon of a column header with a description
+- **THEN** an accessible popover displays the full metric description, and the column's sort order does not change
 
 #### Scenario: Tri-state column reordering
 - **WHEN** an operator or spectator repeatedly clicks a sortable column header
@@ -371,3 +400,99 @@ browser URL editing.
 - **WHEN** an authenticated operator navigates any control panel screen
 - **THEN** the shared shell navigation renders a "Ver sitio público" navigation link leading to the
   organization's public overview
+
+### Requirement: Control offers a skip link
+
+Control SHALL offer a skip link as the first focus stop, which moves focus to the main content.
+
+#### Scenario: Keyboard user
+
+- **WHEN** a person presses Tab on a Control page
+- **THEN** the first stop is the skip link, and activating it moves focus to the main region
+
+### Requirement: Access token held only in an HttpOnly cookie
+The control application SHALL NOT hold the access token where a script can read it after the session is
+established. The token SHALL live only in the session cookie the API sets, and SHALL NOT be written to
+`localStorage`, `sessionStorage`, IndexedDB, a script-readable cookie or a module variable that outlives the
+handover request.
+
+#### Scenario: No token is readable by script
+- **WHEN** an operator is signed in to Control, by native login or by an external OIDC provider
+- **THEN** `localStorage`, `sessionStorage` and `document.cookie` contain no access token value
+- **AND** the session cookie is not listed in `document.cookie`
+
+#### Scenario: A token left by an older build is removed
+- **WHEN** Control loads in a tab whose `sessionStorage` holds `copalibre:session:v1`
+- **THEN** Control deletes that entry before making any request
+
+#### Scenario: A public page cannot obtain the token
+- **WHEN** a script running on a public page of the same origin reads every browser storage surface and calls
+  `fetch` on `/api/auth/session`
+- **THEN** it obtains session metadata at most, never the access token
+
+### Requirement: Browser requests authenticate with the session cookie, never a URL
+Every authenticated API request and authenticated event-stream connection from Control SHALL authenticate with
+the session cookie, sent same-origin, and SHALL NOT carry an `Authorization` header or a token in a URL.
+Requests with an unsafe method SHALL carry the CSRF header defined in `platform/api-auth-contract`.
+
+#### Scenario: An API call carries the cookie and the CSRF header
+- **WHEN** an operator saves a change on any Control screen
+- **THEN** the request is same-origin with credentials, carries no `Authorization` header, and carries the CSRF
+  header
+
+#### Scenario: The event stream authenticates by cookie
+- **WHEN** Control opens the authenticated organization stream under `/events/control/`
+- **THEN** the request is same-origin, carries the session cookie, carries no `Authorization` header, and its URL
+  contains no token value
+
+### Requirement: Every authenticated request carries the session cookie
+
+Every control-panel screen's API client SHALL send same-origin requests with credentials, so every
+authenticated request carries the session cookie and, for unsafe methods, the CSRF header. An operator's API
+calls SHALL NOT be able to reach the backend without the cookie while a session exists. Scope-dependent
+presentation SHALL read the scopes from the session metadata endpoint, never from the token.
+
+#### Scenario: A request made after login carries the cookie
+
+- **WHEN** an operator with a valid session performs an action that calls the control API (any screen)
+- **THEN** the request carries the session cookie, and the API resolves the same principal it would from
+  `Authorization: Bearer <token>`
+
+#### Scenario: Scopes survive a reload
+
+- **WHEN** an operator reloads a Control screen while the session cookie is still valid
+- **THEN** Control reads the scopes and expiry from the session metadata endpoint and renders the same screens
+  and actions as before the reload
+
+### Requirement: Navigation reflects the current page
+
+Each rail entry SHALL open a distinct screen, the rail SHALL mark the entry that owns the page, and the breadcrumb SHALL use the stage's name.
+
+#### Scenario: Clubs page
+
+- **WHEN** an operator opens a club
+- **THEN** the rail marks Clubs
+
+#### Scenario: Stage page
+
+- **WHEN** an operator opens a named stage
+- **THEN** the breadcrumb shows that name
+
+### Requirement: Control links to the API reference, and nothing else does
+
+The control panel SHALL link to the API reference from its navigation footer and from the personal access tokens card, each opening it in a new tab. Neither the public pages nor the help site SHALL link to it.
+
+#### Scenario: The navigation footer carries the link
+
+- **WHEN** an operator views any control-panel screen
+- **THEN** the navigation footer offers the API reference, in the operator's language, opening in a new tab
+
+#### Scenario: The token card carries the link
+
+- **WHEN** an operator opens the preferences screen
+- **THEN** the personal access tokens card links to the API reference, where the token is used
+
+#### Scenario: Public and help pages do not link to it
+
+- **WHEN** a visitor opens the public home page or the help site
+- **THEN** no link to the API reference appears

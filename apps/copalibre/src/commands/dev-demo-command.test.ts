@@ -2,10 +2,20 @@ import { jest } from '@jest/globals';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { runCli } from '../cli.js';
 import { writeInstallationMarker } from '../installation-marker.js';
 import type { ProcessOutput, ProcessRunner } from '../process-runner.js';
-import { DEV_OBJECT_STORAGE } from './dev-demo-command.js';
+
+jest.unstable_mockModule('../organization-admin.js', () => ({
+  createOrganizationAdminInvitationFromEnv: jest.fn(async () => ({
+    invitationId: '019a0000-0000-7000-8000-000000000001',
+    expiresAt: '2026-11-20T12:00:00.000Z',
+    setupUrl: 'http://localhost:4321/invitations/accept?token=one-time',
+  })),
+}));
+
+const { runCli } = await import('../cli.js');
+const { createOrganizationAdminInvitationFromEnv } = await import('../organization-admin.js');
+const { DEV_OBJECT_STORAGE } = await import('./dev-demo-command.js');
 
 async function withDirectory<T>(
   run: (directory: string) => Promise<T>,
@@ -54,6 +64,30 @@ const STACK_UP = composePs(
 );
 
 describe('copalibre dev demo', () => {
+  it('creates an administrator invitation after loading the Panamericano dataset', async () => {
+    await withDirectory(async () => {
+      const run = jest.fn<ProcessRunner['run']>(async () => 0);
+      const capture = jest.fn<NonNullable<ProcessRunner['capture']>>(async () => STACK_UP);
+      const out = output();
+      try {
+        await expect(
+          runCli(
+            ['dev', 'demo', 'panamericano-clubes-2025', '--with-admin', 'admin@example.test'],
+            { COPALIBRE_APP_URL: 'http://localhost:4321' },
+            { run, capture },
+          ),
+        ).resolves.toBe(0);
+      } finally {
+        out.restore();
+      }
+      expect(createOrganizationAdminInvitationFromEnv).toHaveBeenCalledWith(
+        'panamericano-demo',
+        'admin@example.test',
+        expect.objectContaining({ COPALIBRE_APP_URL: 'http://localhost:4321' }),
+      );
+    });
+  });
+
   it('loads the dataset through the seed application with host database and Garage settings', async () => {
     await withDirectory(async () => {
       const run = jest.fn<ProcessRunner['run']>(async () => 0);
@@ -90,6 +124,44 @@ describe('copalibre dev demo', () => {
         DATABASE_URL: 'postgres://copalibre:copalibre_dev_only@localhost:5432/copalibre',
         ...DEV_OBJECT_STORAGE,
       });
+    });
+  });
+
+  it('forwards --anchor and --played-until to the seed application verbatim', async () => {
+    await withDirectory(async () => {
+      const run = jest.fn<ProcessRunner['run']>(async () => 0);
+      const capture = jest.fn<NonNullable<ProcessRunner['capture']>>(async () => STACK_UP);
+      const out = output();
+      try {
+        await expect(
+          runCli(
+            [
+              'dev',
+              'demo',
+              'panamericano-clubes-2025',
+              '--anchor',
+              'today',
+              '--played-until',
+              'now',
+            ],
+            {},
+            { run, capture },
+          ),
+        ).resolves.toBe(0);
+      } finally {
+        out.restore();
+      }
+      expect(run.mock.calls[0]?.[1]).toEqual([
+        'workspace',
+        '@copalibre/seed',
+        'start',
+        'demo',
+        'panamericano-clubes-2025',
+        '--anchor',
+        'today',
+        '--played-until',
+        'now',
+      ]);
     });
   });
 
@@ -136,6 +208,27 @@ describe('copalibre dev demo', () => {
     });
   });
 
+  it('loads once the infrastructure is healthy although the storage initialiser container was removed', async () => {
+    await withDirectory(async () => {
+      const run = jest.fn<ProcessRunner['run']>(async () => 0);
+      const capture = jest.fn<NonNullable<ProcessRunner['capture']>>(async () =>
+        composePs(
+          { Service: 'postgres', State: 'running', Health: 'healthy' },
+          { Service: 'object-storage', State: 'running', Health: 'healthy' },
+        ),
+      );
+      const out = output();
+      try {
+        await expect(
+          runCli(['dev', 'demo', 'panamericano-clubes-2025'], {}, { run, capture }),
+        ).resolves.toBe(0);
+      } finally {
+        out.restore();
+      }
+      expect(run).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('refuses, naming what is down, before loading anything', async () => {
     await withDirectory(async () => {
       const run = jest.fn<ProcessRunner['run']>(async () => 0);
@@ -153,9 +246,8 @@ describe('copalibre dev demo', () => {
       }
       const message = out.stderr();
       expect(run).not.toHaveBeenCalled();
-      expect(message).toContain(
-        'the development stack is not up (object-storage, object-storage-init)',
-      );
+      expect(message).toContain('the development stack is not up (object-storage)');
+      expect(message).not.toContain('object-storage-init');
       expect(message).toContain('copalibre dev');
     });
   });
@@ -271,6 +363,7 @@ describe('copalibre dev demo', () => {
       out.restore();
     }
     expect(written.join('')).toContain('copalibre dev demo [--list] [<dataset>]');
+    expect(written.join('')).toContain('--with-admin <email>');
   });
 });
 

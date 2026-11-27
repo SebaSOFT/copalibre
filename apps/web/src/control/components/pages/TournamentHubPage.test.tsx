@@ -1,7 +1,9 @@
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
 import { render, screen, waitFor } from '@testing-library/react';
 import { TournamentHubPage } from './TournamentHubPage.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { ControlApiClient } from '../../lib/api-client.js';
+import { clearResilientReadCache } from './use-resilient-read.js';
 
 function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   return {
@@ -29,6 +31,8 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('TournamentHubPage', () => {
+  beforeEach(() => clearResilientReadCache());
+
   it('lists every stage with its number, name, format and seeded state, linking to its own hub', async () => {
     render(
       withIntl(
@@ -41,7 +45,7 @@ describe('TournamentHubPage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /stages/i }));
-    expect(screen.getByText(/Fase de grupos/)).toBeTruthy();
+    expect(await screen.findByText(/Fase de grupos/)).toBeTruthy();
     expect(screen.getByText(/Playoffs/)).toBeTruthy();
     expect(screen.getByText('Seeded')).toBeTruthy();
     expect(screen.getByText('Unseeded')).toBeTruthy();
@@ -81,6 +85,37 @@ describe('TournamentHubPage', () => {
       ),
     );
 
-    expect(await screen.findByText('Could not load this tournament’s stages.')).toBeTruthy();
+    await expectFirstReadFailure();
+  });
+
+  it('keeps the last successful stage list visible and marks it stale when a later read fails', async () => {
+    const organizationAlias = 'stale-hub-league';
+    const tournamentAlias = 'stale-hub-cup';
+    const firstRead = render(
+      withIntl(
+        <TournamentHubPage
+          client={stubClient()}
+          organizationAlias={organizationAlias}
+          tournamentAlias={tournamentAlias}
+        />,
+      ),
+    );
+    await screen.findByRole('link', { name: /Open stage 1: Fase de grupos/ });
+    firstRead.unmount();
+
+    const { container } = render(
+      withIntl(
+        <TournamentHubPage
+          client={stubClient({ listStages: () => Promise.reject(new Error('network down')) })}
+          organizationAlias={organizationAlias}
+          tournamentAlias={tournamentAlias}
+        />,
+      ),
+    );
+
+    expect(await screen.findByRole('link', { name: /Open stage 1: Fase de grupos/ })).toBeTruthy();
+    await waitFor(() =>
+      expect(container.querySelector('.cl-stale-mark')?.textContent).toContain('Stale'),
+    );
   });
 });

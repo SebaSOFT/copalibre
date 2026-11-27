@@ -90,6 +90,7 @@ export function ProfileBuilderWizard({
         text: `[${failure.stage}${failure.field ? `:${failure.field}` : ''}] ${failure.message}`,
       }))}
       failuresTestId="profile-server-failures"
+      nextStepCaption={(step) => intl.formatMessage(messages.wizardNextStep, { step })}
       onBack={() => patch({ step: previousStep(state) })}
       primaryAction={
         isLastStep
@@ -233,6 +234,7 @@ export function ProfileBuilderWizard({
                     label: discipline.alias,
                   })),
               ]}
+              placeholder={intl.formatMessage(messages.selectPlaceholder)}
               value={state.disciplineAlias}
             />
             <DecisionHint

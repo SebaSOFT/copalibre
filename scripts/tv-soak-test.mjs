@@ -28,6 +28,18 @@ function parseArgs(argv) {
   return args;
 }
 
+export function parseLayouts(value = 'kiosk') {
+  const allowed = new Set(['kiosk', 'presentation', 'dashboard']);
+  const layouts = value
+    .split(',')
+    .map((layout) => layout.trim())
+    .filter(Boolean);
+  if (layouts.length === 0 || layouts.some((layout) => !allowed.has(layout))) {
+    throw new Error(`Unsupported TV layout list: ${value}`);
+  }
+  return [...new Set(layouts)];
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -73,70 +85,85 @@ async function main() {
   const growthThreshold = Number(args['growth-threshold'] ?? 0.5);
   const baseUrl = args['base-url'] ?? 'http://localhost:4321';
   const tvPath = args.path ?? '/tv/liga-mendocina/tournaments/apertura-2026';
+  const layouts = parseLayouts(args.layouts);
   const reportPath = args.report ?? 'tv-soak-report.json';
 
   const browser = await chromium.launch();
-  const page = await browser.newPage();
+  const pages = await Promise.all(
+    layouts.map(async (layout) => {
+      const page = await browser.newPage();
 
-  // This callback is serialized into the *page's* browser context, not
-  // Node's — window/Response/ReadableStream/setInterval are real there.
-  /* eslint-disable no-undef */
-  await page.addInitScript(() => {
-    window.fetch = async (input) => {
-      const url = String(input);
-      if (!url.includes('/events/tv/')) return new Response('', { status: 404 });
+      // This callback is serialized into the *page's* browser context, not
+      // Node's — window/Response/ReadableStream/setInterval are real there.
+      /* eslint-disable no-undef */
+      await page.addInitScript(() => {
+        window.fetch = async (input) => {
+          const url = String(input);
+          if (!url.includes('/events/tv/')) return new Response('', { status: 404 });
 
-      const encoder = new TextEncoder();
-      return new Response(
-        new ReadableStream({
-          start(controller) {
-            const interval = setInterval(() => {
-              controller.enqueue(encoder.encode(': heartbeat\n\n'));
-            }, 3000);
-            // Cleared only by the page tearing the stream down on navigation —
-            // a soak run never navigates away mid-measurement.
-            void interval;
-          },
-        }),
-        { status: 200, headers: { 'content-type': 'text/event-stream' } },
+          const encoder = new TextEncoder();
+          return new Response(
+            new ReadableStream({
+              start(controller) {
+                const interval = setInterval(() => {
+                  controller.enqueue(encoder.encode(': heartbeat\n\n'));
+                }, 3000);
+                // Cleared only by the page tearing the stream down on navigation —
+                // a soak run never navigates away mid-measurement.
+                void interval;
+              },
+            }),
+            { status: 200, headers: { 'content-type': 'text/event-stream' } },
+          );
+        };
+      });
+      /* eslint-enable no-undef */
+
+      const separator = tvPath.includes('?') ? '&' : '?';
+      await page.goto(
+        `${baseUrl}${tvPath}${separator}token=soak-test&layout=${encodeURIComponent(layout)}`,
       );
-    };
-  });
-  /* eslint-enable no-undef */
-
-  await page.goto(`${baseUrl}${tvPath}?token=soak-test`);
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send('Performance.enable');
+      return { layout, cdp };
+    }),
+  );
 
   // `performance.memory` in page-context JS is deliberately quantized against
   // fingerprinting and can read as a flat, unchanging number across an entire
   // run — useless for a leak signal. The DevTools Protocol's own metric is not
   // quantized, which is the whole reason to go through it instead.
-  const cdp = await page.context().newCDPSession(page);
-  await cdp.send('Performance.enable');
-  const heapUsed = async () => {
-    const { metrics } = await cdp.send('Performance.getMetrics');
-    return metrics.find((metric) => metric.name === 'JSHeapUsedSize')?.value ?? 0;
-  };
-
-  const samples = [];
+  const samplesByLayout = Object.fromEntries(layouts.map((layout) => [layout, []]));
   const deadline = Date.now() + durationMinutes * 60_000;
   while (Date.now() < deadline) {
-    samples.push({ at: Date.now(), heapBytes: await heapUsed() });
+    const at = Date.now();
+    for (const { layout, cdp } of pages) {
+      const { metrics } = await cdp.send('Performance.getMetrics');
+      samplesByLayout[layout].push({
+        at,
+        heapBytes: metrics.find((metric) => metric.name === 'JSHeapUsedSize')?.value ?? 0,
+      });
+    }
     await sleep(sampleIntervalSeconds * 1000);
   }
 
   await browser.close();
 
-  const result = evaluateGrowth(samples, growthThreshold);
+  const resultsByLayout = Object.fromEntries(
+    layouts.map((layout) => [layout, evaluateGrowth(samplesByLayout[layout], growthThreshold)]),
+  );
+  const passed = Object.values(resultsByLayout).every((result) => result.passed);
   await writeFile(
     reportPath,
     JSON.stringify(
       {
+        layouts,
         durationMinutes,
         sampleIntervalSeconds,
         growthThreshold,
-        sampleCount: samples.length,
-        samples,
-        ...result,
+        resultsByLayout,
+        samplesByLayout,
+        passed,
       },
       null,
       2,
@@ -144,11 +171,14 @@ async function main() {
   );
 
   const pct = (n) => `${(n * 100).toFixed(1)}%`;
+  const growth = layouts
+    .map((layout) => `${layout} ${pct(resultsByLayout[layout].growthRatio)}`)
+    .join(', ');
   console.log(
-    `tv-soak-test: ${samples.length} samples over ${durationMinutes}min — baseline ${Math.round(result.baselineBytes)}B, final ${Math.round(result.finalBytes)}B, growth ${pct(result.growthRatio)} (threshold ${pct(growthThreshold)})`,
+    `tv-soak-test: ${layouts.length} layouts (${layouts.join(', ')}) over ${durationMinutes}min — growth ${growth} (threshold ${pct(growthThreshold)})`,
   );
 
-  if (!result.passed) {
+  if (!passed) {
     console.error(`tv-soak-test: memory growth exceeded the threshold — possible leak`);
     process.exitCode = 1;
   }

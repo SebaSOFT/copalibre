@@ -1,43 +1,46 @@
-/** Milliseconds a zone is ahead of UTC at an instant. */
-function offsetAt(epoch: number, timeZone: string): number {
-  const parts = new Intl.DateTimeFormat('en-US', {
+/** Wall-clock conversion now lives in the domain, shared with schedule slot generation. */
+export { localToEpoch } from '@copalibre/domain';
+
+const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** A `YYYY-MM-DD` that names a real calendar day. */
+export function isCalendarDate(value: string): boolean {
+  const parts = DATE.exec(value);
+  if (!parts) return false;
+  const [year, month, day] = [Number(parts[1]), Number(parts[2]), Number(parts[3])];
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  );
+}
+
+/** The calendar date an instant falls on in a time zone, as `YYYY-MM-DD`. */
+export function localDateOf(instant: number, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone,
-    hourCycle: 'h23',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  }).formatToParts(new Date(epoch));
-  const part = (type: string): number => Number(parts.find((entry) => entry.type === type)?.value);
-  const local = Date.UTC(
-    part('year'),
-    part('month') - 1,
-    part('day'),
-    part('hour'),
-    part('minute'),
-    part('second'),
-  );
-  return local - Math.floor(epoch / 1000) * 1000;
+  }).formatToParts(new Date(instant));
+  const part = (type: string) => parts.find((entry) => entry.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+/** Whole calendar days from one `YYYY-MM-DD` to another. */
+export function daysBetween(from: string, to: string): number {
+  return (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000;
 }
 
 /**
- * The instant a wall-clock time (`2025-11-02T11:15`) denotes in an IANA zone. A fixed offset would be wrong for
- * any zone with daylight saving, so the offset is read from `Intl` at the candidate instant and corrected once.
+ * A wall-clock `YYYY-MM-DDTHH:mm` moved by whole calendar days, its time of day untouched. Calendar
+ * arithmetic on the string, never on an instant, so a daylight-saving change between the two dates
+ * keeps the kickoff at its local time.
  */
-export function localToEpoch(local: string, timeZone: string): number {
-  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(local);
-  if (!match) throw new Error(`unreadable local time "${local}"`);
-  const [, year, month, day, hour, minute, second] = match;
-  const wallClock = Date.UTC(
-    Number(year),
-    Number(month) - 1,
-    Number(day),
-    Number(hour),
-    Number(minute),
-    Number(second ?? 0),
-  );
-  const first = wallClock - offsetAt(wallClock, timeZone);
-  return wallClock - offsetAt(first, timeZone);
+export function shiftLocalDate(local: string, days: number): string {
+  if (days === 0) return local;
+  const [date = '', time = ''] = local.split('T');
+  const shifted = new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  return time === '' ? shifted : `${shifted}T${time}`;
 }

@@ -1,6 +1,8 @@
+import { API_PATH_PREFIX } from '../../lib/api-path.js';
 import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { controlTokenStore } from '../session/token-store.js';
+import { csrfHeaders } from '../session/csrf.js';
+import { controlSession, parseSessionMetadata } from '../session/session-store.js';
 import { Alert } from './ui/atoms/alert.js';
 import { Button } from './ui/atoms/button.js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/atoms/card.js';
@@ -41,6 +43,7 @@ const messages = {
 
 export function AcceptInvitationForm({
   initialToken,
+  showTitle = true,
   navigate = (url: string) => {
     if (typeof window !== 'undefined') {
       window.location.assign(url);
@@ -48,6 +51,7 @@ export function AcceptInvitationForm({
   },
 }: {
   readonly initialToken?: string;
+  readonly showTitle?: boolean;
   readonly navigate?: (url: string) => void;
 }): React.JSX.Element {
   const intl = useIntl();
@@ -86,10 +90,12 @@ export function AcceptInvitationForm({
     setError(null);
 
     try {
-      const response = await fetch('/auth/accept-invitation', {
+      const response = await fetch(`${API_PATH_PREFIX}/auth/accept-invitation`, {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
+          ...csrfHeaders('POST'),
         },
         body: JSON.stringify({
           token,
@@ -106,8 +112,10 @@ export function AcceptInvitationForm({
         );
       }
 
-      const data = await response.json();
-      controlTokenStore.write(data.accessToken, Date.now() + data.expiresIn * 1000);
+      // The API keeps the token in its HttpOnly cookie and answers with metadata only.
+      const session = parseSessionMetadata(await response.json());
+      if (session === undefined) throw new Error(intl.formatMessage(messages.unexpectedError));
+      controlSession.write(session);
       setSuccess(true);
 
       setTimeout(() => {
@@ -121,11 +129,13 @@ export function AcceptInvitationForm({
   };
 
   return (
-    <Card aria-labelledby="accept-invitation-title">
+    <Card aria-labelledby={showTitle ? 'accept-invitation-title' : undefined}>
       <CardHeader>
-        <CardTitle id="accept-invitation-title">
-          <FormattedMessage {...messages.title} />
-        </CardTitle>
+        {showTitle && (
+          <CardTitle id="accept-invitation-title">
+            <FormattedMessage {...messages.title} />
+          </CardTitle>
+        )}
         <CardDescription>
           <FormattedMessage {...messages.subtitle} />
         </CardDescription>

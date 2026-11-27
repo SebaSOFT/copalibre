@@ -39,6 +39,7 @@ const meta = {
     onChange: () => undefined,
     addLabel: 'Add',
     removeLabel: 'Remove',
+    selectPlaceholder: 'Select…',
     inheritedHeading: 'Already includes:',
     unrecognizedText: 'Not governed by a known rule policy.',
     unknownTypeText: "This field's type is not editable here.",

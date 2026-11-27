@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { chooseSlot } from './support/schedule-slot.js';
 
 /**
  * Scheduling a series in the builder, end to end.
@@ -69,7 +70,9 @@ function fixturesResponse(
         matchId: 'match-1',
         round: 1,
         homeEntrantId: 'Godoy Cruz',
+        homeName: 'Godoy Cruz',
         awayEntrantId: 'Independiente Rivadavia',
+        awayName: 'Independiente Rivadavia',
         matches: games.map((game) => ({
           matchId: `match-${game.number}`,
           number: game.number,
@@ -97,21 +100,22 @@ async function mockControlApi(page: Page): Promise<void> {
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url === `/organizations/${orgAlias}/venues` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/venues` && method === 'GET') {
           return Response.json(
             await (window as unknown as { __venues: () => Promise<unknown> }).__venues(),
           );
         }
-        if (url === `/organizations/${orgAlias}/officials` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/officials` && method === 'GET') {
           return Response.json([]);
         }
-        if (url === `/organizations/${orgAlias}/schedules` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/schedules` && method === 'GET') {
           return Response.json(
             await (window as unknown as { __schedules: () => Promise<unknown> }).__schedules(),
           );
         }
         if (
-          url === `/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/1/fixtures` &&
+          url ===
+            `/api/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/1/fixtures` &&
           method === 'GET'
         ) {
           return Response.json(
@@ -119,7 +123,7 @@ async function mockControlApi(page: Page): Promise<void> {
           );
         }
 
-        const scheduleBase = `/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/${stageId}/schedule`;
+        const scheduleBase = `/api/organizations/${orgAlias}/tournaments/${tournamentAlias}/stages/${stageId}/schedule`;
         if (url === scheduleBase && method === 'GET') {
           return Response.json(
             await (window as unknown as { __schedule: () => Promise<unknown> }).__schedule(),
@@ -174,16 +178,31 @@ async function openBuilder(page: Page): Promise<void> {
   await page.waitForURL(`**${target}`);
 }
 
+async function expandAllAgendaDays(page: Page): Promise<void> {
+  const agenda = page.getByRole('region', { name: 'Agenda diaria' });
+  await expect(agenda).toBeVisible();
+  await expect(agenda.getByText(/Partido [1-5] de 5/)).toHaveCount(5);
+  const summaries = agenda.locator('details > summary');
+  await expect(summaries.first()).toBeVisible();
+  for (const summary of await summaries.all()) {
+    const isOpen = await summary.evaluate(
+      (element) => (element.parentElement as HTMLDetailsElement).open,
+    );
+    if (!isOpen) await summary.click();
+  }
+}
+
 test.beforeEach(() => {
   fixtures = fixturesResponse([1, 2, 3, 4, 5].map((number) => ({ number, status: 'scheduled' })));
   assignments = [];
 });
 
-test('7.1: places each game of a best-of-five in its own slot, marking four and five contingent', async ({
+test('places each game of a best-of-five in its own slot, marking four and five contingent', async ({
   page,
 }) => {
   await mockControlApi(page);
   await openBuilder(page);
+  await expandAllAgendaDays(page);
 
   // Five placeable rows for one cross, numbered in play order.
   for (const number of [1, 2, 3, 4, 5]) {
@@ -192,21 +211,28 @@ test('7.1: places each game of a best-of-five in its own slot, marking four and 
 
   // Games one to three will certainly be played; four and five only if the series is alive.
   await expect(page.getByText('Se jugará').first()).toBeVisible();
-  await expect(page.getByText('Se juega solo si la serie sigue indefinida')).toHaveCount(4);
+  await expect(page.getByText('Se juega solo si la serie sigue indefinida')).toHaveCount(2);
 
   // Each game goes to its own slot: two venues, five different days.
   for (const number of [1, 2, 3, 4, 5]) {
-    await page
-      .getByLabel(`Hora de inicio — Godoy Cruz vs Independiente Rivadavia — Partido ${number} de 5`)
-      .selectOption(`slot-${number}`);
+    await expandAllAgendaDays(page);
+    const match = `Godoy Cruz vs Independiente Rivadavia — Partido ${number} de 5`;
+    await chooseSlot(
+      page.getByLabel(`Día — ${match}`),
+      page.getByLabel(`Hora de inicio — ${match}`),
+      {
+        slotId: `slot-${number}`,
+        startsAt: `2026-08-0${number}T19:00:00.000Z`,
+      },
+    );
   }
 
   await page.getByText('Previsualizar').click();
-  await page.getByText('Publicar').click();
+  await page.getByRole('button', { name: 'Publicar calendario', exact: true }).click();
   await expect(page.getByText('Horario publicado.')).toBeVisible();
 });
 
-test('7.2: a decided series shows its surplus games as no longer required, naming their slots', async ({
+test('a decided series shows its surplus games as no longer required, naming their slots', async ({
   page,
 }) => {
   await mockControlApi(page);
@@ -224,6 +250,8 @@ test('7.2: a decided series shows its surplus games as no longer required, namin
   );
 
   await openBuilder(page);
+
+  await expandAllAgendaDays(page);
 
   // Not dropped from the view: still shown, and stated in words rather than by colour.
   await expect(page.getByText('Ya no hace falta: la serie está definida').first()).toBeVisible();

@@ -15,11 +15,10 @@ import { ZonesGroupsController } from './zones-groups.controller.js';
 
 /**
  * Competition-structure editing: a published tournament's
- * region/capacity/checkInClosesAt can be edited and previewed, a stage can be
- * renamed/reformatted/removed before it holds a fixture, and a zone or group
- * can be renamed/removed before an entrant is assigned into it. Every
- * refusal path is the same "recovery gap" the change closes — named, not
- * silent.
+ * region/capacity/checkInClosesAt can be edited and previewed, stage removal
+ * previews its consequences and requires exact-name confirmation, and zones
+ * or groups without fixtures can be removed while preserving assignments for
+ * Undo.
  */
 
 let app: INestApplication;
@@ -117,7 +116,7 @@ describe('tournament settings edit and preview', () => {
     const { tournamentAlias } = await seedTournament();
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
@@ -132,7 +131,7 @@ describe('tournament settings edit and preview', () => {
     const { tournamentAlias } = await seedTournament();
     const preview = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/settings/preview`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/settings/preview`,
       token: 'organizer-org1',
       payload: { region: 'Europe' },
     });
@@ -143,7 +142,7 @@ describe('tournament settings edit and preview', () => {
 
     const applied = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
       token: 'organizer-org1',
       payload: { region: 'Europe' },
     });
@@ -158,7 +157,7 @@ describe('tournament settings edit and preview', () => {
 
     const preview = await request({
       method: 'POST',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/settings/preview`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/settings/preview`,
       token: 'organizer-org1',
       payload: { capacity: 1 },
     });
@@ -171,7 +170,7 @@ describe('tournament settings edit and preview', () => {
 
     const applied = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
       token: 'organizer-org1',
       payload: { capacity: 1 },
     });
@@ -180,7 +179,7 @@ describe('tournament settings edit and preview', () => {
 
     const settings = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
       token: 'organizer-org1',
     });
     expect(settings.json().capacity).toBe(4);
@@ -190,7 +189,7 @@ describe('tournament settings edit and preview', () => {
     const { tournamentAlias } = await seedTournament();
     const response = await request({
       method: 'PUT',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/settings`,
       token: 'organizer-org1',
       payload: { name: 'Copa Estructura (renombrada)' },
     });
@@ -221,7 +220,7 @@ describe('stage editing', () => {
 
     const response = await request({
       method: 'PATCH',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
       token: 'organizer-org1',
       payload: { format: 'single-elimination' },
     });
@@ -229,13 +228,13 @@ describe('stage editing', () => {
     expect(response.json()).toMatchObject({ format: 'single-elimination' });
   });
 
-  it('renames a stage regardless of seeding, and removes an unseeded stage entirely', async () => {
+  it('renames a stage regardless of seeding, then removes it after name confirmation', async () => {
     const { tournamentAlias, tournamentId } = await seedTournament();
     const stage = await seedStage(tournamentId);
 
     const renamed = await request({
       method: 'PATCH',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
       token: 'organizer-org1',
       payload: { name: 'Fase de grupos (corregida)' },
     });
@@ -244,10 +243,16 @@ describe('stage editing', () => {
 
     const removed = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
       token: 'organizer-org1',
+      payload: { confirmationName: 'Fase de grupos (corregida)' },
     });
     expect(removed.statusCode).toBe(200);
+    expect(removed.json()).toMatchObject({
+      stageName: 'Fase de grupos (corregida)',
+      dryRun: false,
+      success: true,
+    });
 
     const stages = await new CompetitionRepository(scratch.db).listStagesOfTournament(tournamentId);
     expect(stages.find((candidate) => candidate.stageId === stage.stageId)).toBeUndefined();
@@ -280,14 +285,15 @@ describe('stage editing', () => {
 
     const removed = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
       token: 'organizer-org1',
+      payload: { confirmationName: stage.name },
     });
     expect(removed.statusCode).toBe(200);
     expect(await competition.listZonesOfStage(stage.stageId)).toEqual([]);
   });
 
-  it('refuses a format change and a removal once the stage holds a fixture, naming fixtures', async () => {
+  it('previews and removes a stage with fixtures after exact-name confirmation', async () => {
     const { tournamentAlias, tournamentId } = await seedTournament();
     const stage = await seedStage(tournamentId);
     const competition = new CompetitionRepository(scratch.db);
@@ -303,20 +309,54 @@ describe('stage editing', () => {
 
     const formatChange = await request({
       method: 'PATCH',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
       token: 'organizer-org1',
       payload: { format: 'single-elimination' },
     });
     expect(formatChange.statusCode).toBe(409);
     expect(formatChange.json().message).toContain('fixtures already exist');
 
-    const removal = await request({
+    const preview = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}?dryRun=true`,
       token: 'organizer-org1',
     });
-    expect(removal.statusCode).toBe(409);
-    expect(removal.json().message).toContain('fixtures already exist');
+    expect(preview.statusCode).toBe(200);
+    expect(preview.json()).toMatchObject({
+      stageName: stage.name,
+      fixtures: 1,
+      dryRun: true,
+      success: false,
+    });
+    expect(
+      (await competition.listStagesOfTournament(tournamentId)).some(
+        (candidate) => candidate.stageId === stage.stageId,
+      ),
+    ).toBe(true);
+
+    const wrongConfirmation = await request({
+      method: 'DELETE',
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
+      token: 'organizer-org1',
+      payload: { confirmationName: 'Otra etapa' },
+    });
+    expect(wrongConfirmation.statusCode).toBe(409);
+    expect(wrongConfirmation.json().message).toContain('confirmation did not match');
+
+    const removed = await request({
+      method: 'DELETE',
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}`,
+      token: 'organizer-org1',
+      payload: { confirmationName: stage.name },
+    });
+    expect(removed.statusCode).toBe(200);
+    expect(removed.json()).toMatchObject({
+      stageName: stage.name,
+      fixtures: 1,
+      dryRun: false,
+      success: true,
+    });
+    expect(await competition.listStagesOfTournament(tournamentId)).toEqual([]);
   });
 });
 
@@ -375,7 +415,7 @@ describe('zone and group editing', () => {
 
     const renamedZone = await request({
       method: 'PATCH',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}`,
       token: 'organizer-org1',
       payload: { name: 'Zona 1 (corregida)' },
     });
@@ -384,7 +424,7 @@ describe('zone and group editing', () => {
 
     const renamedGroup = await request({
       method: 'PATCH',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/groups/${group.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/groups/${group.number}`,
       token: 'organizer-org1',
       payload: { name: 'Grupo A (corregido)' },
     });
@@ -422,40 +462,60 @@ describe('zone and group editing', () => {
 
     const removedGroup = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/groups/${group.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/groups/${group.number}`,
       token: 'organizer-org1',
     });
     expect(removedGroup.statusCode).toBe(200);
 
     const removedZone = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}`,
       token: 'organizer-org1',
     });
     expect(removedZone.statusCode).toBe(200);
     expect(await competition.listZonesOfStage(stage.stageId)).toEqual([]);
   });
 
-  it('refuses removing a zone and a group once an entrant is assigned into each, naming the assignment', async () => {
+  it('soft-removes assigned zones and groups while preserving assignments for Undo', async () => {
     const { tournamentAlias, tournamentId } = await seedTournament();
     const stage = await seedStage(tournamentId);
     const entrantId = await acceptedTeamEntrant(tournamentId, 'Talleres');
     const { zone, group } = await seedAssignedZone(stage.stageId, entrantId);
+    const competition = new CompetitionRepository(scratch.db);
 
     const removedGroup = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/groups/${group.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/groups/${group.number}`,
       token: 'organizer-org1',
     });
-    expect(removedGroup.statusCode).toBe(409);
-    expect(removedGroup.json().message).toContain('entrant');
+    expect(removedGroup.statusCode).toBe(200);
+    expect(await competition.listGroupsOfZone(zone.zoneId)).toEqual([]);
+    expect(await competition.listEntrantIdsOfGroup(group.groupId)).toEqual([]);
+
+    const restoredGroup = await request({
+      method: 'POST',
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/groups/${group.number}/restore`,
+      token: 'organizer-org1',
+    });
+    expect(restoredGroup.statusCode).toBe(200);
+    expect(await competition.listEntrantIdsOfGroup(group.groupId)).toEqual([entrantId]);
 
     const removedZone = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}`,
       token: 'organizer-org1',
     });
-    expect(removedZone.statusCode).toBe(409);
-    expect(removedZone.json().message).toContain('entrant');
+    expect(removedZone.statusCode).toBe(200);
+    expect(await competition.listZonesOfStage(stage.stageId)).toEqual([]);
+    expect(await competition.listEntrantIdsOfZone(zone.zoneId)).toEqual([]);
+
+    const restoredZone = await request({
+      method: 'POST',
+      url: `/api/organizations/liga-orbital/tournaments/${tournamentAlias}/stages/${stage.number}/zones/${zone.number}/restore`,
+      token: 'organizer-org1',
+    });
+    expect(restoredZone.statusCode).toBe(200);
+    expect(await competition.listZonesOfStage(stage.stageId)).toHaveLength(1);
+    expect(await competition.listEntrantIdsOfZone(zone.zoneId)).toEqual([entrantId]);
   });
 });

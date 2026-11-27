@@ -9,33 +9,36 @@ import { controlLinkClick, navigateControl } from '../lib/control-navigation.js'
 import { messages } from '../i18n/messages.en.js';
 import { Button } from './ui/atoms/button.js';
 import { LinkButton } from './ui/atoms/link-button.js';
-import { DataEntityCard, type DataEntityCardAccent } from './ui/molecules/data-entity-card.js';
 import { DropdownMenu } from './ui/organisms/dropdown-menu.js';
+import { TournamentCard as TournamentCardOrganism } from './ui/organisms/tournament-card.js';
 
-/** The lifecycle's accent and badge tone, as the closed sets each accepts. */
-const TONE: Readonly<
-  Record<
-    TournamentLifecycle,
-    { readonly accent: DataEntityCardAccent; readonly badge: SemanticColor }
-  >
-> = {
-  live: { accent: 'live', badge: 'state-live' },
-  upcoming: { accent: 'upcoming', badge: 'state-upcoming' },
-  draft: { accent: 'muted', badge: 'text-muted' },
-  finished: { accent: 'positive', badge: 'state-positive' },
+/** The lifecycle's badge tone, from the closed semantic-color set. */
+const STATUS_COLOR: Readonly<Record<TournamentLifecycle, SemanticColor>> = {
+  live: 'state-live',
+  'in-progress': 'text-muted',
+  upcoming: 'state-upcoming',
+  draft: 'text-muted',
+  finished: 'state-positive',
 };
 
 /** The exports the dashboard already produces; named so a caller cannot invent one. */
-export type TournamentExportKind = 'participants/team' | 'results' | 'standings';
+export type TournamentExportKind =
+  'participants/individual' | 'participants/team' | 'results' | 'standings';
 
 export interface TournamentSummaryCardProps {
   readonly card: CardModel;
   readonly organizationAlias: string;
-  readonly onExport: (alias: string, kind: TournamentExportKind) => void;
+  readonly onExport: (
+    alias: string,
+    kind: TournamentExportKind,
+    trigger?: HTMLElement | null,
+  ) => void;
   readonly onExportConfiguration: (alias: string) => void;
   readonly onArchive: (alias: string) => void;
+  readonly onPublish: (alias: string, name: string) => void;
   /** Gates the Broadcaster Studio link — the same capability its backend endpoints already require. */
   readonly canManageDisplayTokens: boolean;
+  readonly canManageTournamentLifecycle: boolean;
 }
 
 /**
@@ -49,7 +52,8 @@ export interface TournamentSummaryCardProps {
  * `<p>` styled as a flex row in `Dashboard.tsx`, five equal-weight buttons
  * acting on an entity they were merely adjacent to; at 375px that wrapped into
  * four ragged rows per tournament. Here they are ranked: one primary action,
- * the four exports behind one menu, and the destructive one held apart.
+ * compact destinations, secondary actions behind one menu, and destructive
+ * actions held apart.
  */
 export function TournamentSummaryCard({
   card,
@@ -57,10 +61,12 @@ export function TournamentSummaryCard({
   onExport,
   onExportConfiguration,
   onArchive,
+  onPublish,
   canManageDisplayTokens,
+  canManageTournamentLifecycle,
 }: TournamentSummaryCardProps): React.JSX.Element {
   const intl = useIntl();
-  const presentation = LIFECYCLE_PRESENTATION[card.lifecycle];
+  const lifecycle = card.lifecycle;
   const base = `/control/${organizationAlias}/tournaments/${card.alias}`;
   const broadcasterHref = `${base}/broadcaster`;
 
@@ -70,9 +76,11 @@ export function TournamentSummaryCard({
     title linking there would resolve to nothing.
   */
   const matchesHref = `${base}/matches-view`;
+  const registrationsHref = `${base}/registrations`;
   // A draft has nothing to open yet; its own requirement asks for a way back
   // into editing, which is its settings screen.
-  const primaryHref = card.lifecycle === 'draft' ? `${base}/settings` : matchesHref;
+  const primaryHref =
+    lifecycle === undefined ? base : lifecycle === 'draft' ? `${base}/settings` : matchesHref;
   // The Tournament hub: a second entry point alongside the
   // title, since it leads somewhere the title never has — the tournament's
   // stage list, not its matches.
@@ -80,13 +88,32 @@ export function TournamentSummaryCard({
   const publicHref = `/${organizationAlias}/tournaments/${card.alias}`;
   const tvHref = `/tv/${organizationAlias}/tournaments/${card.alias}`;
   const primaryLabel =
-    card.lifecycle === 'draft'
+    lifecycle === 'draft'
       ? intl.formatMessage(messages.dashboardResumeEditing)
       : intl.formatMessage(messages.dashboardOpen);
+  const pendingRegistrationsLabel = intl.formatMessage(messages.dashboardPendingRegistrations);
 
-  const exports = [
+  const secondaryActions: {
+    readonly id: string;
+    readonly label: (typeof messages)[keyof typeof messages];
+    readonly run: (trigger?: HTMLElement | null) => void;
+  }[] = [
+    ...(lifecycle === 'draft' && canManageTournamentLifecycle
+      ? [
+          {
+            id: 'publish',
+            label: messages.dashboardPublishAction,
+            run: () => onPublish(card.alias, card.name),
+          },
+        ]
+      : []),
     {
-      id: 'participants',
+      id: 'individual-participants',
+      label: messages.dashboardIndividualsCsv,
+      run: (trigger) => onExport(card.alias, 'participants/individual', trigger),
+    },
+    {
+      id: 'team-participants',
       label: messages.dashboardParticipantsCsv,
       run: () => onExport(card.alias, 'participants/team'),
     },
@@ -105,10 +132,9 @@ export function TournamentSummaryCard({
       label: messages.dashboardConfigurationJson,
       run: () => onExportConfiguration(card.alias),
     },
-    // Not an export, but the same overflow menu — a fourth standalone button
-    // here (like the four exports before this menu existed) wraps this row
-    // into two at 375px, exactly the layout defect this menu already exists
-    // to prevent. `navigateControl` directly, not
+    // A destination, not an export, but still a secondary action. Keep it in
+    // the overflow menu so additional destinations do not grow the card's
+    // main action row. `navigateControl` directly, not
     // `controlLinkClick`: a menu item is a Radix `onSelect`, not an `<a>`
     // click, and carries no `MouseEvent` to read modifier keys from.
     ...(canManageDisplayTokens
@@ -123,26 +149,52 @@ export function TournamentSummaryCard({
   ];
 
   return (
-    <DataEntityCard
-      accent={TONE[card.lifecycle].accent}
-      actions={
+    <TournamentCardOrganism
+      action={{ label: primaryLabel, href: primaryHref, onClick: controlLinkClick(primaryHref) }}
+      facts={[
+        ...(card.pendingRegistrations === undefined
+          ? []
+          : [
+              {
+                key: 'pending-registrations',
+                label: pendingRegistrationsLabel,
+                sourceField: 'pendingRegistrations',
+                value:
+                  card.pendingRegistrations > 0 ? (
+                    <LinkButton
+                      aria-label={`${pendingRegistrationsLabel}: ${card.pendingRegistrations}`}
+                      className="cl-tournament-card__fact-link"
+                      href={registrationsHref}
+                      onClick={controlLinkClick(registrationsHref)}
+                      variant="secondary"
+                    >
+                      {intl.formatNumber(card.pendingRegistrations)}
+                    </LinkButton>
+                  ) : (
+                    intl.formatNumber(card.pendingRegistrations)
+                  ),
+              },
+            ]),
+        ...(card.matchesToday === undefined
+          ? []
+          : [
+              {
+                key: 'matches-today',
+                label: intl.formatMessage(messages.dashboardMatchesToday),
+                sourceField: 'matchesToday',
+                value: intl.formatNumber(card.matchesToday),
+              },
+            ]),
+      ]}
+      metadata={[]}
+      name={card.name}
+      secondaryActions={
         <div className="cl-entity-card-actions">
-          <a
-            className="cl-btn cl-btn--primary cl-focusable"
-            href={primaryHref}
-            onClick={controlLinkClick(primaryHref)}
-          >
-            {primaryLabel}
-          </a>
-          <a
-            className="cl-btn cl-btn--secondary cl-focusable"
-            href={stagesHref}
-            onClick={controlLinkClick(stagesHref)}
-          >
+          <LinkButton href={stagesHref} onClick={controlLinkClick(stagesHref)} variant="secondary">
             {intl.formatMessage(messages.dashboardStages)}
-          </a>
+          </LinkButton>
           <LinkButton
-            aria-label={intl.formatMessage(messages.tournamentPublicSite)}
+            aria-label={intl.formatMessage(messages.tournamentPublicSiteShort)}
             href={publicHref}
             title={intl.formatMessage(messages.tournamentPublicSite)}
             variant="secondary"
@@ -158,14 +210,14 @@ export function TournamentSummaryCard({
             {intl.formatMessage(messages.tournamentTvDisplayShort)}
           </LinkButton>
           <DropdownMenu
-            items={exports.map((one) => ({
+            items={secondaryActions.map((one) => ({
               id: one.id,
               label: intl.formatMessage(one.label),
-              onSelect: one.run,
+              onSelect: (trigger) => one.run(trigger),
             }))}
             trigger={
               <Button type="button" variant="secondary">
-                {intl.formatMessage(messages.dashboardExport)}
+                {intl.formatMessage(messages.dashboardMoreActions)}
               </Button>
             }
           />
@@ -182,26 +234,16 @@ export function TournamentSummaryCard({
           )}
         </div>
       }
-      badge={{
-        label: intl.formatMessage(presentation.label),
-        state: TONE[card.lifecycle].badge,
-        testId: 'lifecycle',
-      }}
-      metadata={[
-        {
-          label: intl.formatMessage(messages.dashboardMatchesToday),
-          numeric: true,
-          value: String(card.matchesToday),
-        },
-        {
-          label: intl.formatMessage(messages.dashboardPendingRegistrations),
-          numeric: true,
-          value: String(card.pendingRegistrations),
-        },
-      ]}
-      onTitleNavigate={controlLinkClick(matchesHref)}
-      title={card.name}
-      titleHref={matchesHref}
+      status={
+        lifecycle === undefined
+          ? undefined
+          : {
+              label: intl.formatMessage(LIFECYCLE_PRESENTATION[lifecycle].label),
+              color: STATUS_COLOR[lifecycle],
+              testId: 'lifecycle',
+            }
+      }
+      titleAction={{ href: matchesHref, onClick: controlLinkClick(matchesHref) }}
     />
   );
 }

@@ -49,17 +49,11 @@ or container queries) and Tailwind `screens` tokens from the same source.
   doctrine's screenshot acceptance gate, with no undocumented additional breakpoint
 
 ### Requirement: Broadcast Command Precision palette and typography
-The generated token set SHALL include the ink/text scale, cyan live/active tokens, amber
-upcoming/attention tokens, green positive-result tokens, red destructive/disputed/loss tokens, a
-reserved (non-core-chrome) team-accent slot, and the Barlow Condensed / Barlow / JetBrains Mono
-typography stack.
 
-A typeface the token set names SHALL also be delivered by it: naming a family in a font stack is a
-declaration of intent, not a guarantee that the face exists on the machine rendering it. The
-stylesheet that declares the families SHALL be the same artifact that loads them, so a surface cannot
-obtain one without the other. Every heading element SHALL resolve to the display family without a
-component having to ask for it, since a heading rendered in the body face is the identity silently
-not being applied.
+The generated token set SHALL include the palette roles and the Barlow Condensed / Barlow /
+JetBrains Mono typography stack. A typeface the token set names SHALL also be delivered by it,
+through the same stylesheet that declares the families, so a surface cannot obtain one without the
+other. Every heading element SHALL resolve to the display family without a component asking for it.
 
 #### Scenario: Core chrome never uses the reserved team-accent color
 - **WHEN** any core UI component token (navigation, primary buttons, system badges) is inspected
@@ -74,6 +68,23 @@ not being applied.
 - **WHEN** a page renders a bare heading element that no component class styles
 - **THEN** it resolves to the display family, rather than inheriting the body face
 
+#### Scenario: The palette roles
+
+- **WHEN** the token set is generated
+- **THEN** it includes the ink and text scale, cyan live/active, amber upcoming/attention, green
+  positive-result and red destructive/disputed/loss tokens, and a reserved team-accent slot outside
+  core chrome
+
+#### Scenario: Naming is not delivering
+
+- **WHEN** a family is named in a font stack
+- **THEN** the face is also loaded, because naming it only declares intent
+
+#### Scenario: Why headings resolve on their own
+
+- **WHEN** a heading renders in the body face
+- **THEN** the identity has silently not been applied, which is what the rule prevents
+
 ### Requirement: State badges pair color with text
 Any generated badge/status component token SHALL require a text label alongside its color, and
 SHALL NOT define a color-only state representation.
@@ -83,14 +94,12 @@ SHALL NOT define a color-only state representation.
 - **THEN** the build fails or the component renders a visible validation error, never a color-only badge
 
 ### Requirement: Badge state tones are defined tokens
-The token set SHALL define a generated token, and corresponding CSS custom property, for each named
-badge tone the product writes: `live`, `final`, `upcoming`, `stage`, `muted`, and `positive`. Each tone
-SHALL resolve consistently everywhere its class is used, independent of any page-local stylesheet, and
-SHALL follow the same color-plus-label pairing this capability already requires of every badge state
-(see "State badges pair color with text").
 
-The already generated `live` and `final` styles SHALL keep their appearance when promoted to declared
-tokens. Pages SHALL NOT define an overriding badge tone in a page-local stylesheet.
+The token set SHALL define a generated token and CSS custom property for each named badge tone the
+product writes, resolving consistently wherever its class is used, independent of any page-local
+stylesheet, and following the color-plus-label pairing "State badges pair color with text" requires.
+The `live` and `final` styles SHALL keep their appearance as declared tokens. Pages SHALL NOT define
+an overriding badge tone in a page-local stylesheet.
 
 #### Scenario: A badge tone renders identically on every surface that uses it
 - **WHEN** a component applies the `live`, `final`, `upcoming`, `stage`, `muted`, or `positive` badge
@@ -107,36 +116,18 @@ tokens. Pages SHALL NOT define an overriding badge tone in a page-local styleshe
 - **THEN** the build fails or falls back to the default badge treatment, never to an unstyled or
   browser-default appearance
 
+#### Scenario: The tones
+
+- **WHEN** the badge tokens are generated
+- **THEN** they cover `live`, `final`, `upcoming`, `stage`, `muted` and `positive`
+
 ### Requirement: Chamfered-corner motif with progressive enhancement
-The token set SHALL define one shared chamfer size, and a smaller control size, applied exclusively
-through `corner-shape` and `border-radius` without any `clip-path` fallback.
 
-The motif SHALL be a family rather than a single cut. It SHALL provide the diagonal pair — top-right
-and bottom-left — as its default, each single corner of that pair on its own, and the control-sized
-variant, so a composition can cut the corners its shape calls for instead of receiving the default
-everywhere. The default SHALL remain the diagonal pair, and top-left and bottom-right SHALL remain
-square in it.
-
-Corner geometry SHALL be expressed per corner. A browser that supports only the per-corner longhands
-SHALL receive them; a browser that supports the shorthand SHALL receive it; a browser that supports
-neither SHALL receive square corners and a fully usable component.
-
-Small square controls — a checkbox, a radio — are an exception and SHALL cut all four, because an
-asymmetric cut at that size reads as a rendering fault rather than a shape.
-
-A badge is a second stated exception: it SHALL cut one vertical pair — both left corners at the shared
-chamfer size, both right corners square. At badge proportions the diagonal pair puts its two cuts at
-opposite ends of a short label, which reads as a skewed box rather than as the motif; a vertical pair
-reads as a tag, while cutting all four would read as a pill. This is a deliberate divergence from the
-reference project, which paints badges square, and SHALL be recorded as such where the calibration is
-documented, so a later reviewer does not read it as drift.
-
-Where a component chamfers only some of its corners, that SHALL be expressed by leaving the other
-corners at a zero radius, never by authoring polygon masks.
-
-A component whose focus indicator or ambient glow is drawn outside its own box — such as a `box-shadow`
-ring or `--cl-glow-cyan` — SHALL NOT be clipped to its chamfer because `clip-path` is strictly prohibited
-for chamfer geometry. External focus rings and ambient glows stay intact across all rendering contexts.
+The token set SHALL define one shared chamfer size and a smaller control size, applied only through
+`corner-shape` and `border-radius`, per corner, never through `clip-path` or polygon masks. The
+motif SHALL be a family whose default is the diagonal pair, with each single corner of that pair and
+the control-sized variant available, and SHALL degrade from shorthand to longhands to square corners
+on a fully usable component. Small square controls and badges SHALL follow their stated exceptions.
 
 #### Scenario: Unsupported browser falls back gracefully
 - **WHEN** a browser without `corner-shape` support renders a chamfered component
@@ -163,18 +154,52 @@ for chamfer geometry. External focus rings and ambient glows stay intact across 
 - **WHEN** a component draws its focus indicator or ambient glow as a shadow outside its own box
 - **THEN** it is not clipped to the chamfer, and the indicator stays visible on every browser
 
+#### Scenario: The default and its parts
+
+- **WHEN** a composition takes the default chamfer
+- **THEN** top-right and bottom-left are cut and top-left and bottom-right stay square; a
+  composition may instead cut a single corner of that pair, or use the control-sized variant
+
+#### Scenario: Progressive enhancement
+
+- **WHEN** a browser renders a chamfered component
+- **THEN** it receives the shorthand when supported, the per-corner longhands when only those are,
+  and square corners otherwise
+
+#### Scenario: Small square controls cut all four
+
+- **WHEN** a checkbox or radio renders
+- **THEN** all four corners are cut, because an asymmetric cut at that size reads as a rendering
+  fault
+
+#### Scenario: A badge cuts one vertical pair
+
+- **WHEN** a badge renders
+- **THEN** both left corners are cut at the shared size and both right corners stay square: the
+  diagonal pair would read as a skewed box and four cuts as a pill
+
+#### Scenario: The badge divergence is recorded
+
+- **WHEN** a reviewer compares badges with the reference project, which paints them square
+- **THEN** the divergence is documented where the calibration is, so it is not read as drift
+
+#### Scenario: Partial chamfers use zero radii
+
+- **WHEN** a component chamfers only some corners
+- **THEN** the others are left at a zero radius
+
+#### Scenario: Outside rings are never clipped
+
+- **WHEN** a component draws a focus ring or ambient glow outside its box, such as a `box-shadow`
+  ring or `--cl-glow-cyan`
+- **THEN** it is not clipped to the chamfer, because `clip-path` is prohibited for chamfer geometry
+
 ### Requirement: A component's styling is reachable wherever the component renders
-Styling that a component depends on SHALL live where every surface rendering that component can load
-it — the shared token stylesheet, or a stylesheet a surface imports — and SHALL NOT live inside a
-single page or layout's own `<style>` block, scoped or global.
 
-A layout's own block is for what belongs to the page: document chrome, presentation modes, the
-backdrop. The moment it styles a class the layout's own file does not render, that styling has become
-unreachable to every other surface, and the component is correct on one page and wrong everywhere
-else. This fails quietly, because the page that owns the rule always looks right.
-
-The same rule applies to base element treatments — link colour, heading family — which belong to every
-surface and therefore to the shared stylesheet, not to whichever layout happened to need them first.
+Styling a component depends on SHALL live where every surface rendering that component can load it,
+in the shared token stylesheet or a stylesheet a surface imports, and SHALL NOT live inside a single
+page or layout's own `<style>` block, scoped or global. Base element treatments SHALL live in the
+shared stylesheet.
 
 #### Scenario: A component's rules are loadable by a second surface
 - **WHEN** a component is rendered on a surface other than the one it was written for
@@ -189,6 +214,23 @@ surface and therefore to the shared stylesheet, not to whichever layout happened
 - **WHEN** a surface renders a link or a heading
 - **THEN** it receives the same treatment as every other surface, rather than depending on which
   layout wrapped it
+
+#### Scenario: What a layout's own block is for
+
+- **WHEN** a layout styles something
+- **THEN** its block holds document chrome, presentation modes and the backdrop; styling a class its
+  own file does not render makes that styling unreachable to every other surface
+
+#### Scenario: Why the failure is quiet
+
+- **WHEN** a component is styled inside one layout
+- **THEN** the page that owns the rule always looks right, and every other page renders the
+  component wrong
+
+#### Scenario: Base treatments belong to every surface
+
+- **WHEN** link colour or heading family is styled
+- **THEN** it lives in the shared stylesheet, not in whichever layout needed it first
 
 ### Requirement: Forbidden cyberpunk-wireframe token isolation
 The generated token output SHALL NOT contain any value from the `sebasoft-app` cyberpunk-wireframe
@@ -208,13 +250,11 @@ active.
 - **THEN** every component using a motion token renders with animation/transition duration effectively removed
 
 ### Requirement: Style-guide route for visual verification
+
 The platform SHALL provide a route rendering every generated token and core component for manual and
 automated visual smoke-testing, including a labelled sample of every font-size scale step at every
-generated breakpoint. The route SHALL render the marketing-surface component set (card, badge, button
-variant, alert, stat-tile), the Control-web atom/molecule/organism set (text input, select, textarea,
-checkbox, label, form-field, `DataEntityCard`, `DataTable`, `Modal`), and one populated example of each
-Control-web template (`ListScreenTemplate`, `FormScreenTemplate`), so every tier stays verifiable from
-the same page.
+generated breakpoint, the marketing-surface and Control-web component sets, and one populated
+example of each Control-web template.
 
 #### Scenario: Style guide renders all core components
 - **WHEN** the style-guide route is loaded
@@ -233,6 +273,13 @@ the same page.
   molecule, the `DataTable` and `Modal` organisms, and one populated example of `ListScreenTemplate` and
   `FormScreenTemplate`, visibly distinguishable from the marketing-surface component set on the same
   page
+
+#### Scenario: The components rendered
+
+- **WHEN** the style guide renders
+- **THEN** it shows the card, badge, button variants, alert and stat tile; the text input, select,
+  textarea, checkbox, label, form field, `DataEntityCard`, `DataTable` and `Modal`; and
+  `ListScreenTemplate` and `FormScreenTemplate`, so every tier is verifiable from one page
 
 ### Requirement: Responsive layout compliance across every screen
 Every Control route and every Public/TV page template SHALL render without horizontal overflow at
@@ -255,6 +302,28 @@ labels or unreachable controls.
 - **WHEN** a screen is viewed at 200% browser zoom
 - **THEN** no form label is clipped and no interactive control becomes unreachable
 
+### Requirement: Pages use one container per surface with tokenised gutters
+Every public page SHALL place its content in a centred container of at most 1200px, with prose,
+forms and match detail in a reading column of at most 720px. The control main column SHALL be at
+most 1440px, with forms at most 720px. Side gutters SHALL be 16px below 768px, 24px from 768px, and
+32px from 1024px. No content SHALL start at the viewport edge.
+
+#### Scenario: Tournament overview at 1920px
+
+- **WHEN** the public tournament overview renders at 1920px
+- **THEN** its content is at most 1200px wide and centred, and the background band still fills the
+  viewport
+
+#### Scenario: Headings never touch the edge
+
+- **WHEN** any public page renders at 375px
+- **THEN** every heading and card starts at least 16px from the left edge
+
+#### Scenario: Control form at 1920px
+
+- **WHEN** the stage settings form renders at 1920px
+- **THEN** the form is at most 720px wide and no button is wider than its label plus padding
+
 ### Requirement: Long content truncates without losing meaning
 Any field displaying a long team, participant, tournament, venue, or sponsor name SHALL use
 `min-width: 0` with an ellipsis or explicit wrapping rule, and SHALL make the full text available
@@ -267,12 +336,10 @@ path.
   text remains accessible, rather than overflowing its container or disappearing
 
 ### Requirement: Form-control and overlay component token contracts
-`packages/design-tokens` SHALL define component token contracts for text input, select, textarea,
-checkbox, radio, file selection, and dialog/overlay (backdrop, surface, elevation) controls — resolved
-background, text, border, and focus-ring values per interaction state (default, focus, error, disabled)
-for form controls, and backdrop/surface/elevation values for the dialog/overlay contract — matching the
-pattern `BadgeSpec`/`ButtonVariant`/`CARD_STATES` already establish for their respective components, so
-no Control-web atom or organism hand-picks a color, spacing, or shadow value outside this contract.
+
+`packages/design-tokens` SHALL define component token contracts for form controls and for the
+dialog/overlay, following the pattern `BadgeSpec`, `ButtonVariant` and `CARD_STATES` establish, so
+no Control-web atom or organism hand-picks a color, spacing, or shadow value outside them.
 
 #### Scenario: An error-state input resolves to the destructive semantic color
 - **WHEN** the text-input component token contract's error state is inspected
@@ -288,6 +355,18 @@ no Control-web atom or organism hand-picks a color, spacing, or shadow value out
 - **WHEN** the `Modal` organism's backdrop is inspected
 - **THEN** its color/opacity value resolves to the dialog/overlay component token contract, not an
   independently chosen value
+
+#### Scenario: The controls covered
+
+- **WHEN** the contracts are defined
+- **THEN** they cover text input, select, textarea, checkbox, radio, file selection, and the
+  dialog/overlay
+
+#### Scenario: What each contract resolves
+
+- **WHEN** a contract is read
+- **THEN** a form control resolves background, text, border and focus ring per state (default,
+  focus, error, disabled), and the dialog/overlay resolves backdrop, surface and elevation
 
 ### Requirement: Control-web data-density composition tokens
 `packages/design-tokens` SHALL define a documented, denser spacing-scale subset (or named density
@@ -359,30 +438,37 @@ and preserve the generated reduced-motion behavior.
 - **WHEN** an interactive component adds visual feedback
 - **THEN** it names only the supported property or properties and uses the shared motion contract
 
+### Requirement: Live state changes have defined, reduced-motion-safe cues
+The token set SHALL define motion for a score-change flash (about 600ms, cyan well background), a
+one-time new-event entry (about 200ms, transform and opacity), and a live pulse dot beside the LIVE
+label (opacity only). These cues SHALL animate only `transform`, `opacity` or `background-color`. Under
+reduced motion they SHALL collapse to `0s`, and the flash SHALL become a static held fill.
+
+#### Scenario: A goal changes a TV scorebug
+
+- **WHEN** a match score changes from 2 to 3 on the TV scorebug
+- **THEN** the score container flashes the cyan well colour for about 600ms, and the digits do not
+  change width
+
+#### Scenario: Reduced motion is on
+
+- **WHEN** the viewer has `prefers-reduced-motion: reduce` and a score changes
+- **THEN** the container shows the static cyan well fill for 600ms with no transition, the live dot is
+  steady, and new events appear without sliding
+
+#### Scenario: Initial render does not flash
+
+- **WHEN** a page first renders a live score
+- **THEN** no flash plays
+
 ### Requirement: A container resolves its own surface level, without a call-site decision
 
-A card or section SHALL resolve its surface level from what it is, with no modifier class, prop, or
-decision at the call site. A content container SHALL alternate against the level it sits on; chrome — a
-panel header, a footer, a chip, a tag, an eyebrow, an icon well — SHALL lift to the chrome level at any
-depth. The operational surface parity work calibrates those levels against the reference project; this change makes the assignment
-automatic so a screen never states it.
-
-The levels SHALL be their own semantic roles rather than reusing `surface-raised`, whose contracted
-meaning is a selected or active container: lifted chrome and a selected container SHALL NOT resolve to
-the same value, because a reader cannot then tell chrome from selection.
-
-The resolved backgrounds SHALL be visibly different; distinct token names resolving to the same
-colour SHALL NOT satisfy this requirement. Selection SHALL retain its border and explicit label or
-mark. Review SHALL use the differentiation examples in `../copalibre-app` and actual selected
-components on both dark and light bands.
-
-Broadcast content SHALL be an explicit exception to repeated alternation: the first content container
-against the broadcast base takes the alternate content level, and deeper content containers retain
-that level. Chrome SHALL retain its chrome role and selected containers their distinct state
-background. Operator and public content SHALL continue alternating normally.
-
-Every boundary between two levels SHALL carry the border cue the semantic token contract already
-requires of a panel, so two adjacent levels are separable without relying on the fill difference alone.
+A card or section SHALL resolve its surface level from what it is, with no call-site decision:
+content containers SHALL alternate against the level beneath, and chrome SHALL lift to the chrome
+level at any depth. Levels SHALL be their own, visibly different semantic roles, and lifted chrome
+and a selected container SHALL NOT resolve alike; selection SHALL keep its border and label or mark.
+Every boundary SHALL carry the panel border cue. Broadcast content SHALL stop alternating after one
+step.
 
 #### Scenario: A screen composes a panel with no extra props
 - **WHEN** a screen composes a card with a header and a body inside a section, passing no variant or
@@ -418,6 +504,35 @@ requires of a panel, so two adjacent levels are separable without relying on the
 - **THEN** a border cue marks the boundary, so the two are separable without relying on the fill
   difference alone
 
+#### Scenario: What counts as chrome
+
+- **WHEN** a panel header, footer, chip, tag, eyebrow or icon well renders
+- **THEN** it lifts to the chrome level
+
+#### Scenario: Why not `surface-raised`
+
+- **WHEN** a level is assigned
+- **THEN** it does not reuse `surface-raised`, which means a selected or active container, so a
+  reader can tell chrome from selection
+
+#### Scenario: Different names are not enough
+
+- **WHEN** two levels use distinct token names
+- **THEN** they must also resolve to visibly different colours
+
+#### Scenario: How levels are reviewed
+
+- **WHEN** levels are reviewed
+- **THEN** the review uses the differentiation examples in `../copalibre-app` and actual selected
+  components on dark and light bands
+
+#### Scenario: The broadcast exception
+
+- **WHEN** content containers nest on the broadcast base
+- **THEN** the first takes the alternate content level and deeper ones keep it; chrome keeps its
+  role, selected containers their state background, and operator and public content alternate
+  normally
+
 ### Requirement: Radio and file-selection component token contracts
 `packages/design-tokens` SHALL define component token contracts for the radio control and the
 file-selection control — resolved background, text, border, and focus-ring values per interaction state
@@ -437,23 +552,10 @@ neither atom picks a colour, spacing, or shadow value outside the contract.
 
 ### Requirement: Design documentation is verified against the token source
 
-Documentation committed to the repository that restates token values SHALL be verified against the
-token source automatically, and the verification SHALL fail on any divergence in either direction —
-a value that differs, a token present in the source and absent from the documentation, or a token
-present in the documentation and absent from the source.
-
-The visual-identity doctrine permits raw primitive values to appear in token definitions and in
-documentation. That permission is what makes documentation capable of drifting: a value corrected in
-the source propagates to the generated CSS and Tailwind output through the single-source-of-truth
-requirement, while a hand-maintained document keeps asserting the old one. A document restating an
-implementation fact is a claim, and a claim SHALL carry automated evidence rather than assertion.
-
-Verification SHALL cover the colour, typography, radius and spacing token sets. It SHALL run in the
-same suite as the token package's existing checks, so a divergence fails a pull request rather than
-being discovered by whoever next reads the document.
-
-A count of commits to the visual source directories since the document was last edited SHALL NOT be
-treated as evidence of divergence or of agreement; only a value comparison decides.
+Committed documentation restating token values SHALL be verified automatically against the token
+source for the colour, typography, radius and spacing sets, in the token package's existing suite,
+and SHALL fail on any divergence in either direction. A count of commits since the document was last
+edited SHALL NOT be treated as evidence either way; only a value comparison decides.
 
 #### Scenario: A token value changes and the documentation is not regenerated
 
@@ -475,6 +577,23 @@ treated as evidence of divergence or of agreement; only a value comparison decid
 - **WHEN** the design documentation is regenerated from the current token source with no manual edit to its token values
 - **THEN** the verification passes with no exception recorded
 
+#### Scenario: What a divergence is
+
+- **WHEN** the documentation is compared
+- **THEN** a value that differs, a token only in the source, or a token only in the documentation
+  each fail
+
+#### Scenario: Why documentation drifts
+
+- **WHEN** a value is corrected in the source
+- **THEN** the generated CSS and Tailwind output follow it while a hand-maintained document keeps
+  the old one, so a restated fact needs automated evidence
+
+#### Scenario: Divergence fails the pull request
+
+- **WHEN** documentation diverges
+- **THEN** the pull request fails rather than the next reader finding out
+
 ### Requirement: Design documentation names its normative source
 
 Committed design documentation that overlaps a specification SHALL name that specification as
@@ -491,17 +610,10 @@ with equal apparent authority leave a reader no way to tell which one binds when
 
 ### Requirement: Mechanical design checks run during editing
 
-The project SHALL run its mechanical design checks while interface code is being edited, rather than
-only at review, and SHALL record their configuration in a tracked file so the whole team runs the
-same checks.
-
-A suppression of any such check SHALL carry a written reason. A suppression identified only by rule
-id SHALL NOT be accepted, because a suppression without a recorded reason cannot be reviewed, cannot
-be re-evaluated when the code it excused has changed, and silently becomes permanent.
-
-A suppression that applies to one developer's machine rather than to the project SHALL be recorded
-separately from the tracked project configuration, so a personal exclusion never reaches the team's
-checks.
+The project SHALL run its mechanical design checks while interface code is edited, not only at
+review, with their configuration in a tracked file. A suppression SHALL carry a written reason, and
+one identified only by rule id SHALL NOT be accepted. A suppression for one developer's machine
+SHALL be recorded apart from the tracked project configuration.
 
 #### Scenario: A suppression arrives without a reason
 
@@ -512,6 +624,12 @@ checks.
 
 - **WHEN** a pull request adds or widens a design-check suppression
 - **THEN** the suppression and its reason appear in that pull request's diff
+
+#### Scenario: Why a reason is required
+
+- **WHEN** a suppression has no recorded reason
+- **THEN** it cannot be reviewed or re-evaluated when the excused code changes, and silently becomes
+  permanent
 
 ### Requirement: Verified documentation changes with its source
 
@@ -539,40 +657,40 @@ change branch, without a direct push to the protected integration branch.
 The multi-step tournament authoring wizard MUST use the design system's badge shape for active and completed step badges, meet the minimum interactive target for its primary progression action, explain blocked progression when required fields are invalid, and configure the Astro development server to forward `/disciplines` and `/tournament-profiles` to the API service.
 
 #### Scenario: Step badge shape
-- Given an operator is authoring a tournament in `/control/[organization]/tournaments/new`
-- When the wizard renders step indicators
-- Then active and completed step badges use the established badge shape with square right corners and a vertical chamfer on the left.
+- **GIVEN** an operator is authoring a tournament in `/control/[organization]/tournaments/new`
+- **WHEN** the wizard renders step indicators
+- **THEN** active and completed step badges use the established badge shape with square right corners and a vertical chamfer on the left.
 
 #### Scenario: Blocked wizard progression
-- Given required tournament fields are invalid or incomplete
-- When the operator reaches the primary progression action
-- Then the action meets the 44px minimum target and its disabled state explains what must be completed.
+- **GIVEN** required tournament fields are invalid or incomplete
+- **WHEN** the operator reaches the primary progression action
+- **THEN** the action meets the 44px minimum target and its disabled state explains what must be completed.
 
 #### Scenario: Development API proxy
-- Given the web application is running with Astro's development server
-- When the wizard requests disciplines or tournament profiles
-- Then the development server forwards those paths to the API service.
+- **GIVEN** the web application is running with Astro's development server
+- **WHEN** the wizard requests disciplines or tournament profiles
+- **THEN** the development server forwards those paths to the API service.
 
 ### Requirement: Profile Image Crop Modal Framing
 The image crop dialog MUST encapsulate the active cropping viewport in the owned `.cl-image-frame` primitive, avoiding raw inline layout styles, using its 4:5 opaque chrome frame, and maintaining the suspended modal drop-shadow on the dialog.
 
 #### Scenario: Image crop container styling
-- Given an operator initiates an emblem or avatar upload
-- When `ImageCropModal` opens
-- Then the crop viewport uses the `.cl-image-frame` treatment with a 4:5 aspect ratio and opaque chrome fill, while the enclosing dialog retains its suspended drop-shadow.
+- **GIVEN** an operator initiates an emblem or avatar upload
+- **WHEN** `ImageCropModal` opens
+- **THEN** the crop viewport uses the `.cl-image-frame` treatment with a 4:5 aspect ratio and opaque chrome fill, while the enclosing dialog retains its suspended drop-shadow.
 
 ### Requirement: Public Tournament Numeric Tabular Alignment
 All public server-rendered tournament standings and match result tables MUST enforce tabular numerals to prevent layout shifting across variable screen widths. Nested match-summary cards MUST alternate opaque `panel` and `base` surface bands so adjacent content remains visually distinct.
 
 #### Scenario: Numeric column tabular layout
-- Given a visitor views a public tournament overview page
-- When viewing standings points, goals, or score summaries
-- Then every numeric cell renders with `font-variant-numeric: tabular-nums`.
+- **GIVEN** a visitor views a public tournament overview page
+- **WHEN** viewing standings points, goals, or score summaries
+- **THEN** every numeric cell renders with `font-variant-numeric: tabular-nums`.
 
 #### Scenario: Alternating match-summary bands
-- Given a visitor views nested match-summary cards on a public tournament page
-- When adjacent cards render over the page surface
-- Then their opaque backgrounds alternate between `panel` and `base` bands.
+- **GIVEN** a visitor views nested match-summary cards on a public tournament page
+- **WHEN** adjacent cards render over the page surface
+- **THEN** their opaque backgrounds alternate between `panel` and `base` bands.
 
 ### Requirement: TV Broadcast Scorebug Indicator Contrast
 The TV broadcast scorebug MUST place visible possession and timed-penalty markers in opaque `ink-950` backing wells, with textual meaning and foreground contrast of at least 4.5:1. TV bracket matchup cards MUST use the established control chamfer treatment with a square fallback.
@@ -584,3 +702,306 @@ The TV broadcast scorebug MUST place visible possession and timed-penalty marker
 #### Scenario: TV bracket matchup card
 - **WHEN** an elimination matchup is shown in the full-frame TV bracket section
 - **THEN** the card has the control chamfer treatment, including its square fallback where corner shaping is unsupported
+
+### Requirement: Design documentation states the interaction, iconography, data-visualization, motion, imagery, voice and reference rules
+
+`DESIGN.md` SHALL carry a named section for each of these:
+- surfaces and judging devices;
+- external references and the adopted layout compositions;
+- interaction states (loading, empty, error, offline);
+- iconography;
+- data visualization;
+- motion;
+- imagery;
+- voice;
+- public casing;
+- non-Latin scripts;
+- the accessibility target.
+
+A unit test SHALL fail when any of these sections is missing.
+
+#### Scenario: A regenerated design document drops a section
+
+- **WHEN** `DESIGN.md` is regenerated and the "Interaction states" section is missing
+- **THEN** the design-document unit test fails and names the missing section
+
+#### Scenario: Every rule has a home a reviewer can cite
+
+- **WHEN** a design review records a finding about an empty state, an icon, a chart colour, a motion, a
+  missing crest, a button label or a reading page's casing
+- **THEN** the finding cites the matching `DESIGN.md` section rather than a reviewer's preference
+
+#### Scenario: Deliberate brand choices are recorded as choices
+
+- **WHEN** the design document is read
+- **THEN** it states that the ink ground with a single cyan accent, tracked uppercase labels, mono data
+  labels and middle-dot meta strings are deliberate, so a generic-UI heuristic does not flag them
+
+### Requirement: Chart plot areas use a fixed, validated data palette
+
+The token set SHALL define five chart series tokens, each with a dark and a light value, in this fixed
+order: violet, cyan, teal, amber, magenta. A sixth or later series SHALL render as a neutral "Other".
+The palette SHALL apply only inside plot areas; chart chrome SHALL use ink and text tokens. A test SHALL
+validate both sets for colour-blind and contrast separation against their surfaces.
+
+#### Scenario: Six clubs in one chart
+
+- **WHEN** a chart plots six clubs
+- **THEN** five use slots 1–5 in order, and the sixth renders in the neutral "Other" colour with a
+  legend entry
+
+#### Scenario: Palette edit breaks separation
+
+- **WHEN** a token edit moves magenta next to teal
+- **THEN** the palette validation test fails on adjacent colour-blind separation
+
+#### Scenario: Chart text never wears series colour
+
+- **WHEN** a chart renders tick labels, a legend and a tooltip
+- **THEN** their text uses text tokens, and only the legend swatch uses the series colour
+
+### Requirement: Charts always offer non-colour identification
+
+Every chart SHALL show a legend for two or more series and direct labels for four or fewer series, and
+SHALL offer a table view of the same data.
+
+#### Scenario: Two-series line chart
+
+- **WHEN** a two-series chart renders
+- **THEN** it has a legend, a direct label at each line's end, and a control that shows the same values
+  as a table
+
+### Requirement: Non-Latin scripts render in declared fallback faces
+
+The generated font stacks SHALL name Roboto Condensed (display) and Roboto (body) for Cyrillic, and
+Noto Sans SC for Chinese, after the Latin faces, split by `unicode-range`. A public page not in Chinese
+SHALL load the Noto Sans SC faces after its first paint; every other page loads them with its
+stylesheet. Latin text SHALL keep rendering in Barlow, Barlow Condensed and JetBrains Mono. Under
+`:lang(zh)`, uppercase tracking SHALL be normal.
+
+#### Scenario: Russian heading
+
+- **WHEN** a Russian page renders a display heading
+- **THEN** the Cyrillic glyphs render in Roboto Condensed, not in a system face, and measure differently
+  from the system fallback
+
+#### Scenario: Cyrillic club name on a Spanish page
+
+- **WHEN** a Spanish page shows a club name containing Cyrillic letters
+- **THEN** the Latin letters render in Barlow and the Cyrillic letters in the Roboto fallback
+
+#### Scenario: Latin-only page downloads no fallback files
+
+- **WHEN** an English page with only Latin text loads
+- **THEN** no Cyrillic or CJK font file is requested
+
+#### Scenario: Chinese club name on a Spanish public page
+
+- **WHEN** a Spanish tournament page shows a club name in Chinese
+- **THEN** its first paint does not wait for the Noto Sans SC declarations, and the name then renders in
+  Noto Sans SC
+
+#### Scenario: Chinese public page
+
+- **WHEN** a public page in Chinese loads
+- **THEN** its stylesheet requests include the Noto Sans SC declarations before it paints
+
+### Requirement: Public and Control offer the L3 Sunlight light theme with verified contrast
+
+The token set SHALL define the L3 Sunlight light values for every semantic surface, text, state, focus
+and chart token. It SHALL emit them under `prefers-color-scheme: light` and an explicit
+`data-theme="light"`, with dark as the default. TV surfaces SHALL always render dark. Every text pair
+SHALL meet WCAG 2.2 AA, and form-control boundaries SHALL meet 3:1.
+
+#### Scenario: System light preference on a public page
+
+- **WHEN** a viewer with a light system preference opens a public tournament page
+- **THEN** the page renders with the `#E3E8EF` ground, `#F8FAFC` panels and `#05070D` body text, and
+  live text uses `#00586B`
+
+#### Scenario: Kiosk with light system preference
+
+- **WHEN** a TV kiosk browser has a light system preference
+- **THEN** the `/tv/` page still renders the dark ink theme
+
+#### Scenario: Contrast regression
+
+- **WHEN** a light token edit drops muted label text below 4.5:1 on chrome
+- **THEN** the contrast unit test fails and names the pair
+
+#### Scenario: Charts on light
+
+- **WHEN** a chart renders in the light theme
+- **THEN** its series use the light steps, and its plot area is painted with the panel token
+
+### Requirement: Heading sizes are fluid between the mobile and desktop scale
+
+Outside TV, the display, section, headline and title font-size tokens SHALL each be a `clamp()` that
+interpolates from a major-second scale (1.125) at a 375px viewport to a minor-third scale (1.2) at
+1440px, on a 16px base. Each value SHALL combine a `rem` intercept with a `vw` slope. Body, lead,
+secondary and label sizes SHALL stay fixed.
+
+#### Scenario: Display title on a phone and on desktop
+
+- **WHEN** a page title renders at 375px and at 1440px
+- **THEN** its computed size is about 25.6px and about 33.2px respectively, and body text is 16px at
+  both
+
+#### Scenario: Browser text size respected
+
+- **WHEN** the browser's default font size is doubled
+- **THEN** heading sizes grow with it, because each clamp carries a `rem` intercept
+
+### Requirement: Text sizes respect a floor and relative units
+
+Outside TV, no text SHALL render below 0.75rem, no `font-size` SHALL be written in `px`, and body copy
+SHALL be at least 1rem. The integrity check SHALL fail on a violation.
+
+#### Scenario: Pixel font size introduced
+
+- **WHEN** a stylesheet declares `font-size: 10px`
+- **THEN** `check:integrity` fails and names the file and line
+
+#### Scenario: Below the floor
+
+- **WHEN** a component declares `font-size: 0.625rem`
+- **THEN** `check:integrity` fails
+
+### Requirement: Layouts survive text-only resize to 200%
+
+Every public and control template SHALL remain usable with the root font size at 200% and a 1280px
+viewport: no horizontal page overflow, no clipped form label, and no control outside the viewport.
+
+#### Scenario: Large browser font on the control shell
+
+- **WHEN** the root font size is 32px and the control dashboard renders at 1280px
+- **THEN** the navigation rail, the main column and every form label remain fully visible, without
+  horizontal page scroll
+
+### Requirement: Media queries use only breakpoint tokens
+
+Generated and application stylesheets SHALL use only the four breakpoint tokens (375, 768, 1024 and
+1440 px) in width media queries, and the integrity check SHALL fail on any other width.
+
+#### Scenario: Undocumented breakpoint
+
+- **WHEN** a stylesheet adds `@media (max-width: 600px)`
+- **THEN** `check:integrity` fails and suggests the nearest breakpoint token
+
+### Requirement: Data tables declare a narrow-screen mode and never break words
+
+Every tabular dataset SHALL render as a `table` with scoped headers. Below 768px it SHALL use its
+declared mode: priority columns with row detail, stacked label–value rows, or contained scroll with a
+sticky first column and a visible edge affordance. Names and headers SHALL NOT break mid-word. A name
+that does not fit SHALL truncate with an ellipsis and keep its full accessible name.
+
+#### Scenario: Standings on a phone
+
+- **WHEN** the standings render at 375px
+- **THEN** the club name column shows whole words with an ellipsis where needed, and played and points
+  remain visible
+
+#### Scenario: Activity on a phone
+
+- **WHEN** the dashboard activity renders at 375px
+- **THEN** each event is a stacked card showing action, actor and time, with nothing cut off
+
+#### Scenario: Registration review structure
+
+- **WHEN** registration review renders
+- **THEN** it is a `table` whose header cells have `scope="col"`
+
+### Requirement: Status text meets AA contrast
+
+Status text on raised wells and live badges SHALL reach a contrast of at least 4.5:1 in both themes.
+
+#### Scenario: Context rail
+
+- **WHEN** the context rail shows its scope label
+- **THEN** the contrast is at least 4.5:1
+
+#### Scenario: Token check
+
+- **WHEN** a token change lowers one of these pairs
+- **THEN** the token contrast check fails
+
+### Requirement: Brand faces are served from the application origin
+
+The generated stylesheet SHALL deliver every brand and fallback face from files bundled into the web build and served on
+the application origin. No page SHALL request a stylesheet or font file from another origin, and every page SHALL
+finish loading when all other origins are unreachable. The faces SHALL come from pinned packages whose license the
+license check allows, and `THIRD_PARTY_NOTICES.md` SHALL list each one.
+
+#### Scenario: No third-party font request
+
+- **WHEN** a public page, Control login, a TV page and a help page load
+- **THEN** every stylesheet and font file they request is on the application origin
+
+#### Scenario: Installation with no internet egress
+
+- **WHEN** every origin other than the application is blocked and a public page, Control login, a TV page and a help
+  page load
+- **THEN** each page fires `load` and its Latin text renders in Barlow, not in a system face
+
+### Requirement: Fallback faces match the brand faces' metrics
+
+Each generated font stack SHALL name, between its brand face and the system families, a fallback face whose
+metrics are adjusted to that brand face, so text set in the fallback occupies the same space as in Barlow,
+Barlow Condensed or JetBrains Mono. When the brand face arrives and swaps in, no text block SHALL change its
+height. Brand faces SHALL keep `font-display: swap`.
+
+#### Scenario: A font swap moves nothing on the match report
+
+- **WHEN** the match report loads on the mobile slow profile and its brand faces swap in after first paint
+- **THEN** no layout shift whose cause is a web font load moves the report's content by more than 0.01
+
+#### Scenario: Text is readable before the brand face arrives
+
+- **WHEN** a public page paints before its brand faces have downloaded
+- **THEN** its text is visible in the metric-matched fallback face, not hidden until the brand face loads
+
+#### Scenario: The adjustment follows the brand face
+
+- **WHEN** the generated stylesheet is built
+- **THEN** each fallback face's size and line metrics are derived from the brand face it stands in for, and a
+  test fails if a brand face in the stack has no metric-matched fallback
+
+### Requirement: Public pages request their heading face with the document
+
+A public page SHALL request the brand face its main heading renders in, for Latin text, as soon as the
+document is parsed, instead of discovering it from the stylesheet. The request SHALL fetch the same file the
+stylesheet declares, from the application origin, so the face is downloaded once.
+
+#### Scenario: The heading face is not discovered last
+
+- **WHEN** a public tournament page loads
+- **THEN** the Barlow Condensed 700 Latin file is requested before the stylesheet finishes loading, and only
+  once
+
+### Requirement: Public pages paint with their text and heading faces only
+
+A public page not in Chinese SHALL request, before its first paint, only Barlow 400 and Barlow Condensed
+700 among the Latin brand faces. Every other Barlow and Barlow Condensed weight, and JetBrains Mono, SHALL
+load after the first paint and swap in over their metric-matched fallback faces.
+
+#### Scenario: A tournament overview paints before the other weights arrive
+
+- **WHEN** a Spanish tournament overview loads on the mobile slow profile
+- **THEN** no Barlow 500, 600 or 700, Barlow Condensed 400, 500 or 600, or JetBrains Mono file is requested
+  before its first paint, and those faces render once they arrive
+
+### Requirement: Interface marks never pull a fallback font
+
+The interface's own marks (disclosure carets, state shapes, check marks) SHALL NOT be drawn with characters the
+Latin brand faces lack, so a page whose text is Latin requests no Cyrillic, CJK or symbol font file. Text an
+operator wrote MAY still use any script; the declared fallback faces render it.
+
+#### Scenario: A Latin page with state shapes
+
+- **WHEN** a Spanish matches page that shows final, live and upcoming states loads
+- **THEN** it requests no Noto Sans SC, Roboto or other fallback font file
+
+#### Scenario: Operator text in another script still renders
+
+- **WHEN** a Spanish page shows a club name in Cyrillic letters
+- **THEN** the Cyrillic letters still render in the declared Roboto fallback face

@@ -1,17 +1,20 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   Allow,
   IsArray,
   IsBoolean,
   IsInt,
+  IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
   IsString,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 import type { LocalizedLabel, ResultReason } from '@copalibre/domain';
+import { FixtureSourcesResponse } from './fixture-side-source.dto.js';
 
 /**
  * Match-control wire shapes.
@@ -178,6 +181,14 @@ export class ConsoleRosterRoleResponse {
   badge?: string;
 }
 
+export class ConsoleEligibleStaffResponse {
+  @ApiProperty({ format: 'uuid' })
+  personId!: string;
+
+  @ApiProperty({ description: 'The staff member’s human-readable display name' })
+  displayName!: string;
+}
+
 export class ConsoleLiveScoreResponse {
   @ApiProperty({ format: 'uuid' })
   entrantId!: string;
@@ -209,7 +220,51 @@ export class ConsoleEntrantResponse {
 }
 
 /** The protected read model a live-match console uses to render and recover. */
-export class MatchConsoleResponse {
+export class ConsoleRegulationResponse {
+  @ApiProperty({ description: "The discipline's regulation segment type slug" })
+  type!: string;
+
+  @ApiPropertyOptional({ description: "The regulation type's declared display label" })
+  typeLabel?: string | LocalizedLabel;
+
+  @ApiProperty({ description: 'Segments Start creates for the match' })
+  count!: number;
+
+  @ApiPropertyOptional({
+    description: 'How many regulation segments the ruleset expects; absent when it states none',
+  })
+  maximum?: number;
+}
+
+export class ConsoleAddableSegmentResponse {
+  @ApiProperty({ description: 'Declared segment type slug an Add segment command may append' })
+  type!: string;
+
+  @ApiPropertyOptional({ description: "The type's declared display label" })
+  typeLabel?: string | LocalizedLabel;
+
+  @ApiProperty({
+    description:
+      'False only for the regulation type once the plan is full: the addition is allowed and labelled',
+  })
+  withinPlan!: boolean;
+}
+
+export class ConsoleSegmentPlanResponse {
+  @ApiPropertyOptional({
+    type: ConsoleRegulationResponse,
+    description: 'The regulation plan; absent when the discipline declares no segment type',
+  })
+  regulation?: ConsoleRegulationResponse;
+
+  @ApiProperty({
+    type: [ConsoleAddableSegmentResponse],
+    description: 'Every declared segment type, with whether adding it stays within the plan',
+  })
+  addable!: ConsoleAddableSegmentResponse[];
+}
+
+export class MatchConsoleResponse extends FixtureSourcesResponse {
   @ApiProperty({ format: 'uuid' })
   matchId!: string;
 
@@ -227,6 +282,9 @@ export class MatchConsoleResponse {
 
   @ApiProperty({ type: [ConsoleSegmentResponse] })
   segments!: ConsoleSegmentResponse[];
+
+  @ApiProperty({ type: ConsoleSegmentPlanResponse })
+  segmentPlan!: ConsoleSegmentPlanResponse;
 
   @ApiProperty({ type: [RunningTimerDto] })
   runningTimers!: RunningTimerDto[];
@@ -265,10 +323,29 @@ export class MatchConsoleResponse {
   eligibleStaffIds!: string[];
 
   @ApiProperty({
+    type: [ConsoleEligibleStaffResponse],
+    description:
+      'Human-readable names for coaches and staff attached to an entrant contesting this match',
+  })
+  eligibleStaff!: ConsoleEligibleStaffResponse[];
+
+  @ApiProperty({
     type: [ConsoleEntrantResponse],
     description: 'Entrants contesting this match, with the identity the console renders',
   })
   entrants!: ConsoleEntrantResponse[];
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Entrant on the home side; absent while that side is undecided',
+  })
+  homeEntrantId?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Entrant on the away side; absent while that side is undecided',
+  })
+  awayEntrantId?: string;
 
   @ApiProperty({
     type: [String],
@@ -289,10 +366,28 @@ export class ClockAdjustmentRequest {
   @IsInt()
   elapsedSeconds!: number;
 
-  @ApiPropertyOptional({ description: 'Make the selected segment the active clock segment' })
+  @ApiPropertyOptional({
+    description:
+      'Make the selected segment the active clock segment. Never applies to an ended segment: ' +
+      'a request that asks for it is refused, and reopening is a separate command with a reason.',
+  })
   @IsOptional()
   @IsBoolean()
   activate?: boolean;
+}
+
+export class ReopenSegmentRequest {
+  @ApiProperty({
+    minLength: 1,
+    maxLength: 500,
+    description:
+      'Why the ended segment is reopened, in the operator’s words; recorded in the audit trail',
+  })
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  reason!: string;
 }
 
 export class RecordEventRequest {
@@ -421,6 +516,15 @@ export class SetMatchRosterRequest {
  * than for finalize alone, because start/pause/resume/end use it too: they send
  * only `segmentId`, and finalize sends only the result.
  */
+export class AddSegmentRequest {
+  @ApiProperty({
+    description: 'A segment type the bound discipline declares, e.g. "extra-time" or "set"',
+  })
+  @IsString()
+  @IsNotEmpty()
+  type!: string;
+}
+
 export class MatchCommandRequest {
   @ApiPropertyOptional({
     format: 'uuid',
@@ -645,7 +749,16 @@ export class CorrectionRequestDto {
   sourceReportId?: string;
 }
 
+export class ReResolvedMatchSideDto {
+  @ApiProperty({ format: 'uuid' }) matchId!: string;
+  @ApiProperty({ enum: ['home', 'away'] }) side!: 'home' | 'away';
+  @ApiProperty({ type: String, nullable: true }) currentEntrantId!: string | null;
+  @ApiProperty({ type: String, nullable: true }) resultingEntrantId!: string | null;
+}
+
 export class BlockedPropagationDto {
+  @ApiPropertyOptional({ type: [ReResolvedMatchSideDto] })
+  matches?: ReResolvedMatchSideDto[];
   @ApiProperty({ format: 'uuid' })
   stageId!: string;
 
@@ -700,7 +813,27 @@ export class SeriesCorrectionPreview {
   becomingScheduled!: number[];
 }
 
+export class StaleQualificationPositionDto {
+  @ApiProperty() position!: number;
+  @ApiProperty({ format: 'uuid' }) confirmedEntrantId!: string;
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Who the corrected standings put here; absent when a tie leaves it open',
+  })
+  resultingEntrantId?: string;
+}
+
+export class StaleQualificationDto {
+  @ApiProperty({ description: 'The stage whose qualification was confirmed' })
+  stageNumber!: number;
+  @ApiProperty({ format: 'uuid' }) promotionPlanId!: string;
+  @ApiProperty({ type: [StaleQualificationPositionDto] })
+  positions!: StaleQualificationPositionDto[];
+}
+
 export class CorrectionPreviewResponse {
+  @ApiPropertyOptional({ type: [ReResolvedMatchSideDto] })
+  reResolved?: ReResolvedMatchSideDto[];
   @ApiProperty({ type: [String], description: 'Entrants whose recorded numbers move' })
   changedEntrantIds!: string[];
 
@@ -715,6 +848,14 @@ export class CorrectionPreviewResponse {
     description: 'Present only when the corrected match belongs to a series',
   })
   series?: SeriesCorrectionPreview;
+
+  @ApiPropertyOptional({
+    type: [StaleQualificationDto],
+    description:
+      'Confirmed qualifications this correction would no longer match. Nothing changes on its ' +
+      'own: the qualification must be confirmed again.',
+  })
+  staleQualifications?: StaleQualificationDto[];
 }
 
 export class CorrectionEntryDto {

@@ -1,4 +1,6 @@
+import type { PreviousPlacement } from './reschedule.js';
 import type { EventEnvelope } from '@copalibre/realtime';
+import type { LocalizedLabel } from '@copalibre/domain';
 import { decide, type ResultState } from './result-state.js';
 
 /**
@@ -15,6 +17,8 @@ export interface LiveSide {
   readonly entrantId: string;
   readonly name: string;
   readonly abbreviation?: string;
+  readonly clubId?: string;
+  readonly emblemObjectId?: string;
   readonly score: number;
   readonly state: ResultState;
 }
@@ -31,9 +35,40 @@ export interface LiveSegment {
   readonly scores?: readonly number[];
 }
 
+export interface LiveMatchClock {
+  readonly segmentNumber: number;
+  readonly elapsedSeconds: number;
+  readonly running: boolean;
+  readonly asOf: string;
+}
+
+/** A declared match counter as a public projection carries it: one tally per side. */
+export interface LiveMatchCounter {
+  readonly code: string;
+  readonly label: string | LocalizedLabel;
+  readonly shortLabel: string | LocalizedLabel;
+  readonly scope: 'match' | 'segment';
+  /** The declared event codes this counter tallies. */
+  readonly events: readonly string[];
+  readonly allowance?: number;
+  readonly warnAt?: number;
+  readonly values: readonly { readonly entrantId: string; readonly value: number }[];
+}
+
 export interface LiveMatch {
   readonly matchId: string;
+  readonly scheduleVersion?: number;
+  readonly scheduledAt?: string;
+  readonly venueName?: string;
+  readonly rescheduledFrom?: PreviousPlacement | null;
   readonly stageNumber: number;
+  readonly stageName?: string;
+  readonly zoneName?: string;
+  readonly groupName?: string;
+  readonly round?: number;
+  readonly nodeKey?: string;
+  readonly sourceFinalRound?: number;
+  readonly zoneNodeKeys?: readonly (string | undefined)[];
   readonly matchNumber: number;
   /** The match's 1-based position in its stage; absent from a source that does not know it. */
   readonly stageOrdinal?: number;
@@ -44,6 +79,9 @@ export interface LiveMatch {
   /** What the last applied event said; a lower one is stale and ignored. */
   readonly projectionVersion: number;
   readonly clockSeconds?: number;
+  readonly clock?: LiveMatchClock;
+  /** Monotonic `performance.now()` timestamp when `clock` was received client-side. */
+  readonly clockReceivedAt?: number;
   /** Present only when a public projection explicitly supplies a participating side. */
   readonly possessionEntrantId?: string;
   readonly activePenalties?: readonly {
@@ -51,13 +89,19 @@ export interface LiveMatch {
     readonly entrantId: string;
     readonly remainingSeconds: number;
   }[];
+  /** Absent when the discipline declares no match counters. */
+  readonly counters?: readonly LiveMatchCounter[];
 }
 
 export interface LiveDashboard {
+  /** Retained after a removal so replay cannot restore a withdrawn or anulled match. */
+  readonly scheduleVersions?: Readonly<Record<string, number>>;
   readonly matches: readonly LiveMatch[];
   readonly standingsVersion: number;
   /** False once a stream connects; the page says so rather than pretending. */
   readonly usingLastKnown: boolean;
+  /** ISO instant of the latest projection or event reflected on the dashboard. */
+  readonly lastUpdatedAt?: string;
 }
 
 /**
@@ -70,11 +114,23 @@ export interface LiveDashboard {
  */
 export function applyEvent(dashboard: LiveDashboard, event: EventEnvelope): LiveDashboard {
   switch (event.eventType) {
+    case 'match.rescheduled':
+    case 'match.anulled':
+      return patchSchedule(dashboard, event);
+    case 'match.clock-changed':
+      return applyClockChanged(dashboard, event);
     case 'match.event-recorded':
     case 'match.started':
     case 'match.finalized':
-    case 'result.superseded':
-      return { ...dashboard, matches: dashboard.matches.map((match) => patch(match, event)) };
+    case 'result.superseded': {
+      let changed = false;
+      const matches = dashboard.matches.map((match) => {
+        const next = patch(match, event);
+        if (next !== match) changed = true;
+        return next;
+      });
+      return changed ? { ...dashboard, matches, lastUpdatedAt: event.createdAt } : dashboard;
+    }
     case 'standings.recalculated':
       return event.projectionVersion > dashboard.standingsVersion
         ? { ...dashboard, standingsVersion: event.projectionVersion }
@@ -91,6 +147,22 @@ export function applyEvents(
   events: readonly EventEnvelope[],
 ): LiveDashboard {
   return events.reduce(applyEvent, dashboard);
+}
+
+/**
+ * Whether an entrant resolution is newer than the last one a surface applied for its match, and
+ * records it when so. Resolutions carry their own `fixture-entrants` counter, never comparable with
+ * the match or schedule projection versions, so a replayed older resolution cannot revert a side.
+ */
+export function acceptEntrantResolution(
+  versions: Map<string, number>,
+  event: EventEnvelope,
+): boolean {
+  const matchId = event.payload.matchId;
+  if (event.eventType !== 'fixture.entrant-resolved' || typeof matchId !== 'string') return false;
+  if (event.projectionVersion <= (versions.get(matchId) ?? 0)) return false;
+  versions.set(matchId, event.projectionVersion);
+  return true;
 }
 
 /** The page is live once a stream has delivered anything at all. */
@@ -115,15 +187,55 @@ function patch(match: LiveMatch, event: EventEnvelope): LiveMatch {
       ? event.payload.clockSeconds
       : match.clockSeconds;
 
-  return {
+  const next: { -readonly [K in keyof LiveMatch]: LiveMatch[K] } = {
     ...match,
     projectionVersion: event.projectionVersion,
     state,
-    clockSeconds,
+    ...(event.eventType === 'match.started' ? { rescheduledFrom: null } : {}),
     sides: outcome
       ? sides.map((side, index) => ({ ...side, state: index === 0 ? outcome.home : outcome.away }))
       : sides,
   };
+  if (state !== 'live') {
+    delete next.clock;
+    delete next.clockReceivedAt;
+  } else {
+    next.clockSeconds = clockSeconds;
+  }
+  return next;
+}
+
+function applyClockChanged(dashboard: LiveDashboard, event: EventEnvelope): LiveDashboard {
+  const matchId = typeof event.payload.matchId === 'string' ? event.payload.matchId : undefined;
+  const segmentNumber = event.payload.segmentNumber;
+  const elapsedSeconds = event.payload.elapsedSeconds;
+  const running = event.payload.running;
+  if (
+    !matchId ||
+    typeof segmentNumber !== 'number' ||
+    typeof elapsedSeconds !== 'number' ||
+    typeof running !== 'boolean'
+  ) {
+    return dashboard;
+  }
+  const asOf =
+    typeof event.payload.changedAt === 'string' ? event.payload.changedAt : event.createdAt;
+  const receivedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  let changed = false;
+  const matches = dashboard.matches.map((match) => {
+    if (match.matchId !== matchId || event.projectionVersion <= match.projectionVersion) {
+      return match;
+    }
+    changed = true;
+    return {
+      ...match,
+      projectionVersion: event.projectionVersion,
+      clock: { segmentNumber, elapsedSeconds, running, asOf },
+      clockSeconds: elapsedSeconds,
+      clockReceivedAt: receivedAt,
+    };
+  });
+  return changed ? { ...dashboard, matches, lastUpdatedAt: asOf } : dashboard;
 }
 
 function nextState(current: ResultState, eventType: string): ResultState {
@@ -135,7 +247,7 @@ function nextState(current: ResultState, eventType: string): ResultState {
   return current;
 }
 
-function readScores(
+export function readScores(
   payload: Readonly<Record<string, unknown>>,
 ): Record<string, number> | undefined {
   if (typeof payload.scores === 'object' && payload.scores !== null) {
@@ -164,4 +276,35 @@ function readScores(
     if (typeof entrantId === 'string' && typeof value === 'number') scores[entrantId] = value;
   }
   return Object.keys(scores).length > 0 ? scores : undefined;
+}
+
+function patchSchedule(dashboard: LiveDashboard, event: EventEnvelope): LiveDashboard {
+  const matchId = event.payload.matchId;
+  if (typeof matchId !== 'string') return dashboard;
+  const match = dashboard.matches.find((entry) => entry.matchId === matchId);
+  const version = Math.max(dashboard.scheduleVersions?.[matchId] ?? 0, match?.scheduleVersion ?? 0);
+  if (event.projectionVersion <= version) return dashboard;
+  const removed = event.eventType === 'match.anulled' || event.payload.withdrawn === true;
+  const venue = event.payload.venue as PreviousPlacement['venue'] | undefined;
+  const previous = event.payload.previous as PreviousPlacement | null | undefined;
+  return {
+    ...dashboard,
+    scheduleVersions: { ...dashboard.scheduleVersions, [matchId]: event.projectionVersion },
+    matches: removed
+      ? dashboard.matches.filter((entry) => entry.matchId !== matchId)
+      : dashboard.matches.map((entry) =>
+          entry.matchId !== matchId
+            ? entry
+            : {
+                ...entry,
+                scheduleVersion: event.projectionVersion,
+                scheduledAt:
+                  typeof event.payload.startsAt === 'number'
+                    ? new Date(event.payload.startsAt).toISOString()
+                    : undefined,
+                venueName: venue?.name,
+                rescheduledFrom: entry.state === 'upcoming' ? (previous ?? null) : null,
+              },
+        ),
+  };
 }

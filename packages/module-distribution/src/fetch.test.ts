@@ -1,4 +1,11 @@
-import { fetchModule, parseModuleTagVersions, resolveModuleVersion } from './fetch.js';
+import {
+  ModuleFetchError,
+  assertModuleAlias,
+  fetchModule,
+  listPublishedVersions,
+  parseModuleTagVersions,
+  resolveModuleVersion,
+} from './fetch.js';
 
 const LS_REMOTE_OUTPUT = [
   'abc123\trefs/tags/football@1.0.0',
@@ -85,5 +92,62 @@ describe('fetchModule manifest verification fallback', () => {
 
     const result = await fetchModule(source, 'rink-hockey', '1.1.0', undefined, dependencies);
     expect(result.resolvedVersion).toBe('1.1.0');
+  });
+});
+
+describe('module alias and git arguments', () => {
+  const source = { kind: 'alternate' as const, repositoryUrl: 'file:///var/lib/copalibre/modules' };
+
+  it.each([
+    '../../etc',
+    'football/../../x',
+    '--upload-pack=touch /tmp/x',
+    '-x',
+    'Football',
+    'a'.repeat(65),
+    '',
+  ])('refuses %j before running git or touching a path', async (alias) => {
+    expect(() => assertModuleAlias(alias)).toThrow(ModuleFetchError);
+    const calls: string[][] = [];
+    await expect(
+      fetchModule(source, alias, undefined, undefined, {
+        listPublishedVersions: async () => ['1.0.0'],
+        runGit: async (args) => {
+          calls.push([...args]);
+          return { stdout: '' };
+        },
+        pathExists: async () => true,
+        readManifestFile: async () => '{}',
+      }),
+    ).rejects.toBeInstanceOf(ModuleFetchError);
+    expect(calls).toEqual([]);
+    await expect(listPublishedVersions(source, alias)).rejects.toBeInstanceOf(ModuleFetchError);
+  });
+
+  it('ends git options before the repository URL', async () => {
+    const calls: string[][] = [];
+    await fetchModule(source, 'football', '1.0.0', undefined, {
+      listPublishedVersions: async () => ['1.0.0'],
+      runGit: async (args) => {
+        calls.push([...args]);
+        return { stdout: '' };
+      },
+      pathExists: async (path: string) => path.endsWith('manifest.json'),
+      readManifestFile: async () => '{}',
+    });
+    const clone = calls.find((args) => args[0] === 'clone');
+    expect(clone?.indexOf('--')).toBe((clone?.indexOf(source.repositoryUrl) ?? 0) - 1);
+  });
+});
+
+describe('git transports', () => {
+  it('refuses a source on a command-running transport, even when it reached git', async () => {
+    const { existsSync, mkdtempSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const marker = join(mkdtempSync(join(tmpdir(), 'copalibre-ext-')), 'ran');
+    const source = { kind: 'alternate' as const, repositoryUrl: `ext::touch ${marker}` };
+    await expect(listPublishedVersions(source, 'football')).rejects.toThrow(/not allowed/);
+    expect(existsSync(marker)).toBe(false);
   });
 });

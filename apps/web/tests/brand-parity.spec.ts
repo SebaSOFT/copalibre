@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../../../e2e/csp-guard.js';
 
 const VIEWPORT_WIDTHS = [1440, 767, 374, 188] as const;
 
@@ -8,7 +8,9 @@ async function mockLoginApi(page: Page): Promise<void> {
       const url = String(input);
       const method = init?.method ?? 'GET';
       if (
-        (url === '/auth/login' || url === '/api/auth/login' || url.endsWith('/auth/login')) &&
+        (url === '/api/auth/login' ||
+          url === '/api/auth/login' ||
+          url.endsWith('/api/auth/login')) &&
         method === 'POST'
       ) {
         return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
@@ -25,7 +27,7 @@ test.describe('Brand Design System Parity', () => {
     await mockLoginApi(page);
     await page.goto('/control/login');
 
-    const submitBtn = page.getByRole('button', { name: 'Sign in' });
+    const submitBtn = page.getByRole('button', { name: 'Iniciar sesión' });
     await expect(submitBtn).toBeVisible({ timeout: 15_000 });
 
     const styles = await submitBtn.evaluate((el) => {
@@ -47,7 +49,7 @@ test.describe('Brand Design System Parity', () => {
       await mockLoginApi(page);
       await page.goto('/control/login');
 
-      await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible({
+      await expect(page.getByRole('button', { name: 'Iniciar sesión' })).toBeVisible({
         timeout: 15_000,
       });
 
@@ -64,7 +66,7 @@ test.describe('Brand Design System Parity', () => {
   }) => {
     await mockLoginApi(page);
     await page.goto('/control/login');
-    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Iniciar sesión' })).toBeVisible();
 
     const result = await page.evaluate(() => {
       const container = document.createElement('div');

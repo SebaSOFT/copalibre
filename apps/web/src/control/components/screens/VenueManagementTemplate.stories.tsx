@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { VenueManagementTemplate } from '../screens/VenueManagementTemplate.js';
 import type { ControlApiClient } from '../../lib/api-client.js';
-import { storyClient, ORG, ids } from '../screen-story-fixtures.js';
+import { storyClient, ids } from '../screen-story-fixtures.js';
 
 const client = storyClient<ControlApiClient>({
   createVenue: undefined,
@@ -19,10 +19,16 @@ const meta = {
     onCreateSchedule: async () => true,
     onCreateVenue: async () => true,
     onDeleteSchedule: async () => true,
+    onDeleteVenue: async () => true,
+    onPreviewDeleteSchedule: async () => ({
+      dryRun: true,
+      success: false,
+      slots: 4333,
+      matchesUnassigned: 36,
+    }),
     onSaveOfficial: async () => undefined,
     onSaveSchedule: async () => undefined,
     onSaveVenue: async () => undefined,
-    organizationAlias: ORG,
     schedules: [],
     venues: [],
   },

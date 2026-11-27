@@ -23,6 +23,7 @@ import { SeedingController, toBracketMatch } from './seeding.controller.js';
 import { StandingsController } from './standings.controller.js';
 import { PublicProjectionsController } from './public-projections.controller.js';
 import type { PublicSeriesStateResponse } from '../dto/public-tournament.dto.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * Standings and seeding through the real HTTP stack.
@@ -83,6 +84,7 @@ describe('standings and seeding routes (integration)', () => {
   let tournamentId = '';
   let stageId = '';
   let seriesStageId = '';
+  let clubTalleresId = '';
   const entrantIds: string[] = [];
   let finalizedMatchId = '';
 
@@ -103,6 +105,7 @@ describe('standings and seeding routes (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -156,11 +159,28 @@ describe('standings and seeding routes (integration)', () => {
       });
 
       for (const name of ['Talleres', 'Independiente', 'Gimnasia', 'Maipú']) {
-        const team = await participants.createTeam(uow, { organizationId, name, ...AUDIT });
+        const club =
+          name === 'Talleres'
+            ? await participants.createClub(uow, {
+                organizationId,
+                name: 'Club Atlético Talleres',
+                abbreviation: 'TAL',
+                ...AUDIT,
+              })
+            : undefined;
+        if (club) clubTalleresId = club.clubId;
+        const team = await participants.createTeam(uow, {
+          organizationId,
+          name,
+          ...(club === undefined ? {} : { clubId: club.clubId }),
+          ...(name === 'Talleres' ? { abbreviation: 'TAL' } : {}),
+          ...AUDIT,
+        });
         const entrant = await participants.registerEntrant(uow, {
           tournamentId: tournament.tournamentId,
           entrantRef: { kind: 'team', teamId: team.teamId },
           organizationId,
+          ...(name === 'Talleres' ? { abbreviation: 'TALR' } : {}),
           ...AUDIT,
         });
         entrantIds.push(entrant.entrantId);
@@ -233,7 +253,7 @@ describe('standings and seeding routes (integration)', () => {
     });
   }
 
-  const base = '/organizations/liga-mendocina/tournaments/apertura-2026/stages/1';
+  const base = '/api/organizations/liga-mendocina/tournaments/apertura-2026/stages/1';
 
   it('serves a projection version the client can key off', async () => {
     const response = await request({ method: 'GET', url: `${base}/standings`, token: 'organizer' });
@@ -259,7 +279,7 @@ describe('standings and seeding routes (integration)', () => {
   it('refuses the standings of a stage that does not exist', async () => {
     const response = await request({
       method: 'GET',
-      url: '/organizations/liga-mendocina/tournaments/apertura-2026/stages/9/standings',
+      url: '/api/organizations/liga-mendocina/tournaments/apertura-2026/stages/9/standings',
       token: 'organizer',
     });
 
@@ -330,7 +350,11 @@ describe('standings and seeding routes (integration)', () => {
     // node — `beforeAll` persisted exactly the entrantIds[0]-vs-[1] and [2]-vs-[3] pairings.
     type BracketMatch = {
       readonly persistedMatchId?: string;
-      readonly slots: readonly { readonly entrantId?: string }[];
+      readonly slots: readonly {
+        readonly entrantId?: string;
+        readonly abbreviation?: string;
+        readonly clubId?: string;
+      }[];
     };
     const namedByBoth = (match: BracketMatch, a: string, b: string): boolean => {
       const named = match.slots.map((slot) => slot.entrantId);
@@ -340,6 +364,10 @@ describe('standings and seeding routes (integration)', () => {
       namedByBoth(match, entrantIds[0] as string, entrantIds[1] as string),
     );
     expect(materialized?.persistedMatchId).toEqual(expect.any(String));
+    const talleresSlot = materialized?.slots.find(
+      (slot: BracketMatch['slots'][number]) => slot.entrantId === entrantIds[0],
+    );
+    expect(talleresSlot).toMatchObject({ abbreviation: 'TALR', clubId: clubTalleresId });
 
     const notYetMaterialized = body.zones[0].matches.find((match: BracketMatch) =>
       namedByBoth(match, entrantIds[0] as string, entrantIds[2] as string),
@@ -349,7 +377,7 @@ describe('standings and seeding routes (integration)', () => {
 
   it('projects one correctly-scoped bracket per zone on the operator seeding read', async () => {
     // Reproduces the same cross-zone round/position collision as the public bracket endpoint's
-    // own test (public-projections.integration.test.ts): 2 zones, each with a round-1/position-1
+    // own test (public-projections.bracket.integration.test.ts): 2 zones, each with a round-1/position-1
     // fixture. Before the fix, `seeding()` generated one flat graph from every zone's entrants
     // combined, so both zones' round-1/position-1 nodes collided and were dropped as "ambiguous".
     const competition = new CompetitionRepository(scratch.db);
@@ -415,7 +443,7 @@ describe('standings and seeding routes (integration)', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-mendocina/tournaments/apertura-2026/stages/3/seeding`,
+      url: `/api/organizations/liga-mendocina/tournaments/apertura-2026/stages/3/seeding`,
       token: 'organizer',
     });
 
@@ -780,7 +808,7 @@ describe('standings and seeding routes (integration)', () => {
   });
 
   it('serves series progress on the seeding read matching the public projection for a series-declared stage', async () => {
-    const seriesBase = '/organizations/liga-mendocina/tournaments/apertura-2026/stages/2';
+    const seriesBase = '/api/organizations/liga-mendocina/tournaments/apertura-2026/stages/2';
 
     // 1. Seed the stage: 4 entrants in single-elimination with span 3 creates 2 semifinal fixtures with 3 games each.
     const seedResponse = await request({

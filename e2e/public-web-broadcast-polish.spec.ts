@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
+import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 
 /**
  * End-to-end tests for public web (Public Web & Broadcast Polish):
@@ -135,39 +136,43 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
 
-    if (path === `/organizations/${ORGANIZATION}/public/tournaments`) {
+    if (path === `/api/organizations/${ORGANIZATION}/public/tournaments`) {
       res.end(JSON.stringify(organizationTournaments));
       return;
     }
 
     if (
-      path === `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/overview` ||
-      path === `/organizations/${ORGANIZATION}/public/tournaments/${TOURNAMENT_ALIAS}/overview`
+      path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/overview` ||
+      path === `/api/organizations/${ORGANIZATION}/public/tournaments/${TOURNAMENT_ALIAS}/overview`
     ) {
       res.end(JSON.stringify(overview));
       return;
     }
 
     if (
-      path === `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/bracket`
+      path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1/bracket`
     ) {
       res.end(JSON.stringify(roundRobinBracket));
       return;
     }
 
-    if (path === `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches-view`) {
+    if (
+      path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches-view`
+    ) {
       res.end(JSON.stringify({ matches: stageMatches }));
       return;
     }
 
-    if (path === `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/public/tables`) {
+    if (
+      path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/public/tables`
+    ) {
       res.end(JSON.stringify({ layouts: [] }));
       return;
     }
 
     if (
       path ===
-      `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/persons/${PERSON_ID}/public/profile`
+      `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/persons/${PERSON_ID}/public/profile`
     ) {
       res.end(JSON.stringify(playerProfile));
       return;
@@ -184,28 +189,35 @@ test.afterAll(async () => {
 });
 
 test.describe('Public Web & Broadcast Polish', () => {
-  test('5.1 organization home shows a Final section for finished tournaments, with no LIVE badge', async ({
-    page,
-  }) => {
+  test('stage and player pages use centered public columns', async ({ page }) => {
+    await expectCenteredPageContainer(
+      page,
+      `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`,
+      'public',
+    );
+    await expectCenteredPageContainer(
+      page,
+      `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/${PERSON_ID}`,
+      'public',
+    );
+  });
+
+  test('organization home features finished tournaments without a LIVE badge', async ({ page }) => {
     await page.goto(`/${ORGANIZATION}`);
 
-    // The Final section should exist with heading
-    const finishedSection = page.locator('section[aria-labelledby="heading-finished"]');
-    await expect(finishedSection).toBeVisible();
-    await expect(page.locator('#heading-finished')).toContainText('Finished');
-
-    // The tournament card should be inside the finished section
-    const card = finishedSection.locator('[data-tournament-alias="clausura-2025"]');
+    const featured = page.getByRole('region', { name: 'Featured' });
+    await expect(featured).toBeVisible();
+    const card = featured.locator('[data-tournament-alias="clausura-2025"]');
     await expect(card).toBeVisible();
 
     // Verify status badge is "Final" and there is NO "LIVE" badge
-    await expect(card.locator('.cl-status-badge')).toContainText(/final/i);
+    await expect(card.locator('.cl-badge-finished')).toContainText(/final/i);
     await expect(card.locator('.cl-badge-live')).toHaveCount(0);
     await expect(card.locator('.cl-live-pulse')).toHaveCount(0);
     await expect(card.getByText(/live/i)).toHaveCount(0);
   });
 
-  test('5.2 a finished round-robin tournament stage page renders the compact grid, not an elimination bracket tree', async ({
+  test('a finished round-robin tournament stage page renders the compact grid, not an elimination bracket tree', async ({
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`);
@@ -213,22 +225,21 @@ test.describe('Public Web & Broadcast Polish', () => {
     // Matches grid is rendered with match cards
     await expect(page.locator('.cl-matches-view__grid')).toBeVisible();
     await expect(page.locator('.cl-match-card')).toBeVisible();
-    await expect(page.getByText('Club Andes')).toBeVisible();
-    await expect(page.getByText('Deportivo Sur')).toBeVisible();
+    await expect(page.getByText('Club Andes').filter({ visible: true })).toBeVisible();
+    await expect(page.getByText('Deportivo Sur').filter({ visible: true })).toBeVisible();
 
     // Elimination bracket tree should NOT be rendered
     await expect(page.locator('.cl-bracket-view')).toHaveCount(0);
     await expect(page.locator('.cl-bracket')).toHaveCount(0);
   });
 
-  test('5.3 organization home presents its champion while single-zone overview omits the podium', async ({
+  test('organization home presents its champion while single-zone overview omits the podium', async ({
     page,
   }) => {
     // 1. Check organization home presents champion
     await page.goto(`/${ORGANIZATION}`);
-    const cardPodium = page.locator(
-      'section[aria-labelledby="heading-finished"] .cl-podium-container',
-    );
+    const card = page.locator('[data-tournament-alias="clausura-2025"]');
+    const cardPodium = card.locator('.cl-podium-container');
     await expect(cardPodium).toBeVisible();
     await expect(cardPodium.locator('.cl-champion-spot')).toBeVisible();
     await expect(cardPodium).toContainText('Club Andes');
@@ -238,10 +249,15 @@ test.describe('Public Web & Broadcast Polish', () => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
     const overviewPodium = page.locator('.cl-podium-container.cl-podium-prominent');
     await expect(overviewPodium).toHaveCount(0);
-    await expect(page.locator('.cl-match-schedule').first()).toContainText('Club Andes');
+    const ticker = page.getByRole('region', { name: 'Tournament ticker' });
+    await expect(ticker).toContainText('Club Andes');
+    await expect(ticker).toContainText('2 : 1');
+    await expect(
+      page.getByRole('region', { name: 'Matches' }).getByRole('link', { name: 'See every match' }),
+    ).toBeVisible();
   });
 
-  test('5.4 player profile page shows non-empty career statistics and uses design token palette', async ({
+  test('player profile page shows non-empty career statistics and uses design token palette', async ({
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/players/${PERSON_ID}`);

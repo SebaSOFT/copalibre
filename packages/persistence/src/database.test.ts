@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { databaseConfigFromEnv } from './database.js';
+import { databaseConfigFromEnv, migrationDatabaseConfigFromEnv } from './database.js';
 
 describe('databaseConfigFromEnv', () => {
   it('reads DATABASE_URL', () => {
@@ -24,6 +24,30 @@ describe('databaseConfigFromEnv', () => {
         delete process.env.DATABASE_URL;
       }
     }
+  });
+});
+
+describe('migrationDatabaseConfigFromEnv', () => {
+  it('prefers the owner credential in DATABASE_MIGRATION_URL', () => {
+    const config = migrationDatabaseConfigFromEnv({
+      DATABASE_URL: 'postgres://app:p@h:5432/d',
+      DATABASE_MIGRATION_URL: 'postgres://owner:p@h:5432/d',
+    });
+    expect(config.connectionString).toBe('postgres://owner:p@h:5432/d');
+  });
+
+  it('falls back to DATABASE_URL when DATABASE_MIGRATION_URL is absent or empty', () => {
+    for (const migrationUrl of [undefined, '']) {
+      const config = migrationDatabaseConfigFromEnv({
+        DATABASE_URL: 'postgres://app:p@h:5432/d',
+        ...(migrationUrl === undefined ? {} : { DATABASE_MIGRATION_URL: migrationUrl }),
+      });
+      expect(config.connectionString).toBe('postgres://app:p@h:5432/d');
+    }
+  });
+
+  it('throws when neither is set', () => {
+    expect(() => migrationDatabaseConfigFromEnv({})).toThrow(/DATABASE_MIGRATION_URL/);
   });
 });
 

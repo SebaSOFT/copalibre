@@ -18,9 +18,47 @@ export interface InvalidStatusTournament {
   readonly status: string;
 }
 
+/** An organization created before its alias became a reserved name. */
+export interface ReservedAliasOrganization {
+  readonly organizationId: string;
+  readonly alias: string;
+  readonly name: string;
+}
+
+/** An organization whose stored time zone the runtime does not know. */
+export interface UnknownTimeZoneOrganization {
+  readonly organizationId: string;
+  readonly alias: string;
+  readonly name: string;
+  readonly timezone: string;
+}
+
 export interface DataIntegritySnapshot {
   readonly invalidStatusTournaments: readonly InvalidStatusTournament[];
+  readonly reservedAliasOrganizations: readonly ReservedAliasOrganization[];
+  readonly unknownTimeZoneOrganizations: readonly UnknownTimeZoneOrganization[];
 }
+
+/**
+ * Whether `Intl` accepts `timeZone` as an IANA zone. The API refuses an unknown zone on write; an
+ * organization stored before it did can still hold one, and every page that formats its times in
+ * that zone throws.
+ */
+export function isKnownTimeZone(timeZone: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en', { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Every check `evaluateDataIntegrity` reports, so a failed probe can skip each by name. */
+export const DATA_INTEGRITY_CHECKS = [
+  'data:tournament-status',
+  'data:reserved-organization-alias',
+  'data:organization-time-zone',
+] as const;
 
 /**
  * Pure combination step, mirroring `evaluateUpgrade` (`upgrade-check.ts`):
@@ -59,8 +97,68 @@ export interface DataIntegritySnapshot {
  *   "missing" is not a reachable state. A group/zone with no explicit
  *   entrant assignment is the normal shape of a single-implicit-group stage.
  */
-export function evaluateDataIntegrity(snapshot: DataIntegritySnapshot): readonly [DoctorCheck] {
-  return [tournamentStatusCheck(snapshot.invalidStatusTournaments)];
+export function evaluateDataIntegrity(
+  snapshot: DataIntegritySnapshot,
+): readonly [DoctorCheck, DoctorCheck, DoctorCheck] {
+  return [
+    tournamentStatusCheck(snapshot.invalidStatusTournaments),
+    reservedAliasCheck(snapshot.reservedAliasOrganizations),
+    timeZoneCheck(snapshot.unknownTimeZoneOrganizations),
+  ];
+}
+
+/**
+ * An organization whose time zone the runtime does not know breaks the public, TV and Control
+ * pages that show its schedule times. The operator hears about it with the fix; nothing is changed
+ * and startup is not blocked.
+ */
+function timeZoneCheck(organizations: readonly UnknownTimeZoneOrganization[]): DoctorCheck {
+  if (organizations.length === 0) {
+    return {
+      name: 'data:organization-time-zone',
+      status: 'pass',
+      message: 'Every organization holds a known time zone',
+    };
+  }
+  const names = organizations
+    .map(
+      (organization) =>
+        `${organization.name} ('${organization.alias}'): '${organization.timezone}'`,
+    )
+    .join(', ');
+  return {
+    name: 'data:organization-time-zone',
+    status: 'warn',
+    message:
+      `${organizations.length} organization(s) hold a time zone this runtime does not know — ${names}. ` +
+      'Pages that show their times fail until an administrator picks a zone in the organization settings.',
+  };
+}
+
+/**
+ * A new organization can no longer take a reserved alias, but one created
+ * before a name joined the list keeps it and still loads. Its public or
+ * Control pages may be shadowed by the route of the same name, so the
+ * operator hears about it; nothing is renamed and startup is not blocked.
+ */
+function reservedAliasCheck(organizations: readonly ReservedAliasOrganization[]): DoctorCheck {
+  if (organizations.length === 0) {
+    return {
+      name: 'data:reserved-organization-alias',
+      status: 'pass',
+      message: 'No organization holds a reserved alias',
+    };
+  }
+  const names = organizations
+    .map((organization) => `${organization.name} ('${organization.alias}')`)
+    .join(', ');
+  return {
+    name: 'data:reserved-organization-alias',
+    status: 'warn',
+    message:
+      `${organizations.length} organization(s) hold an alias a route or the platform reserves — ${names}. ` +
+      'They still load, but a page of the same name can shadow theirs.',
+  };
 }
 
 function tournamentStatusCheck(invalid: readonly InvalidStatusTournament[]): DoctorCheck {

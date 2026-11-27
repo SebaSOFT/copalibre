@@ -1,4 +1,9 @@
-import { getLocalePrefix, getLocaleHomePath, resolvePathLocale } from './locale.js';
+import {
+  getLocalePrefix,
+  getLocaleHomePath,
+  getLocalizedNotFoundPath,
+  resolvePathLocale,
+} from './locale.js';
 
 describe('locale helpers', () => {
   describe('getLocalePrefix', () => {
@@ -54,5 +59,15 @@ describe('locale helpers', () => {
       expect(resolvePathLocale('/ja/not-supported')).toBe('en');
       expect(resolvePathLocale('some/relative/path')).toBe('en');
     });
+  });
+});
+
+describe('getLocalizedNotFoundPath', () => {
+  it('carries a supported locale through the static 404 rewrite', () => {
+    expect(getLocalizedNotFoundPath('es')).toBe('/404?locale=es');
+  });
+
+  it('falls back to English for an unsupported locale', () => {
+    expect(getLocalizedNotFoundPath('ja')).toBe('/404?locale=en');
   });
 });

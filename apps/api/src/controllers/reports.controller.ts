@@ -42,6 +42,7 @@ import {
 import { OBJECT_STORAGE } from '../object-storage.token.js';
 import { enforceReportSubmission } from '../policy/resource-policy.js';
 import { resolveTournament } from './standings.controller.js';
+import { isPlainMediaType, safeObjectName } from '../http/upload-names.js';
 
 /**
  * Participant self-service result reporting and disputes.
@@ -212,18 +213,26 @@ export class ParticipantReportsController {
 
     const stored: UploadedEvidence[] = [];
     for (const upload of uploads) {
+      // The name becomes part of the storage key: reduced to a plain file
+      // name, so ../ cannot reach another organization's objects.
+      const name = safeObjectName(upload.filename);
       const bytes = Buffer.from(upload.contentBase64, 'base64');
       if (bytes.length === 0 || bytes.length > MAX_EVIDENCE_BYTES) {
         throw new BadRequestException(
-          `Evidence file "${upload.filename}" is not a valid size (0 < bytes <= ${MAX_EVIDENCE_BYTES})`,
+          `Evidence file "${name}" is not a valid size (0 < bytes <= ${MAX_EVIDENCE_BYTES})`,
           { errorCode: 'report-bad-request' },
         );
       }
-      const key = `${organizationId}/${newId()}-${upload.filename}`;
+      if (!isPlainMediaType(upload.contentType)) {
+        throw new BadRequestException(`Evidence file "${name}" has no valid media type`, {
+          errorCode: 'report-bad-request',
+        });
+      }
+      const key = `${organizationId}/${newId()}-${name}`;
       const reference = await this.storage.put(key, bytes, upload.contentType);
       stored.push({
         evidenceId: newId(),
-        filename: upload.filename,
+        filename: name,
         contentType: upload.contentType,
         sizeBytes: bytes.length,
         storageProfile: this.storage.profile,

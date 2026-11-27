@@ -1,7 +1,8 @@
+import { jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ControlApp } from './ControlApp.js';
 import { navigateControl } from '../lib/control-navigation.js';
-import { controlTokenStore } from '../session/token-store.js';
+import { controlSession } from '../session/session-store.js';
 import { DEFAULT_RETURN_TO, TRANSACTION_KEY, type OidcTransaction } from '../session/oidc-login.js';
 
 function at(path: string): void {
@@ -12,9 +13,21 @@ function json(body: unknown): Response {
   return new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } });
 }
 
-function scopedToken(scopes: string): string {
-  const payload = btoa(JSON.stringify({ scp: scopes }));
-  return `header.${payload}.signature`;
+const SESSION_BODY = {
+  subject: 'p-1',
+  scopes: ['copalibre.control'],
+  expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+  method: 'oidc',
+};
+
+/** An operator signed in on this page load: metadata already in memory. */
+function signIn(scopes: readonly string[] = ['copalibre.control']): void {
+  controlSession.write({
+    subject: 'p-1',
+    scopes,
+    expiresAtMs: Date.now() + 60_000,
+    method: 'native',
+  });
 }
 
 function transaction(overrides: Partial<OidcTransaction> = {}): OidcTransaction {
@@ -42,6 +55,7 @@ describe('ControlApp', () => {
       configurable: true,
       value: async (input: RequestInfo | URL) => {
         const url = String(input);
+        if (String(input) === '/api/auth/session') return json(SESSION_BODY);
         if (url === 'https://identity.example/token') {
           return json({ access_token: 'fresh-access-token', expires_in: 3600 });
         }
@@ -126,28 +140,28 @@ describe('ControlApp', () => {
     });
     // Every screen except `callback` redirects to login with no session —
     // these tests render as an authenticated operator.
-    controlTokenStore.write('test-access-token', Date.now() + 60_000);
+    signIn();
   });
 
   afterEach(() => {
     Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
     at('/control/liga-mendocina');
-    controlTokenStore.clear();
+    controlSession.clear();
   });
 
   it.each([
-    ['/control/liga-mendocina', 'Dashboard — liga-mendocina', 'Torneos'],
+    ['/control/liga-mendocina', 'Dashboard — liga-mendocina', 'Panel'],
     ['/control/liga-mendocina/roles', 'Roles and permissions - liga-mendocina', 'Rol'],
     ['/control/liga-mendocina/tournaments/new', 'Create tournament — liga-mendocina', 'torneo'],
     [
       '/control/liga-mendocina/tournaments/apertura-2026',
       'Stages — apertura-2026',
-      'apertura-2026',
+      'Apertura 2026',
     ],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
       'Stage 1 — apertura-2026',
-      'apertura-2026',
+      'Apertura 2026',
     ],
     [
       '/control/liga-mendocina/tournaments/apertura-2026/registrations',
@@ -190,9 +204,13 @@ describe('ControlApp', () => {
       'Standings — apertura-2026',
       'Posiciones',
     ],
-    ['/control/login', 'Sign in — CopaLibre', 'Sign in to operate'],
-    ['/control/forgot-password', 'Recover password — CopaLibre', 'Recover password'],
-    ['/control/reset-password', 'Reset password — CopaLibre', 'Invalid recovery link'],
+    ['/control/login', 'Iniciar sesión — CopaLibre', 'Iniciá sesión para operar'],
+    ['/control/forgot-password', 'Recuperar contraseña — CopaLibre', 'Recuperar contraseña'],
+    [
+      '/control/reset-password',
+      'Restablecer contraseña — CopaLibre',
+      'El enlace de recuperación no es válido',
+    ],
     [
       '/control/liga-mendocina/preferences',
       'Personal preferences — CopaLibre',
@@ -217,11 +235,26 @@ describe('ControlApp', () => {
     expect(screen.getByText('Pantalla no encontrada')).toBeDefined();
   });
 
-  it('renders global platform administration for a super-admin token', async () => {
-    controlTokenStore.write(
-      scopedToken('copalibre.control copalibre.super-admin'),
-      Date.now() + 60_000,
+  it('logs the safe strict-stateless fallback when runtime config is missing', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async (input: RequestInfo | URL) =>
+        String(input) === '/runtime-config.json' ? new Response('', { status: 404 }) : json([]),
+    });
+    at('/control/liga-mendocina');
+    render(<ControlApp />);
+
+    await waitFor(() =>
+      expect(warn).toHaveBeenCalledWith(
+        'CopaLibre runtime config unavailable; using strict-stateless sessions.',
+      ),
     );
+    warn.mockRestore();
+  });
+
+  it('renders global platform administration for a super-admin session', async () => {
+    signIn(['copalibre.control', 'copalibre.super-admin']);
     at('/control/platform');
     render(<ControlApp />);
 
@@ -276,6 +309,7 @@ describe('ControlApp session guard and callback', () => {
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
       value: async (input: RequestInfo | URL) => {
+        if (String(input) === '/api/auth/session') return json(SESSION_BODY);
         if (String(input) === 'https://identity.example/token') {
           return json({ access_token: 'fresh-access-token', expires_in: 3600 });
         }
@@ -287,7 +321,7 @@ describe('ControlApp session guard and callback', () => {
   afterEach(() => {
     Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
     sessionStorage.clear();
-    controlTokenStore.clear();
+    controlSession.clear();
     at('/control/liga-mendocina');
   });
 
@@ -297,7 +331,7 @@ describe('ControlApp session guard and callback', () => {
   // *rendering* decision — a protected screen never shows its content with
   // no session.
   it('does not render a protected screen with no session', () => {
-    controlTokenStore.clear();
+    controlSession.clear();
     at('/control/liga-mendocina/roles');
 
     render(<ControlApp />);
@@ -309,16 +343,16 @@ describe('ControlApp session guard and callback', () => {
   // anonymous visitor reaching /login must see it, not get redirected back
   // to itself.
   it('renders a public route with no session, without redirecting', () => {
-    controlTokenStore.clear();
+    controlSession.clear();
     at('/control/login');
 
     render(<ControlApp />);
 
-    expect(screen.getByText('Sign in to operate', { exact: false })).toBeDefined();
+    expect(screen.getByText('Iniciá sesión para operar', { exact: false })).toBeDefined();
   });
 
   it('renders normally when a valid session exists', async () => {
-    controlTokenStore.write('test-access-token', Date.now() + 60_000);
+    signIn();
     at('/control/liga-mendocina');
 
     render(<ControlApp />);
@@ -326,7 +360,54 @@ describe('ControlApp session guard and callback', () => {
     await waitFor(() => expect(document.title).toBe('Dashboard — liga-mendocina'));
     // The nav entry specifically: the dashboard's tournament section now carries
     // a heading of the same word, so an unscoped text query matches both.
-    expect(screen.queryAllByRole('link', { name: 'Torneos' })).not.toHaveLength(0);
+    expect(screen.queryAllByRole('link', { name: 'Panel' })).not.toHaveLength(0);
+  });
+
+  it('restores the session from the API after a reload and renders the screen', async () => {
+    const requested: string[] = [];
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async (input: RequestInfo | URL) => {
+        requested.push(String(input));
+        if (String(input) === '/api/auth/session') {
+          return json({ ...SESSION_BODY, method: 'native' });
+        }
+        return json([]);
+      },
+    });
+    at('/control/liga-mendocina');
+
+    render(<ControlApp />);
+
+    // Nothing protected renders until the API has answered.
+    expect(screen.queryAllByRole('link', { name: 'Panel' })).toHaveLength(0);
+    await waitFor(() => expect(document.title).toBe('Dashboard — liga-mendocina'));
+    await waitFor(() =>
+      expect(screen.queryAllByRole('link', { name: 'Panel' })).not.toHaveLength(0),
+    );
+    expect(requested[0]).toBe('/api/auth/session');
+    expect(controlSession.read()?.subject).toBe('p-1');
+  });
+
+  it('treats a 401 from the session endpoint as signed out', async () => {
+    let asked = false;
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async (input: RequestInfo | URL) => {
+        if (String(input) === '/api/auth/session') {
+          asked = true;
+          return new Response(JSON.stringify({ message: 'No session' }), { status: 401 });
+        }
+        return json([]);
+      },
+    });
+    at('/control/liga-mendocina/roles');
+
+    render(<ControlApp />);
+
+    await waitFor(() => expect(asked).toBe(true));
+    expect(screen.queryByText('Rol')).toBeNull();
+    expect(controlSession.read()).toBeUndefined();
   });
 
   it('completes the callback and client-side-navigates to returnTo, without a page reload', async () => {
@@ -335,18 +416,18 @@ describe('ControlApp session guard and callback', () => {
 
     render(<ControlApp />);
 
-    await waitFor(() => expect(controlTokenStore.read()).toBe('fresh-access-token'));
+    await waitFor(() => expect(controlSession.read()?.method).toBe('oidc'));
     await waitFor(() => expect(window.location.pathname).toBe('/control/liga-mendocina'));
   });
 
-  it('shows an error and does not store a token when the callback fails', async () => {
+  it('shows an error and records no session when the callback fails', async () => {
     sessionStorage.setItem(TRANSACTION_KEY, JSON.stringify(transaction({ state: 'other-state' })));
     at('/control/callback?code=auth-code-1&state=state-123');
 
     render(<ControlApp />);
 
     await waitFor(() => expect(screen.getByText('No se pudo completar el acceso')).toBeDefined());
-    expect(controlTokenStore.read()).toBeUndefined();
+    expect(controlSession.read()).toBeUndefined();
   });
 });
 
@@ -369,10 +450,11 @@ describe('ControlApp default-returnTo login landing', () => {
       configurable: true,
       value: async (input: RequestInfo | URL) => {
         const url = String(input);
+        if (String(input) === '/api/auth/session') return json(SESSION_BODY);
         if (url === 'https://identity.example/token') {
           return json({ access_token: 'fresh-access-token', expires_in: 3600 });
         }
-        if (url.includes('/organizations?mine=true')) {
+        if (url.includes('/api/organizations?mine=true')) {
           if (myOrganizations === 'error') {
             return new Response('boom', { status: 500 });
           }
@@ -386,7 +468,7 @@ describe('ControlApp default-returnTo login landing', () => {
   afterEach(() => {
     Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
     sessionStorage.clear();
-    controlTokenStore.clear();
+    controlSession.clear();
     at('/control/liga-mendocina');
   });
 
@@ -473,11 +555,12 @@ describe('ControlApp default-returnTo login landing', () => {
       configurable: true,
       value: async (input: RequestInfo | URL) => {
         const url = String(input);
+        if (String(input) === '/api/auth/session') return json(SESSION_BODY);
         if (url === 'https://identity.example/token') {
           return json({ access_token: 'fresh-access-token', expires_in: 3600 });
         }
         if (
-          url.includes('/organizations?mine=true') &&
+          url.includes('/api/organizations?mine=true') &&
           window.location.pathname !== '/control/liga-mendocina'
         ) {
           organizationsRequestedBeforeRedirect = true;
@@ -497,7 +580,7 @@ describe('ControlApp default-returnTo login landing', () => {
   it('navigates from /control to the organization dashboard when exactly one organization exists', async () => {
     stubFetch([membership()]);
     at('/control');
-    controlTokenStore.write('test-token', Date.now() + 60_000);
+    signIn();
     render(<ControlApp />);
 
     await waitFor(() => expect(window.location.pathname).toBe('/control/liga-mendocina'));
@@ -514,7 +597,7 @@ describe('ControlApp default-returnTo login landing', () => {
     ]);
 
     at('/control');
-    controlTokenStore.write('test-token', Date.now() + 60_000);
+    signIn();
     render(<ControlApp />);
 
     await waitFor(() => {

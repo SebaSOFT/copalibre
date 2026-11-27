@@ -296,7 +296,7 @@ export function PlatformAdministrationTemplate({
             <>
               <Card aria-labelledby="platform-organization-heading" role="region">
                 <CardHeader>
-                  <CardTitle id="platform-organization-heading">
+                  <CardTitle id="platform-organization-heading" level={2}>
                     <FormattedMessage {...messages.platformOrganizationHeading} />
                   </CardTitle>
                   <CardDescription>
@@ -416,7 +416,7 @@ export function PlatformAdministrationTemplate({
 
               <Card aria-labelledby="platform-users-heading" role="region">
                 <CardHeader>
-                  <CardTitle id="platform-users-heading">
+                  <CardTitle id="platform-users-heading" level={2}>
                     <FormattedMessage {...messages.platformUsersHeading} />
                   </CardTitle>
                   <CardDescription>
@@ -465,10 +465,19 @@ export function PlatformAdministrationTemplate({
                     </p>
                   ) : (
                     <ul className="cl-platform-update-list">
-                      {superAdmins.map((row) => (
-                        <li key={row.assignmentId}>
-                          {row.principalId} — {row.status}{' '}
+                      {superAdmins.map((row, index) => (
+                        <li key={row.assignmentId} title={row.principalId}>
+                          {intl.formatMessage(messages.platformSuperAdminLabel, {
+                            position: index + 1,
+                          })}{' '}
+                          —{' '}
+                          {intl.formatMessage(
+                            row.status === 'active' ? messages.rolesActive : messages.rolesInactive,
+                          )}{' '}
                           <Button
+                            aria-label={intl.formatMessage(messages.platformSuperAdminRemoveLabel, {
+                              position: index + 1,
+                            })}
                             disabled={busy !== undefined}
                             onClick={() => void onRemoveSuperAdmin(row.assignmentId)}
                             type="button"
@@ -505,7 +514,7 @@ export function PlatformAdministrationTemplate({
               <Card aria-labelledby="platform-modules-heading" role="region">
                 <CardHeader className="cl-platform-modules-header">
                   <div>
-                    <CardTitle id="platform-modules-heading">
+                    <CardTitle id="platform-modules-heading" level={2}>
                       <FormattedMessage {...messages.platformModulesHeading} />
                     </CardTitle>
                     <CardDescription>

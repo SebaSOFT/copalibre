@@ -18,16 +18,21 @@ roles:
     port: 3001
     replicas: 1
     service: true
-    # api alone can distinguish "up" from "ready to serve" (GET /ready checks
+    # api alone can distinguish "up" from "ready to serve" (GET /api/ready checks
     # the DB schema version); the other roles only have GET /health.
-    probePath: /health
-    readinessPath: /ready
+    probePath: /api/health
+    readinessPath: /api/ready
     resources: {}
   events:
     port: 3002
     replicas: 1
     service: true
     probePath: /health
+    # Where events fetches the API's key set to verify native sessions. Empty
+    # means the api Service this chart creates. With an external identity
+    # provider, COPALIBRE_JWKS_URI holds only that provider's keys, so without
+    # this a native sign-in could not open the Control stream.
+    apiInternalUrl: ''
     resources: {}
   worker:
     port: 3003
@@ -84,9 +89,22 @@ web:
   # API routes served through the app origin (emblems and discipline images).
   # Empty means the release-scoped API Service this chart creates.
   apiUpstream: ''
+  # The event streams served through the app origin, so a Control browser
+  # session reaches them with its same-origin session cookie. Empty means the
+  # release-scoped events Service this chart creates.
+  eventsUpstream: ''
+  # Name of an existing ConfigMap whose keys are published as files under
+  # /.well-known/ (security.txt and similar), mounted read-only. Everything in
+  # it is public. Empty mounts nothing.
+  wellKnown:
+    configMap: ''
   env:
     COPALIBRE_JWT_ISSUER: ''
     COPALIBRE_OIDC_CLIENT_ID: ''
+    # Origin of an external OIDC provider for the Content Security Policy.
+    # Empty derives it from COPALIBRE_JWT_ISSUER when that issuer's origin
+    # differs from env.COPALIBRE_APP_URL; the built-in provider needs none.
+    COPALIBRE_CSP_IDENTITY_ORIGIN: ''
 
 # Shared by every role in `roles` above (envFrom a ConfigMap + Secret built
 # from this map — see templates/configmap.yaml and templates/secret.yaml).
@@ -124,6 +142,22 @@ env:
   COPALIBRE_DATA_DIR: /var/lib/copalibre
   COPALIBRE_MODULE_SOURCE_ALLOWLIST: 'file:///var/lib/copalibre/modules'
   COPALIBRE_IN_CONTAINER: 'true'
+  # `Secure` and the `__Host-` prefix on the session, CSRF and refresh cookies.
+  # Empty derives it from `session.cookieSecure` below.
+  COPALIBRE_SESSION_COOKIE_SECURE: ''
+  # Peers whose X-Forwarded-For the API and events believe. Empty trusts loopback,
+  # link-local and private networks, which covers the ingress controller's pods.
+  COPALIBRE_TRUSTED_PROXIES: ''
+  # Bursts of refused requests are emailed here; empty logs them only. The
+  # threshold is refusals from one actor in ten minutes (default 20).
+  COPALIBRE_SECURITY_ALERT_EMAIL: ''
+  COPALIBRE_SECURITY_ALERT_THRESHOLD: ''
+
+# Browser session cookies. `cookieSecure` left null is true unless the
+# chart's own ingress is enabled without TLS; set it false only for a
+# plain-HTTP installation reached by a hostname other than localhost.
+session:
+  cookieSecure: null
 
 # Which of the keys in `env` above hold credentials and belong in the Secret
 # rather than the ConfigMap. Everything else in `env` goes in the ConfigMap.
@@ -136,6 +170,15 @@ secretKeys:
   - COPALIBRE_SMTP_URL
   - COPALIBRE_OBJECT_STORAGE_ACCESS_KEY
   - COPALIBRE_OBJECT_STORAGE_SECRET_KEY
+
+# The schema owner's credential, which only the migrate Job loads, from its own
+# Secret (templates/secret-migration.yaml). Every other pod gets DATABASE_URL,
+# which should be the runtime role. Run deploy/postgres/roles.sql once against
+# the database to create both roles; see docs/self-hosting.md#database-roles.
+# Left empty, migrations run with DATABASE_URL and `copalibre doctor` fails
+# database:runtime-privileges.
+migrationEnv:
+  DATABASE_MIGRATION_URL: ''
 
 migrate:
   # backoffLimit 0: fail fast, no silent retries — a stuck migration should
@@ -275,5 +318,7 @@ externalSecrets:
   #   remoteRefs:
   #     DATABASE_URL: { key: copalibre/database, property: url }
   # Any key in `secretKeys` without an override here defaults to
-  # { key: <the env var name>, property: value }.
+  # { key: <the env var name>, property: value }. The migration Secret is only
+  # rendered when DATABASE_MIGRATION_URL has an entry here, e.g.:
+  #     DATABASE_MIGRATION_URL: { key: copalibre/database, property: migration-url }
   remoteRefs: {}

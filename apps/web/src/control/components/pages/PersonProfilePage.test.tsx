@@ -1,14 +1,19 @@
+import { jest } from '@jest/globals';
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { PersonProfilePage } from '../pages/PersonProfilePage.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { ControlApiClient, PersonResponse } from '../../lib/api-client.js';
+import { clearResilientReadCache } from './use-resilient-read.js';
 
 function stubClient(person: PersonResponse): ControlApiClient {
   return { getPerson: () => Promise.resolve(person) } as unknown as ControlApiClient;
 }
 
 describe('PersonProfilePage', () => {
-  it("shows the person's display name, flag, and natural key", async () => {
+  beforeEach(() => clearResilientReadCache());
+
+  it("shows the person's display name, localized nationality, and natural key", async () => {
     render(
       withIntl(
         <PersonProfilePage
@@ -16,6 +21,7 @@ describe('PersonProfilePage', () => {
             personId: 'person-1',
             displayName: 'Elías Salomón',
             nationality: 'AR',
+            hiddenFromPublic: false,
             naturalKey: { kind: 'dni', value: '12345678' },
           })}
           organizationAlias="liga-orbital"
@@ -24,16 +30,92 @@ describe('PersonProfilePage', () => {
       ),
     );
 
-    await waitFor(() => screen.getByText('Elías Salomón'));
-    expect(screen.getByText('🇦🇷')).toBeDefined();
+    await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Elías Salomón' }));
+    expect(screen.getByText('Argentina')).toBeDefined();
     expect(screen.getByText('dni: 12345678')).toBeDefined();
+  });
+
+  it('hides and restores a person from public pages without changing their results', async () => {
+    const setPublicVisibility = jest.fn(
+      async (_organizationAlias: string, personId: string, hiddenFromPublic: boolean) => ({
+        personId,
+        hiddenFromPublic,
+      }),
+    );
+    const client = {
+      getPerson: () =>
+        Promise.resolve({
+          personId: 'person-1',
+          displayName: 'Elías Salomón',
+          hiddenFromPublic: false,
+        }),
+      setPersonPublicVisibility: setPublicVisibility,
+    } as unknown as ControlApiClient;
+    render(
+      withIntl(
+        <PersonProfilePage client={client} organizationAlias="liga-orbital" personId="person-1" />,
+      ),
+    );
+
+    await screen.findByText('Elías Salomón');
+    const visibility = screen.getByRole('checkbox', {
+      name: 'Hidden from public pages',
+    });
+    expect(visibility.getAttribute('aria-checked')).toBe('false');
+
+    fireEvent.click(visibility);
+    await waitFor(() => {
+      expect(setPublicVisibility).toHaveBeenNthCalledWith(1, 'liga-orbital', 'person-1', true);
+      expect(visibility.getAttribute('aria-checked')).toBe('true');
+    });
+    expect(await screen.findByText('Public visibility updated.')).toBeDefined();
+
+    fireEvent.click(visibility);
+    await waitFor(() => {
+      expect(setPublicVisibility).toHaveBeenNthCalledWith(2, 'liga-orbital', 'person-1', false);
+      expect(visibility.getAttribute('aria-checked')).toBe('false');
+    });
+    expect(screen.getByText('Elías Salomón')).toBeDefined();
+  });
+
+  it('keeps a person visible when a privacy update fails and shows the reason', async () => {
+    const setPublicVisibility = jest.fn(async () => {
+      throw new Error('visibility write failed');
+    });
+    const client = {
+      getPerson: () =>
+        Promise.resolve({
+          personId: 'person-1',
+          displayName: 'Elías Salomón',
+          hiddenFromPublic: false,
+        }),
+      setPersonPublicVisibility: setPublicVisibility,
+    } as unknown as ControlApiClient;
+    render(
+      withIntl(
+        <PersonProfilePage client={client} organizationAlias="liga-orbital" personId="person-1" />,
+      ),
+    );
+
+    const visibility = await screen.findByRole('checkbox', {
+      name: 'Hidden from public pages',
+    });
+    fireEvent.click(visibility);
+
+    expect(await screen.findByText('visibility write failed')).toBeDefined();
+    expect(visibility.getAttribute('aria-checked')).toBe('false');
+    expect(setPublicVisibility).toHaveBeenCalledWith('liga-orbital', 'person-1', true);
   });
 
   it('shows a placeholder photo and "not recorded" fields when nothing is set', async () => {
     render(
       withIntl(
         <PersonProfilePage
-          client={stubClient({ personId: 'person-1', displayName: 'Tomás Scibilia' })}
+          client={stubClient({
+            personId: 'person-1',
+            displayName: 'Tomás Scibilia',
+            hiddenFromPublic: false,
+          })}
           organizationAlias="liga-orbital"
           personId="person-1"
         />,
@@ -54,6 +136,7 @@ describe('PersonProfilePage', () => {
             personId: 'person-1',
             displayName: 'Elías Salomón',
             photoObjectId: 'object-1',
+            hiddenFromPublic: false,
           })}
           organizationAlias="liga-orbital"
           personId="person-1"
@@ -77,7 +160,44 @@ describe('PersonProfilePage', () => {
       ),
     );
 
-    await waitFor(() => screen.getByText('Could not load this profile.'));
+    await expectFirstReadFailure();
+  });
+
+  it('keeps the last successful profile visible and marks it stale when a later read fails', async () => {
+    const firstRead = render(
+      withIntl(
+        <PersonProfilePage
+          client={stubClient({
+            personId: 'person-1',
+            displayName: 'Elías Salomón',
+            hiddenFromPublic: false,
+          })}
+          organizationAlias="stale-profile-league"
+          personId="person-1"
+        />,
+      ),
+    );
+    await screen.findByText('Elías Salomón');
+    firstRead.unmount();
+
+    const { container } = render(
+      withIntl(
+        <PersonProfilePage
+          client={
+            {
+              getPerson: () => Promise.reject(new Error('network down')),
+            } as unknown as ControlApiClient
+          }
+          organizationAlias="stale-profile-league"
+          personId="person-1"
+        />,
+      ),
+    );
+
+    expect(await screen.findByText('Elías Salomón')).toBeDefined();
+    await waitFor(() =>
+      expect(container.querySelector('.cl-stale-mark')?.textContent).toContain('Stale'),
+    );
   });
 
   it('renders within ListScreenLayout structure', async () => {
@@ -88,6 +208,7 @@ describe('PersonProfilePage', () => {
             personId: 'person-1',
             displayName: 'Elías Salomón',
             nationality: 'AR',
+            hiddenFromPublic: false,
           })}
           organizationAlias="liga-orbital"
           personId="person-1"
@@ -97,7 +218,7 @@ describe('PersonProfilePage', () => {
 
     await waitFor(() => screen.getByText('Elías Salomón'));
     expect(container.querySelector('.cl-list-screen')).not.toBeNull();
-    expect(container.querySelector('.cl-list-screen__header')).not.toBeNull();
+    expect(container.querySelector('.cl-page-header')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
   });
 });

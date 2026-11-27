@@ -1,12 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { RolesPermissionsTemplate } from '../screens/RolesPermissionsTemplate.js';
-import { ORG, ids } from '../screen-story-fixtures.js';
+import { ids } from '../screen-story-fixtures.js';
 
 const meta = {
   title: 'Admin/Screens/RolesPermissionsTemplate',
   component: RolesPermissionsTemplate,
   args: {
-    organizationAlias: ORG,
     rows: [
       {
         assignmentId: ids.first,

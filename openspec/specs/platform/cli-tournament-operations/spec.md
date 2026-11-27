@@ -24,10 +24,7 @@ HTTP, using the credential stored by `copalibre login`, and print its identity.
 
 ### Requirement: `copalibre tournament` commands mirror the MCP tournament-operational tools
 
-`copalibre tournament list --organization-alias <alias>`, `copalibre tournament get
---organization-alias <alias> --tournament-alias <alias>`, `copalibre tournament create` (with the
-same required fields `copalibre_create_tournament` requires), and `copalibre tournament publish
---organization-alias <alias> --tournament-alias <alias>` SHALL each call the exact same `apps/api`
+`copalibre tournament list`, `get`, `create` and `publish` SHALL each call the exact same `apps/api`
 HTTP endpoint its corresponding MCP tool calls, with the same required fields, and SHALL surface the
 API's own refusal message verbatim on failure.
 
@@ -51,6 +48,13 @@ API's own refusal message verbatim on failure.
 - **WHEN** any `copalibre tournament` command's underlying HTTP call returns a non-2xx response
 - **THEN** the command prints the API's own refusal message and exits non-zero, the same message an
   MCP client would see from the corresponding tool call
+
+#### Scenario: Each command takes its tool's inputs
+
+- **WHEN** an operator runs `list --organization-alias <alias>`, `get` or `publish` with
+  `--organization-alias <alias> --tournament-alias <alias>`, or `create` with the fields
+  `copalibre_create_tournament` requires
+- **THEN** each command accepts exactly those inputs
 
 ### Requirement: Tournament and organization commands require a stored login credential
 

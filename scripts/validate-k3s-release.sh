@@ -103,7 +103,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:17
+          image: postgres:18
           env:
             - { name: POSTGRES_USER, value: copalibre }
             - { name: POSTGRES_PASSWORD, value: copalibre_validate_only }
@@ -205,7 +205,7 @@ test_rolling_update() {
   # DNS name, so the request actually goes through kube-proxy's real
   # endpoint routing the way a real client's traffic would.
   kubectl run copalibre-validate-poller --image=curlimages/curl:latest --restart=Never \
-    --command -- sh -c "while true; do curl -sf -o /dev/null http://${RELEASE_NAME}-api:3001/health || echo fail; sleep 0.5; done"
+    --command -- sh -c "while true; do curl -sf -o /dev/null http://${RELEASE_NAME}-api:3001/api/health || echo fail; sleep 0.5; done"
   kubectl wait --for=condition=ready --timeout=60s pod/copalibre-validate-poller
 
   helm upgrade "${RELEASE_NAME}" "${ROOT_DIR}/deploy/helm/copalibre" \
@@ -426,6 +426,17 @@ test_ssr_routes_are_served() {
     fail "Ingress /control/ HTML contains an absolute build-time login origin"
   fi
   log "OK: Helm ingress serves the same-origin /control/ redirect entry"
+
+  # A Control session's HttpOnly cookie is sent only to the hostname that set
+  # it, so the web role must serve the event streams too, unbuffered.
+  local proxy_check
+  for target in "http://${RELEASE_NAME}-web:4321" "http://traefik.kube-system.svc.cluster.local"; do
+    proxy_check=$(kubectl exec "${pod}" -- curl -sS -N --max-time 20 \
+      -H 'Host: copalibre-validate.localhost' "${target}/events/proxy-check" || true)
+    grep -Fq ': copalibre-proxy-check-1' <<<"${proxy_check}" \
+      || fail "GET /events/proxy-check through ${target} did not reach the events service"
+  done
+  log "OK: the web hostname serves /events through the web Service and the Helm ingress"
   kubectl delete pod "${pod}" --grace-period=0 --force >/dev/null 2>&1 || true
 }
 

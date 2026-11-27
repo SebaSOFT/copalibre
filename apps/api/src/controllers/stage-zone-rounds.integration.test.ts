@@ -54,7 +54,7 @@ interface BuiltZone {
 }
 
 describe('zone-scoped dynamic rounds (integration)', () => {
-  const base = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages`;
+  const base = `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages`;
   let harness: Awaited<ReturnType<typeof buildTestApp>>;
   let competition: CompetitionRepository;
   let tournamentId = '';

@@ -70,6 +70,10 @@ export function recordsAudit(method: RepositoryMethod): boolean {
 export const AUDIT_COVERAGE_EXCEPTIONS: Readonly<Record<string, string>> = Object.freeze({
   'match-command-idempotency-repository.ts:record':
     'idempotency bookkeeping for a finalization retry, not an aggregate mutation',
+  'match-command-idempotency-repository.ts:claim':
+    'idempotency bookkeeping: the key claimed in a console command transaction, whose writes are audited by that command',
+  'match-command-idempotency-repository.ts:completeResponse':
+    'idempotency bookkeeping: stores the response of an already committed command, whose effect is audited by that command',
   'collector-threshold-consumption-repository.ts:record':
     "a rule's derived running total, replaced on every evaluation, not an operator action",
   'csv-import-repository.ts:markValidating':
@@ -80,12 +84,14 @@ export const AUDIT_COVERAGE_EXCEPTIONS: Readonly<Record<string, string>> = Objec
     'internal import-session state machine; the operator action is the eventual commit, audited as csv-import.committed',
   'csv-import-repository.ts:markCommitted':
     'internal import-session state machine; the operator action is the eventual commit, audited as csv-import.committed',
-  'competition-repository.ts:anullSurplusMatches':
+  'competition/fixture-surplus-repository.ts:anullSurplusMatches':
     'a series-consequence side effect of a finalize the caller already audits as match.finalized, not a distinct operator action',
   'auth-verification-token-repository.ts:create':
     'ephemeral verification-token bookkeeping; the account change it authorizes is audited where it is applied (identity.password-reset)',
   'auth-verification-token-repository.ts:consume':
     'ephemeral verification-token bookkeeping; the account change it authorizes is audited where it is applied (identity.password-reset)',
+  'auth-verification-token-repository.ts:revokeSessionRefreshTokens':
+    'a consequence of a password reset, written in the same transaction that records identity.password-reset',
   'identity-principal-repository.ts:findOrCreateByEmail':
     'a principal auto-provisioned as a step of linkParticipant, which already records participant.identity-linked for the operator action that caused it',
   'competition-record-repository.ts:materialiseStandings':

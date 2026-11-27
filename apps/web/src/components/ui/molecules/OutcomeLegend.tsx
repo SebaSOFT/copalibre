@@ -1,3 +1,6 @@
+import type { IconName } from '../../../lib/icon-registry.js';
+import { Icon } from '../atoms/icon.js';
+
 /**
  * The bracket's outcome key.
  *
@@ -14,11 +17,15 @@
 
 export type BracketOutcome = 'advancing' | 'eliminated' | 'pending';
 
-/** A shape per outcome, for viewers who distinguish neither the fill nor the word. */
-const GLYPH: Readonly<Record<BracketOutcome, string>> = {
-  advancing: '✓',
-  eliminated: '✕',
-  pending: '—',
+/**
+ * A shape per outcome, for viewers who distinguish neither the fill nor the word: a registry
+ * icon, because the brand faces have no glyph for a check or a cross and drawing one as text
+ * made the page download a fallback font.
+ */
+const GLYPH: Readonly<Record<BracketOutcome, IconName>> = {
+  advancing: 'check',
+  eliminated: 'close',
+  pending: 'minus',
 };
 
 export interface OutcomeLegendEntry {
@@ -47,7 +54,7 @@ export function OutcomeLegend({
             aria-hidden="true"
             className={`cl-outcome-legend__glyph cl-outcome-legend__glyph--${entry.outcome}`}
           >
-            {GLYPH[entry.outcome]}
+            <Icon name={GLYPH[entry.outcome]} size={16} />
           </span>
           <span className="cl-outcome-legend__label">{entry.label}</span>
         </li>
@@ -57,6 +64,6 @@ export function OutcomeLegend({
 }
 
 /** The glyph a single outcome uses, for a caller marking one node rather than a key. */
-export function outcomeGlyph(outcome: BracketOutcome): string {
+export function outcomeGlyph(outcome: BracketOutcome): IconName {
   return GLYPH[outcome];
 }

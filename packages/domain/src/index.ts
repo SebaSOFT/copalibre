@@ -24,7 +24,12 @@ export {
   latestVersion,
   InvalidSemanticVersionError,
 } from './identifiers/semantic-version.js';
-export { Alias, type AliasScope } from './identifiers/alias.js';
+export {
+  Alias,
+  type AliasScope,
+  RESERVED_ORGANIZATION_ALIASES,
+  isReservedOrganizationAlias,
+} from './identifiers/alias.js';
 /*
  * CSV import/export is deliberately absent from this barrel: it depends on
  * `csv-parse`/`csv-stringify`, which read `Buffer` at module scope, so keeping
@@ -32,7 +37,13 @@ export { Alias, type AliasScope } from './identifiers/alias.js';
  * touches the domain. It lives at `@copalibre/domain/import-export`, and every
  * consumer of it is server-side.
  */
-export { suggestAlias, suggestAvailableAlias, isSuggestable } from './identifiers/suggest-alias.js';
+export { InvalidStreamUrlError, MAX_STREAM_URL_LENGTH, normalizeStreamUrl } from './stream-url.js';
+export {
+  suggestAlias,
+  suggestAvailableAlias,
+  suggestRequiredClubAlias,
+  isSuggestable,
+} from './identifiers/suggest-alias.js';
 export {
   Abbreviation,
   isAbbreviation,
@@ -129,6 +140,22 @@ export {
   resolveEffectiveTableLayouts,
   findTableLayout,
 } from './descriptors/table-layout-resolution.js';
+export type { MatchCounterDefinition } from './descriptors/discipline-descriptor.js';
+export type {
+  MatchCounterOverride,
+  MatchCounterOverrides,
+  EffectiveMatchCounter,
+} from './descriptors/match-counter-resolution.js';
+export {
+  resolveEffectiveMatchCounters,
+  matchCounterOverrideViolations,
+} from './descriptors/match-counter-resolution.js';
+export type {
+  CountableRoster,
+  MatchCounterValue,
+  MatchCounterTally,
+} from './descriptors/match-counter-count.js';
+export { countMatchCounters } from './descriptors/match-counter-count.js';
 export {
   segmentThresholdEventDefinitions,
   SEGMENT_THRESHOLD_EVENT_CODES,
@@ -326,6 +353,7 @@ export {
 } from './aggregates/participant-report.js';
 export {
   applyMatchCommand,
+  reopenSegment,
   runningTimers,
   validateRoster,
   type RosterSelection,
@@ -335,6 +363,7 @@ export {
   MatchOperationError,
   type MatchCommand,
   type MatchTransition,
+  type SegmentReopening,
   type RunningTimer,
   type TimerEventCodes,
 } from './aggregates/match-operations.js';
@@ -478,9 +507,29 @@ export {
   classifyScheduleMutation,
   type ScheduleMutationContext,
 } from './aggregates/schedule-mutation.js';
+export { estimatedMatchMinutes } from './aggregates/match-duration.js';
+export { segmentsDefaultOf } from './aggregates/segment-regulation.js';
+export {
+  addableSegmentsOf,
+  segmentPlanOf,
+  type AddableSegment,
+  type SegmentPlan,
+} from './aggregates/segment-plan.js';
+export {
+  isScheduleReasonPreset,
+  SCHEDULE_REASON_PRESETS,
+  type ScheduleReasonPreset,
+} from './aggregates/schedule-reason.js';
+export {
+  epochOfWallClock,
+  epochOfWallClockOrNext,
+  localToEpoch,
+  wallClockOf,
+} from './aggregates/zoned-time.js';
 export {
   detectConflicts,
   describeWindow,
+  occupancyOf,
   ScheduleConflictError,
   type ConflictKind,
   type ScheduleConflict,

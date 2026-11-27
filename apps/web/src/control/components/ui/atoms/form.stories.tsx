@@ -28,3 +28,5 @@ export const Playground: Story = {
     );
   },
 };
+
+export const LightL3: Story = { globals: { theme: 'light' } };

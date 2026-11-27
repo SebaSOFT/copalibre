@@ -1,13 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { seriesColor } from '@copalibre/design-tokens';
 import { Alert } from '../ui/atoms/alert.js';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { EntrantName } from '../../../components/ui/atoms/EntrantName.js';
+import { EntrantEmblem } from '../../../components/ui/molecules/EntrantEmblem.js';
 import { ColumnHeaderTooltip } from '../../../components/ui/atoms/ColumnHeaderTooltip.js';
 import type {
   TableLayoutSummaryResponse,
   TableProjectionResponseData,
   TableRowResponseData,
 } from '../../lib/api-client.js';
+import { clubEmblemUrl } from '../../lib/api-client.js';
 import {
   ariaSortFor,
   comparatorChain,
@@ -21,13 +24,30 @@ import {
   type ActiveSort,
 } from '../../lib/table-projections.js';
 import { messages } from '../../i18n/messages.en.js';
-import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
-import type { DataTableColumn } from '../ui/organisms/data-table.js';
-import { StandingsFigure, StandingsPanel } from '../ui/organisms/standings-panel.js';
+import { DataTable, type DataTableColumn } from '../ui/organisms/data-table.js';
+import { StandingsFigure, StandingsPanel, StandingsRank } from '../ui/organisms/standings-panel.js';
+
+/** Layout column codes that carry the entrant's or player's name. */
+const NAME_COLUMN_CODES: ReadonlySet<string> = new Set([
+  'entrant-name',
+  'actor-name',
+  'name',
+  'team',
+  'entrant',
+  'player',
+  'person',
+]);
+
+/** Columns that stay visible on a phone; the rest move into each row's disclosure. */
+const PRIORITY_COLUMN_CODES: ReadonlySet<string> = new Set([
+  ...NAME_COLUMN_CODES,
+  'played',
+  'points',
+]);
 
 /**
  * A5 — every declared table layout (group standings, top scorers, goalkeeper
@@ -48,6 +68,7 @@ export function StandingsTemplate({
   tournamentName,
   organizationAlias,
   tournamentAlias,
+  stageName,
   stageNumber,
   onExpand,
   onExportCsv,
@@ -59,10 +80,12 @@ export function StandingsTemplate({
   readonly projection?: TableProjectionResponseData;
   /** A load-in-progress or load-failure message; absent once `projection` is ready. */
   readonly status?: string;
-  readonly tournamentName: string;
+  readonly tournamentName?: string;
   readonly organizationAlias: string;
   /** Present when the caller knows it — used only to link the breadcrumb back to the stage hub. */
   readonly tournamentAlias?: string;
+  /** The stage's own name; the numbered fallback shows until it is known. */
+  readonly stageName?: string;
   readonly stageNumber?: number;
   /** Fetches one row's trace lines; called the first time a `group-phase` row is expanded. */
   readonly onExpand?: (entrantId: string) => Promise<readonly string[]>;
@@ -77,6 +100,7 @@ export function StandingsTemplate({
   const intl = useIntl();
   const [traces, setTraces] = useState<Readonly<Record<string, readonly string[]>>>({});
   const [pending, setPending] = useState<readonly string[]>([]);
+  const [expandedTiebreakActorId, setExpandedTiebreakActorId] = useState<string>();
   const [sort, setSort] = useState<ActiveSort | undefined>(undefined);
   const [dismissedStatus, setDismissedStatus] = useState<string>();
 
@@ -100,12 +124,9 @@ export function StandingsTemplate({
   }, [projection, intl]);
   const rows = projection ? sortRows(projection.rows, sort) : [];
   const nameColumnCode = projection?.columns.find((column) =>
-    ['entrant-name', 'actor-name'].includes(column.code),
+    NAME_COLUMN_CODES.has(column.code),
   )?.code;
-  const primaryNameColumn = columns[0]?.code;
-  const bars = projection
-    ? distributionBars(projection, { nameColumnCode: nameColumnCode ?? primaryNameColumn })
-    : [];
+  const bars = projection ? distributionBars(projection, { nameColumnCode }) : [];
   const isGroupPhase = projection?.target === 'group-phase';
   const chain = useMemo(() => comparatorChain(projection, columns), [projection, columns]);
   const decidingCode = chain.find((rule) => rule.triggered)?.columnCode;
@@ -114,107 +135,193 @@ export function StandingsTemplate({
   // which would assume one discipline's naming applies to every other's.
   const primaryMetricCode = projection?.defaultSort[0]?.columnCode;
 
-  const expand = (actorId: string): void => {
-    if (traces[actorId] !== undefined || pending.includes(actorId)) return;
-    setPending((current) => [...current, actorId]);
-    void Promise.resolve(onExpand?.(actorId) ?? [])
-      .then((lines) => setTraces((current) => ({ ...current, [actorId]: lines })))
-      .catch(() =>
-        setTraces((current) => ({
-          ...current,
-          [actorId]: [intl.formatMessage(messages.standingsTraceFetchFailed)],
-        })),
-      )
-      .finally(() => setPending((current) => current.filter((id) => id !== actorId)));
-  };
+  const expand = useCallback(
+    (actorId: string): void => {
+      if (traces[actorId] !== undefined || pending.includes(actorId)) return;
+      setPending((current) => [...current, actorId]);
+      void Promise.resolve(onExpand?.(actorId) ?? [])
+        .then((lines) => setTraces((current) => ({ ...current, [actorId]: lines })))
+        .catch(() =>
+          setTraces((current) => ({
+            ...current,
+            [actorId]: [intl.formatMessage(messages.standingsTraceFetchFailed)],
+          })),
+        )
+        .finally(() => setPending((current) => current.filter((id) => id !== actorId)));
+    },
+    [traces, pending, onExpand, intl],
+  );
+
+  const toggleTiebreak = useCallback(
+    (actorId: string): void => {
+      if (expandedTiebreakActorId === actorId) {
+        setExpandedTiebreakActorId(undefined);
+        return;
+      }
+      setExpandedTiebreakActorId(actorId);
+      expand(actorId);
+    },
+    [expandedTiebreakActorId, expand],
+  );
 
   const dataTableColumns: readonly DataTableColumn<TableRowResponseData>[] = useMemo(() => {
     if (!projection) return [];
-    const baseCols: DataTableColumn<TableRowResponseData>[] = columns.map((column) => ({
-      key: column.code,
-      ariaSort: ariaSortFor(sort, column.code),
-      header: (
-        <ColumnHeaderTooltip
-          description={column.label === column.shortLabel ? undefined : column.label}
-          indicator={
-            sort?.columnCode === column.code ? (
-              <span aria-hidden="true" className="cl-column-header__indicator">
-                {sort.direction === 'desc' ? '▾' : '▴'}
-              </span>
-            ) : undefined
-          }
-          label={column.shortLabel}
-          onClick={() => setSort(nextSort(sort, column.code))}
-        />
-      ),
-      render: (row: TableRowResponseData) => {
-        const cell = row.cells[column.code];
-        const isEntrantName = row.entrantName !== undefined && cell?.formatted === row.entrantName;
-        if (isEntrantName) {
-          return <EntrantName abbreviation={row.entrantAbbreviation} fullName={row.entrantName} />;
-        }
-        // The comparator that separated two level rows is marked in the column
-        // that did it, on the rows it decided — so "what separated them" is
-        // answered where the reader is already looking.
+    // The trace toggle belongs with the entrant's name (it wraps beneath it on a phone) so the
+    // position column stays as narrow as a rank; with no name column it stays beside the rank.
+    const tiebreakButton = (row: TableRowResponseData): React.JSX.Element | null => {
+      if (!isGroupPhase) return null;
+      const rowLabel = row.entrantName ?? row.cells[nameColumnCode ?? '']?.formatted ?? row.actorId;
+      const expanded = expandedTiebreakActorId === row.actorId;
+      const detailId = `standings-tiebreak-${row.actorId}`;
+      return (
+        <Button
+          aria-controls={expanded ? detailId : undefined}
+          aria-expanded={expanded}
+          aria-label={`${intl.formatMessage(messages.standingsTiebreak)} — ${rowLabel}`}
+          onClick={() => toggleTiebreak(row.actorId)}
+          type="button"
+          variant="secondary"
+        >
+          <FormattedMessage {...messages.standingsTiebreak} />
+        </Button>
+      );
+    };
+    const positionColumn: DataTableColumn<TableRowResponseData> = {
+      key: 'position',
+      header: <FormattedMessage {...messages.standingsRankColumn} />,
+      label: intl.formatMessage(messages.standingsRankColumn),
+      priority: 'high',
+      render: (row) => {
+        const indicator = tiebreakIndicator(row);
         return (
-          <StandingsFigure
-            deciding={column.code === decidingCode && tiebreakIndicator(row).kind !== 'none'}
-            decidingLabel={intl.formatMessage(messages.standingsPanelDecidedBy)}
-            tone={column.code === primaryMetricCode ? 'emphasis' : undefined}
-          >
-            {cell?.formatted ?? '—'}
-          </StandingsFigure>
+          <>
+            <StandingsRank>{row.rank}</StandingsRank>
+            {indicator.kind !== 'none' && (
+              <span className="cl-badge cl-standings-shared-rank">
+                <span aria-hidden="true">{indicator.icon}</span>{' '}
+                <span className="cl-standings-shared-rank__label">
+                  {intl.formatMessage(messages.standingsSharedRank)}
+                </span>
+              </span>
+            )}
+            {nameColumnCode === undefined && tiebreakButton(row)}
+          </>
         );
       },
-    }));
-
-    if (isGroupPhase) {
-      baseCols.push({
-        key: 'tiebreak',
-        header: <FormattedMessage {...messages.standingsTiebreak} />,
+    };
+    const baseCols: DataTableColumn<TableRowResponseData>[] = [
+      positionColumn,
+      ...columns.map((column) => ({
+        key: column.code,
+        ariaSort: ariaSortFor(sort, column.code),
+        label: column.label,
+        // On a phone the table keeps the position, the entrant, matches played and the points; the
+        // other columns stay one tap away in the row's disclosure.
+        priority:
+          PRIORITY_COLUMN_CODES.has(column.code) || column.code === primaryMetricCode
+            ? ('high' as const)
+            : ('low' as const),
+        ...(column.code === nameColumnCode
+          ? {
+              nameText: (row: TableRowResponseData) =>
+                row.entrantName ?? row.cells[column.code]?.formatted ?? row.actorId,
+              nameAction: tiebreakButton,
+            }
+          : {}),
+        header: (
+          <ColumnHeaderTooltip
+            description={column.label === column.shortLabel ? undefined : column.label}
+            infoLabel={intl.formatMessage(messages.infoAbout, { subject: column.shortLabel })}
+            indicator={
+              sort?.columnCode === column.code ? (
+                <span aria-hidden="true" className="cl-column-header__indicator">
+                  {sort.direction === 'desc' ? '▾' : '▴'}
+                </span>
+              ) : undefined
+            }
+            label={column.shortLabel}
+            onClick={() => setSort(nextSort(sort, column.code))}
+          />
+        ),
         render: (row: TableRowResponseData) => {
-          const indicator = tiebreakIndicator(row);
-          return indicator.kind === 'none' ? (
-            <span>—</span>
-          ) : (
-            <span className="cl-badge">
-              <span aria-hidden="true">{indicator.icon}</span>{' '}
-              {intl.formatMessage(messages.standingsSharedRank)}
-            </span>
+          const cell = row.cells[column.code];
+          const isEntrantName =
+            row.entrantName !== undefined && cell?.formatted === row.entrantName;
+          if (isEntrantName) {
+            return (
+              <span className="cl-standings-template__entrant">
+                {row.clubId !== undefined && (
+                  <EntrantEmblem
+                    alt={row.entrantName}
+                    abbreviation={row.entrantAbbreviation}
+                    control
+                    decorative
+                    size={32}
+                    src={
+                      row.emblemObjectId === undefined
+                        ? undefined
+                        : clubEmblemUrl(organizationAlias, row.clubId)
+                    }
+                  />
+                )}
+                <EntrantName abbreviation={row.entrantAbbreviation} fullName={row.entrantName} />
+              </span>
+            );
+          }
+          // The comparator that separated two level rows is marked in the column
+          // that did it, on the rows it decided — so "what separated them" is
+          // answered where the reader is already looking.
+          return (
+            <StandingsFigure
+              deciding={column.code === decidingCode && tiebreakIndicator(row).kind !== 'none'}
+              decidingLabel={intl.formatMessage(messages.standingsPanelDecidedBy)}
+              tone={column.code === primaryMetricCode ? 'emphasis' : undefined}
+            >
+              {cell?.formatted ?? '—'}
+            </StandingsFigure>
           );
         },
-      });
-    }
+      })),
+    ];
 
     return baseCols;
-  }, [projection, columns, sort, isGroupPhase, intl, decidingCode, primaryMetricCode]);
+  }, [
+    projection,
+    columns,
+    sort,
+    expandedTiebreakActorId,
+    isGroupPhase,
+    intl,
+    decidingCode,
+    primaryMetricCode,
+    nameColumnCode,
+    organizationAlias,
+    toggleTiebreak,
+  ]);
 
+  const displayTournamentName = tournamentName?.trim();
+  const tournamentHref =
+    tournamentAlias !== undefined
+      ? `/control/${organizationAlias}/tournaments/${tournamentAlias}`
+      : undefined;
   const stageHubHref =
     tournamentAlias !== undefined && stageNumber !== undefined
       ? `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}`
       : undefined;
-  const breadcrumbNode = (
-    <span>
-      {organizationAlias} &gt; {tournamentName}
-      {projection && (
-        <>
-          {' · '}
-          {intl.formatMessage(messages.standingsProjectionVersion, {
-            version: projection.projectionVersion,
-          })}
-        </>
-      )}
-      {stageHubHref !== undefined && (
-        <>
-          {' · '}
-          <a className="cl-focusable" href={stageHubHref} onClick={controlLinkClick(stageHubHref)}>
-            <FormattedMessage {...messages.stageHubBreadcrumbLink} values={{ stageNumber }} />
-          </a>
-        </>
-      )}
-    </span>
-  );
-
+  const breadcrumbs = [
+    ...(displayTournamentName && tournamentHref
+      ? [{ label: displayTournamentName, href: tournamentHref }]
+      : []),
+    ...(stageHubHref && stageNumber !== undefined
+      ? [
+          {
+            label:
+              stageName ?? intl.formatMessage(messages.stageHubBreadcrumbLink, { stageNumber }),
+            href: stageHubHref,
+          },
+        ]
+      : []),
+  ];
   const titleNode = <FormattedMessage {...messages.standingsTitle} />;
 
   const toolbarNode = (
@@ -246,6 +353,7 @@ export function StandingsTemplate({
               value: option.groupId,
               label: option.label,
             }))}
+            placeholder={intl.formatMessage(messages.selectPlaceholder)}
             value={groupSelector.selectedGroupId ?? ''}
           />
         </Field>
@@ -303,6 +411,8 @@ export function StandingsTemplate({
             columns={dataTableColumns}
             compact
             emptyMessage={intl.formatMessage(messages.standingsNoResultsYet)}
+            mobileMode="priority"
+            moreColumnsLabel={intl.formatMessage(messages.dataTableMoreColumns)}
             eyebrow={localizedText(projection.label, intl.locale)}
             stickyHeader
             tableAriaLabel={intl.formatMessage(messages.standingsSectionLabel)}
@@ -312,28 +422,16 @@ export function StandingsTemplate({
               label: rule.label,
               triggered: rule.triggered,
             }))}
-            title={tournamentName}
-            renderRowDetail={
-              isGroupPhase
-                ? (row) => (
-                    <details
-                      className="cl-focusable"
-                      onToggle={(event) => {
-                        if (event.currentTarget.open) expand(row.actorId);
-                      }}
-                    >
-                      <summary style={{ cursor: 'pointer' }}>
-                        <FormattedMessage {...messages.standingsTiebreak} />
-                      </summary>
-                      <div style={{ padding: 'var(--cl-space-2) 0' }}>
-                        <TiebreakTrace
-                          lines={traces[row.actorId]}
-                          loading={pending.includes(row.actorId)}
-                        />
-                      </div>
-                    </details>
-                  )
-                : undefined
+            title={displayTournamentName ?? localizedText(projection.label, intl.locale)}
+            renderRowDetail={(row) =>
+              isGroupPhase && expandedTiebreakActorId === row.actorId ? (
+                <div id={`standings-tiebreak-${row.actorId}`}>
+                  <TiebreakTrace
+                    lines={traces[row.actorId]}
+                    loading={pending.includes(row.actorId)}
+                  />
+                </div>
+              ) : undefined
             }
             rowKey={(row) => row.actorId}
             rows={rows}
@@ -345,7 +443,7 @@ export function StandingsTemplate({
 
   return (
     <ListScreenLayout
-      breadcrumb={breadcrumbNode}
+      breadcrumbs={breadcrumbs}
       listing={listingNode}
       title={titleNode}
       toolbar={toolbarNode}
@@ -425,57 +523,94 @@ export function PointsDistribution({
   }[];
 }): React.JSX.Element {
   const intl = useIntl();
+  const [view, setView] = useState<'chart' | 'table'>('chart');
+  const title = intl.formatMessage(messages.standingsDistributionTitle, { count: bars.length });
+  const columns: readonly DataTableColumn<(typeof bars)[number]>[] = [
+    {
+      key: 'entrant',
+      header: intl.formatMessage(messages.chartEntity),
+      render: (bar) => bar.label,
+    },
+    { key: 'value', header: intl.formatMessage(messages.chartValue), render: (bar) => bar.value },
+  ];
+
   return (
     <div
       aria-label={intl.formatMessage(messages.standingsDistributionAriaLabel)}
       className="cl-card cl-chamfer"
     >
       <header className="cl-card__header">
-        <h2 className="cl-card__title">
-          {intl.formatMessage(messages.standingsDistributionTitle, { count: bars.length })}
-        </h2>
+        <h2 className="cl-card__title">{title}</h2>
+        <div aria-label={title} className="cl-standings-distribution-controls" role="group">
+          <Button
+            aria-pressed={view === 'chart'}
+            onClick={() => setView('chart')}
+            type="button"
+            variant={view === 'chart' ? 'primary' : 'secondary'}
+          >
+            {intl.formatMessage(messages.chartShowAsChart)}
+          </Button>
+          <Button
+            aria-pressed={view === 'table'}
+            onClick={() => setView('table')}
+            type="button"
+            variant={view === 'table' ? 'primary' : 'secondary'}
+          >
+            {intl.formatMessage(messages.chartShowAsTable)}
+          </Button>
+        </div>
       </header>
       <div className="cl-card__content">
-        {bars.map((bar) => (
-          <div
-            className="cl-standings-distribution-row"
-            key={bar.actorId}
-            style={{
-              display: 'grid',
-              gap: 'var(--cl-space-3)',
-              alignItems: 'center',
-            }}
-          >
-            <span>{bar.label}</span>
-            <span
+        {view === 'table' ? (
+          <DataTable
+            ariaLabel={`${title}: ${intl.formatMessage(messages.chartShowAsTable)}`}
+            columns={columns}
+            emptyMessage={intl.formatMessage(messages.standingsDistributionEmpty)}
+            rowKey={(bar) => bar.actorId}
+            rows={bars}
+          />
+        ) : (
+          bars.map((bar) => (
+            <div
+              className="cl-standings-distribution-row"
+              key={bar.actorId}
               style={{
-                display: 'block',
-                height: 12,
-                background: 'var(--cl-surface-chrome)',
-                border: '1px solid var(--cl-border-muted)',
+                display: 'grid',
+                gap: 'var(--cl-space-3)',
+                alignItems: 'center',
               }}
             >
+              <span>{bar.label}</span>
               <span
-                aria-hidden="true"
                 style={{
                   display: 'block',
-                  height: '100%',
-                  background: 'var(--cl-state-live)',
-                  // Scaled rather than resized: animating `width` relayouts the
-                  // row on every frame, and the reduced-motion override only
-                  // reaches durations, not the cost of the property.
-                  width: '100%',
-                  transformOrigin: 'left',
-                  transform: `scaleX(${bar.widthPercent / 100})`,
-                  transition: 'transform var(--cl-motion-slow) var(--cl-motion-easing)',
+                  height: 12,
+                  background: 'var(--cl-surface-panel)',
+                  border: '1px solid var(--cl-border-muted)',
                 }}
-              />
-            </span>
-            <strong style={{ fontFamily: 'var(--cl-font-mono)', textAlign: 'right' }}>
-              {bar.value}
-            </strong>
-          </div>
-        ))}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    display: 'block',
+                    height: '100%',
+                    background: seriesColor(0, 'dark'),
+                    // Scaled rather than resized: animating `width` relayouts the
+                    // row on every frame, and the reduced-motion override only
+                    // reaches durations, not the cost of the property.
+                    width: '100%',
+                    transformOrigin: 'left',
+                    transform: `scaleX(${bar.widthPercent / 100})`,
+                    transition: 'transform var(--cl-motion-slow) var(--cl-motion-easing)',
+                  }}
+                />
+              </span>
+              <strong style={{ fontFamily: 'var(--cl-font-mono)', textAlign: 'right' }}>
+                {bar.value}
+              </strong>
+            </div>
+          ))
+        )}
         {bars.length === 0 && (
           <p className="cl-card__description">
             <FormattedMessage {...messages.standingsDistributionEmpty} />

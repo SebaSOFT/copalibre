@@ -38,10 +38,10 @@ test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     const path = (req.url ?? '').split('?')[0] ?? '';
-    const tournament = path.startsWith(`/organizations/${organization}/tournaments/single-zone`)
+    const tournament = path.startsWith(`/api/organizations/${organization}/tournaments/single-zone`)
       ? 'single-zone'
       : 'multi-zone';
-    const route = `/organizations/${organization}/tournaments/${tournament}`;
+    const route = `/api/organizations/${organization}/tournaments/${tournament}`;
     if (path === `${route}/overview`) {
       res.end(
         JSON.stringify({
@@ -101,11 +101,10 @@ test('finished multi-zone overview shows shared champions and known third place'
   await expect(podium.getByText('Bronze Club', { exact: true })).toBeVisible();
   await expect(podium.getByText('Runner Club', { exact: true })).toBeVisible();
 
-  const row = page.locator('.cl-match-schedule').getByRole('row').filter({ hasText: 'Andes' });
-  await expect(row).toContainText('FINAL');
-  const timestamp = row.locator('time');
-  await expect(timestamp).toHaveAttribute('datetime', match.scheduledAt);
-  await expect(timestamp).not.toContainText('2025-05-18T');
+  const result = page.locator('.cl-match-card').filter({ hasText: 'Andes' });
+  await expect(result).toContainText('Final');
+  await expect(result.getByText('Andes 2', { exact: true })).toBeVisible();
+  await expect(result.getByText('1 Concepcion', { exact: true })).toBeVisible();
 });
 
 test('single-zone overview keeps its match schedule but omits the podium', async ({
@@ -116,5 +115,8 @@ test('single-zone overview keeps its match schedule but omits the podium', async
   await page.goto(`${basePath}/single-zone`);
 
   await expect(page.locator('.cl-podium-container')).toHaveCount(0);
-  await expect(page.locator('.cl-match-schedule').getByRole('table')).toHaveCount(1);
+  const matches = page.getByRole('region', { name: 'Matches' });
+  await expect(matches.locator('.cl-match-card')).toHaveCount(1);
+  await expect(matches.locator('.cl-match-card')).toContainText('Andes');
+  await expect(matches.getByRole('link', { name: 'See every match' })).toBeVisible();
 });

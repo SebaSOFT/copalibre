@@ -1,7 +1,8 @@
-import { controlTokenStore, readAuthMethod, clearAuthMethod } from './token-store.js';
+import { controlSession } from './session-store.js';
 import { refreshNativeSession } from './native-refresh.js';
 import { renewOidcSessionSilently } from './oidc-silent-renew.js';
-import type { SilentRenewalOutcome } from './renewal-outcome.js';
+import type { SilentRenewalResult } from './renewal-outcome.js';
+import { setSessionReconnecting } from './renewal-status.js';
 
 /** The spec delta's own number: renew before expiry, not after. */
 const RENEW_BEFORE_EXPIRY_MS = 120_000;
@@ -20,7 +21,7 @@ function currentBrowser(): SilentRenewalBrowser {
 }
 
 let timer: ReturnType<typeof setTimeout> | undefined;
-let inFlight: Promise<SilentRenewalOutcome | undefined> | undefined;
+let inFlight: Promise<SilentRenewalResult | undefined> | undefined;
 
 export function cancelScheduledRenewal(): void {
   if (timer !== undefined) {
@@ -31,8 +32,8 @@ export function cancelScheduledRenewal(): void {
 
 function giveUp(browser: SilentRenewalBrowser): undefined {
   cancelScheduledRenewal();
-  controlTokenStore.clear();
-  clearAuthMethod();
+  setSessionReconnecting(false);
+  controlSession.clear();
   browser.navigate(
     `/control/login?returnTo=${encodeURIComponent(browser.currentPath())}&reason=session_expired`,
   );
@@ -47,17 +48,23 @@ function giveUp(browser: SilentRenewalBrowser): undefined {
  */
 export function renewSessionOnce(
   browser: SilentRenewalBrowser = currentBrowser(),
-): Promise<SilentRenewalOutcome | undefined> {
+): Promise<SilentRenewalResult | undefined> {
   if (inFlight !== undefined) return inFlight;
 
-  const method = readAuthMethod();
+  const method = controlSession.method();
   const attempt = method === 'native' ? refreshNativeSession() : renewOidcSessionSilently();
 
   inFlight = attempt
     .then((outcome) => {
       if (outcome === undefined) return giveUp(browser);
-      controlTokenStore.write(outcome.accessToken, outcome.expiresAtMs);
-      scheduleSilentRenewal(outcome.expiresAtMs, browser);
+      if ('retryAtMs' in outcome) {
+        setSessionReconnecting(true);
+        scheduleRenewalRetry(outcome.retryAtMs, browser);
+        return outcome;
+      }
+      setSessionReconnecting(false);
+      controlSession.write(outcome.session);
+      scheduleSilentRenewal(outcome.session.expiresAtMs, browser);
       return outcome;
     })
     .catch(() => giveUp(browser))
@@ -66,6 +73,18 @@ export function renewSessionOnce(
     });
 
   return inFlight;
+}
+
+function scheduleRenewalRetry(
+  retryAtMs: number,
+  browser: SilentRenewalBrowser = currentBrowser(),
+  now: () => number = Date.now,
+): void {
+  cancelScheduledRenewal();
+  timer = setTimeout(
+    () => void renewSessionOnce(browser),
+    Math.max(MIN_DELAY_MS, retryAtMs - now()),
+  );
 }
 
 /** Schedules one renewal attempt ~120s before `expiresAtMs`; a successful attempt reschedules itself from its own new expiry. */

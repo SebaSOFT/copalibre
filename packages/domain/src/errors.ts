@@ -27,7 +27,8 @@ export interface PolicyViolation {
     | 'forbidden-override'
     | 'inherited-field'
     | 'missing-merge-strategy'
-    | 'unknown-merge-strategy';
+    | 'unknown-merge-strategy'
+    | 'invalid-override';
   readonly message: string;
 }
 

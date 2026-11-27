@@ -1,47 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert } from './ui/atoms/alert.js';
-import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
-import { Button } from './ui/atoms/button.js';
-import { Checkbox } from './ui/atoms/checkbox.js';
-import { Input } from './ui/atoms/input.js';
-import { Select } from './ui/atoms/select.js';
-import { Textarea } from './ui/atoms/textarea.js';
-import { DecisionHint } from './ui/atoms/decision-hint.js';
-import { Stack } from './ui/atoms/layout/stack.js';
-import { Field } from './ui/molecules/field.js';
+import { useEffect, useMemo, useState } from 'react';
+import { useIntl } from 'react-intl';
 import { StepHeading } from './ui/molecules/step-heading.js';
 import { WizardShell } from './ui/organisms/wizard-shell.js';
-import { StageListEditor } from './StageListEditor.js';
-import { VisualRuleBuilder } from './ui/organisms/visual-rule-builder.js';
-import { RulesetFieldControl } from './ui/molecules/ruleset-field-control.js';
-import {
-  TournamentSummary,
-  type TournamentSummaryFacts,
-} from './ui/organisms/tournament-summary.js';
-import { fieldValueAt, mergeOverrides } from '../lib/discipline-summary.js';
-import { isSupportedLanguage, resolveFieldPolicyLabel } from '@copalibre/domain';
+import { type WizardEmblem } from './WizardEmblemPane.js';
 import {
   WIZARD_STEPS,
-  addRuleAction,
-  addRuleCondition,
-  addCustomRule,
-  canAddRuleAction,
-  canAddRuleCondition,
   canContinue,
-  canAddCustomRule,
-  elementOptionsKey,
   formatsFor,
   initialWizard,
   mutationClassOf,
   nextStep,
-  moveRuleAction,
-  parameterValueKey,
   previousStep,
   progress,
-  removeCustomRule,
-  removeRuleAction,
-  removeRuleCondition,
-  renderRulePhrase,
   resolveDecisionDescription,
   reversibilityMessageKey,
   stepProblems,
@@ -51,19 +21,20 @@ import {
   type WizardState,
 } from '../lib/wizard.js';
 import { initialStages } from '../lib/stage-authoring.js';
-import type { HookScriptVocabulary, HookVocabularyEntry } from '../lib/api-client.js';
+import type { HookScriptVocabulary } from '../lib/api-client.js';
 import { messages } from '../i18n/messages.en.js';
-import { localizedText } from '../../lib/localized-label.js';
-
-/** Fields the wizard's own dedicated steps already capture — excluded from the generic list. */
-const RESERVED_RULESET_FIELDS = new Set([
-  'format',
-  'registration.publicOpen',
-  'registration.requiresCheckIn',
-  'registration.checkInClosesAt',
-  'registration.region',
-  'registration.capacity',
-]);
+import {
+  NameStep,
+  PrivacyStep,
+  DisciplineStep,
+} from './tournament-setup/TournamentSetupBasicsSteps.js';
+import {
+  FormatStep,
+  RulesetStep,
+  WindowStep,
+} from './tournament-setup/TournamentSetupFormatSteps.js';
+import { RulesStep } from './tournament-setup/TournamentSetupRulesStep.js';
+import { SummaryStep } from './tournament-setup/TournamentSetupSummaryStep.js';
 
 const EMPTY_PROFILES: readonly TournamentProfileOption[] = [];
 const EMPTY_VOCABULARY: HookScriptVocabulary = { hooks: [], entries: [] };
@@ -84,12 +55,19 @@ export function TournamentSetupWizard({
     format?: string,
   ) => Promise<readonly TournamentProfileOption[]>;
   readonly vocabulary?: HookScriptVocabulary;
-  readonly onSubmit?: (request: ReturnType<typeof toCreateRequest>) => void;
+  /** The emblem rides along only when the operator picked one: it is not part of the create request. */
+  readonly onSubmit?: (
+    request: ReturnType<typeof toCreateRequest>,
+    extras?: { readonly emblem: WizardEmblem },
+  ) => void;
   readonly initialState?: Partial<WizardState>;
 }): React.JSX.Element {
   const intl = useIntl();
   const firstDiscipline = disciplines[0];
   const [asyncProfiles, setAsyncProfiles] = useState<readonly TournamentProfileOption[]>([]);
+  const [privacyReturnToSummary, setPrivacyReturnToSummary] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
+  const [emblem, setEmblem] = useState<WizardEmblem | undefined>(undefined);
   const [state, setState] = useState<WizardState>(() => ({
     ...initialWizard(),
     ...(firstDiscipline === undefined
@@ -168,7 +146,9 @@ export function TournamentSetupWizard({
   }
 
   function submit(): void {
-    onSubmit?.(toCreateRequest(state, vocabulary));
+    const request = toCreateRequest(state, vocabulary);
+    if (emblem === undefined) onSubmit?.(request);
+    else onSubmit?.(request, { emblem });
   }
 
   return (
@@ -177,7 +157,16 @@ export function TournamentSetupWizard({
       backLabel={intl.formatMessage(messages.wizardBack)}
       breadcrumb={intl.formatMessage(messages.wizardBreadcrumb)}
       currentStepId={state.step}
-      onBack={() => patch({ step: previousStep(state) })}
+      nextStepCaption={(step) => intl.formatMessage(messages.wizardNextStep, { step })}
+      onBack={() => {
+        setShowValidation(false);
+        if (state.step === 'privacy' && privacyReturnToSummary) {
+          setPrivacyReturnToSummary(false);
+          patch({ step: 'summary' });
+          return;
+        }
+        patch({ step: previousStep(state) });
+      }}
       primaryAction={
         state.step === 'summary'
           ? {
@@ -186,13 +175,26 @@ export function TournamentSetupWizard({
               onClick: submit,
             }
           : {
-              label: intl.formatMessage(messages.wizardContinue),
+              label: intl.formatMessage(
+                state.step === 'privacy' && privacyReturnToSummary
+                  ? messages.wizardReturnToSummary
+                  : messages.wizardContinue,
+              ),
               disabled: !canContinue(state, disciplines, vocabulary),
-              onClick: () => patch({ step: nextStep(state) }),
+              onClick: () => {
+                if (state.step === 'privacy' && privacyReturnToSummary) {
+                  setShowValidation(false);
+                  setPrivacyReturnToSummary(false);
+                  patch({ step: 'summary' });
+                  return;
+                }
+                setShowValidation(false);
+                patch({ step: nextStep(state) });
+              },
             }
       }
-      problems={problems.map((problem) => intl.formatMessage(problem))}
-      progress={progress(state)}
+      problems={showValidation ? problems.map((problem) => intl.formatMessage(problem)) : []}
+      progress={progress(state, problems.length === 0)}
       progressCaption={` ${intl.formatMessage(messages.wizardConfigured)}`}
       progressTestId="wizard-progress"
       stepIndicatorVariant="badge"
@@ -205,848 +207,80 @@ export function TournamentSetupWizard({
         what they are doing. Until now the panel carried no heading at all, so
         a screen reader moving by heading arrived at a form with no subject.
       */}
-      {activeStep !== undefined && (
-        <StepHeading
-          level={2}
-          step={activeStepNumber}
-          title={intl.formatMessage(activeStep.label)}
-        />
-      )}
-      {state.step === 'name' && <NameStep intl={intl} patch={patch} state={state} />}
-
-      {state.step === 'discipline' && (
-        <DisciplineStep disciplines={disciplines} intl={intl} patch={patch} state={state} />
-      )}
-
-      {state.step === 'format' && (
-        <FormatStep
-          formatHintText={decisionHintText('format', messages.wizardDecisionFormat)}
-          formats={formats}
-          intl={intl}
-          patch={patch}
-          profiles={profiles}
-          state={state}
-        />
-      )}
-
-      {state.step === 'ruleset' && (
-        <RulesetStep
-          intl={intl}
-          patch={patch}
-          selectedDiscipline={selectedDiscipline}
-          state={state}
-        />
-      )}
-
-      {state.step === 'window' && (
-        <WindowStep decisionHintText={decisionHintText} intl={intl} patch={patch} state={state} />
-      )}
-
-      {state.step === 'rules' && (
-        <RulesStep
-          actions={actions}
-          conditions={conditions}
-          intl={intl}
-          patch={patch}
-          selectedAction={selectedAction}
-          selectedCondition={selectedCondition}
-          setState={setState}
-          state={state}
-          vocabulary={vocabulary}
-        />
-      )}
-
-      {state.step === 'summary' && (
-        <SummaryStep selectedDiscipline={selectedDiscipline} state={state} />
-      )}
-    </WizardShell>
-  );
-}
-
-/**
- * One component per wizard step, extracted from `TournamentSetupWizard`'s
- * render body: each step's own conditionals now count toward
- * its own function, not the wizard shell's, and the shell keeps only the
- * `state.step === '<name>' &&` gate that chooses among them.
- */
-function NameStep({
-  intl,
-  patch,
-  state,
-}: {
-  readonly intl: IntlShape;
-  readonly patch: (next: Partial<WizardState>) => void;
-  readonly state: WizardState;
-}): React.JSX.Element {
-  return (
-    <div className="cl-platform-form-grid">
-      <Field id="wizard-name" label={intl.formatMessage(messages.wizardFieldName)}>
-        <Input
-          id="wizard-name"
-          onChange={(event) => patch({ name: event.target.value })}
-          value={state.name ?? ''}
-        />
-      </Field>
-      <Field id="wizard-alias" label={intl.formatMessage(messages.wizardFieldAlias)}>
-        <Input
-          id="wizard-alias"
-          onChange={(event) => patch({ alias: event.target.value })}
-          value={state.alias ?? ''}
-        />
-      </Field>
-    </div>
-  );
-}
-
-function DisciplineStep({
-  disciplines,
-  intl,
-  patch,
-  state,
-}: {
-  readonly disciplines: readonly DisciplineOption[];
-  readonly intl: IntlShape;
-  readonly patch: (next: Partial<WizardState>) => void;
-  readonly state: WizardState;
-}): React.JSX.Element {
-  return (
-    <Field id="wizard-discipline" label={intl.formatMessage(messages.wizardFieldDiscipline)}>
-      <Select
-        aria-describedby="wizard-discipline-hint"
-        aria-label={intl.formatMessage(messages.wizardFieldDiscipline)}
-        id="wizard-discipline"
-        onValueChange={(val) => {
-          const discipline = disciplines.find((one) => one.descriptorId === val);
-          patch({
-            descriptorId: discipline?.descriptorId,
-            descriptorVersion: discipline?.version,
-            stages: initialStages(discipline?.supportedFormats[0]),
-            profileId: undefined,
-            profileVersion: undefined,
-          });
-        }}
-        options={disciplines.map((discipline) => ({
-          value: discipline.descriptorId,
-          label: `${localizedText(discipline.name, intl.locale)}${
-            discipline.description === undefined
-              ? ''
-              : ` — ${localizedText(discipline.description, intl.locale)}`
-          } · ${discipline.version}`,
-        }))}
-        value={state.descriptorId ?? ''}
-      />
-      <DecisionHint
-        id="wizard-discipline-hint"
-        text={intl.formatMessage(messages.wizardDecisionDiscipline)}
-      />
-    </Field>
-  );
-}
-
-function FormatStep({
-  formatHintText,
-  formats,
-  intl,
-  patch,
-  profiles,
-  state,
-}: {
-  readonly formatHintText: string;
-  readonly formats: readonly string[];
-  readonly intl: IntlShape;
-  readonly patch: (next: Partial<WizardState>) => void;
-  readonly profiles: readonly TournamentProfileOption[];
-  readonly state: WizardState;
-}): React.JSX.Element {
-  const selectedProfile = profiles.find((profile) => profile.profileId === state.profileId);
-  // Stashed so clearing the profile selection restores what the operator had
-  // authored, rather than resetting to a single blank stage.
-  const preProfileStages = useRef<WizardState['stages'] | undefined>(undefined);
-
-  return (
-    <div className="cl-platform-form-grid">
-      {profiles.length > 0 && (
-        <Field id="wizard-profile" label={intl.formatMessage(messages.wizardFieldProfile)}>
-          <Select
-            aria-label={intl.formatMessage(messages.wizardFieldProfile)}
-            id="wizard-profile"
-            onValueChange={(val) => {
-              const nextProfile = profiles.find((p) => p.profileId === val);
-              if (nextProfile) {
-                if (preProfileStages.current === undefined) preProfileStages.current = state.stages;
-                patch({
-                  profileId: nextProfile.profileId,
-                  profileVersion: nextProfile.version,
-                  // The wizard submits the profile's own stages verbatim — this
-                  // read-only preview and the submitted request never disagree.
-                  stages: nextProfile.stages.map((stage) => ({
-                    number: stage.number,
-                    name: stage.name,
-                    format: stage.format,
-                    ...(stage.allocation === undefined ? {} : { allocation: stage.allocation }),
-                    ...(stage.groupConfiguration === undefined
-                      ? {}
-                      : { groupConfiguration: stage.groupConfiguration }),
-                  })),
-                });
-              } else {
-                patch({
-                  profileId: undefined,
-                  profileVersion: undefined,
-                  stages: preProfileStages.current ?? initialStages(formats[0]),
-                });
-                preProfileStages.current = undefined;
-              }
-            }}
-            options={[
-              { value: '', label: intl.formatMessage(messages.wizardProfileNone) },
-              ...profiles.map((profile) => ({
-                value: profile.profileId,
-                label: `${localizedText(profile.name, intl.locale)} (${profile.stages
-                  .map((s) => s.name)
-                  .join(' → ')}) · ${profile.version}`,
-              })),
-            ]}
-            value={state.profileId ?? ''}
+      <div onBlurCapture={() => setShowValidation(true)}>
+        {activeStep !== undefined && (
+          <StepHeading
+            level={2}
+            step={activeStepNumber}
+            totalSteps={WIZARD_STEPS.length}
+            title={intl.formatMessage(activeStep.label)}
           />
-        </Field>
-      )}
+        )}
+        {state.step === 'name' && (
+          <NameStep
+            emblem={emblem}
+            intl={intl}
+            onEmblemChange={setEmblem}
+            patch={patch}
+            state={state}
+          />
+        )}
 
-      <div style={{ gridColumn: '1 / -1' }}>
-        {selectedProfile ? (
-          <div style={{ display: 'grid', gap: 'var(--cl-space-3)' }}>
-            <p style={{ margin: 0, color: 'var(--cl-text-secondary)' }}>
-              <FormattedMessage {...messages.stageEditorProfilePreviewHint} />
-            </p>
-            <StageListEditor
-              capacity={state.capacity}
-              formats={formats}
-              readOnly
-              showAllocation
-              showStructurePreview
-              stages={state.stages}
-            />
-          </div>
-        ) : (
-          <StageListEditor
-            capacity={state.capacity}
-            formatHintText={formatHintText}
+        {state.step === 'privacy' && <PrivacyStep intl={intl} patch={patch} state={state} />}
+
+        {state.step === 'discipline' && (
+          <DisciplineStep disciplines={disciplines} intl={intl} patch={patch} state={state} />
+        )}
+
+        {state.step === 'format' && (
+          <FormatStep
+            formatHintText={decisionHintText('format', messages.wizardDecisionFormat)}
             formats={formats}
-            onChange={(stages) => patch({ stages })}
-            showAllocation
-            showSeries
-            showStructurePreview
-            showZones
-            stages={state.stages}
+            intl={intl}
+            patch={patch}
+            profiles={profiles}
+            state={state}
+          />
+        )}
+
+        {state.step === 'ruleset' && (
+          <RulesetStep
+            intl={intl}
+            patch={patch}
+            selectedDiscipline={selectedDiscipline}
+            state={state}
+          />
+        )}
+
+        {state.step === 'window' && (
+          <WindowStep decisionHintText={decisionHintText} intl={intl} patch={patch} state={state} />
+        )}
+
+        {state.step === 'rules' && (
+          <RulesStep
+            actions={actions}
+            conditions={conditions}
+            intl={intl}
+            patch={patch}
+            selectedAction={selectedAction}
+            selectedCondition={selectedCondition}
+            setState={setState}
+            state={state}
+            vocabulary={vocabulary}
+          />
+        )}
+
+        {state.step === 'summary' && (
+          <SummaryStep
+            onReviewPrivacy={() => {
+              setPrivacyReturnToSummary(true);
+              patch({ step: 'privacy' });
+            }}
+            selectedDiscipline={selectedDiscipline}
+            state={state}
           />
         )}
       </div>
-    </div>
-  );
-}
-
-/**
- * A typed control per discipline-declared ruleset field beyond format/
- * registration.*, reusing the typed `RulesetFieldControl`
- * unmodified. Distinct from `RulesStep` below: that step authors hook-script
- * automation (condition/action pairs); this one sets `RulesetConfig` values
- * the discipline itself declares (`scoring.pointsPerWin`, `tiebreakers`, …).
- */
-function RulesetStep({
-  intl,
-  patch,
-  selectedDiscipline,
-  state,
-}: {
-  readonly intl: IntlShape;
-  readonly patch: (next: Partial<WizardState>) => void;
-  readonly selectedDiscipline: DisciplineOption | undefined;
-  readonly state: WizardState;
-}): React.JSX.Element {
-  const shortLocale = intl.locale.split('-')[0];
-  const language = isSupportedLanguage(shortLocale) ? shortLocale : 'en';
-  const fieldPolicies = selectedDiscipline?.fieldPolicies ?? {};
-  const defaults = selectedDiscipline?.defaults ?? {};
-  const eligibleFields = Object.keys(fieldPolicies).filter(
-    (dotPath) =>
-      !RESERVED_RULESET_FIELDS.has(dotPath) &&
-      fieldPolicies[dotPath]?.permission.kind !== 'forbidden' &&
-      fieldPolicies[dotPath]?.permission.kind !== 'inherited',
-  );
-
-  if (eligibleFields.length === 0) {
-    return (
-      <p>
-        <FormattedMessage {...messages.wizardRulesetEmpty} />
-      </p>
-    );
-  }
-
-  return (
-    <div className="cl-platform-form-grid">
-      {eligibleFields.map((dotPath) => {
-        const policy = fieldPolicies[dotPath];
-        const label =
-          policy !== undefined ? resolveFieldPolicyLabel(dotPath, policy, language) : dotPath;
-        return (
-          <Field id={`wizard-ruleset-${dotPath}`} key={dotPath} label={label}>
-            <RulesetFieldControl
-              addLabel={intl.formatMessage(messages.rulesetFieldListAdd)}
-              availableFormats={selectedDiscipline?.supportedFormats ?? []}
-              disciplineDefaultValue={fieldValueAt(defaults, dotPath)}
-              dotPath={dotPath}
-              id={`wizard-ruleset-${dotPath}`}
-              inheritedHeading={intl.formatMessage(messages.rulesetFieldInheritedHeading)}
-              label={label}
-              onChange={(value) =>
-                patch({ ruleOverrides: { ...state.ruleOverrides, [dotPath]: value } })
-              }
-              overrideValue={state.ruleOverrides[dotPath]}
-              policy={policy}
-              removeLabel={intl.formatMessage(messages.rulesetOverridesRemoveField)}
-              unknownTypeText={intl.formatMessage(messages.rulesetFieldUnknownType)}
-              unrecognizedText={intl.formatMessage(messages.rulesetFieldUnrecognized)}
-            />
-          </Field>
-        );
-      })}
-    </div>
-  );
-}
-
-function WindowStep({
-  decisionHintText,
-  intl,
-  patch,
-  state,
-}: {
-  readonly decisionHintText: (
-    dotPath: string,
-    catalogue: (typeof messages)['wizardDecisionFormat'],
-  ) => string;
-  readonly intl: IntlShape;
-  readonly patch: (next: Partial<WizardState>) => void;
-  readonly state: WizardState;
-}): React.JSX.Element {
-  return (
-    <div className="cl-platform-form-grid">
-      <Field id="wizard-region" label={intl.formatMessage(messages.wizardFieldRegion)}>
-        <Input
-          aria-describedby="wizard-region-hint"
-          id="wizard-region"
-          onChange={(event) => patch({ region: event.target.value })}
-          value={state.region ?? ''}
-        />
-        <DecisionHint
-          id="wizard-region-hint"
-          text={decisionHintText('registration.region', messages.wizardDecisionRegion)}
-        />
-      </Field>
-      <Field id="wizard-capacity" label={intl.formatMessage(messages.wizardFieldCapacity)}>
-        <Input
-          aria-describedby="wizard-capacity-hint"
-          id="wizard-capacity"
-          min={2}
-          onChange={(event) =>
-            patch({
-              capacity: event.target.value === '' ? undefined : Number(event.target.value),
-            })
-          }
-          type="number"
-          value={state.capacity ?? ''}
-        />
-        <DecisionHint
-          id="wizard-capacity-hint"
-          text={decisionHintText('registration.capacity', messages.wizardDecisionCapacity)}
-        />
-      </Field>
-      <label
-        className="cl-toggle cl-focusable"
-        htmlFor="wizard-public-registration"
-        style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
-      >
-        <Checkbox
-          aria-describedby="wizard-public-registration-hint"
-          aria-label={intl.formatMessage(messages.wizardPublicRegistration)}
-          checked={state.publicRegistration}
-          id="wizard-public-registration"
-          onCheckedChange={(checked) => patch({ publicRegistration: checked })}
-        />
-        <span>
-          <FormattedMessage {...messages.wizardPublicRegistration} />
-        </span>
-      </label>
-      <DecisionHint
-        id="wizard-public-registration-hint"
-        text={decisionHintText(
-          'registration.publicOpen',
-          messages.wizardDecisionPublicRegistration,
-        )}
-      />
-      <label
-        className="cl-toggle cl-focusable"
-        htmlFor="wizard-requires-check-in"
-        style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
-      >
-        <Checkbox
-          aria-describedby="wizard-requires-check-in-hint"
-          aria-label={intl.formatMessage(messages.wizardRequiresCheckIn)}
-          checked={state.requiresCheckIn}
-          id="wizard-requires-check-in"
-          onCheckedChange={(checked) => patch({ requiresCheckIn: checked })}
-        />
-        <span>
-          <FormattedMessage {...messages.wizardRequiresCheckIn} />
-        </span>
-      </label>
-      <DecisionHint
-        id="wizard-requires-check-in-hint"
-        text={decisionHintText(
-          'registration.requiresCheckIn',
-          messages.wizardDecisionRequiresCheckIn,
-        )}
-      />
-      {state.requiresCheckIn && (
-        <Field
-          id="wizard-check-in-closes-at"
-          label={intl.formatMessage(messages.wizardFieldCheckInClosesAt)}
-        >
-          <Input
-            aria-describedby="wizard-check-in-closes-at-hint"
-            id="wizard-check-in-closes-at"
-            onChange={(event) => patch({ checkInClosesAt: event.target.value })}
-            type="datetime-local"
-            value={state.checkInClosesAt ?? ''}
-          />
-          <DecisionHint
-            id="wizard-check-in-closes-at-hint"
-            text={decisionHintText(
-              'registration.checkInClosesAt',
-              messages.wizardDecisionCheckInClosesAt,
-            )}
-          />
-        </Field>
-      )}
-    </div>
-  );
-}
-
-function RulesStep({
-  actions,
-  conditions,
-  intl,
-  patch,
-  selectedAction,
-  selectedCondition,
-  setState,
-  state,
-  vocabulary,
-}: {
-  readonly actions: readonly HookVocabularyEntry[];
-  readonly conditions: readonly HookVocabularyEntry[];
-  readonly intl: IntlShape;
-  readonly patch: (next: Partial<WizardState>) => void;
-  readonly selectedAction: HookVocabularyEntry | undefined;
-  readonly selectedCondition: HookVocabularyEntry | undefined;
-  readonly setState: React.Dispatch<React.SetStateAction<WizardState>>;
-  readonly state: WizardState;
-  readonly vocabulary: HookScriptVocabulary;
-}): React.JSX.Element {
-  return (
-    <Stack gap="4">
-      <label
-        className="cl-toggle cl-focusable"
-        htmlFor="wizard-enable-custom-rule"
-        style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}
-      >
-        <Checkbox
-          aria-label={intl.formatMessage(messages.wizardEnableCustomRule)}
-          checked={state.customRuleEnabled}
-          id="wizard-enable-custom-rule"
-          onCheckedChange={(checked) => patch({ customRuleEnabled: checked })}
-        />
-        <span>
-          <FormattedMessage {...messages.wizardEnableCustomRule} />
-        </span>
-      </label>
-      {state.customRuleEnabled && (
-        <>
-          {state.customRules.length > 0 && (
-            <ol style={{ display: 'grid', gap: 'var(--cl-space-4)' }}>
-              {state.customRules.map((rule, index) => {
-                const conditionPhrase =
-                  rule.conditions.length === 0
-                    ? intl.formatMessage(messages.wizardRuleConditionAlways)
-                    : rule.conditions
-                        .map((condition) => {
-                          const entry = vocabulary.entries.find(
-                            (candidate) =>
-                              candidate.kind === 'condition' && candidate.type === condition.type,
-                          );
-                          return renderRulePhrase('condition', condition.type, entry, condition);
-                        })
-                        .join(` ${intl.formatMessage(messages.wizardRuleAnd)} `);
-                const actionPhrase = rule.actions
-                  .map((action) => {
-                    const entry = vocabulary.entries.find(
-                      (candidate) => candidate.kind === 'action' && candidate.type === action.type,
-                    );
-                    return renderRulePhrase('action', action.type, entry, action);
-                  })
-                  .join('; ');
-                return (
-                  <li
-                    key={`rule-${index}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 'var(--cl-space-3)',
-                    }}
-                  >
-                    <span>
-                      {index + 1}. {conditionPhrase} → {actionPhrase}
-                    </span>
-                    <Button
-                      onClick={() => setState((current) => removeCustomRule(current, index))}
-                      type="button"
-                      variant="secondary"
-                    >
-                      <FormattedMessage {...messages.wizardRuleRemove} />
-                    </Button>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-          <VisualRuleBuilder
-            given={<FormattedMessage {...messages.wizardRuleGivenEvent} />}
-            givenLabel={intl.formatMessage(messages.wizardRuleGiven)}
-            when={
-              <Stack gap="3">
-                <Field
-                  id="wizard-rule-condition"
-                  label={intl.formatMessage(messages.wizardRuleCondition)}
-                >
-                  <Select
-                    aria-describedby="wizard-rule-condition-hint"
-                    aria-label={intl.formatMessage(messages.wizardRuleCondition)}
-                    id="wizard-rule-condition"
-                    onValueChange={(val) => patch({ customRuleConditionType: val || undefined })}
-                    options={[
-                      {
-                        value: '',
-                        label: intl.formatMessage(messages.wizardRuleConditionAlways),
-                      },
-                      ...conditions.map((entry) => ({
-                        value: entry.type,
-                        label: entry.description,
-                      })),
-                    ]}
-                    value={state.customRuleConditionType ?? ''}
-                  />
-                  <DecisionHint
-                    id="wizard-rule-condition-hint"
-                    text={selectedCondition?.description}
-                  />
-                </Field>
-                {selectedCondition && (
-                  <ElementAuthoringFields
-                    entry={selectedCondition}
-                    kind="condition"
-                    onOptionsChange={(key, value) =>
-                      patch({
-                        customRuleConditionOptions: {
-                          ...state.customRuleConditionOptions,
-                          [key]: value,
-                        },
-                      })
-                    }
-                    onValueChange={(key, value) =>
-                      patch({
-                        customRuleConditionValues: {
-                          ...state.customRuleConditionValues,
-                          [key]: value,
-                        },
-                      })
-                    }
-                    options={state.customRuleConditionOptions}
-                    optionsLabel={intl.formatMessage(messages.wizardRuleOptions)}
-                    values={state.customRuleConditionValues}
-                  />
-                )}
-                {state.customRuleConditions.map((condition, index) => {
-                  const entry = conditions.find((candidate) => candidate.type === condition.type);
-                  return (
-                    <div
-                      className="cl-visual-rule-builder__element"
-                      key={`${condition.type}-${index}`}
-                    >
-                      <span>
-                        {index > 0 && (
-                          <strong>{intl.formatMessage(messages.wizardRuleAnd)} </strong>
-                        )}
-                        {renderRulePhrase('condition', condition.type, entry, condition)}
-                      </span>
-                      <Button
-                        onClick={() => setState((current) => removeRuleCondition(current, index))}
-                        type="button"
-                        variant="secondary"
-                      >
-                        <FormattedMessage {...messages.wizardRuleRemove} />
-                      </Button>
-                    </div>
-                  );
-                })}
-                {selectedCondition === undefined && state.customRuleConditions.length === 0 && (
-                  <Alert tone="info">
-                    <FormattedMessage {...messages.wizardRuleConditionlessExplanation} />
-                  </Alert>
-                )}
-                {selectedCondition !== undefined && (
-                  <Button
-                    disabled={!canAddRuleCondition(state, vocabulary)}
-                    onClick={() => setState((current) => addRuleCondition(current, vocabulary))}
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage {...messages.wizardRuleAddCondition} />
-                  </Button>
-                )}
-              </Stack>
-            }
-            whenLabel={intl.formatMessage(messages.wizardRuleWhen)}
-            then={
-              <Stack gap="3">
-                <Field
-                  id="wizard-rule-action"
-                  label={intl.formatMessage(messages.wizardRuleAction)}
-                >
-                  <Select
-                    aria-describedby="wizard-rule-action-hint"
-                    aria-label={intl.formatMessage(messages.wizardRuleAction)}
-                    id="wizard-rule-action"
-                    onValueChange={(val) => patch({ customRuleActionType: val || undefined })}
-                    options={[
-                      {
-                        value: '',
-                        label: intl.formatMessage(messages.wizardRuleChooseAction),
-                      },
-                      ...actions.map((entry) => ({
-                        value: entry.type,
-                        label: entry.description,
-                      })),
-                    ]}
-                    value={state.customRuleActionType ?? ''}
-                  />
-                  <DecisionHint id="wizard-rule-action-hint" text={selectedAction?.description} />
-                </Field>
-                {selectedAction && (
-                  <ElementAuthoringFields
-                    entry={selectedAction}
-                    kind="action"
-                    onOptionsChange={(key, value) =>
-                      patch({
-                        customRuleActionOptions: { ...state.customRuleActionOptions, [key]: value },
-                      })
-                    }
-                    onValueChange={(key, value) =>
-                      patch({
-                        customRuleActionValues: { ...state.customRuleActionValues, [key]: value },
-                      })
-                    }
-                    options={state.customRuleActionOptions}
-                    optionsLabel={intl.formatMessage(messages.wizardRuleOptions)}
-                    values={state.customRuleActionValues}
-                  />
-                )}
-                {state.customRuleActions.map((action, index) => {
-                  const entry = actions.find((candidate) => candidate.type === action.type);
-                  return (
-                    <div
-                      className="cl-visual-rule-builder__element"
-                      key={`${action.type}-${index}`}
-                    >
-                      <span>
-                        {index + 1}. {renderRulePhrase('action', action.type, entry, action)}
-                      </span>
-                      <Button
-                        aria-label={intl.formatMessage(messages.wizardRuleMoveActionUp)}
-                        disabled={index === 0}
-                        onClick={() => setState((current) => moveRuleAction(current, index, -1))}
-                        type="button"
-                        variant="secondary"
-                      >
-                        ↑
-                      </Button>
-                      <Button
-                        aria-label={intl.formatMessage(messages.wizardRuleMoveActionDown)}
-                        disabled={index === state.customRuleActions.length - 1}
-                        onClick={() => setState((current) => moveRuleAction(current, index, 1))}
-                        type="button"
-                        variant="secondary"
-                      >
-                        ↓
-                      </Button>
-                      <Button
-                        onClick={() => setState((current) => removeRuleAction(current, index))}
-                        type="button"
-                        variant="secondary"
-                      >
-                        <FormattedMessage {...messages.wizardRuleRemove} />
-                      </Button>
-                    </div>
-                  );
-                })}
-                {selectedAction !== undefined && (
-                  <Button
-                    disabled={!canAddRuleAction(state, vocabulary)}
-                    onClick={() => setState((current) => addRuleAction(current, vocabulary))}
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage {...messages.wizardRuleAddAction} />
-                  </Button>
-                )}
-              </Stack>
-            }
-            thenLabel={intl.formatMessage(messages.wizardRuleThen)}
-          />
-          <Button
-            disabled={!canAddCustomRule(state, vocabulary)}
-            onClick={() => setState((current) => addCustomRule(current, vocabulary))}
-            type="button"
-            variant="secondary"
-          >
-            <FormattedMessage {...messages.wizardRuleAddAnother} />
-          </Button>
-        </>
-      )}
-    </Stack>
-  );
-}
-
-/**
- * The wizard's final step: everything configured on every prior step,
- * rendered in plain language via `TournamentSummary` — no
- * new fetch, since every fact it needs is already in `state`/the selected
- * `DisciplineOption`. Only the `rules` section is available here (the
- * discipline's `defaults`/`fieldPolicies`, the wizard's own overlay via
- * `mergeOverrides`) — `segmentTypes`/`eventDefinitions` are never part of a
- * `DisciplineOption`, the same scope `TournamentRulesetTemplate` already
- * renders with.
- */
-function SummaryStep({
-  selectedDiscipline,
-  state,
-}: {
-  readonly selectedDiscipline: DisciplineOption | undefined;
-  readonly state: WizardState;
-}): React.JSX.Element {
-  const fieldPolicies = selectedDiscipline?.fieldPolicies ?? {};
-  const defaults = selectedDiscipline?.defaults ?? {};
-  const facts: TournamentSummaryFacts = {
-    name: state.name ?? '',
-    stages: state.stages.map((stage, index) => ({
-      name: stage.name.trim() === '' ? `${index + 1}` : stage.name,
-      format: stage.format,
-      zones: (stage.zones ?? []).map((zone) => ({
-        name: zone.name,
-        format: zone.format ?? stage.format,
-      })),
-    })),
-    publicRegistration: state.publicRegistration,
-    requiresCheckIn: state.requiresCheckIn,
-    ...(state.checkInClosesAt !== undefined ? { checkInClosesAt: state.checkInClosesAt } : {}),
-    ...(state.region !== undefined && state.region.trim() !== '' ? { region: state.region } : {}),
-    ...(state.capacity !== undefined ? { capacity: state.capacity } : {}),
-  };
-  return (
-    <TournamentSummary
-      discipline={{
-        fieldPolicies,
-        defaults: mergeOverrides(defaults, state.ruleOverrides, fieldPolicies),
-      }}
-      facts={facts}
-      sections={['rules']}
-    />
-  );
-}
-
-function ElementAuthoringFields({
-  entry,
-  kind,
-  values,
-  options,
-  optionsLabel,
-  onValueChange,
-  onOptionsChange,
-}: {
-  readonly entry: HookVocabularyEntry;
-  readonly kind: 'condition' | 'action';
-  readonly values: Readonly<Record<string, string>>;
-  readonly options: Readonly<Record<string, string>>;
-  readonly optionsLabel: string;
-  readonly onValueChange: (key: string, value: string) => void;
-  readonly onOptionsChange: (key: string, value: string) => void;
-}): React.JSX.Element {
-  return (
-    <fieldset
-      style={{
-        border: '1px solid var(--cl-border-muted)',
-        padding: 'var(--cl-space-4)',
-      }}
-    >
-      <legend>
-        {entry.type} · {entry.description}
-      </legend>
-      <div className="cl-platform-form-grid">
-        {(entry.authoring?.parameters ?? []).map((parameter) => {
-          const key = parameterValueKey(kind, entry.type, parameter.name);
-          const choices = parameter.valueSchema['enum'];
-          const label = `${parameter.description}${parameter.required ? ' *' : ''}`;
-          return (
-            <Field id={key} key={key} label={label}>
-              {Array.isArray(choices) ? (
-                <Select
-                  aria-label={label}
-                  id={key}
-                  onValueChange={(val) => onValueChange(key, val)}
-                  options={[
-                    { value: '', label: '' },
-                    ...choices.map((choice) => ({
-                      value: String(choice),
-                      label: String(choice),
-                    })),
-                  ]}
-                  value={values[key] ?? ''}
-                />
-              ) : (
-                <Input
-                  id={key}
-                  onChange={(event) => onValueChange(key, event.target.value)}
-                  placeholder={parameter.allowExpression ? '{{ event.payload.value }}' : undefined}
-                  type={parameter.valueSchema['type'] === 'number' ? 'number' : 'text'}
-                  value={values[key] ?? ''}
-                />
-              )}
-            </Field>
-          );
-        })}
-        {entry.authoring?.optionsSchema && (
-          <Field id={`options-${entry.type}`} label={optionsLabel}>
-            <Textarea
-              aria-label={`${entry.type} options`}
-              id={`options-${entry.type}`}
-              onChange={(event) =>
-                onOptionsChange(elementOptionsKey(kind, entry.type), event.target.value)
-              }
-              rows={4}
-              value={options[elementOptionsKey(kind, entry.type)] ?? '{}'}
-            />
-          </Field>
-        )}
-      </div>
-    </fieldset>
+    </WizardShell>
   );
 }

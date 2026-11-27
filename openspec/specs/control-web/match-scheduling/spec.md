@@ -10,11 +10,9 @@ already-accepted `tournament-engine/resource-scheduling` backend capability.
 ### Requirement: A schedule builder assigns venue, time, and officials to a stage's fixtures
 
 The control panel SHALL provide a schedule-builder screen, scoped to one stage, showing that stage's
-matches alongside the organization's schedules. An organizer SHALL be able to place a match in a slot of
-a schedule and assign it officials by hand, reading the slot's venue and time rather than typing them.
-The builder SHALL preview the assignment batch — showing every conflict and every already-published match
-the batch would affect — before anything is published, and SHALL publish only on an explicit action,
-atomically, exactly as the underlying schedule API already guarantees.
+matches alongside the organization's schedules. An organizer SHALL be able to place a match in a
+slot of a schedule and assign it officials by hand. The builder SHALL preview the assignment batch
+before anything is published, and SHALL publish only on an explicit action, atomically.
 
 #### Scenario: An organizer assigns a fixture a time and venue
 - **WHEN** an organizer selects a schedule and places a match in one of its free slots
@@ -39,6 +37,17 @@ atomically, exactly as the underlying schedule API already guarantees.
 #### Scenario: A full slot offers no further placement
 - **WHEN** a slot already holds as many matches as its venue's concurrent capacity allows
 - **THEN** the builder states that the slot is full rather than accepting a placement the API would refuse
+
+#### Scenario: A placement reads its venue and time from the slot
+
+- **WHEN** an organizer places a match in a slot
+- **THEN** the match takes that slot's venue and start time, and the organizer types neither
+
+#### Scenario: The preview names the published matches a batch affects
+
+- **WHEN** an organizer previews a batch that moves or withdraws already-published matches
+- **THEN** the preview lists every conflict and every already-published match the batch would
+  affect, before anything is published
 
 ### Requirement: The list view states an unscheduled entrant's absence explicitly
 
@@ -120,3 +129,151 @@ required, naming the slot it had occupied, rather than disappearing from the vie
 - **WHEN** a series decision would remove the assignments of its remaining games
 - **THEN** the organizer sees which slots would be freed, and at which venues and times, before the
   removal is committed
+
+### Requirement: The builder asks for a reason when it changes a published placement
+
+When a batch moves or withdraws a published match, the builder SHALL ask for one batch reason before
+publishing, listing those matches. Each listed match SHALL be markable as an exception with one action,
+revealing its own reason; several marked matches SHALL take one exception reason together. A batch of
+first placements SHALL publish without asking.
+
+#### Scenario: Moving a published match asks why
+
+- **WHEN** an organizer moves a published match to another slot and publishes
+- **THEN** the builder asks for a reason, naming that match, and publishes only once one is given
+
+#### Scenario: Marking an exception takes one action
+
+- **WHEN** the reason prompt lists three moved matches and the organizer marks one as an exception
+- **THEN** that match shows its own reason field, already focused, while the other two keep the batch
+  reason
+
+#### Scenario: Several exceptions share one reason
+
+- **WHEN** the organizer marks two of five listed matches as exceptions together
+- **THEN** one reason entered for that selection applies to both
+
+#### Scenario: A reason is picked or typed
+
+- **WHEN** the organizer focuses a reason field
+- **THEN** it offers the preset reasons and the organization's recent reasons, filtered as they type,
+  and accepts free text when nothing fits
+
+#### Scenario: The prompt works from the keyboard
+
+- **WHEN** the organizer uses only the keyboard in the reason prompt
+- **THEN** they can move through the listed matches, toggle an exception, choose or type a reason and
+  publish, with focus always visible
+
+#### Scenario: First placements publish directly
+
+- **WHEN** an organizer places only unplaced matches and publishes
+- **THEN** the builder publishes without asking for a reason
+
+### Requirement: The builder can withdraw a match from its slot
+
+The schedule builder SHALL let an organizer withdraw a placed match from its slot as part of a batch,
+showing the withdrawal in the preview, and SHALL NOT offer withdrawal for a concluded, not-required or
+in-progress match.
+
+#### Scenario: Withdrawing frees the slot in the preview
+
+- **WHEN** an organizer withdraws a placed match
+- **THEN** the preview shows the match as unscheduled and its slot as free before anything is published
+
+#### Scenario: A live match offers no withdrawal
+
+- **WHEN** an organizer views a match in progress in the builder
+- **THEN** no withdrawal or move action is offered for it
+
+### Requirement: The builder reflects a change published by someone else
+
+While the schedule builder is open, a published change to a match it shows, made by another operator,
+SHALL be reported in the builder naming the match and the operator. The builder's current preview SHALL
+be re-evaluated against the new state before the organizer can publish.
+
+#### Scenario: Two operators edit the same day
+
+- **WHEN** operator A has an unpublished batch moving a match, and operator B publishes a move of another
+  match into the slot A's batch uses
+- **THEN** A's builder reports B's change and shows the resulting conflict before A can publish
+
+### Requirement: The builder words every schedule conflict in the organization's language
+
+The schedule builder SHALL state each conflict it shows, from a preview, a refused publish or the current
+schedule, in the operator's language from the conflict's kind, the matches involved and the venue,
+official or entrant concerned. It SHALL NOT display the API's diagnostic text, which is English and may
+carry identifiers.
+
+#### Scenario: A previewed rest conflict reads in Spanish
+
+- **WHEN** an organizer working in Spanish previews a batch that leaves a team too little rest
+- **THEN** the builder states the conflict in Spanish, naming the team and both matches, with no
+  identifier and no English text
+
+#### Scenario: A refused publish lists its conflicts the same way
+
+- **WHEN** a publish is refused because the schedule changed since the preview and now conflicts
+- **THEN** the builder lists the conflicts in the operator's language, as a preview would
+
+#### Scenario: A locked match is named in words
+
+- **WHEN** a batch tries to move a match that is finalized or in progress
+- **THEN** the builder says that match can no longer be moved and why, in the operator's language
+
+### Requirement: The schedule lists matches, and officials open on demand
+
+The schedule SHALL show one row per match, grouped by day, with its officials as a summary, and SHALL open the
+official picker for one match at a time.
+
+#### Scenario: 72 matches
+
+- **WHEN** an operator opens the schedule
+- **THEN** no official list shows until a row is edited
+
+#### Scenario: Edit officials
+
+- **WHEN** an operator edits a match
+- **THEN** only that match shows the picker
+
+### Requirement: A slot is chosen by day, then by time and venue
+
+The schedule SHALL let an operator choose a match's slot with two chained controls: a day, in the organization's
+time zone, then a slot of that day labelled with its start time and venue. Each slot option SHALL show its
+occupancy, and a full slot SHALL be disabled and say so in the active language. No slot label SHALL be clipped at
+1440, 768 or 390 pixels wide.
+
+#### Scenario: Choosing a slot
+
+- **WHEN** an operator picks a day
+- **THEN** the slot control lists only that day's slots, each as `14:30 · Aldo Cantoni` with its occupancy
+
+#### Scenario: Changing the day
+
+- **WHEN** an operator changes the day after choosing a slot of another day
+- **THEN** the slot choice is cleared
+
+#### Scenario: A full slot
+
+- **WHEN** a slot holds as many matches as its venue's capacity and is not the match's own
+- **THEN** it is disabled and marked full in the active language
+
+#### Scenario: Nothing clips
+
+- **WHEN** the schedule renders on the Panamericano demo at 1440, 768 or 390 pixels wide
+- **THEN** every slot control shows its time and venue in full
+
+### Requirement: An organizer can attach a stream link to a match
+The schedule builder SHALL let an organizer set, change or clear one stream link per match, from the match's row alongside its officials, as an audited edit. The link SHALL be refused only when it is not an absolute http or https URL of at most 2048 characters; CopaLibre SHALL NOT judge which streaming service is used. The edit is safe: no result, standing or schedule rule reads it.
+
+#### Scenario: Setting a link
+- **WHEN** an organizer enters `https://example.org/live/semifinal-1` for a match and saves
+- **THEN** the match carries that link, the edit is audited, and the public match page shows a watch link
+
+#### Scenario: An unusable link is refused
+- **WHEN** an organizer enters `ftp://example.org/stream` or a relative path
+- **THEN** the builder refuses it with a localized message asking for a link that starts with https://, and the match keeps its previous link
+
+#### Scenario: Clearing a link
+- **WHEN** an organizer clears the stream link of a match
+- **THEN** the public match page no longer shows a watch link

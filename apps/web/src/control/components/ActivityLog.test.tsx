@@ -1,7 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { IntlProvider } from 'react-intl';
 import { ActivityLog } from './ActivityLog.js';
 import { withIntl } from '../i18n/test-support.js';
 import type { ActivityEntry } from '../lib/dashboard.js';
+import { messages as spanishMessages } from '../i18n/messages.es.js';
 
 describe('ActivityLog', () => {
   const baseTime = new Date('2026-09-04T12:00:00.000Z').getTime();
@@ -11,7 +13,7 @@ describe('ActivityLog', () => {
     expect(screen.getByText('No activity yet.')).toBeDefined();
   });
 
-  it('renders activity entries with actor, action code, localized title, and reason', () => {
+  it('renders activity entries with human-readable actors, actions, and reason', () => {
     const entries: readonly ActivityEntry[] = [
       {
         auditId: 'audit-1',
@@ -33,13 +35,64 @@ describe('ActivityLog', () => {
     render(withIntl(<ActivityLog entries={entries} now={baseTime} />));
 
     expect(screen.getByText('Match finalized')).toBeDefined();
-    expect(screen.getByText('match.finalized')).toBeDefined();
-    expect(screen.getByText('user:admin-1')).toBeDefined();
     expect(screen.getByText('Finalized by supervisor review')).toBeDefined();
 
     expect(screen.getByText('Club created')).toBeDefined();
-    expect(screen.getByText('club.created')).toBeDefined();
-    expect(screen.getByText('user:staff-2')).toBeDefined();
+    expect(screen.getAllByText('User')).toHaveLength(2);
+    expect(screen.queryByText(/match\.finalized|club\.created|user:(admin|staff)-\d/)).toBeNull();
+  });
+
+  it('collapses consecutive matching activity and preserves each record when expanded', () => {
+    const entries: readonly ActivityEntry[] = [
+      {
+        auditId: 'audit-newest',
+        organizationId: 'org-1',
+        action: 'match.finalized',
+        actor: 'user:admin-1',
+        occurredAt: new Date(baseTime - 60_000).toISOString(),
+        reason: 'Finalized by supervisor review',
+      },
+      {
+        auditId: 'audit-older',
+        organizationId: 'org-1',
+        action: 'match.finalized',
+        actor: 'user:admin-1',
+        occurredAt: new Date(baseTime - 180_000).toISOString(),
+        reason: 'Corrected after review',
+      },
+    ];
+
+    const { container } = render(withIntl(<ActivityLog entries={entries} now={baseTime} />));
+    const details = container.querySelector('details');
+
+    expect(screen.getByText('2 matching actions in 5 minutes')).toBeDefined();
+    expect(details?.open).toBe(false);
+
+    fireEvent.click(details?.querySelector('summary') as HTMLElement);
+
+    expect(details?.open).toBe(true);
+    expect(screen.getByText('Finalized by supervisor review')).toBeDefined();
+    expect(screen.getByText('Corrected after review')).toBeDefined();
+  });
+
+  it('translates recorded match activity and its reason into Spanish', () => {
+    const entry: ActivityEntry = {
+      auditId: 'audit-recorded',
+      organizationId: 'org-1',
+      action: 'event.recorded',
+      actor: 'user:admin-1',
+      occurredAt: new Date(baseTime - 120_000).toISOString(),
+      reason: 'match finalized from recorded facts',
+    };
+
+    render(
+      <IntlProvider locale="es" messages={spanishMessages}>
+        <ActivityLog entries={[entry]} now={baseTime} />
+      </IntlProvider>,
+    );
+
+    expect(screen.getByText('Evento registrado')).toBeDefined();
+    expect(screen.getByText('Partido finalizado a partir de los hechos registrados')).toBeDefined();
   });
 
   it('uses default now timestamp when now prop is omitted', () => {

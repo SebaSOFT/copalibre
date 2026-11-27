@@ -10,7 +10,9 @@ import type {
   ZoneResponse,
 } from '../../lib/api-client.js';
 import { SERIES_RESOLUTION_CLASSES } from '../../lib/stage-authoring.js';
-import { SERIES_CLASS_LABELS, STAGE_FORMAT_LABELS } from '../../lib/stage-format-labels.js';
+import { SERIES_CLASS_LABELS } from '../../lib/stage-format-labels.js';
+import { formatEnum } from '../../lib/presentation-formatting.js';
+import type { GroupMatchFacts } from '../../lib/group-match-facts.js';
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Button } from '../ui/atoms/button.js';
 import { Card } from '../ui/atoms/card.js';
@@ -21,12 +23,39 @@ import { RadioGroup, RadioGroupItem } from '../ui/atoms/radio.js';
 import { Select } from '../ui/atoms/select.js';
 import { Field } from '../ui/molecules/field.js';
 import { messages } from '../../i18n/messages.en.js';
-import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { PageHeaderTemplate } from './PageHeaderTemplate.js';
 
 type AssignMode = 'draw' | 'manual';
 
 /** entrantId → 1-based zone/group number, as a text field so an empty box is a legal in-progress state. */
 export type ManualPlacements = Readonly<Record<string, string>>;
+
+/** The footer line of a group card: its matches and where they are played, or that it has none yet. */
+function GroupFactsLine({
+  facts,
+}: {
+  readonly facts: GroupMatchFacts | undefined;
+}): React.JSX.Element {
+  const intl = useIntl();
+  if (facts === undefined || facts.matchCount === 0) {
+    return (
+      <p className="cl-zone-group__facts">{intl.formatMessage(messages.zoneGroupGroupNoMatches)}</p>
+    );
+  }
+  const venue =
+    facts.venues.length === 1
+      ? facts.venues[0]
+      : facts.venues.length > 1
+        ? intl.formatMessage(messages.zoneGroupGroupVenues, { count: facts.venues.length })
+        : undefined;
+  return (
+    <p className="cl-zone-group__facts">
+      {[intl.formatMessage(messages.zoneGroupGroupMatches, { count: facts.matchCount }), venue]
+        .filter((part) => part !== undefined)
+        .join(' · ')}
+    </p>
+  );
+}
 
 /**
  * Composes the screen from data and callbacks `ZoneGroupPage` supplies:
@@ -41,6 +70,7 @@ export function ZoneGroupTemplate({
   availableFormats = [],
   entrantLabel,
   entrants,
+  groupFacts,
   groups,
   onConfigureZone,
   onConfirmGroupDraw,
@@ -59,6 +89,7 @@ export function ZoneGroupTemplate({
   organizationAlias,
   selectedZoneNumber,
   stageFormat,
+  stageName,
   stageNumber,
   stageSeeded = false,
   tournamentAlias,
@@ -70,6 +101,8 @@ export function ZoneGroupTemplate({
   readonly availableFormats?: readonly string[];
   readonly entrantLabel: (entrantId: string) => string;
   readonly entrants: readonly RegistrationResponse[];
+  /** Each group's fixtures by group name; absent while the matches are unavailable, so no card claims a count. */
+  readonly groupFacts?: ReadonlyMap<string, GroupMatchFacts>;
   readonly groups: readonly GroupResponse[];
   readonly onConfigureZone?: (
     zoneNumber: number,
@@ -104,6 +137,8 @@ export function ZoneGroupTemplate({
   readonly selectedZoneNumber: number | undefined;
   /** The stage's own format, which a zone without an override plays. */
   readonly stageFormat?: string | undefined;
+  /** The stage's own name; the numbered fallback shows until it is known. */
+  readonly stageName?: string;
   readonly stageNumber: number;
   /** Whether the stage already holds fixtures; a zone's format and series are locked then. */
   readonly stageSeeded?: boolean;
@@ -115,7 +150,7 @@ export function ZoneGroupTemplate({
 
   const [newZoneName, setNewZoneName] = useState('');
   const [zoneNameDrafts, setZoneNameDrafts] = useState<Record<number, string>>({});
-  const [zoneMode, setZoneMode] = useState<AssignMode>('draw');
+  const [zoneMode, setZoneMode] = useState<AssignMode | undefined>(undefined);
   const [zoneCount, setZoneCount] = useState('1');
   const [zoneSeed, setZoneSeed] = useState('1');
   const [zonePlacements, setZonePlacements] = useState<ManualPlacements>({});
@@ -123,7 +158,7 @@ export function ZoneGroupTemplate({
 
   const [newGroupName, setNewGroupName] = useState('');
   const [groupNameDrafts, setGroupNameDrafts] = useState<Record<number, string>>({});
-  const [groupMode, setGroupMode] = useState<AssignMode>('draw');
+  const [groupMode, setGroupMode] = useState<AssignMode | undefined>(undefined);
   const [groupCount, setGroupCount] = useState('1');
   const [groupSeed, setGroupSeed] = useState('1');
   const [groupPlacements, setGroupPlacements] = useState<ManualPlacements>({});
@@ -169,7 +204,9 @@ export function ZoneGroupTemplate({
     <span>
       {organizationAlias} / {tournamentAlias} /{' '}
       <a className="cl-focusable" href={stageHubHref} onClick={controlLinkClick(stageHubHref)}>
-        <FormattedMessage {...messages.stageHubBreadcrumbLink} values={{ stageNumber }} />
+        {stageName ?? (
+          <FormattedMessage {...messages.stageHubBreadcrumbLink} values={{ stageNumber }} />
+        )}
       </a>
     </span>
   );
@@ -178,23 +215,32 @@ export function ZoneGroupTemplate({
   const selectedZone = zones.find((z) => z.number === selectedZoneNumber);
 
   const listingNode = (
-    <div className="cl-screen-sections">
-      <Card
-        aria-label={intl.formatMessage(messages.zoneGroupZonesHeading)}
-        className="cl-chamfer cl-chamfer--control"
-      >
-        <header className="cl-card__header">
-          <h2 className="cl-card__title">
+    <>
+      <div className="cl-screen-sections cl-zone-group">
+        <section aria-label={intl.formatMessage(messages.zoneGroupZonesHeading)}>
+          <h2 className="cl-zone-group__heading">
             <FormattedMessage {...messages.zoneGroupZonesHeading} />
           </h2>
-        </header>
-        <div className="cl-card__content">
-          <ul>
+          <p className="cl-form-field__help" role="note">
+            {intl.formatMessage(messages.zoneGroupDeleteHelp)}
+          </p>
+          <ul className="cl-zone-group__cards">
             {zones.map((zone) => (
-              <li key={zone.number} className="cl-role-user">
-                <strong>{zone.number}.</strong> {zone.name}
+              <li className="cl-zone-group__card cl-chamfer cl-chamfer--control" key={zone.number}>
+                <div className="cl-zone-group__card-head">
+                  <span>
+                    <strong>{zone.number}.</strong> {zone.name}
+                  </span>
+                  {zone.number === selectedZoneNumber && groups.length > 0 && (
+                    <span className="cl-zone-group__count">
+                      {intl.formatMessage(messages.zoneGroupGroupCountFact, {
+                        count: groups.length,
+                      })}
+                    </span>
+                  )}
+                </div>
                 {api.renameZone && (
-                  <>
+                  <div className="cl-zone-group__rename">
                     <Input
                       aria-label={intl.formatMessage(messages.zoneGroupRenameZoneLabel, {
                         name: zone.name,
@@ -214,18 +260,9 @@ export function ZoneGroupTemplate({
                       type="button"
                       variant="secondary"
                     >
-                      <FormattedMessage {...messages.zoneGroupRename} />
+                      <FormattedMessage {...messages.zoneGroupRenameZone} />
                     </Button>
-                  </>
-                )}
-                {api.deleteZone && (
-                  <Button
-                    onClick={() => void onDeleteZone(zone.number)}
-                    type="button"
-                    variant="destructive-outline"
-                  >
-                    <FormattedMessage {...messages.zoneGroupDelete} />
-                  </Button>
+                  </div>
                 )}
                 {api.configureZone && onConfigureZone && stageFormat !== undefined && (
                   <ZoneConfiguration
@@ -236,168 +273,187 @@ export function ZoneGroupTemplate({
                     zone={zone}
                   />
                 )}
+                {api.deleteZone && (
+                  <div className="cl-zone-group__card-foot">
+                    <Button
+                      onClick={() => void onDeleteZone(zone.number)}
+                      type="button"
+                      variant="destructive-outline"
+                    >
+                      <FormattedMessage {...messages.zoneGroupDelete} />
+                    </Button>
+                  </div>
+                )}
               </li>
             ))}
+            {api.createZone && (
+              <li className="cl-zone-group__card cl-zone-group__card--add">
+                <Input
+                  aria-label={intl.formatMessage(messages.zoneGroupNewZoneName)}
+                  onChange={(event) => setNewZoneName(event.target.value)}
+                  placeholder={intl.formatMessage(messages.zoneGroupNewZoneName)}
+                  value={newZoneName}
+                />
+                <Button onClick={() => void createZone()} type="button" variant="secondary">
+                  <FormattedMessage {...messages.zoneGroupAddZone} />
+                </Button>
+              </li>
+            )}
           </ul>
-          {api.createZone && (
-            <div className="cl-platform-form-grid">
-              <Input
-                aria-label={intl.formatMessage(messages.zoneGroupNewZoneName)}
-                onChange={(event) => setNewZoneName(event.target.value)}
-                placeholder={intl.formatMessage(messages.zoneGroupNewZoneName)}
-                value={newZoneName}
-              />
-              <Button onClick={() => void createZone()} type="button" variant="secondary">
-                <FormattedMessage {...messages.zoneGroupAddZone} />
-              </Button>
-            </div>
-          )}
-        </div>
-      </Card>
+        </section>
 
-      <Card
-        aria-label={intl.formatMessage(messages.zoneGroupAssignZonesHeading)}
-        className="cl-chamfer cl-chamfer--control"
-      >
-        <header className="cl-card__header">
-          <h2 className="cl-card__title">
-            <FormattedMessage {...messages.zoneGroupAssignZonesHeading} />
-          </h2>
-        </header>
-        <div className="cl-card__content">
-          <RadioGroup
-            className="cl-role-user"
-            name="zone-assign-mode"
-            onValueChange={(val) => setZoneMode(val as AssignMode)}
-            value={zoneMode}
-          >
-            <Label className="cl-toggle cl-focusable" htmlFor="zone-mode-draw">
-              <RadioGroupItem id="zone-mode-draw" value="draw" />
-              <span>
-                <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
-              </span>
-            </Label>
-            <Label className="cl-toggle cl-focusable" htmlFor="zone-mode-manual">
-              <RadioGroupItem id="zone-mode-manual" value="manual" />
-              <span>
-                <FormattedMessage {...messages.zoneGroupManualPlacement} />
-              </span>
-            </Label>
-          </RadioGroup>
+        <Card
+          aria-label={intl.formatMessage(messages.zoneGroupAssignZonesHeading)}
+          className="cl-chamfer cl-chamfer--control cl-zone-group__assign"
+        >
+          <header className="cl-card__header">
+            <h2 className="cl-card__title">
+              <FormattedMessage {...messages.zoneGroupAssignZonesHeading} />
+            </h2>
+          </header>
+          <div className="cl-card__content">
+            <RadioGroup
+              className="cl-role-user"
+              name="zone-assign-mode"
+              onValueChange={(val) => setZoneMode(val as AssignMode)}
+              value={zoneMode}
+            >
+              <Label className="cl-toggle cl-focusable" htmlFor="zone-mode-draw">
+                <RadioGroupItem id="zone-mode-draw" value="draw" />
+                <span>
+                  <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
+                </span>
+              </Label>
+              <Label className="cl-toggle cl-focusable" htmlFor="zone-mode-manual">
+                <RadioGroupItem id="zone-mode-manual" value="manual" />
+                <span>
+                  <FormattedMessage {...messages.zoneGroupManualPlacement} />
+                </span>
+              </Label>
+            </RadioGroup>
 
-          {zoneMode === 'draw' ? (
-            <div className="cl-platform-form-grid cl-zone-group__assignment-controls">
-              <Field id="zone-draw-count" label={intl.formatMessage(messages.zoneGroupZoneCount)}>
-                <Input
-                  aria-label={intl.formatMessage(messages.zoneGroupZoneCount)}
-                  id="zone-draw-count"
-                  min="1"
-                  onChange={(event) => setZoneCount(event.target.value)}
-                  type="number"
-                  value={zoneCount}
+            {zoneMode === 'draw' ? (
+              <div className="cl-platform-form-grid cl-zone-group__assignment-controls">
+                <Field id="zone-draw-count" label={intl.formatMessage(messages.zoneGroupZoneCount)}>
+                  <Input
+                    aria-label={intl.formatMessage(messages.zoneGroupZoneCount)}
+                    id="zone-draw-count"
+                    min="1"
+                    onChange={(event) => setZoneCount(event.target.value)}
+                    type="number"
+                    value={zoneCount}
+                  />
+                </Field>
+                <Field id="zone-draw-seed" label={intl.formatMessage(messages.zoneGroupSeed)}>
+                  <Input
+                    aria-label={intl.formatMessage(messages.zoneGroupSeed)}
+                    id="zone-draw-seed"
+                    onChange={(event) => setZoneSeed(event.target.value)}
+                    type="number"
+                    value={zoneSeed}
+                  />
+                </Field>
+                <Button onClick={() => void previewZoneDraw()} type="button" variant="secondary">
+                  <FormattedMessage {...messages.zoneGroupPreviewDraw} />
+                </Button>
+                <Button
+                  disabled={!zonePreview}
+                  onClick={() => void confirmZoneDraw()}
+                  type="button"
+                >
+                  <FormattedMessage {...messages.zoneGroupConfirmDraw} />
+                </Button>
+              </div>
+            ) : zoneMode === 'manual' ? (
+              <div>
+                <ul>
+                  {entrants.map((entrant) => (
+                    <li key={entrant.entrantId} className="cl-zone-group__entrant-assignment">
+                      <span>{entrantLabel(entrant.entrantId)}</span>
+                      <Input
+                        aria-label={intl.formatMessage(messages.zoneGroupPlacementNumber, {
+                          name: entrantLabel(entrant.entrantId),
+                        })}
+                        min="1"
+                        onChange={(event) =>
+                          setZonePlacements((current) => ({
+                            ...current,
+                            [entrant.entrantId]: event.target.value,
+                          }))
+                        }
+                        type="number"
+                        value={zonePlacements[entrant.entrantId] ?? ''}
+                      />
+                    </li>
+                  ))}
+                </ul>
+                <Button onClick={() => void saveZoneManualAssignment()} type="button">
+                  <FormattedMessage {...messages.zoneGroupSaveAssignment} />
+                </Button>
+              </div>
+            ) : (
+              <p role="status">{intl.formatMessage(messages.zoneGroupChooseAssignmentMode)}</p>
+            )}
+
+            {zonePreview && (
+              <p className="cl-card__description">
+                {intl.formatMessage(messages.zoneGroupPreviewResult, {
+                  count: Object.keys(zonePreview.groups).length,
+                })}
+              </p>
+            )}
+          </div>
+        </Card>
+
+        {zones.length > 0 && (
+          <>
+            <div className="cl-zone-group__select">
+              <Field id="zone-select" label={intl.formatMessage(messages.zoneGroupSelectZone)}>
+                <Select
+                  aria-label={intl.formatMessage(messages.zoneGroupSelectZone)}
+                  id="zone-select"
+                  onValueChange={(val) => onSelectZone(Number(val))}
+                  options={zones.map((zone) => ({
+                    value: String(zone.number),
+                    label: zone.name,
+                  }))}
+                  placeholder={intl.formatMessage(messages.selectPlaceholder)}
+                  value={selectedZoneNumber !== undefined ? String(selectedZoneNumber) : ''}
                 />
               </Field>
-              <Field id="zone-draw-seed" label={intl.formatMessage(messages.zoneGroupSeed)}>
-                <Input
-                  aria-label={intl.formatMessage(messages.zoneGroupSeed)}
-                  id="zone-draw-seed"
-                  onChange={(event) => setZoneSeed(event.target.value)}
-                  type="number"
-                  value={zoneSeed}
-                />
-              </Field>
-              <Button onClick={() => void previewZoneDraw()} type="button" variant="secondary">
-                <FormattedMessage {...messages.zoneGroupPreviewDraw} />
-              </Button>
-              <Button disabled={!zonePreview} onClick={() => void confirmZoneDraw()} type="button">
-                <FormattedMessage {...messages.zoneGroupConfirmDraw} />
-              </Button>
             </div>
-          ) : (
-            <div>
-              <ul>
-                {entrants.map((entrant) => (
-                  <li key={entrant.entrantId} className="cl-zone-group__entrant-assignment">
-                    <span>{entrantLabel(entrant.entrantId)}</span>
-                    <Input
-                      aria-label={intl.formatMessage(messages.zoneGroupPlacementNumber, {
-                        name: entrantLabel(entrant.entrantId),
-                      })}
-                      min="1"
-                      onChange={(event) =>
-                        setZonePlacements((current) => ({
-                          ...current,
-                          [entrant.entrantId]: event.target.value,
-                        }))
-                      }
-                      type="number"
-                      value={zonePlacements[entrant.entrantId] ?? ''}
-                    />
-                  </li>
-                ))}
-              </ul>
-              <Button onClick={() => void saveZoneManualAssignment()} type="button">
-                <FormattedMessage {...messages.zoneGroupSaveAssignment} />
-              </Button>
-            </div>
-          )}
 
-          {zonePreview && (
-            <p className="cl-card__description">
-              {intl.formatMessage(messages.zoneGroupPreviewResult, {
-                count: Object.keys(zonePreview.groups).length,
-              })}
-            </p>
-          )}
-        </div>
-      </Card>
-
-      {zones.length > 0 && (
-        <>
-          <Field id="zone-select" label={intl.formatMessage(messages.zoneGroupSelectZone)}>
-            <Select
-              aria-label={intl.formatMessage(messages.zoneGroupSelectZone)}
-              id="zone-select"
-              onValueChange={(val) => onSelectZone(Number(val))}
-              options={zones.map((zone) => ({
-                value: String(zone.number),
-                label: zone.name,
-              }))}
-              value={selectedZoneNumber !== undefined ? String(selectedZoneNumber) : ''}
-            />
-          </Field>
-
-          <Card
-            aria-label={intl.formatMessage(messages.zoneGroupGroupsHeading)}
-            className="cl-chamfer cl-chamfer--control"
-          >
-            <header className="cl-card__header">
-              <h2 className="cl-card__title">
+            <section aria-label={intl.formatMessage(messages.zoneGroupGroupsHeading)}>
+              <h2 className="cl-zone-group__heading">
                 <FormattedMessage {...messages.zoneGroupGroupsHeading} />
               </h2>
-            </header>
-            <div className="cl-card__content">
-              <ul>
+              <p className="cl-form-field__help" role="note">
+                {intl.formatMessage(messages.zoneGroupDeleteHelp)}
+              </p>
+              <ul className="cl-zone-group__cards">
                 {groups.map((group) => (
-                  <li key={group.number} className="cl-role-user">
-                    <strong>{group.number}.</strong> {group.name}
-                    {group.entrantIds && group.entrantIds.length > 0 ? (
-                      <span className="cl-role-user">
-                        {group.entrantIds.map((entrantId) => (
-                          <Badge
-                            key={entrantId}
-                            label={entrantLabel(entrantId)}
-                            variant="section"
-                          />
-                        ))}
+                  <li
+                    className="cl-zone-group__card cl-chamfer cl-chamfer--control"
+                    key={group.number}
+                  >
+                    <div className="cl-zone-group__card-head">
+                      <span>
+                        <strong>{group.number}.</strong> {group.name}
                       </span>
+                    </div>
+                    {group.entrantIds && group.entrantIds.length > 0 ? (
+                      <ul className="cl-zone-group__entrants">
+                        {group.entrantIds.map((entrantId) => (
+                          <li key={entrantId}>{entrantLabel(entrantId)}</li>
+                        ))}
+                      </ul>
                     ) : (
                       <small className="cl-role-user__id">
                         <FormattedMessage {...messages.zoneGroupNoEntrantsAssigned} />
                       </small>
                     )}
                     {api.renameGroup && (
-                      <>
+                      <div className="cl-zone-group__rename">
                         <Input
                           aria-label={intl.formatMessage(messages.zoneGroupRenameGroupLabel, {
                             name: group.name,
@@ -420,159 +476,176 @@ export function ZoneGroupTemplate({
                           type="button"
                           variant="secondary"
                         >
-                          <FormattedMessage {...messages.zoneGroupRename} />
+                          <FormattedMessage {...messages.zoneGroupRenameGroup} />
                         </Button>
-                      </>
+                      </div>
                     )}
-                    {api.deleteGroup && (
-                      <Button
-                        onClick={() => void onDeleteGroup(group.number)}
-                        type="button"
-                        variant="destructive-outline"
-                      >
-                        <FormattedMessage {...messages.zoneGroupDelete} />
-                      </Button>
+                    {(groupFacts !== undefined || api.deleteGroup) && (
+                      <div className="cl-zone-group__card-foot">
+                        {groupFacts !== undefined && (
+                          <GroupFactsLine facts={groupFacts.get(group.name)} />
+                        )}
+                        {api.deleteGroup && (
+                          <Button
+                            onClick={() => void onDeleteGroup(group.number)}
+                            type="button"
+                            variant="destructive-outline"
+                          >
+                            <FormattedMessage {...messages.zoneGroupDelete} />
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </li>
                 ))}
+                {api.createGroup && (
+                  <li className="cl-zone-group__card cl-zone-group__card--add">
+                    <Input
+                      aria-label={intl.formatMessage(messages.zoneGroupNewGroupName)}
+                      onChange={(event) => setNewGroupName(event.target.value)}
+                      placeholder={intl.formatMessage(messages.zoneGroupNewGroupName)}
+                      value={newGroupName}
+                    />
+                    <Button onClick={() => void createGroup()} type="button" variant="secondary">
+                      <FormattedMessage {...messages.zoneGroupAddGroup} />
+                    </Button>
+                  </li>
+                )}
               </ul>
-              {api.createGroup && (
-                <div className="cl-platform-form-grid">
-                  <Input
-                    aria-label={intl.formatMessage(messages.zoneGroupNewGroupName)}
-                    onChange={(event) => setNewGroupName(event.target.value)}
-                    placeholder={intl.formatMessage(messages.zoneGroupNewGroupName)}
-                    value={newGroupName}
-                  />
-                  <Button onClick={() => void createGroup()} type="button" variant="secondary">
-                    <FormattedMessage {...messages.zoneGroupAddGroup} />
-                  </Button>
-                </div>
-              )}
-            </div>
-          </Card>
+            </section>
 
-          <Card
-            aria-label={intl.formatMessage(messages.zoneGroupAssignGroupsHeading)}
-            className="cl-chamfer cl-chamfer--control"
-          >
-            <header className="cl-card__header">
-              <h2 className="cl-card__title">
-                <FormattedMessage {...messages.zoneGroupAssignGroupsHeading} />
-              </h2>
-            </header>
-            <div className="cl-card__content">
-              <RadioGroup
-                className="cl-role-user"
-                name="group-assign-mode"
-                onValueChange={(val) => setGroupMode(val as AssignMode)}
-                value={groupMode}
-              >
-                <Label className="cl-toggle cl-focusable" htmlFor="group-mode-draw">
-                  <RadioGroupItem id="group-mode-draw" value="draw" />
-                  <span>
-                    <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
-                  </span>
-                </Label>
-                <Label className="cl-toggle cl-focusable" htmlFor="group-mode-manual">
-                  <RadioGroupItem id="group-mode-manual" value="manual" />
-                  <span>
-                    <FormattedMessage {...messages.zoneGroupManualPlacement} />
-                  </span>
-                </Label>
-              </RadioGroup>
-
-              {groupMode === 'draw' ? (
-                <div className="cl-platform-form-grid cl-zone-group__assignment-controls">
-                  <Field
-                    id="group-draw-count"
-                    label={intl.formatMessage(messages.zoneGroupGroupCount)}
-                  >
-                    <Input
-                      aria-label={intl.formatMessage(messages.zoneGroupGroupCount)}
-                      id="group-draw-count"
-                      min="1"
-                      onChange={(event) => setGroupCount(event.target.value)}
-                      type="number"
-                      value={groupCount}
-                    />
-                  </Field>
-                  <Field id="group-draw-seed" label={intl.formatMessage(messages.zoneGroupSeed)}>
-                    <Input
-                      aria-label={intl.formatMessage(messages.zoneGroupSeed)}
-                      id="group-draw-seed"
-                      onChange={(event) => setGroupSeed(event.target.value)}
-                      type="number"
-                      value={groupSeed}
-                    />
-                  </Field>
-                  <Button onClick={() => void previewGroupDraw()} type="button" variant="secondary">
-                    <FormattedMessage {...messages.zoneGroupPreviewDraw} />
-                  </Button>
-                  <Button
-                    disabled={!groupPreview}
-                    onClick={() => void confirmGroupDraw()}
-                    type="button"
-                  >
-                    <FormattedMessage {...messages.zoneGroupConfirmDraw} />
-                  </Button>
-                </div>
-              ) : (
-                <div>
-                  <ul>
-                    {zoneEntrantIds.map((entrantId) => (
-                      <li key={entrantId} className="cl-zone-group__entrant-assignment">
-                        <span>{entrantLabel(entrantId)}</span>
-                        <Input
-                          aria-label={intl.formatMessage(messages.zoneGroupPlacementNumber, {
-                            name: entrantLabel(entrantId),
-                          })}
-                          min="1"
-                          onChange={(event) =>
-                            setGroupPlacements((current) => ({
-                              ...current,
-                              [entrantId]: event.target.value,
-                            }))
-                          }
-                          type="number"
-                          value={groupPlacements[entrantId] ?? ''}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                  <Button onClick={() => void saveGroupManualAssignment()} type="button">
-                    <FormattedMessage {...messages.zoneGroupSaveAssignment} />
-                  </Button>
-                </div>
-              )}
-
-              {groupPreview && (
-                <p className="cl-card__description">
-                  {intl.formatMessage(messages.zoneGroupPreviewResult, {
-                    count: Object.keys(groupPreview.groups).length,
-                  })}
-                </p>
-              )}
-            </div>
-          </Card>
-
-          {selectedZone && (
-            <a
-              className="cl-link cl-focusable"
-              href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones/${selectedZone.number}/promotion`}
-              onClick={controlLinkClick(
-                `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones/${selectedZone.number}/promotion`,
-              )}
+            <Card
+              aria-label={intl.formatMessage(messages.zoneGroupAssignGroupsHeading)}
+              className="cl-chamfer cl-chamfer--control cl-zone-group__assign"
             >
-              <FormattedMessage {...messages.zoneGroupOpenPromotionPlan} />
-            </a>
-          )}
-        </>
-      )}
-    </div>
+              <header className="cl-card__header">
+                <h2 className="cl-card__title">
+                  <FormattedMessage {...messages.zoneGroupAssignGroupsHeading} />
+                </h2>
+              </header>
+              <div className="cl-card__content">
+                <RadioGroup
+                  className="cl-role-user"
+                  name="group-assign-mode"
+                  onValueChange={(val) => setGroupMode(val as AssignMode)}
+                  value={groupMode}
+                >
+                  <Label className="cl-toggle cl-focusable" htmlFor="group-mode-draw">
+                    <RadioGroupItem id="group-mode-draw" value="draw" />
+                    <span>
+                      <FormattedMessage {...messages.zoneGroupAutomaticDraw} />
+                    </span>
+                  </Label>
+                  <Label className="cl-toggle cl-focusable" htmlFor="group-mode-manual">
+                    <RadioGroupItem id="group-mode-manual" value="manual" />
+                    <span>
+                      <FormattedMessage {...messages.zoneGroupManualPlacement} />
+                    </span>
+                  </Label>
+                </RadioGroup>
+
+                {groupMode === 'draw' ? (
+                  <div className="cl-platform-form-grid cl-zone-group__assignment-controls">
+                    <Field
+                      id="group-draw-count"
+                      label={intl.formatMessage(messages.zoneGroupGroupCount)}
+                    >
+                      <Input
+                        aria-label={intl.formatMessage(messages.zoneGroupGroupCount)}
+                        id="group-draw-count"
+                        min="1"
+                        onChange={(event) => setGroupCount(event.target.value)}
+                        type="number"
+                        value={groupCount}
+                      />
+                    </Field>
+                    <Field id="group-draw-seed" label={intl.formatMessage(messages.zoneGroupSeed)}>
+                      <Input
+                        aria-label={intl.formatMessage(messages.zoneGroupSeed)}
+                        id="group-draw-seed"
+                        onChange={(event) => setGroupSeed(event.target.value)}
+                        type="number"
+                        value={groupSeed}
+                      />
+                    </Field>
+                    <Button
+                      onClick={() => void previewGroupDraw()}
+                      type="button"
+                      variant="secondary"
+                    >
+                      <FormattedMessage {...messages.zoneGroupPreviewDraw} />
+                    </Button>
+                    <Button
+                      disabled={!groupPreview}
+                      onClick={() => void confirmGroupDraw()}
+                      type="button"
+                    >
+                      <FormattedMessage {...messages.zoneGroupConfirmDraw} />
+                    </Button>
+                  </div>
+                ) : groupMode === 'manual' ? (
+                  <div>
+                    <ul>
+                      {zoneEntrantIds.map((entrantId) => (
+                        <li key={entrantId} className="cl-zone-group__entrant-assignment">
+                          <span>{entrantLabel(entrantId)}</span>
+                          <Input
+                            aria-label={intl.formatMessage(messages.zoneGroupPlacementNumber, {
+                              name: entrantLabel(entrantId),
+                            })}
+                            min="1"
+                            onChange={(event) =>
+                              setGroupPlacements((current) => ({
+                                ...current,
+                                [entrantId]: event.target.value,
+                              }))
+                            }
+                            type="number"
+                            value={groupPlacements[entrantId] ?? ''}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                    <Button onClick={() => void saveGroupManualAssignment()} type="button">
+                      <FormattedMessage {...messages.zoneGroupSaveAssignment} />
+                    </Button>
+                  </div>
+                ) : (
+                  <p role="status">{intl.formatMessage(messages.zoneGroupChooseAssignmentMode)}</p>
+                )}
+
+                {groupPreview && (
+                  <p className="cl-card__description">
+                    {intl.formatMessage(messages.zoneGroupPreviewResult, {
+                      count: Object.keys(groupPreview.groups).length,
+                    })}
+                  </p>
+                )}
+              </div>
+            </Card>
+
+            {selectedZone && (
+              <a
+                className="cl-link cl-focusable"
+                href={`/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones/${selectedZone.number}/promotion`}
+                onClick={controlLinkClick(
+                  `/control/${organizationAlias}/tournaments/${tournamentAlias}/stages/${stageNumber}/zones/${selectedZone.number}/promotion`,
+                )}
+              >
+                <FormattedMessage {...messages.zoneGroupOpenPromotionPlan} />
+              </a>
+            )}
+          </>
+        )}
+      </div>
+    </>
   );
 
-  return <ListScreenLayout breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
+  return (
+    <PageHeaderTemplate legacyBreadcrumb={breadcrumbNode} title={titleNode}>
+      {listingNode}
+    </PageHeaderTemplate>
+  );
 }
 
 const INHERIT = '__inherit__';
@@ -601,8 +674,7 @@ function ZoneConfiguration({
     zone.series?.resolutionClass ?? 'best-of',
   );
   const formatName = (format: string): string => {
-    const label = STAGE_FORMAT_LABELS[format];
-    return label === undefined ? format : intl.formatMessage(label);
+    return formatEnum(intl, 'format', format);
   };
   const playing = formatName(zone.effectiveFormat ?? zone.format ?? stageFormat);
   const spanValue = Number.parseInt(span, 10);

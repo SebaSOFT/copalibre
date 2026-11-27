@@ -69,6 +69,21 @@ function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
     ...overrides,
   };
 }
+function continueWizardWithAdultParticipants(): void {
+  let noMinors = screen.queryByRole('radio', {
+    name: 'No, this tournament has no minor participants',
+  });
+  if (!noMinors && screen.queryByLabelText('Name')) {
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to the next step' }));
+    noMinors = screen.queryByRole('radio', {
+      name: 'No, this tournament has no minor participants',
+    });
+  }
+  if (noMinors && !screen.queryByRole('radio', { checked: true })) {
+    fireEvent.click(noMinors);
+  }
+  fireEvent.click(screen.getByRole('button', { name: 'Continue to the next step' }));
+}
 
 describe('the tournament authoring route container', () => {
   it('loads disciplines from the API and posts the wizard request', async () => {
@@ -92,12 +107,12 @@ describe('the tournament authoring route container', () => {
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
     });
@@ -107,6 +122,121 @@ describe('the tournament authoring route container', () => {
       descriptorVersion: '1.0.0',
       stages: [{ number: 1, format: 'round-robin' }],
     });
+  });
+
+  /** Picks and crops an emblem in the wizard's first step through the real crop dialog. */
+  async function pickEmblem(): Promise<void> {
+    const file = new File(['fake-image'], 'emblem.png', { type: 'image/png' });
+    fireEvent.change(screen.getByLabelText('Upload emblem'), { target: { files: [file] } });
+    const dialog = await screen.findByRole('dialog');
+    const img = await waitFor(() => {
+      const element = dialog.querySelector('img');
+      if (!element) throw new Error('cropper image not ready');
+      return element;
+    });
+    fireEvent.load(img);
+    await waitFor(() =>
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
+    );
+    fireEvent.click(screen.getByText('Apply'));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  }
+
+  async function createWithEmblem(overrides: Partial<ControlApiClient>): Promise<void> {
+    render(
+      withIntl(
+        <TournamentAuthoringTemplate
+          organizationAlias="liga-mendocina"
+          client={client(overrides)}
+        />,
+      ),
+    );
+    await screen.findByLabelText('Name');
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
+    await pickEmblem();
+    for (let step = 0; step < 6; step += 1) continueWizardWithAdultParticipants();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
+    });
+  }
+
+  it('offers the emblem beside the name fields in the first step, as an optional pick', async () => {
+    render(
+      withIntl(
+        <TournamentAuthoringTemplate organizationAlias="liga-mendocina" client={client()} />,
+      ),
+    );
+
+    await screen.findByLabelText('Name');
+    expect(screen.getByRole('heading', { level: 3, name: 'Tournament emblem' })).toBeDefined();
+    expect(screen.getByLabelText('Upload emblem')).toBeDefined();
+    expect(screen.getByText('Optional. It is added once the tournament is created.')).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Remove emblem' })).toBeNull();
+  });
+
+  it('uploads the emblem picked in the first step once the tournament is created', async () => {
+    const uploadTournamentEmblem = jest.fn<NonNullable<ControlApiClient['uploadTournamentEmblem']>>(
+      () => Promise.resolve({ objectId: 'emblem-1' }),
+    );
+
+    await createWithEmblem({
+      createTournament: async (_organizationAlias, request) => ({
+        tournamentId: 't-1',
+        alias: request.alias,
+        name: request.name,
+      }),
+      uploadTournamentEmblem,
+    });
+
+    expect(uploadTournamentEmblem).toHaveBeenCalledWith(
+      'liga-mendocina',
+      'copa-verano',
+      expect.objectContaining({ filename: 'emblem.png', contentType: 'image/png' }),
+    );
+    expect(await screen.findByText('Tournament created: copa-verano')).toBeDefined();
+  });
+
+  it('keeps the created tournament and says the emblem was not uploaded when that fails', async () => {
+    await createWithEmblem({
+      createTournament: async (_organizationAlias, request) => ({
+        tournamentId: 't-1',
+        alias: request.alias,
+        name: request.name,
+      }),
+      uploadTournamentEmblem: () => Promise.reject(new Error('storage unavailable')),
+    });
+
+    expect(
+      await screen.findByText(
+        'Tournament copa-verano was created, but its emblem could not be uploaded. Add it from the tournament settings.',
+      ),
+    ).toBeDefined();
+    expect(screen.queryByText('Tournament created: copa-verano')).toBeNull();
+  });
+
+  it('sends no upload when no emblem was picked', async () => {
+    const uploadTournamentEmblem = jest.fn<NonNullable<ControlApiClient['uploadTournamentEmblem']>>(
+      () => Promise.resolve({ objectId: 'emblem-1' }),
+    );
+    render(
+      withIntl(
+        <TournamentAuthoringTemplate
+          organizationAlias="liga-mendocina"
+          client={client({ uploadTournamentEmblem })}
+        />,
+      ),
+    );
+    await screen.findByLabelText('Name');
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Verano' } });
+    fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-verano' } });
+    for (let step = 0; step < 6; step += 1) continueWizardWithAdultParticipants();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
+    });
+
+    expect(await screen.findByText('Tournament created: copa-verano')).toBeDefined();
+    expect(uploadTournamentEmblem).not.toHaveBeenCalled();
   });
 
   it('surfaces backend custom-script refusal verbatim', async () => {
@@ -130,12 +260,12 @@ describe('the tournament authoring route container', () => {
     await screen.findByLabelText('Name');
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Copa Inválida' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'copa-invalida' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
+    continueWizardWithAdultParticipants();
     fireEvent.click(screen.getByRole('button', { name: 'Create tournament' }));
 
     expect(
@@ -251,7 +381,13 @@ describe('the registration review route container', () => {
             tournamentAlias="apertura-2026"
             client={client({
               listRegistrations: async () => [
-                { entrantId: 'e-1', tournamentId: 't-1', status: 'pending', teamId: 'team-1' },
+                {
+                  entrantId: 'e-1',
+                  tournamentId: 't-1',
+                  status: 'pending',
+                  teamId: 'team-1',
+                  displayName: 'Team One',
+                },
               ],
               bulkReview: async (_organizationAlias, _tournamentAlias, request) => {
                 reviewed.push(request);
@@ -269,7 +405,7 @@ describe('the registration review route container', () => {
       );
     });
 
-    fireEvent.click(screen.getByLabelText('Select team-1'));
+    fireEvent.click(screen.getByLabelText('Select Team One'));
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
     });
@@ -292,7 +428,13 @@ describe('the registration review route container', () => {
             tournamentAlias="apertura-2026"
             client={client({
               listRegistrations: async () => [
-                { entrantId: 'e-1', tournamentId: 't-1', status: 'pending', teamId: 'team-1' },
+                {
+                  entrantId: 'e-1',
+                  tournamentId: 't-1',
+                  status: 'pending',
+                  teamId: 'team-1',
+                  displayName: 'Team One',
+                },
               ],
               reviewRegistration: async (
                 _organizationAlias,
@@ -315,9 +457,7 @@ describe('the registration review route container', () => {
       );
     });
 
-    const summary = screen.getByLabelText('Select team-1').closest('summary');
-    expect(summary).not.toBeNull();
-    fireEvent.click(summary as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Team One' }));
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Revoke' }));
     });
@@ -334,7 +474,7 @@ describe('the registration review route container', () => {
     expect(screen.getByText('Withdrawn')).toBeDefined();
   });
 
-  it('shows a load-failure message when registrations fail to load', async () => {
+  it('keeps the skeleton and offers retry when registrations fail to load', async () => {
     await act(async () => {
       render(
         withIntl(
@@ -351,7 +491,8 @@ describe('the registration review route container', () => {
       );
     });
 
-    expect(screen.getByText('Could not load the registrations.')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeDefined();
+    expect(document.querySelector('.cl-skeleton[aria-busy="true"]')).not.toBeNull();
   });
 
   it('shows a create-import failure message when the CSV upload is rejected', async () => {
@@ -393,7 +534,13 @@ describe('the registration review route container', () => {
             tournamentAlias="apertura-2026"
             client={client({
               listRegistrations: async () => [
-                { entrantId: 'e-1', tournamentId: 't-1', status: 'pending', personId: 'person-1' },
+                {
+                  entrantId: 'e-1',
+                  tournamentId: 't-1',
+                  status: 'pending',
+                  personId: 'person-1',
+                  displayName: 'Person One',
+                },
               ],
               setPersonNationality: async (organizationAlias, personId, nationality) => {
                 nationalityCalls.push({ organizationAlias, personId, nationality });
@@ -409,10 +556,10 @@ describe('the registration review route container', () => {
       );
     });
 
-    fireEvent.click(screen.getByText('person-1'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Person One' }));
     fireEvent.click(screen.getByText('Argentina'));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Save nationality' }));
     });
     expect(nationalityCalls).toEqual([
       { organizationAlias: 'liga-mendocina', personId: 'person-1', nationality: 'AR' },
@@ -430,10 +577,10 @@ describe('the registration review route container', () => {
     });
     fireEvent.load(img);
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
     await act(async () => {
-      fireEvent.click(screen.getByText('Use image'));
+      fireEvent.click(screen.getByText('Apply'));
     });
     await waitFor(() => expect(photoCalls).toHaveLength(1));
   });
@@ -449,7 +596,13 @@ describe('the registration review route container', () => {
             tournamentAlias="apertura-2026"
             client={client({
               listEntrantsNeedingAbbreviation: async () => [
-                { entrantId: 'e-2', tournamentId: 't-1', status: 'accepted', teamId: 'team-2' },
+                {
+                  entrantId: 'e-2',
+                  tournamentId: 't-1',
+                  status: 'accepted',
+                  teamId: 'team-2',
+                  displayName: 'Team Two',
+                },
               ],
               setEntrantAbbreviation: async (
                 organizationAlias,
@@ -466,8 +619,8 @@ describe('the registration review route container', () => {
       );
     });
 
-    expect(screen.getByText('team-2')).toBeDefined();
-    fireEvent.change(screen.getByLabelText('Abbreviation for team-2'), {
+    expect(screen.getByText('Team Two')).toBeDefined();
+    fireEvent.change(screen.getByLabelText('Abbreviation for Team Two'), {
       target: { value: 'TAL' },
     });
     await act(async () => {
@@ -620,7 +773,13 @@ describe('the registration review route container', () => {
             tournamentAlias="apertura-2026"
             client={client({
               listRegistrations: async () => [
-                { entrantId: 'e-1', tournamentId: 't-1', status: 'pending', teamId: 'team-1' },
+                {
+                  entrantId: 'e-1',
+                  tournamentId: 't-1',
+                  status: 'pending',
+                  teamId: 'team-1',
+                  displayName: 'Team One',
+                },
               ],
               updateTeamIdentity: async (_organizationAlias, _tournamentAlias, teamId, request) => {
                 updated.push({ teamId, request });
@@ -632,16 +791,14 @@ describe('the registration review route container', () => {
       );
     });
 
-    const summary = screen.getByText('team-1').closest('summary');
-    expect(summary).not.toBeNull();
-    fireEvent.click(summary as HTMLElement);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Team One' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit identity' }));
 
     const nameField = screen.getByLabelText('Name') as HTMLInputElement;
-    expect(nameField.value).toBe('team-1');
+    expect(nameField.value).toBe('Team One');
     fireEvent.change(nameField, { target: { value: 'Talleres FC' } });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Save identity' }));
     });
 
     expect(updated).toEqual([{ teamId: 'team-1', request: { name: 'Talleres FC' } }]);
@@ -682,13 +839,13 @@ describe('the registration review route container', () => {
       );
     });
 
-    fireEvent.click(screen.getByText('Mariano Otero'));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Mariano Otero' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit identity' }));
 
     const nameField = screen.getByLabelText('Name') as HTMLInputElement;
     fireEvent.change(nameField, { target: { value: 'Mariano Otero (corrected)' } });
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Save identity' }));
     });
 
     expect(updated).toEqual([
@@ -733,8 +890,8 @@ describe('the registration review route container', () => {
       );
     });
 
-    const marianoRow = screen.getByText('Mariano Otero').closest('details') as HTMLElement;
-    fireEvent.click(within(marianoRow).getByText('Mariano Otero'));
+    const marianoRow = screen.getByRole('table');
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Mariano Otero' }));
     fireEvent.click(within(marianoRow).getByText('Link identity'));
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'mariano@example.test' },
@@ -784,13 +941,14 @@ describe('the registration review route container', () => {
       );
     });
 
-    fireEvent.click(screen.getByText('Mariano Otero'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Mariano Otero' }));
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Unlink' }));
     });
 
     expect(unlinked).toEqual(['person-1']);
-    expect(screen.getAllByText('Link identity')).toHaveLength(2);
+    // Only the expanded row renders its detail now, so one row's action is on screen.
+    expect(screen.getAllByText('Link identity')).toHaveLength(1);
   });
 
   it('edits team memberships through the route and updates row state', async () => {
@@ -829,6 +987,7 @@ describe('the registration review route container', () => {
 
     await waitFor(() => expect(screen.getByText('Talleres')).toBeDefined());
 
+    fireEvent.click(screen.getByRole('button', { name: /^Show details:/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Edit members' }));
     expect(screen.getByText('Edit team members')).toBeDefined();
 

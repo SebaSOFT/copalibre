@@ -41,4 +41,11 @@ describe('TvChampions', () => {
     expect(screen.getAllByText('HUR').length).toBeGreaterThan(0);
     expect(screen.queryByRole('heading')).toBeNull();
   });
+
+  it('uses a shield instead of deriving initials when a champion has no abbreviation', () => {
+    const { container } = render(<TvChampions zones={[{ champions: [{ name: 'Huracan' }] }]} />);
+
+    expect(container.querySelector('.cl-entrant-emblem__fallback svg')).toBeTruthy();
+    expect(screen.queryByText('HU')).toBeNull();
+  });
 });

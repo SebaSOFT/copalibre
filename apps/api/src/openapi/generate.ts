@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { DATABASE } from '../database.token.js';
+import { API_PATH_PREFIX, applyApiPathPrefix } from '../http/api-path-prefix.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
 import type { OpenAPIObject } from '@nestjs/swagger';
 import { OPENAPI_CONTROLLERS } from './generate-controllers.js';
@@ -49,11 +50,12 @@ async function main(): Promise<void> {
   const app = await NestFactory.create(OpenApiModule, new FastifyAdapter(), {
     logger: ['error', 'warn'],
   });
+  applyApiPathPrefix(app);
   const document = buildOpenApiDocument(app);
   await app.close();
   const artifact = serializeOpenApiArtifact(document);
 
-  const planes = collectRoutePlanes(CONTROLLERS);
+  const planes = collectRoutePlanes(CONTROLLERS, API_PATH_PREFIX);
 
   const findings = lintOpenApiContract(document, planes);
   if (findings.length > 0) {

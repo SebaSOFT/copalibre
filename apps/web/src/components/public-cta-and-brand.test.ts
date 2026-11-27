@@ -82,6 +82,13 @@ describe('TournamentCard CTAs consume the shared Button', () => {
     expect(source).not.toContain('cl-button-primary');
     expect(source).not.toContain('cl-button-live');
   });
+
+  it('resolves localized discipline names before falling back to tournament.discipline.name', () => {
+    expect(source).toContain('isSupportedLanguage');
+    expect(source).toContain('resolveLabel');
+    expect(source).toContain('tournament.discipline.localizedName');
+    expect(source).not.toContain('>{tournament.discipline.name}<');
+  });
 });
 
 describe('public tables and filter pills', () => {
@@ -94,20 +101,24 @@ describe('public tables and filter pills', () => {
   );
   const matchReport = read('ui/organisms/MatchRosters.astro');
   const standings = read('ui/organisms/StandingsTable.astro');
+  const standingsClient = read('ui/organisms/standings-table-client.ts');
 
   it('renders every filter facet as a bounded pill group, not bare anchors', () => {
     expect(matchesPage).toContain('class="cl-pill-group"');
-    // Four facet groups (stage, zone, group, state), each an "All" reset plus
-    // one templated per-option pill, the state group's four literal options and
+    // Five facet groups (stage, zone, group, day, state), each an "All" reset plus
+    // templated/day options, the state group's four literal options and
     // the view choice's two — every option is a pill, and the active one is
     // marked for assistive tech too.
-    expect(matchesPage.match(/class="cl-pill cl-focusable"/g)).toHaveLength(12);
-    expect(matchesPage.match(/aria-current=/g)).toHaveLength(12);
+    expect(matchesPage.match(/class="cl-pill cl-focusable"/g)).toHaveLength(16);
+    expect(matchesPage.match(/aria-current=/g)).toHaveLength(16);
   });
 
   it('renders standings through the shared table treatment', () => {
+    expect(standings).toMatch(
+      /class:list=\{\[\s*'cl-table cl-table--priority',\s*\{ 'cl-table--fill': fillColumnIndex >= 0 \},?\s*\]\}/,
+    );
     expect(standings).toContain(
-      '<table class="cl-table" data-sortable-table={previewRows === undefined ? true : undefined}>',
+      'data-sortable-table={showControls && previewRows === undefined ? true : undefined}',
     );
     expect(standings).toContain('cl-table-scroll');
     expect(standings).toContain("'cl-table__num'");
@@ -115,17 +126,19 @@ describe('public tables and filter pills', () => {
 
   it('renders declared columns as accessible local sort controls', () => {
     expect(standings).toContain('data-sortable-table');
-    expect(standings).toContain('aria-sort="none"');
+    expect(standings).toContain('aria-sort={columnAriaSort}');
+    expect(standings).toContain("'ascending'");
+    expect(standings).toContain("'none'");
     expect(standings).toContain('data-column-code');
     expect(standings).toContain('data-sort-value');
     expect(standings).toContain('data-player-id');
-    expect(standings).toContain('initTableSorting');
+    expect(standingsClient).toContain('initTableSorting');
   });
 
   it('keeps missing values after numeric rows and reverses activation direction', () => {
-    expect(standings).toContain('sortMissing');
-    expect(standings).toContain("direction === 'ascending'");
-    expect(standings).toContain("header.setAttribute('aria-sort'");
+    expect(standingsClient).toContain('sortMissing');
+    expect(standingsClient).toContain("direction === 'ascending'");
+    expect(standingsClient).toContain("header.setAttribute('aria-sort'");
   });
 
   it('renders the standings club filter through the shared chip, not a local duplicate', () => {
@@ -140,7 +153,9 @@ describe('public tables and filter pills', () => {
   });
 
   it('styles the overview’s see-all-matches link rather than leaving it bare', () => {
-    expect(overviewPage).toMatch(/class="cl-pill cl-focusable"[\s\S]{0,120}matchesViewSeeAll/);
+    expect(overviewPage).toMatch(
+      /<a\s+class="cl-pill cl-focusable"[\s\S]*?\{intl\.formatMessage\(messages\.matchesViewSeeAll\)\}[\s\S]*?<\/a>/,
+    );
   });
 });
 
@@ -189,7 +204,7 @@ describe('discipline backdrop', () => {
 
 describe('TV backdrop and focal panel', () => {
   const layout = readFileSync(join(here, '../layouts/TvLayout.astro'), 'utf8');
-  const tvCss = readFileSync(join(here, '../styles/tv-broadcast.css'), 'utf8');
+  const tvCss = readFileSync(join(here, '../styles/tv-broadcast/03-focal-panel.css'), 'utf8');
 
   it('renders discipline imagery only when the selected backdrop is discipline', () => {
     expect(layout).toContain(
@@ -239,6 +254,18 @@ describe('public layout, header, and home orientation hub', () => {
     expect(header).not.toContain('/help/api-reference/');
   });
 
+  it('separates global navigation from tournament tabs and groups both in the mobile menu', () => {
+    expect(header).toContain('cl-public-header__row');
+    expect(header).toContain('id="cl-public-nav"');
+    expect(header).toContain('cl-public-header__context-band');
+    expect(header).toContain('id="cl-public-tournament-nav"');
+    expect(header).toContain('messages.headerGlobalSection');
+    expect(header).toContain('messages.headerTournamentSection');
+    expect(header).toContain('aria-controls={controlledNavigationIds}');
+    expect(header).toContain('.split(/\\s+/)');
+    expect(header).toContain('for (const panel of panels) panel.hidden = !expanded;');
+  });
+
   it('chamfers the closed language selector with the control treatment', () => {
     expect(header).toMatch(
       /<summary[\s\S]*?class="cl-chamfer cl-chamfer--control cl-focusable"[\s\S]*?<\/summary>/,
@@ -251,11 +278,11 @@ describe('public layout, header, and home orientation hub', () => {
     );
   });
 
-  it('renders index page orientation hub with tactical grid, badges, and owned CTA buttons', () => {
+  it('renders index page orientation hub with tactical grid, plain feature tags, and owned CTA buttons', () => {
     expect(homeLayout).toContain('cl-tactical-grid');
     expect(homeLayout).toContain("import Button from '../components/ui/atoms/Button.astro'");
     expect(homeLayout).toContain("import { Card } from '../components/ui/atoms/Card.tsx'");
-    expect(homeLayout).toContain("import { Badge } from '../components/ui/atoms/Badge.tsx'");
+    expect(homeLayout).not.toContain('<Badge');
     expect(homeLayout).toMatch(/<Button\b[^>]*href="\/control\/"[^>]*variant="primary"/);
     expect(homeLayout).toContain('href="/help/"');
     expect(homeLayout.match(HEX_LITERAL)).toBeNull();

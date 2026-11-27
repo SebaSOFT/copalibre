@@ -1,20 +1,13 @@
 ---
 /**
- * Extracted from the match report page, unchanged
- * in markup and styling except for localization.
- *
- * Does not compose `DataTable` (this surface's declared table owner, task
- * 2.3): its `render` callback returns a plain value per cell, with no way
- * to produce the player-profile link the name column needs — `DataTable`
- * was built with no consumer needing richer-than-text cells yet (its own
- * docstring records the same reasoning for `renderRowDetail`), and this is
- * the first one. Recorded here rather than adopted at the cost of losing
- * working navigation, or extending `DataTable` speculatively for a shape
- * only this table currently needs.
+ * Each side's roster, or its registered squad before a roster is recorded. Members are ordered by
+ * shirt number. The on-field column shows only while the match is live: on a finished or upcoming
+ * match it would read as "nobody played". A column with no data (no shirt numbers, no roles) is omitted.
  */
 import type { IntlShape } from 'react-intl';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import type { MatchReportModel } from '../../../lib/match-report.ts';
+import { optionalClubPageUrl } from '../../../lib/club-url.ts';
 
 export interface Props {
   readonly model: MatchReportModel;
@@ -24,71 +17,167 @@ export interface Props {
   readonly tournament: string;
 }
 
+/** Members shown before the rest of a long registered squad sits behind a disclosure. */
+const VISIBLE_SQUAD_ROWS = 15;
+
 const { model, intl, locale, organization, tournament } = Astro.props;
+const showOnField = model.status === 'live';
+// The registered-squad note is written once for the match, not once per team.
+const hasRegisteredSquad = [model.home, model.away].some(
+  (side) => side.roster.length === 0 && side.registeredSquad !== undefined,
+);
+const localePrefix = locale ? `/${locale}` : '';
+const playerHref = (personId: string) =>
+  `${localePrefix}/${encodeURIComponent(organization)}/tournaments/${encodeURIComponent(tournament)}/players/${encodeURIComponent(personId)}`;
 ---
 
 <section class="cl-section-card cl-chamfer" aria-labelledby="rosters-heading">
   <h2 id="rosters-heading" class="cl-section-title">
     {intl.formatMessage(messages.matchRostersHeading)}
   </h2>
-  {
-    model.home.roster.length === 0 && model.away.roster.length === 0 ? (
-      <p class="cl-text-muted">{intl.formatMessage(messages.matchRostersEmpty)}</p>
-    ) : (
+  {model.home.roster.length === 0 &&
+  model.away.roster.length === 0 &&
+  model.home.registeredSquad === undefined &&
+  model.away.registeredSquad === undefined ? (
+    <p class="cl-text-muted">{intl.formatMessage(messages.matchRostersEmpty)}</p>
+  ) : (
+    <>
+      {hasRegisteredSquad && (
+        <div class="cl-registered-note">
+          <p class="cl-roster-label">
+            {intl.formatMessage(messages.matchRostersRegisteredHeading)}
+          </p>
+          <p class="cl-text-muted">{intl.formatMessage(messages.matchRostersRegisteredNote)}</p>
+        </div>
+      )}
       <div class="cl-rosters-grid">
-        {[model.home, model.away].map((side) => (
-          <div class="cl-roster-box">
-            <h3 class="cl-roster-team">{side.name}</h3>
-            {side.roster.length === 0 ? (
-              <p class="cl-text-muted">{intl.formatMessage(messages.matchRostersTeamEmpty)}</p>
-            ) : (
-              <div class="cl-table-scroll">
-                <table class="cl-table">
-                  <thead>
-                    <tr>
-                      <th scope="col" style="width: 44px;">
-                        {intl.formatMessage(messages.matchRostersColumnNumber)}
-                      </th>
-                      <th scope="col">{intl.formatMessage(messages.matchRostersColumnPlayer)}</th>
-                      <th scope="col">{intl.formatMessage(messages.matchRostersColumnRoles)}</th>
-                      <th scope="col" style="width: 80px;">
-                        {intl.formatMessage(messages.matchRostersColumnOnField)}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {side.roster.map((member) => (
+        {[model.home, model.away].map((side) => {
+          const sideClubHref = optionalClubPageUrl({
+            organizationAlias: organization,
+            tournamentAlias: tournament,
+            clubAlias: side.clubAlias,
+            localePrefix,
+          });
+          const squad = side.roster.length === 0 ? side.registeredSquad : undefined;
+          const showNumber = side.roster.some((member) => member.number !== undefined);
+          const showRoles = side.roster.some((member) => member.roleLabels.length > 0);
+          const squadVisible = squad?.slice(0, VISIBLE_SQUAD_ROWS) ?? [];
+          const squadHidden = squad?.slice(VISIBLE_SQUAD_ROWS) ?? [];
+          return (
+            <div class="cl-roster-box">
+              <h3 class="cl-roster-team">
+                {sideClubHref ? (
+                  <a class="cl-roster-team__link cl-focusable" href={sideClubHref}>
+                    {side.name}
+                  </a>
+                ) : (
+                  side.name
+                )}
+              </h3>
+              {side.roster.length > 0 && (
+                <div class="cl-table-scroll">
+                  <table class="cl-table">
+                    <thead>
                       <tr>
-                        <td class="cl-num-cell">{member.number ?? '—'}</td>
-                        <td class="cl-name-cell">
-                          <a
-                            href={`${locale ? `/${locale}` : ''}/${encodeURIComponent(organization)}/tournaments/${encodeURIComponent(tournament)}/players/${encodeURIComponent(member.personId)}`}
-                            class="cl-player-link"
-                          >
+                        {showNumber && (
+                          <th scope="col" style="width: 44px;">
+                            {intl.formatMessage(messages.matchRostersColumnNumber)}
+                          </th>
+                        )}
+                        <th scope="col">{intl.formatMessage(messages.matchRostersColumnPlayer)}</th>
+                        {showRoles && (
+                          <th scope="col">
+                            {intl.formatMessage(messages.matchRostersColumnRoles)}
+                          </th>
+                        )}
+                        {showOnField && (
+                          <th scope="col" style="width: 80px;">
+                            {intl.formatMessage(messages.matchRostersColumnOnField)}
+                          </th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {side.roster.map((member) => (
+                        <tr>
+                          {showNumber && <td class="cl-num-cell">{member.number ?? '—'}</td>}
+                          <td class="cl-name-cell">
+                            {member.personId && member.publicProfileAvailable !== false ? (
+                              <a href={playerHref(member.personId)} class="cl-player-link">
+                                {member.name}
+                              </a>
+                            ) : (
+                              member.name
+                            )}
+                          </td>
+                          {showRoles && (
+                            <td>
+                              {member.roleLabels.length > 0 ? member.roleLabels.join(', ') : '—'}
+                            </td>
+                          )}
+                          {showOnField && (
+                            <td>
+                              <span
+                                class={`cl-indicator ${member.onField ? 'cl-indicator--active' : ''}`}
+                              >
+                                {member.onField
+                                  ? intl.formatMessage(messages.matchRostersOnFieldYes)
+                                  : intl.formatMessage(messages.matchRostersOnFieldNo)}
+                              </span>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {side.roster.length === 0 && squad === undefined && (
+                <p class="cl-text-muted">{intl.formatMessage(messages.matchRostersTeamEmpty)}</p>
+              )}
+              {squad !== undefined && (
+                <div class="cl-registered-squad">
+                  <ul class="cl-squad-list">
+                    {squadVisible.map((member) => (
+                      <li>
+                        {member.personId && member.publicProfileAvailable !== false ? (
+                          <a href={playerHref(member.personId)} class="cl-player-link">
                             {member.name}
                           </a>
-                        </td>
-                        <td>{member.roleLabels.length > 0 ? member.roleLabels.join(', ') : '—'}</td>
-                        <td>
-                          <span
-                            class={`cl-indicator ${member.onField ? 'cl-indicator--active' : ''}`}
-                          >
-                            {member.onField
-                              ? intl.formatMessage(messages.matchRostersOnFieldYes)
-                              : intl.formatMessage(messages.matchRostersOnFieldNo)}
-                          </span>
-                        </td>
-                      </tr>
+                        ) : (
+                          member.name
+                        )}
+                      </li>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        ))}
+                  </ul>
+                  {squadHidden.length > 0 && (
+                    <details class="cl-roster-more">
+                      <summary class="cl-roster-more__summary cl-focusable">
+                        {intl.formatMessage(messages.matchRostersViewFullSquad)}
+                      </summary>
+                      <ul class="cl-squad-list">
+                        {squadHidden.map((member) => (
+                          <li>
+                            {member.personId && member.publicProfileAvailable !== false ? (
+                              <a href={playerHref(member.personId)} class="cl-player-link">
+                                {member.name}
+                              </a>
+                            ) : (
+                              member.name
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
-    )
-  }
+    </>
+  )}
 </section>
 
 <style>
@@ -121,7 +210,16 @@ const { model, intl, locale, organization, tournament } = Astro.props;
     margin: 0 0 0.75rem 0;
     font-size: 1rem;
     font-weight: 600;
-    color: var(--cl-primary);
+    color: var(--cl-text-accent);
+  }
+
+  .cl-roster-team__link {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .cl-roster-team__link:hover {
+    text-decoration: underline;
   }
 
   .cl-num-cell {
@@ -135,8 +233,49 @@ const { model, intl, locale, organization, tournament } = Astro.props;
   }
 
   .cl-player-link:hover {
-    color: var(--cl-primary);
+    color: var(--cl-text-accent);
     text-decoration: underline;
+  }
+
+  /* A registered squad has no shirt numbers yet, so its list is unnumbered. */
+  .cl-squad-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+  }
+
+  /* A roster fits its side's box: names and roles wrap instead of scrolling the table sideways. */
+  .cl-roster-box .cl-table {
+    width: 100%;
+  }
+
+  .cl-roster-box .cl-table td {
+    overflow-wrap: anywhere;
+  }
+
+  .cl-roster-label {
+    margin: 0;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  .cl-registered-note {
+    display: grid;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .cl-roster-more {
+    margin-top: 0.75rem;
+  }
+
+  .cl-roster-more__summary {
+    cursor: pointer;
+    color: var(--cl-text-accent);
+    font-size: 0.875rem;
   }
 
   .cl-indicator {

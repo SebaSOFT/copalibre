@@ -1,8 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
-const rolesPath = '/organizations/liga-mendocina/roles';
-const invitationPath = '/organizations/liga-mendocina/invitations';
+const rolesPath = '/api/organizations/liga-mendocina/roles';
+const invitationPath = '/api/organizations/liga-mendocina/invitations';
 
 async function mockRolesApi(page: Page, viewer = false): Promise<void> {
   await page.addInitScript(
@@ -47,6 +47,17 @@ async function mockRolesApi(page: Page, viewer = false): Promise<void> {
         if (url === invitationPath && method === 'GET') {
           return Response.json(pendingInvitations);
         }
+        if (url === '/api/organizations/liga-mendocina/clubs' && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url === '/api/organizations/liga-mendocina/tournaments' && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url === '/api/organizations/liga-mendocina/roles/grantable' && method === 'GET') {
+          return Response.json({
+            roles: ['admin', 'club-admin', 'referee', 'broadcaster', 'viewer'],
+          });
+        }
         if (url === invitationPath && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as { email: string; role: string };
           invitedRole = body.role;
@@ -66,7 +77,9 @@ async function mockRolesApi(page: Page, viewer = false): Promise<void> {
             { status: 201 },
           );
         }
-        const rescindMatch = /^\/organizations\/liga-mendocina\/invitations\/([^/]+)$/.exec(url);
+        const rescindMatch = /^\/api\/organizations\/liga-mendocina\/invitations\/([^/]+)$/.exec(
+          url,
+        );
         if (rescindMatch && method === 'DELETE') {
           const invitationId = rescindMatch[1];
           const rescinded = pendingInvitations.find(
@@ -111,16 +124,11 @@ test('admin invites a referee and changes a user status immediately', async ({ p
   await page.waitForURL(`**${target}`);
   await expect(page.getByText('referee@example.test')).toBeVisible();
 
-  await page.getByText('Invitar usuario').click();
   await page.getByLabel('Rol de invitación').selectOption('club-admin');
-  await page.screenshot({
-    path: 'docs/assets/screenshots/control-roles-after.png',
-    fullPage: true,
-  });
   await page.getByLabel('Correo electrónico').fill('new-referee@example.test');
   await page.getByLabel('Rol de invitación').selectOption('referee');
   await page.getByText('Enviar invitación').click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByLabel('Correo electrónico')).toHaveValue('');
 
   const accepted = await page.evaluate(async () => {
     const response = await fetch('/invitations/accept', { method: 'POST', body: '{}' });
@@ -148,11 +156,10 @@ test('admin creates a pending invitation and rescinds it', async ({ page }) => {
   await page.waitForURL(`**${target}`);
   await expect(page.getByText('referee@example.test')).toBeVisible();
 
-  await page.getByText('Invitar usuario').click();
   await page.getByLabel('Correo electrónico').fill('pendiente@example.test');
   await page.getByLabel('Rol de invitación').selectOption('viewer');
   await page.getByText('Enviar invitación').click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByLabel('Correo electrónico')).toHaveValue('');
 
   await expect(page.getByText('pendiente@example.test')).toBeVisible();
   await page.getByLabel('Retirar invitación de pendiente@example.test').click();
@@ -165,6 +172,7 @@ test('viewer receives server refusal instead of roles data', async ({ page }) =>
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
-  await expect(page.getByRole('alert')).toContainText('not authorized');
+  await expect(page.getByRole('alert')).toContainText('No se pudo cargar Roles y permisos');
+  await expect(page.getByRole('alert').getByRole('button', { name: 'Reintentar' })).toBeVisible();
   await expect(page.getByText('referee@example.test')).toHaveCount(0);
 });

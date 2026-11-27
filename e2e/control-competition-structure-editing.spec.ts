@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -18,6 +18,9 @@ async function withTokenEndpoint(page: Page): Promise<void> {
         const url = String(input);
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
+        }
+        if (url === '/api/auth/pat/scopes') {
+          return Response.json({ scopes: [] });
         }
         const handler = (window as unknown as { __route?: (u: string, i?: RequestInit) => unknown })
           .__route;
@@ -78,7 +81,7 @@ test('renames a stage from the stage hub and sees the change immediately', async
 
   await expect(page.getByText('Configuración de la fase')).toBeVisible();
   await page.getByLabel('Nuevo nombre de la fase').fill('Fase de grupos (corregida)');
-  await page.getByRole('button', { name: 'Renombrar', exact: true }).click();
+  await page.getByRole('button', { name: 'Renombrar etapa', exact: true }).click();
 
   await expect(page.getByText('Stage renamed.')).toBeVisible();
 });
@@ -93,10 +96,18 @@ test('renames a zone from the zone-management screen and sees the change immedia
     if (url.endsWith('/stages/1/zones') && method === 'GET') {
       return { body: [{ zoneId: 'zone-1', stageId: 'stage-1', number: 1, name: zoneName }] };
     }
+    if (url.endsWith(`/tournaments/${TOURNAMENT_ALIAS}/stages`) && method === 'GET') {
+      return {
+        body: [{ stageId: 'stage-1', seasonId: 'season-1', number: 1, name: 'Fase de grupos' }],
+      };
+    }
     if (url.includes('/registrations') && method === 'GET') {
       return { body: [] };
     }
     if (url.endsWith('/stages/1/zones/1/groups') && method === 'GET') {
+      return { body: [] };
+    }
+    if (url.endsWith('/stages/1/zones/1/entrants') && method === 'GET') {
       return { body: [] };
     }
     if (url.endsWith('/stages/1/zones/1') && method === 'PATCH') {
@@ -115,9 +126,56 @@ test('renames a zone from the zone-management screen and sees the change immedia
   const renameInput = page.getByLabel('Renombrar zona Zona 1');
   await expect(renameInput).toBeVisible();
   await renameInput.fill('Zona 1 (corregida)');
-  await page.getByRole('button', { name: 'Renombrar', exact: true }).click();
+  await page.getByRole('button', { name: 'Renombrar zona', exact: true }).click();
 
   await expect(page.getByLabel('Renombrar zona Zona 1 (corregida)')).toBeVisible();
+});
+
+test('keeps every settings field the same height, at rest and after a refused save', async ({
+  page,
+}) => {
+  await withTokenEndpoint(page);
+  await page.exposeFunction('__route', (url: string, init?: RequestInit) => {
+    const method = init?.method ?? 'GET';
+    if (url.endsWith('/settings') && method === 'GET') {
+      return { body: { name: 'Copa Alta', region: 'Cuyo', capacity: 16 } };
+    }
+    if (url.endsWith('/settings/preview') && method === 'POST') {
+      return {
+        body: {
+          fields: [
+            {
+              field: 'registration.capacity',
+              blocked: true,
+              reason: 'Cannot be reduced to 1: 10 entrant(s) are already accepted',
+            },
+          ],
+        },
+      };
+    }
+    return undefined;
+  });
+
+  const target = `/control/${ORG_ALIAS}/tournaments/${TOURNAMENT_ALIAS}/settings`;
+  await seedLoginTransaction(page, target);
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL(`**${target}`);
+  await expect(page.getByLabel('Capacidad')).toBeVisible();
+
+  const fieldHeights = (): Promise<number[]> =>
+    page
+      .locator('.cl-tournament-settings__fields .cl-form-field:has(input.cl-input)')
+      .evaluateAll((fields) => fields.map((field) => field.getBoundingClientRect().height));
+
+  const atRest = await fieldHeights();
+  expect(atRest.length).toBeGreaterThan(1);
+  expect(new Set(atRest).size).toBe(1);
+
+  await page.getByLabel('Capacidad').fill('1');
+  await page.getByRole('button', { name: 'Vista previa' }).click();
+  await expect(page.getByText(/already accepted/)).toBeVisible();
+
+  expect(await fieldHeights()).toEqual(atRest);
 });
 
 test('refuses a capacity reduction below the current entrant count before the save request is sent', async ({
@@ -202,6 +260,7 @@ test('shows the plain-language summary on the settings screen and updates it aft
   await page.waitForURL(`**${target}`);
 
   await expect(page.getByText('Región: Cuyo')).toBeVisible();
+  await page.getByText('Reglamento completo').click();
   await expect(page.getByText('Points per win')).toBeVisible();
 
   await page.getByLabel('Región').fill('Mendoza');
@@ -224,7 +283,8 @@ test('deletes an unreferenced upload from the storage-usage screen and the usage
   ];
   await page.exposeFunction('__route', (url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
-    if (url === `/organizations/${ORG_ALIAS}` && method === 'GET') {
+    if (url === '/api/auth/pat' && method === 'GET') return { body: [] };
+    if (url === `/api/organizations/${ORG_ALIAS}` && method === 'GET') {
       return {
         body: {
           organizationId: 'org-1',
@@ -251,13 +311,19 @@ test('deletes an unreferenced upload from the storage-usage screen and the usage
     return undefined;
   });
 
-  const target = `/control/${ORG_ALIAS}/preferences`;
+  const target = `/control/${ORG_ALIAS}/organization`;
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await expect(page.getByText('image/png')).toBeVisible();
-  await page.getByRole('button', { name: 'Eliminar' }).click();
+  // The row names the file's type, size and date; deleting asks first and deletes nothing yet.
+  await expect(page.getByText(/image\/png · /)).toBeVisible();
+  await page.getByRole('button', { name: /^Eliminar archivo image\/png/ }).click();
+  const dialog = page.getByRole('dialog', { name: '¿Eliminar este archivo?' });
+  await expect(dialog).toBeVisible();
+  await expect(page.getByText(/image\/png · /)).toBeVisible();
 
-  await expect(page.getByText('image/png')).toBeHidden();
+  await dialog.getByRole('button', { name: 'Eliminar' }).click();
+
+  await expect(page.getByText(/image\/png · /)).toBeHidden();
 });

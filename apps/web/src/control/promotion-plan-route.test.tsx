@@ -15,10 +15,26 @@ const preview: PromotionPreviewResponse = {
   trace: [],
 };
 
+const namedEntrants = [
+  {
+    entrantId: 'entrant1',
+    tournamentId: 't-1',
+    status: 'accepted' as const,
+    displayName: 'Club Atlético',
+  },
+  {
+    entrantId: 'entrant2',
+    tournamentId: 't-1',
+    status: 'accepted' as const,
+    displayName: 'Deportivo Cuyo',
+  },
+];
+
 describe('PromotionPlanPage', () => {
   it('renders the computed candidate order once the preview resolves', async () => {
     const client = stubClient({
       listZones: () => Promise.resolve([zone]),
+      listRegistrations: () => Promise.resolve(namedEntrants),
       fetchPromotionPreview: () => Promise.resolve(preview),
     });
     render(
@@ -33,8 +49,9 @@ describe('PromotionPlanPage', () => {
       ),
     );
 
-    await screen.findByText((_, element) => element?.textContent === '1. entrant1');
-    expect(screen.getByText((_, element) => element?.textContent === '2. entrant2')).toBeTruthy();
+    await screen.findByRole('cell', { name: 'Club Atlético' });
+    expect(screen.getByRole('cell', { name: 'Deportivo Cuyo' })).toBeTruthy();
+    expect(screen.queryByText(/entrant[12]/)).toBeNull();
   });
 
   it('reports a load it could not complete instead of an empty list', async () => {
@@ -56,14 +73,17 @@ describe('PromotionPlanPage', () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByRole('alert').textContent).toContain('No hay corte resuelto'),
+      expect(screen.getByRole('alert').textContent).toContain('Retrying in 2 s.'),
     );
   });
 
   it('shows the no-plan-yet message when no preview exists', async () => {
     const client = stubClient({
       listZones: () => Promise.resolve([zone]),
-      fetchPromotionPreview: () => Promise.reject(new Error('not found')),
+      fetchPromotionPreview: () =>
+        Promise.reject(
+          new ControlApiError(404, 'No promotion plan for zone 1', 'promotion-plan-not-found'),
+        ),
     });
     render(
       withIntl(
@@ -81,13 +101,13 @@ describe('PromotionPlanPage', () => {
     await waitFor(() =>
       expect(screen.queryByText('No promotion plan saved for this zone yet.')).not.toBeNull(),
     );
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('localizes the real server 404 the backend sends for an unconfigured plan', async () => {
     // The bug this change fixes: the backend really does throw a
     // `ControlApiError` for this case (`promotion-plan-not-found`,
-    // apps/api/src/controllers/zones-groups.controller.ts) — every other test
+    // apps/api/src/zones-groups/promotion-plans.ts) — every other test
     // here reaches the same UI copy only through the generic-Error fallback
     // branch, which was never the buggy path.
     const client = stubClient({
@@ -112,7 +132,7 @@ describe('PromotionPlanPage', () => {
     await waitFor(() =>
       expect(screen.queryByText('No promotion plan saved for this zone yet.')).not.toBeNull(),
     );
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.queryByText('No promotion plan for zone 1')).toBeNull();
   });
 
@@ -138,7 +158,7 @@ describe('PromotionPlanPage', () => {
     );
 
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toContain('No zone 5');
+    expect(alert.textContent).toContain('Retrying in 2 s.');
   });
 
   it('renders resolved entrant display names instead of raw id tails', async () => {
@@ -173,10 +193,8 @@ describe('PromotionPlanPage', () => {
       ),
     );
 
-    await screen.findByText((_, element) => element?.textContent === '1. Club Atlético');
-    expect(
-      screen.getByText((_, element) => element?.textContent === '2. Deportivo Cuyo'),
-    ).toBeTruthy();
+    await screen.findByRole('cell', { name: 'Club Atlético' });
+    expect(screen.getByRole('cell', { name: 'Deportivo Cuyo' })).toBeTruthy();
     expect(screen.queryByText(/entrant1/)).toBeNull();
   });
 
@@ -191,10 +209,13 @@ describe('PromotionPlanPage', () => {
     );
     const fetchPromotionPreview = jest
       .fn<() => Promise<PromotionPreviewResponse>>()
-      .mockRejectedValueOnce(new Error('not found'))
+      .mockRejectedValueOnce(
+        new ControlApiError(404, 'No promotion plan for zone 1', 'promotion-plan-not-found'),
+      )
       .mockResolvedValueOnce(preview);
     const client = stubClient({
       listZones: () => Promise.resolve([zone]),
+      listRegistrations: () => Promise.resolve(namedEntrants),
       fetchPromotionPreview,
       savePromotionPlan,
     });
@@ -225,7 +246,7 @@ describe('PromotionPlanPage', () => {
       combination: { mode: 'group-order' },
     });
     await screen.findByText('Plan saved.');
-    await screen.findByText((_, element) => element?.textContent === '1. entrant1');
+    await screen.findByRole('cell', { name: 'Club Atlético' });
   });
 
   it('adds and removes promotion bands', async () => {
@@ -239,7 +260,10 @@ describe('PromotionPlanPage', () => {
     );
     const client = stubClient({
       listZones: () => Promise.resolve([zone]),
-      fetchPromotionPreview: () => Promise.reject(new Error('not found')),
+      fetchPromotionPreview: () =>
+        Promise.reject(
+          new ControlApiError(404, 'No promotion plan for zone 1', 'promotion-plan-not-found'),
+        ),
       savePromotionPlan,
     });
     render(
@@ -286,7 +310,10 @@ describe('PromotionPlanPage', () => {
   it('does nothing when the client has no savePromotionPlan method', async () => {
     const client = stubClient({
       listZones: () => Promise.resolve([zone]),
-      fetchPromotionPreview: () => Promise.reject(new Error('not found')),
+      fetchPromotionPreview: () =>
+        Promise.reject(
+          new ControlApiError(404, 'No promotion plan for zone 1', 'promotion-plan-not-found'),
+        ),
     });
     render(
       withIntl(
@@ -318,7 +345,9 @@ describe('PromotionPlanPage', () => {
     );
     const fetchPromotionPreview = jest
       .fn<() => Promise<PromotionPreviewResponse>>()
-      .mockRejectedValueOnce(new Error('not found'))
+      .mockRejectedValueOnce(
+        new ControlApiError(404, 'No promotion plan for zone 1', 'promotion-plan-not-found'),
+      )
       .mockRejectedValueOnce(new ControlApiError(400, 'Corte sin resolver'));
     const client = stubClient({
       listZones: () => Promise.resolve([zone]),
@@ -343,7 +372,8 @@ describe('PromotionPlanPage', () => {
       fireEvent.click(screen.getByText('Save promotion plan'));
     });
 
-    await screen.findByText('Corte sin resolver');
+    await screen.findByRole('button', { name: 'Retry' });
+    expect(document.querySelector('.cl-stale-mark')).not.toBeNull();
   });
 
   it('does not update state after unmounting mid-fetch', async () => {
@@ -405,7 +435,10 @@ describe('PromotionPlanPage', () => {
   it('reports a save failure with the server refusal message', async () => {
     const client = stubClient({
       listZones: () => Promise.resolve([zone]),
-      fetchPromotionPreview: () => Promise.reject(new Error('not found')),
+      fetchPromotionPreview: () =>
+        Promise.reject(
+          new ControlApiError(404, 'No promotion plan for zone 1', 'promotion-plan-not-found'),
+        ),
       savePromotionPlan: () => Promise.reject(new ControlApiError(409, 'Se rechazó el plan.')),
     });
     render(
@@ -432,7 +465,10 @@ describe('PromotionPlanPage', () => {
   it('falls back to the generic save-failure message for a non-API error', async () => {
     const client = stubClient({
       listZones: () => Promise.resolve([zone]),
-      fetchPromotionPreview: () => Promise.reject(new Error('not found')),
+      fetchPromotionPreview: () =>
+        Promise.reject(
+          new ControlApiError(404, 'No promotion plan for zone 1', 'promotion-plan-not-found'),
+        ),
       savePromotionPlan: () => Promise.reject(new Error('network down')),
     });
     render(
@@ -459,7 +495,10 @@ describe('PromotionPlanPage', () => {
   it('falls back to the zone number in the breadcrumb when the zone list fails to load', async () => {
     const client = stubClient({
       listZones: () => Promise.reject(new Error('down')),
-      fetchPromotionPreview: () => Promise.reject(new Error('not found')),
+      fetchPromotionPreview: () =>
+        Promise.reject(
+          new ControlApiError(404, 'No promotion plan for zone 1', 'promotion-plan-not-found'),
+        ),
     });
     render(
       withIntl(
@@ -473,7 +512,8 @@ describe('PromotionPlanPage', () => {
       ),
     );
 
-    await screen.findByText('apertura · 1');
+    await screen.findByRole('button', { name: 'Retry' });
+    expect(document.querySelector('.cl-skeleton')).not.toBeNull();
   });
 
   it('does nothing when the client has no fetchPromotionPreview method', async () => {

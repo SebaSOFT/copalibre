@@ -1,5 +1,5 @@
 import { tennisDescriptor, type RecordedEvent, type Segment } from '@copalibre/domain';
-import { segmentSummariesOf } from './public-segments.js';
+import { scoreAfterOf, segmentSummariesOf } from './public-segments.js';
 
 const descriptor = tennisDescriptor();
 const [HOME, AWAY] = ['entrant-home', 'entrant-away'] as const;
@@ -82,5 +82,59 @@ describe('segmentSummariesOf', () => {
     );
     expect(unknown?.label).toBeUndefined();
     expect(unknown?.timed).toBeUndefined();
+  });
+});
+
+describe('scoreAfterOf', () => {
+  it('gives the score after each scoring event, and the last one is the score the events add up to', () => {
+    const events = [
+      point(1, HOME, 1),
+      point(1, HOME, 2),
+      point(1, AWAY, 3),
+      point(2, AWAY, 4),
+      point(2, AWAY, 5),
+      point(3, HOME, 6),
+    ];
+
+    const scores = scoreAfterOf(descriptor, events, [HOME, AWAY]);
+
+    expect([...scores.values()]).toEqual([
+      [1, 0],
+      [2, 0],
+      [2, 1],
+      [2, 2],
+      [2, 3],
+      [3, 3],
+    ]);
+    expect(scores.get('event-6')).toEqual([3, 3]);
+  });
+
+  it('reads events in sequence order whatever order they arrive in', () => {
+    const events = [point(1, AWAY, 2), point(1, HOME, 1)];
+
+    expect(scoreAfterOf(descriptor, events, [HOME, AWAY])).toEqual(
+      new Map([
+        ['event-1', [1, 0]],
+        ['event-2', [1, 1]],
+      ]),
+    );
+  });
+
+  it('folds a 250-event match once per event, and its last entry is the final score', () => {
+    const events = Array.from({ length: 250 }, (_, index) =>
+      point(index < 150 ? 1 : 2, index % 3 === 0 ? AWAY : HOME, index + 1),
+    );
+    const homeCount = events.filter((event) => event.side === HOME).length;
+    const awayCount = events.length - homeCount;
+
+    const scores = scoreAfterOf(descriptor, events, [HOME, AWAY]);
+
+    expect(scores.size).toBe(250);
+    expect(scores.get('event-250')).toEqual([homeCount, awayCount]);
+    expect(scores.get('event-1')).toEqual([0, 1]);
+  });
+
+  it('gives no entries for a match with no events', () => {
+    expect(scoreAfterOf(descriptor, [], [HOME, AWAY]).size).toBe(0);
   });
 });

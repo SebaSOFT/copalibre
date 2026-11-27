@@ -2,7 +2,7 @@
 # docker-compose.yml's own service name, so Compose needs no variable at all;
 # Kubernetes overrides it, because the chart's Service is release-scoped
 # ({release}-web-ssr) and no hostname baked into this image could name it.
-# COPALIBRE_WEB_API_UPSTREAM follows the same pattern for browser media routes.
+# COPALIBRE_WEB_API_UPSTREAM follows the same pattern for the API.
 :4321 {
 	root * /srv
 
@@ -17,6 +17,96 @@
 		respond "{\"oidcIssuer\":\"{$COPALIBRE_JWT_ISSUER}\",\"oidcClientId\":\"{$COPALIBRE_OIDC_CLIENT_ID}\"}" 200
 	}
 
+	# Runtime half of the Content Security Policy; the build writes the other
+	# half into each page as a <meta> policy with the hash of every inline
+	# script and style. A browser enforces both, so the loose script-src and
+	# style-src below only keep the hashed inline elements from falling back
+	# to default-src: in the intersection, the hashes govern. This half owns
+	# what only the running installation knows or a <meta> cannot carry:
+	# connections, frames and forms (the application, plus an external
+	# identity provider's origin when one is configured) and frame-ancestors.
+	# blob: in connect-src lets a page read back image data it created itself.
+	# The application frames its own pages (overlay preview, silent sign-in
+	# renewal); no other site may. /api keeps the API's own deny-all policy.
+	# Appended (+), never replacing: on-demand pages arrive from the renderer
+	# with Astro's hashed policy as a header rather than a <meta>, and a browser
+	# enforces both. Deferred so the other headers replace the renderer's.
+	# The background-removal worker alone may evaluate generated code: its
+	# image library (onnxruntime's ndarray) builds accessors with Function().
+	# A worker has no DOM and no access to sessionStorage, so it cannot reach
+	# the access token, and its connections stay on this origin. blob: lets the
+	# library load onnxruntime's module and data from object URLs it creates.
+	@removalWorker path /_astro/background-removal.worker-*.js
+	header @removalWorker {
+		defer
+		Content-Security-Policy "default-src 'self'; script-src 'self' blob: 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'"
+		X-Content-Type-Options nosniff
+	}
+
+	@page {
+		not path /api /api/*
+		not path /_astro/background-removal.worker-*.js
+	}
+	header @page {
+		defer
+		+Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' blob: {$COPALIBRE_CSP_IDENTITY_ORIGIN:}; frame-src 'self' {$COPALIBRE_CSP_IDENTITY_ORIGIN:}; form-action 'self' {$COPALIBRE_CSP_IDENTITY_ORIGIN:}; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+	}
+
+	# Text responses (pages, stylesheets, scripts, API JSON) go out compressed,
+	# zstd when the browser accepts it, gzip otherwise; Caddy's default match
+	# leaves fonts, images and short responses alone. Two exclusions:
+	# - /events: a compressor holds output until its buffer fills, so a
+	#   compressed stream would deliver live events late.
+	# - /api/auth: sign-in, session, invitation, refresh and personal access
+	#   token responses carry secrets next to text the client sent, the shape a
+	#   compression side-channel (BREACH) reads; they are small anyway.
+	# The matcher reads the request path, and rewrites run before encode: keep
+	# rewrites (try_files) away from /api and /events.
+	@compressible not path /events /events/* /api/auth /api/auth/*
+	encode @compressible zstd gzip
+
+	# Font files are bundled into the build and served from this origin.
+	# Declared here rather than left to the base image's /etc/mime.types,
+	# which a different base may lack: without it they go out as
+	# application/octet-stream. file_server keeps a type already set.
+	@woff2 {
+		path *.woff2
+		file
+	}
+	header @woff2 Content-Type font/woff2
+	@woff {
+		path *.woff
+		file
+	}
+	header @woff Content-Type font/woff
+
+	# First, because /api/tournaments would otherwise look like an organization's tournaments.
+	@api path /api /api/*
+	handle @api {
+		reverse_proxy {$COPALIBRE_WEB_API_UPSTREAM:api:3001}
+	}
+
+	# The event streams, on the same hostname as Control, so the browser
+	# sends the HttpOnly session cookie to them as it does to /api. Never
+	# buffered: a buffered stream arrives after the match ended.
+	@events path /events /events/*
+	handle @events {
+		reverse_proxy {$COPALIBRE_WEB_EVENTS_UPSTREAM:events:3002} {
+			flush_interval -1
+		}
+	}
+
+	# RFC 8615 files stay public at the root. No fallback here: a missing
+	# file answers 404, not the home page with 200.
+	@wellKnown path /.well-known /.well-known/*
+	handle @wellKnown {
+		file_server
+	}
+
 	@ssr path_regexp ^(?:/(?:es|fr|pt|it|de|ru|zh))?/[^/]+/tournaments(?:/.*)?$
 	handle @ssr {
 		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
@@ -26,40 +116,23 @@
 	# @ssr above, matched separately because it has no /tournaments/
 	# segment to anchor on: just an optional locale prefix plus one alias
 	# segment. That shape would otherwise also swallow every reserved
-	# top-level path below (/control, /help, /tv, /api,
+	# top-level path (/control, /help, /tv, /api, /events, /.well-known,
 	# /runtime-config.json), so those are excluded explicitly rather than
 	# relied upon to lose priority by file order.
 	@ssrOrg {
 		path_regexp ^(?:/(?:es|fr|pt|it|de|ru|zh))?/[^/]+/?$
-		not path /control /control/* /help /help/* /tv /tv/* /api /api/* /organizations /organizations/* /objects /objects/* /disciplines /disciplines/* /tournament-profiles /tournament-profiles/* /runtime-config.json
+		not path /control /control/* /help /help/* /tv /tv/* /api /api/* /events /events/* /.well-known /.well-known/* /runtime-config.json
 	}
 	handle @ssrOrg {
 		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
 	}
 
-	# Dynamic root, sitemap, and player-profile routes rendered on demand by web-ssr
+	# Dynamic root and sitemap routes rendered on demand by web-ssr
 	@ssrRoot {
-		path / /sitemap.xml /api/player-profile
+		path / /sitemap.xml
 	}
 	handle @ssrRoot {
 		reverse_proxy {$COPALIBRE_WEB_SSR_UPSTREAM:web-ssr:3005}
-	}
-
-	# Browser-facing organization APIs include emblem upload/read/delete paths.
-	# Keep them on the app origin, but send them to the API before SSR/static fallback.
-	@organizationMedia {
-		path /organizations /organizations/*
-	}
-	handle @organizationMedia {
-		reverse_proxy {$COPALIBRE_WEB_API_UPSTREAM:api:3001}
-	}
-
-	# Discipline background URLs are public API assets, not static web files.
-	@disciplineMedia {
-		path /objects /objects/*
-	}
-	handle @disciplineMedia {
-		reverse_proxy {$COPALIBRE_WEB_API_UPSTREAM:api:3001}
 	}
 
 	@ssrTv {

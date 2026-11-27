@@ -1,8 +1,10 @@
 ---
 import type { IntlShape } from 'react-intl';
+import { AdvancingBadge } from '../atoms/AdvancingBadge.tsx';
 import { Badge } from '../atoms/Badge.tsx';
 import { Card } from '../atoms/Card.tsx';
 import { EntrantName } from '../atoms/EntrantName.tsx';
+import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.tsx';
 import EmblemImage from '../atoms/EmblemImage.astro';
 import StateBadge from '../atoms/StateBadge.astro';
 import Button from '../atoms/Button.astro';
@@ -10,10 +12,12 @@ import { messages } from '../../../lib/i18n/public-messages.en.ts';
 import SeriesStateBar from '../molecules/SeriesStateBar.astro';
 import { matchReportUrl, toNode, type BracketMatch } from '../../../lib/bracket.ts';
 import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
-import { toSeriesInput } from '../../../lib/series.ts';
+import { linkableSeriesGames, toSeriesInput } from '../../../lib/series.ts';
+import { displayedScore } from '../../../lib/matches-view.ts';
 import {
   resultReasonLabels,
   resultStateLabels,
+  sideSourceLabels,
   seriesStateBarLabels,
 } from '../../../lib/i18n/public-intl.ts';
 
@@ -25,12 +29,29 @@ interface Props {
   readonly stageNumber: number;
   readonly localePrefix?: string;
   readonly highlightEntrants?: boolean;
+  readonly highlightedEntrantId?: string;
+  readonly scheduledAt?: string;
+  readonly venueName?: string;
+  readonly organizationTimeZone?: string;
 }
-const { intl, organizationAlias, tournamentAlias, stageNumber, localePrefix = '' } = Astro.props;
-const node = toNode(Astro.props.match, resultStateLabels(intl));
+const {
+  intl,
+  organizationAlias,
+  tournamentAlias,
+  stageNumber,
+  localePrefix = '',
+  scheduledAt,
+  venueName,
+  organizationTimeZone,
+} = Astro.props;
+const node = toNode(Astro.props.match, resultStateLabels(intl), sideSourceLabels(intl));
+const pendingSyncGroup =
+  node.slots.length === 2 && node.slots.every((slot) => slot.pending)
+    ? `match-node-${stageNumber}-${Astro.props.match.matchId ?? node.matchNumber}`
+    : undefined;
 const highlight = Astro.props.highlightEntrants === true;
-const Wrapper = highlight ? 'div' : 'a';
 const reasonLabels = resultReasonLabels(intl);
+const advancesLabel = intl.formatMessage(messages.bracketAdvances);
 // Every card links, resolved or not — the match report page already
 // renders correctly for a not-yet-played match, so a winner-of/loser-of
 // placeholder still points somewhere real, not a dead end.
@@ -50,47 +71,101 @@ const legScores =
   series === undefined
     ? []
     : series.games.filter((game) => game.scores !== undefined && game.status === 'finalized');
+// A series' played and in-progress games each link to their own page. A card that links to games cannot
+// nest them inside its own link, so the card's link becomes a stretched sibling and the game links sit above it.
+const linkableGames = series === undefined ? [] : linkableSeriesGames(series);
+const homeName = node.slots[0]?.fullName ?? node.slots[0]?.label ?? '';
+const awayName = node.slots[1]?.fullName ?? node.slots[1]?.label ?? '';
+const gameLinks = new Map(
+  series === undefined
+    ? []
+    : series.games
+        .filter((game) => linkableGames.includes(game.number))
+        .map((game) => [
+          game.number,
+          {
+            href: matchReportUrl({
+              organizationAlias,
+              tournamentAlias,
+              stageNumber,
+              matchNumber: node.matchNumber,
+              localePrefix,
+              game: game.number,
+            }),
+            linkLabel: intl.formatMessage(messages.matchReportGameLinkLabel, {
+              game: intl.formatMessage(messages.matchReportGameNumber, {
+                number: game.number,
+                total: series.span,
+              }),
+              home: homeName,
+              score:
+                game.scores === undefined
+                  ? intl.formatMessage(messages.tickerVersus)
+                  : intl.formatMessage(messages.matchTimelineScoreAfter, {
+                      home: game.scores[0] ?? 0,
+                      away: game.scores[1] ?? 0,
+                    }),
+              away: awayName,
+            }),
+          } as const,
+        ]),
+);
+const hasGameLinks = !highlight && gameLinks.size > 0;
+const Wrapper = highlight || hasGameLinks ? 'div' : 'a';
+const cardName = `${homeName} ${intl.formatMessage(messages.tickerVersus)} ${awayName}`;
 ---
 
-<Wrapper href={highlight ? undefined : reportUrl}>
-  <Card as="article" data-match={node.matchNumber}>
-    {
-      highlight ? (
-        <a href={reportUrl}>
-          <StateBadge state={node.state} intl={intl} />
-        </a>
-      ) : (
+<Wrapper href={highlight || hasGameLinks ? undefined : reportUrl}>
+  <Card
+    as="article"
+    data-match={node.matchNumber}
+    className={hasGameLinks ? 'cl-match-node--linked' : undefined}
+  >
+    {hasGameLinks && <a class="cl-match-node__stretch" href={reportUrl} aria-label={cardName} />}
+    {highlight ? (
+      <a href={reportUrl}>
         <StateBadge state={node.state} intl={intl} />
-      )
-    }
+      </a>
+    ) : (
+      <StateBadge state={node.state} intl={intl} />
+    )}
     <ol>
-      {
-        node.slots.map((slot) => (
-          <li
-            class:list={[
-              slot.pending ? 'cl-slot--pending' : 'cl-slot',
-              slot.winner && 'cl-slot--winner',
-            ]}
-          >
-            {/* Named, never blank: a blank cell reads as a bug, "Ganador del 3"
+      {node.slots.map((slot) => (
+        <li
+          class:list={[
+            slot.pending ? 'cl-slot--pending' : 'cl-slot',
+            slot.winner && 'cl-slot--winner',
+            slot.eliminated && 'cl-slot--eliminated',
+          ]}
+        >
+          {/* Named, never blank: a blank cell reads as a bug, "Ganador del 3"
                 tells a spectator what has to happen first. */}
-            {slot.fullName === undefined ? (
-              <span>{slot.label}</span>
-            ) : (
-              <>
-                {organizationAlias && (
-                  <EmblemImage
-                    alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: slot.fullName })}
-                    placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
-                    bare
-                    size={20}
-                    src={
-                      slot.clubId && slot.emblemObjectId
-                        ? clubEmblemUrl(organizationAlias, slot.clubId)
-                        : undefined
-                    }
-                  />
-                )}
+          {slot.fullName === undefined ? (
+            <EntrantName
+              client:load
+              pending
+              syncGroup={pendingSyncGroup}
+              fullName={slot.label}
+              abbreviation={slot.abbreviation}
+            />
+          ) : (
+            <>
+              {organizationAlias && (
+                <EmblemImage
+                  alt={intl.formatMessage(messages.orgPageEmblemAlt, { name: slot.fullName })}
+                  placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+                  abbreviation={slot.abbreviation}
+                  bare
+                  decorative
+                  size={20}
+                  src={
+                    slot.clubId && slot.emblemObjectId
+                      ? clubEmblemUrl(organizationAlias, slot.clubId)
+                      : undefined
+                  }
+                />
+              )}
+              <div class="cl-slot__identity">
                 {highlight && slot.entrantId !== undefined ? (
                   <>
                     <span data-journey-fallback>
@@ -101,7 +176,9 @@ const legScores =
                       aria-label={intl.formatMessage(messages.bracketHighlightEntrant, {
                         entrant: slot.fullName,
                       })}
-                      aria-pressed="false"
+                      aria-pressed={
+                        slot.entrantId === Astro.props.highlightedEntrantId ? 'true' : 'false'
+                      }
                       class="cl-journey-name"
                       data-entrant-id={slot.entrantId}
                       title={slot.fullName}
@@ -113,32 +190,48 @@ const legScores =
                 ) : (
                   <EntrantName client:load fullName={slot.fullName} />
                 )}
-              </>
-            )}
-            {slot.resultReason && (
-              // A walkover 0-10 must not read like an actual 10-goal win — the
-              // reason a result looks the way it does is shown, not just the
-              // number.
-              <Badge>{reasonLabels[slot.resultReason]}</Badge>
-            )}
-            <span class="cl-stat-tile__value">{slot.score ?? '—'}</span>
-          </li>
-        ))
-      }
+                {slot.originLabel !== undefined && (
+                  <span class="cl-slot__origin">{slot.originLabel}</span>
+                )}
+                {slot.advancing && <AdvancingBadge label={advancesLabel} />}
+              </div>
+            </>
+          )}
+          {slot.resultReason && (
+            // A walkover 0-10 must not read like an actual 10-goal win — the
+            // reason a result looks the way it does is shown, not just the
+            // number.
+            <Badge>{reasonLabels[slot.resultReason]}</Badge>
+          )}
+          <span class="cl-stat-tile__value">{displayedScore(node.state, slot.score) ?? '—'}</span>
+        </li>
+      ))}
     </ol>
-    {
-      series !== undefined && seriesInput !== undefined && (
-        <SeriesStateBar
-          {...seriesStateBarLabels(intl, seriesInput, {
-            aggregateScores:
-              series.resolutionClass === 'aggregate' ? series.aggregateScores : undefined,
-            awayName: node.slots[1]?.fullName ?? node.slots[1]?.label,
-            homeName: node.slots[0]?.fullName ?? node.slots[0]?.label,
-            winner: series.winner,
-          })}
-        />
-      )
-    }
+    {node.state === 'upcoming' && (scheduledAt !== undefined || venueName !== undefined) && (
+      <p class="cl-match-node__schedule">
+        {scheduledAt !== undefined && (
+          <ResponsiveTimestamp
+            locale={intl.locale}
+            timestamp={scheduledAt}
+            timeZone={organizationTimeZone}
+          />
+        )}
+        {scheduledAt !== undefined && venueName !== undefined && ' · '}
+        {venueName !== undefined && <span>{venueName}</span>}
+      </p>
+    )}
+    {series !== undefined && seriesInput !== undefined && (
+      <SeriesStateBar
+        {...seriesStateBarLabels(intl, seriesInput, {
+          aggregateScores:
+            series.resolutionClass === 'aggregate' ? series.aggregateScores : undefined,
+          awayName: node.slots[1]?.fullName ?? node.slots[1]?.label,
+          homeName: node.slots[0]?.fullName ?? node.slots[0]?.label,
+          winner: series.winner,
+          gameLinks,
+        })}
+      />
+    )}
     {
       /* Each leg's own score alongside the aggregate: a 1-0 and a 1-2 that sums to 2-2 is a
          different story from a 0-0 and a 2-2, and the aggregate alone hides which it was. */
@@ -163,6 +256,25 @@ const legScores =
     gap: var(--cl-space-2);
   }
   /* The name takes the row's slack and reads from the left, next to its emblem. */
+  .cl-slot__identity {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+  }
+  .cl-slot__origin {
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cl-slot__identity :global(.cl-advancing-badge) {
+    align-self: flex-start;
+    margin-top: var(--cl-space-1);
+  }
   .cl-slot :global(.cl-entrant-name),
   .cl-slot--pending :global(.cl-entrant-name),
   .cl-slot :global(.cl-journey-name) {
@@ -178,5 +290,30 @@ const legScores =
   .cl-slot--winner :global(.cl-entrant-name),
   .cl-slot--winner :global(.cl-stat-tile__value) {
     font-weight: var(--cl-weight-bold);
+  }
+  .cl-slot--eliminated,
+  .cl-slot--eliminated :global(.cl-entrant-name),
+  .cl-slot--eliminated :global(.cl-stat-tile__value) {
+    color: var(--cl-text-muted);
+  }
+  /* A card whose games link: its own link covers the card and every game link sits above it. */
+  .cl-match-node--linked {
+    position: relative;
+  }
+
+  .cl-match-node__stretch {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .cl-match-node__schedule {
+    margin: var(--cl-space-1) 0 0;
+    color: var(--cl-text-muted);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 </style>

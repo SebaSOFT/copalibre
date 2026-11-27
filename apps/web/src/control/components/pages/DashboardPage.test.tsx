@@ -1,16 +1,38 @@
 import { jest } from '@jest/globals';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render as testingLibraryRender,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { IntlProvider } from 'react-intl';
 import { RealtimeClient, type RealtimeHandlers } from '@copalibre/realtime';
+import { ToastProvider } from '../ToastProvider.js';
+import { messages as spanishMessages } from '../../i18n/messages.es.js';
 import { DashboardPage } from '../pages/DashboardPage.js';
+import { PageHeaderContext } from '../ui/organisms/page-header.js';
 import type {
   ControlApiClient,
   RegistrationResponse,
   TournamentResponse,
 } from '../../lib/api-client.js';
+import type { components } from '@copalibre/contracts';
+
+function render(ui: ReactNode) {
+  return testingLibraryRender(
+    <IntlProvider locale="es" messages={spanishMessages}>
+      <ToastProvider>{ui}</ToastProvider>
+    </IntlProvider>,
+  );
+}
 
 function client(overrides: Partial<ControlApiClient> = {}): ControlApiClient {
   return {
     listMyOrganizations: async () => [],
+    listActiveTournaments: async () => [],
     listDisciplines: async () => [],
     createTournament: async () => ({ tournamentId: 't-1', alias: 't-1', name: 'Test' }),
     listRegistrations: async () => [],
@@ -121,9 +143,211 @@ describe('DashboardPage', () => {
       );
     });
 
-    await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
-    expect(screen.getByText('Clausura 2026')).toBeDefined();
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Torneo Apertura 2026' })).toBeDefined(),
+    );
+    expect(screen.getByRole('link', { name: 'Clausura 2026' })).toBeDefined();
     expect(screen.getByTestId('pendingRegistrations').textContent).toBe('2');
+    expect(
+      screen.getByRole('link', { name: 'Inscripciones pendientes: 2' }).getAttribute('href'),
+    ).toBe('/control/liga-mendocina/tournaments/apertura-2026/registrations');
+  });
+
+  it('asks which personal columns to include before exporting individual participants', async () => {
+    const downloadCsvExport = jest.fn(async () => 'alias,displayName\nmaria-perez,Maria Perez\n');
+    const createObjectUrl = Object.getOwnPropertyDescriptor(URL, 'createObjectURL');
+    const revokeObjectUrl = Object.getOwnPropertyDescriptor(URL, 'revokeObjectURL');
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: jest.fn(() => 'blob:participant-export'),
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: jest.fn(),
+    });
+
+    try {
+      render(
+        <DashboardPage
+          client={client({ listActiveTournaments: async () => [tournament()], downloadCsvExport })}
+          organizationAlias="liga-mendocina"
+        />,
+      );
+
+      const exportButton = await screen.findByRole('button', { name: 'Más acciones' });
+      exportButton.focus();
+      fireEvent.keyDown(exportButton, { key: 'ArrowDown', code: 'ArrowDown' });
+      fireEvent.click(
+        await screen.findByRole('menuitem', { name: 'CSV de participantes individuales' }),
+      );
+
+      const name = await screen.findByRole('checkbox', { name: 'Nombre de la persona' });
+      const identityDocument = screen.getByRole('checkbox', {
+        name: 'Documento de identidad (tipo y número)',
+      });
+      expect(name.getAttribute('aria-checked')).toBe('true');
+      expect(identityDocument.getAttribute('aria-checked')).toBe('false');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Descargar CSV' }));
+      await waitFor(() =>
+        expect(downloadCsvExport).toHaveBeenCalledWith(
+          'liga-mendocina',
+          'apertura-2026',
+          'participants/individual',
+          ['naturalKeyKind', 'naturalKey'],
+        ),
+      );
+    } finally {
+      if (createObjectUrl) Object.defineProperty(URL, 'createObjectURL', createObjectUrl);
+      else Reflect.deleteProperty(URL, 'createObjectURL');
+      if (revokeObjectUrl) Object.defineProperty(URL, 'revokeObjectURL', revokeObjectUrl);
+      else Reflect.deleteProperty(URL, 'revokeObjectURL');
+    }
+  });
+
+  it('keeps the personal-column choices open and reports a failed CSV export', async () => {
+    const downloadCsvExport = jest.fn(async () => {
+      throw new Error('Network unavailable');
+    });
+    render(
+      <DashboardPage
+        client={client({ listActiveTournaments: async () => [tournament()], downloadCsvExport })}
+        organizationAlias="liga-mendocina"
+      />,
+    );
+
+    const exportButton = await screen.findByRole('button', { name: 'Más acciones' });
+    exportButton.focus();
+    fireEvent.keyDown(exportButton, { key: 'ArrowDown', code: 'ArrowDown' });
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'CSV de participantes individuales' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Descargar CSV' }));
+
+    expect(await screen.findByText('No se pudo exportar el CSV. Intentá de nuevo.')).toBeDefined();
+    expect(screen.getByRole('dialog')).toBeDefined();
+    expect(screen.getByRole('checkbox', { name: 'Nombre de la persona' })).toBeDefined();
+  });
+
+  it('previews youth visibility before publishing and refreshes the dashboard after confirmation', async () => {
+    const fetchTournamentSettings = jest.fn(async () => ({
+      name: 'Torneo Apertura 2026',
+      featured: false,
+      includesMinors: true,
+      showYouthProfiles: false,
+    }));
+    const publishTournament = jest.fn(async () => tournament({ status: 'published' }));
+    const listActiveTournaments = jest.fn(async () => [tournament({ status: 'draft' })]);
+    render(
+      <DashboardPage
+        client={client({
+          listActiveTournaments,
+          fetchTournamentSettings,
+          publishTournament,
+        })}
+        organizationAlias="liga-mendocina"
+      />,
+    );
+
+    const actionsButton = await screen.findByRole('button', { name: 'Más acciones' });
+    actionsButton.focus();
+    fireEvent.keyDown(actionsButton, { code: 'Enter', key: 'Enter' });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Publicar torneo' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Resumen del torneo')).toBeDefined();
+    expect(
+      within(dialog).getByText(
+        'Como el torneo incluye menores y los perfiles juveniles están ocultos, sus nombres aparecen sin fotos, nacionalidades, perfiles públicos ni estadísticas de carrera.',
+      ),
+    ).toBeDefined();
+    expect(publishTournament).not.toHaveBeenCalled();
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    const actionsButtonAgain = await screen.findByRole('button', { name: 'Más acciones' });
+    actionsButtonAgain.focus();
+    fireEvent.keyDown(actionsButtonAgain, { code: 'Enter', key: 'Enter' });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Publicar torneo' }));
+    const dismissedByEscape = await screen.findByRole('dialog');
+    fireEvent.keyDown(dismissedByEscape, { code: 'Escape', key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    const actionsButtonForPublish = await screen.findByRole('button', { name: 'Más acciones' });
+    actionsButtonForPublish.focus();
+    fireEvent.keyDown(actionsButtonForPublish, { code: 'Enter', key: 'Enter' });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Publicar torneo' }));
+    const confirmationDialog = await screen.findByRole('dialog');
+    expect(publishTournament).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.click(within(confirmationDialog).getByRole('button', { name: 'Publicar torneo' }));
+    });
+
+    expect(fetchTournamentSettings).toHaveBeenCalledTimes(4);
+    expect(publishTournament).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026');
+    await waitFor(() => expect(screen.getByText('Torneo publicado.')).toBeDefined());
+    await waitFor(() => expect(listActiveTournaments).toHaveBeenCalledTimes(2));
+  });
+
+  it('names public youth profiles and links directly to tournament privacy settings', async () => {
+    render(
+      <DashboardPage
+        client={client({
+          listActiveTournaments: async () => [tournament({ status: 'draft' })],
+          fetchTournamentSettings: async () => ({
+            name: 'Torneo Apertura 2026',
+            featured: false,
+            includesMinors: true,
+            showYouthProfiles: true,
+          }),
+          publishTournament: async () => tournament({ status: 'published' }),
+        })}
+        organizationAlias="liga-juvenil"
+      />,
+    );
+
+    const actionsButton = await screen.findByRole('button', { name: 'Más acciones' });
+    actionsButton.focus();
+    fireEvent.keyDown(actionsButton, { code: 'Enter', key: 'Enter' });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Publicar torneo' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByText(
+        'Este torneo incluye menores y los perfiles juveniles públicos están habilitados. Los perfiles pueden mostrar nombres, fotos, nacionalidades y trayectoria. Las personas ocultas de las páginas públicas siguen ocultas.',
+      ),
+    ).toBeDefined();
+    expect(
+      within(dialog).getByRole('link', { name: 'Revisar privacidad' }).getAttribute('href'),
+    ).toBe('/control/liga-juvenil/tournaments/apertura-2026/settings#privacy');
+  });
+
+  it('uses the tournament alias for token lookup and the display name in the heartbeat', async () => {
+    const listDisplayTokens = jest.fn(async () => [
+      {
+        displayTokenId: 'token-1',
+        tournamentId: 't-1',
+        label: 'Cancha 1',
+        revoked: false,
+        createdAt: '2026-08-01T00:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <DashboardPage
+        client={client({
+          listActiveTournaments: async () => [tournament()],
+          listDisplayTokens,
+        })}
+        organizationAlias="liga-mendocina"
+      />,
+    );
+
+    await waitFor(() =>
+      expect(listDisplayTokens).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026'),
+    );
+    expect(await screen.findByText('(Torneo Apertura 2026)')).toBeDefined();
+    expect(screen.queryByText('apertura-2026')).toBeNull();
   });
 
   it('shows an explicit empty state for an organization with no tournaments, not sample data', async () => {
@@ -141,20 +365,25 @@ describe('DashboardPage', () => {
     expect(screen.queryByText('Torneo Clausura 2026')).toBeNull();
   });
 
-  it('renders an empty dashboard rather than throwing when the client offers no read', async () => {
+  it('shows a retry state instead of claiming there are no tournaments when the read is unavailable', async () => {
     await act(async () => {
-      render(<DashboardPage client={client()} organizationAlias="liga-mendocina" />);
+      render(
+        <DashboardPage
+          client={client({ listActiveTournaments: undefined })}
+          organizationAlias="liga-mendocina"
+        />,
+      );
     });
 
-    await waitFor(() => expect(screen.getByText(/no tiene torneos/)).toBeDefined());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Reintentar' })).toBeDefined());
+    expect(screen.queryByText(/no tiene torneos/)).toBeNull();
   });
 
   it.each([
-    // Rendered through Dashboard (not withIntl), which resolves Spanish —
-    // same as every other test in this file and in control.test.tsx.
-    ['published', 'PRÓXIMO'],
-    ['finished', 'FINALIZADO'],
-    ['archived', 'FINALIZADO'],
+    // The provider wrapper supplies Spanish catalogue messages as in production.
+    ['published', 'Próximo'],
+    ['finished', 'Finalizado'],
+    ['archived', 'Finalizado'],
   ] as const)('maps a %s tournament to %s', async (status, label) => {
     await act(async () => {
       render(
@@ -168,7 +397,7 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(screen.getByTestId('lifecycle').textContent).toBe(label));
   });
 
-  it('renders an empty dashboard rather than throwing when the tournament read fails', async () => {
+  it('keeps the skeleton and retry toast when the tournament read fails', async () => {
     await act(async () => {
       render(
         <DashboardPage
@@ -177,12 +406,15 @@ describe('DashboardPage', () => {
               throw new Error('network down');
             },
           })}
-          organizationAlias="liga-mendocina"
+          organizationAlias="failed-read-org"
         />,
       );
     });
 
-    await waitFor(() => expect(screen.getByText(/no tiene torneos/)).toBeDefined());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Reintentar' })).toBeDefined());
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(screen.getAllByRole('button', { name: 'Reintentar' })).toHaveLength(1);
+    expect(screen.queryByText(/no tiene torneos/)).toBeNull();
   });
 
   it('hides the Roles navigation entry once a club-admin role resolves', async () => {
@@ -191,6 +423,7 @@ describe('DashboardPage', () => {
         organizationId: 'org-1',
         organizationAlias: 'liga-mendocina',
         organizationName: 'Liga Mendocina',
+        timezone: 'America/Argentina/Buenos_Aires',
         role: 'club-admin' as const,
       },
     ];
@@ -210,6 +443,7 @@ describe('DashboardPage', () => {
         organizationId: 'org-1',
         organizationAlias: 'liga-mendocina',
         organizationName: 'Liga Mendocina',
+        timezone: 'America/Argentina/Buenos_Aires',
         role: 'admin' as const,
       },
     ];
@@ -227,14 +461,25 @@ describe('DashboardPage', () => {
     await act(async () => {
       render(
         <DashboardPage
-          client={client({ listActiveTournaments: async () => [tournament()] })}
+          client={client({
+            listMyOrganizations: async () => [
+              {
+                organizationId: 'org-1',
+                organizationAlias: 'liga-mendocina',
+                organizationName: 'Liga Mendocina',
+                timezone: 'America/Argentina/Buenos_Aires',
+                role: 'admin' as const,
+              },
+            ],
+            listActiveTournaments: async () => [tournament()],
+          })}
           organizationAlias="liga-mendocina"
         />,
       );
     });
 
     await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
-    const link = screen.getByRole('link', { name: 'Crear torneo' });
+    const link = await screen.findByRole('link', { name: 'Crear torneo' });
     expect(link.getAttribute('href')).toBe('/control/liga-mendocina/tournaments/new');
   });
 
@@ -248,7 +493,7 @@ describe('DashboardPage', () => {
       );
     });
 
-    const publicLink = await screen.findByRole('link', { name: 'Sitio público' });
+    const publicLink = await screen.findByRole('link', { name: /Público/ });
     const tvLink = screen.getByRole('link', { name: 'Pantalla TV' });
     expect(publicLink.getAttribute('href')).toBe('/liga-mendocina/tournaments/apertura-2026');
     expect(tvLink.getAttribute('href')).toBe('/tv/liga-mendocina/tournaments/apertura-2026');
@@ -267,9 +512,7 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(screen.getByText(/no tiene torneos/)).toBeDefined());
     const cta = screen.getByRole('link', { name: 'Creá tu primer torneo' });
     expect(cta.getAttribute('href')).toBe('/control/liga-mendocina/tournaments/new');
-    // The header action stays present too — the empty state adds a second
-    // entry point, it does not replace the first.
-    expect(screen.getByRole('link', { name: 'Crear torneo' })).toBeDefined();
+    expect(screen.queryByRole('link', { name: 'Crear torneo' })).toBeNull();
   });
 
   it('activating "Create tournament" navigates client-side via controlLinkClick, not a full page load', async () => {
@@ -277,14 +520,25 @@ describe('DashboardPage', () => {
     await act(async () => {
       render(
         <DashboardPage
-          client={client({ listActiveTournaments: async () => [tournament()] })}
+          client={client({
+            listMyOrganizations: async () => [
+              {
+                organizationId: 'org-1',
+                organizationAlias: 'liga-mendocina',
+                organizationName: 'Liga Mendocina',
+                timezone: 'America/Argentina/Buenos_Aires',
+                role: 'admin' as const,
+              },
+            ],
+            listActiveTournaments: async () => [tournament()],
+          })}
           organizationAlias="liga-mendocina"
         />,
       );
     });
 
     await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
-    const link = screen.getByRole('link', { name: 'Crear torneo' });
+    const link = await screen.findByRole('link', { name: 'Crear torneo' });
     fireEvent.click(link, { button: 0 });
 
     expect(window.location.pathname).toBe('/control/liga-mendocina/tournaments/new');
@@ -296,6 +550,7 @@ describe('DashboardPage', () => {
         organizationId: 'org-1',
         organizationAlias: 'liga-mendocina',
         organizationName: 'Liga Mendocina',
+        timezone: 'America/Argentina/Buenos_Aires',
         role: 'viewer' as const,
       },
     ];
@@ -321,6 +576,7 @@ describe('DashboardPage', () => {
         organizationId: 'org-1',
         organizationAlias: 'liga-mendocina',
         organizationName: 'Liga Mendocina',
+        timezone: 'America/Argentina/Buenos_Aires',
         role: 'admin' as const,
       },
     ];
@@ -383,7 +639,7 @@ describe('DashboardPage', () => {
 
     await waitFor(() => expect(screen.getByText('Partido finalizado')).toBeDefined());
     expect(screen.getByText('Club creado')).toBeDefined();
-    expect(screen.getAllByText('user:admin-1')).toHaveLength(2);
+    expect(screen.getAllByText('Usuario')).toHaveLength(2);
   });
 
   it('subscribes to realtime events via controlStream and refreshes on new events', async () => {
@@ -550,8 +806,7 @@ describe('DashboardPage', () => {
     expect(within(table).getByRole('columnheader', { name: 'Acción' })).toBeDefined();
     expect(within(table).getByRole('columnheader', { name: 'Quién' })).toBeDefined();
     expect(within(table).getByRole('columnheader', { name: 'Cuándo' })).toBeDefined();
-    expect(within(table).getByText('user:referee-1')).toBeDefined();
-    expect(within(table).getByText('user:admin-1')).toBeDefined();
+    expect(within(table).getAllByText('Usuario')).toHaveLength(2);
     // The reason a record carries rides with its own row, not a separate panel.
     expect(within(table).getByText('Inscripción confirmada')).toBeDefined();
   });
@@ -578,5 +833,171 @@ describe('DashboardPage', () => {
     );
 
     await waitFor(() => expect(screen.getByText('Torneo Apertura 2026')).toBeDefined());
+  });
+});
+
+type OrganizationScheduleResponse = components['schemas']['OrganizationScheduleResponse'];
+
+describe('DashboardPage matches today', () => {
+  // 16:00 on 2026-11-16 in Buenos Aires (UTC-3).
+  const NOW = Date.parse('2026-11-16T19:00:00.000Z');
+  let originalFetch: typeof fetch;
+  let now: jest.SpiedFunction<typeof Date.now>;
+
+  beforeEach(() => {
+    originalFetch = globalThis.fetch;
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true,
+      value: async () => new Response('[]', { headers: { 'content-type': 'application/json' } }),
+    });
+    now = jest.spyOn(Date, 'now').mockReturnValue(NOW);
+  });
+
+  afterEach(() => {
+    now.mockRestore();
+    Object.defineProperty(globalThis, 'fetch', { configurable: true, value: originalFetch });
+  });
+
+  function assignment(
+    tournamentId: string,
+    startsAt: string,
+    published = true,
+  ): OrganizationScheduleResponse['assignments'][number] {
+    return {
+      matchId: `match-${tournamentId}-${startsAt}`,
+      status: 'scheduled',
+      tournamentId,
+      stageId: 'stage-1',
+      round: 1,
+      entrantIds: [],
+      slotId: 'slot-1',
+      venueId: 'venue-1',
+      startsAt: Date.parse(startsAt),
+      estimatedEnd: Date.parse(startsAt) + 3_600_000,
+      published,
+    };
+  }
+
+  function renderInBuenosAires(api: ControlApiClient) {
+    return render(
+      <PageHeaderContext.Provider
+        value={{
+          organizationTimeZone: 'America/Argentina/Buenos_Aires',
+          breadcrumbLabel: 'Ruta',
+          loadingLabel: 'Cargando',
+        }}
+      >
+        <DashboardPage client={api} organizationAlias="liga-mendocina" />
+      </PageHeaderContext.Provider>,
+    );
+  }
+
+  const tournaments = async () => [
+    tournament(),
+    tournament({ tournamentId: 't-2', alias: 'clausura-2026', name: 'Clausura 2026' }),
+  ];
+  const asRole = (role: 'admin' | 'viewer') => async () => [
+    {
+      organizationId: 'org-1',
+      organizationAlias: 'liga-mendocina',
+      organizationName: 'Liga Mendocina',
+      timezone: 'America/Argentina/Buenos_Aires',
+      role,
+    },
+  ];
+  const cardOf = (name: string): HTMLElement =>
+    screen.getByRole('link', { name }).closest('.cl-tournament-card') as HTMLElement;
+
+  it("counts each tournament's kick-offs on the organization's day and totals them in the strip", async () => {
+    const fetchOrganizationSchedule = jest.fn(async () => ({
+      assignments: [
+        assignment('t-1', '2026-11-16T22:00:00.000Z'), // 19:00 today
+        assignment('t-1', '2026-11-17T02:30:00.000Z'), // 23:30 today, already tomorrow in UTC
+        assignment('t-1', '2026-11-17T13:00:00.000Z'), // 10:00 tomorrow
+        assignment('t-1', '2026-11-16T21:00:00.000Z', false), // today, but not published
+        assignment('t-2', '2026-11-16T15:00:00.000Z'), // 12:00 today
+        assignment('another-organization-tournament', '2026-11-16T15:00:00.000Z'),
+      ],
+    }));
+    renderInBuenosAires(
+      client({
+        listMyOrganizations: asRole('admin'),
+        listActiveTournaments: tournaments,
+        fetchOrganizationSchedule,
+      }),
+    );
+
+    await waitFor(() => expect(screen.getByTestId('matchesToday').textContent).toBe('3'));
+    expect(within(cardOf('Torneo Apertura 2026')).getByText('Partidos hoy')).toBeDefined();
+    expect(within(cardOf('Torneo Apertura 2026')).getByText('2')).toBeDefined();
+    expect(within(cardOf('Clausura 2026')).getByText('1')).toBeDefined();
+    // One request for the whole organization, a window wider than any zone's offset from UTC.
+    expect(fetchOrganizationSchedule).toHaveBeenCalledTimes(1);
+    expect(fetchOrganizationSchedule).toHaveBeenCalledWith('liga-mendocina', {
+      from: NOW - 2 * 24 * 60 * 60 * 1000,
+      to: NOW + 2 * 24 * 60 * 60 * 1000,
+    });
+  });
+
+  it('shows a zero, not a gap, when the schedule is read and nothing is on today', async () => {
+    renderInBuenosAires(
+      client({
+        listMyOrganizations: asRole('admin'),
+        listActiveTournaments: tournaments,
+        fetchOrganizationSchedule: async () => ({
+          assignments: [assignment('t-1', '2026-11-17T13:00:00.000Z')],
+        }),
+      }),
+    );
+
+    await waitFor(() => expect(screen.getByTestId('matchesToday').textContent).toBe('0'));
+  });
+
+  it('shows no count when the schedule cannot be read, rather than a zero', async () => {
+    const fetchOrganizationSchedule = jest.fn(async () => {
+      throw new Error('Schedule unavailable');
+    });
+    renderInBuenosAires(
+      client({
+        listMyOrganizations: asRole('admin'),
+        listActiveTournaments: tournaments,
+        fetchOrganizationSchedule,
+      }),
+    );
+
+    await waitFor(() => expect(fetchOrganizationSchedule).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Torneo Apertura 2026' })).toBeDefined(),
+    );
+    expect(screen.queryByTestId('matchesToday')).toBeNull();
+    expect(within(cardOf('Torneo Apertura 2026')).queryByText('Partidos hoy')).toBeNull();
+  });
+
+  it('does not ask for a schedule a role has no authority to read', async () => {
+    const fetchOrganizationSchedule = jest.fn(async () => ({ assignments: [] }));
+    renderInBuenosAires(
+      client({
+        listMyOrganizations: asRole('viewer'),
+        listActiveTournaments: tournaments,
+        fetchOrganizationSchedule,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Torneo Apertura 2026' })).toBeDefined(),
+    );
+    expect(fetchOrganizationSchedule).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('matchesToday')).toBeNull();
+  });
+
+  it('shows no count when the API client cannot read schedules at all', async () => {
+    renderInBuenosAires(
+      client({ listMyOrganizations: asRole('admin'), listActiveTournaments: tournaments }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Torneo Apertura 2026' })).toBeDefined(),
+    );
+    expect(screen.queryByTestId('matchesToday')).toBeNull();
   });
 });

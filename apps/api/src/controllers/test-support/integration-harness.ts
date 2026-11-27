@@ -1,4 +1,3 @@
-import helmet from '@fastify/helmet';
 import { Module, type Provider, type Type } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, Reflector } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -13,6 +12,8 @@ import { TokenVerifier } from '../../auth/token-verifier.js';
 import { DATABASE } from '../../database.token.js';
 import { OBJECT_STORAGE } from '../../object-storage.token.js';
 import { API_BODY_LIMIT_BYTES } from '../../http-body-limit.js';
+import { applyApiPathPrefix } from '../../http/api-path-prefix.js';
+import { applyApiSecurityHeaders } from '../../http/security-headers.js';
 import { ApiExceptionFilter } from '../../http/error-contract.js';
 import { createApiValidationPipe } from '../../http/validation.js';
 
@@ -112,11 +113,8 @@ export async function buildTestApp(
   const app = moduleRef.createNestApplication<NestFastifyApplication>(
     new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES }),
   );
-  await app.register(helmet, {
-    contentSecurityPolicy: false,
-    xFrameOptions: { action: 'deny' },
-    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  });
+  applyApiPathPrefix(app);
+  await applyApiSecurityHeaders(app);
   app.enableCors({ origin: 'https://app.example.com' });
   app.useGlobalPipes(createApiValidationPipe());
   await app.init();

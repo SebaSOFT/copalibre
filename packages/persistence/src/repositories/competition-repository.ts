@@ -1,14 +1,4 @@
-import {
-  type DrawConstraint,
-  IMPLICIT_GROUP_NAME,
-  IMPLICIT_SEASON_NAME,
-  IMPLICIT_ZONE_NAME,
-  validateGroup,
-  validateSeason,
-  validateZone,
-  foldTournamentCompletion,
-  type RawSegmentStatusCount,
-} from '@copalibre/domain';
+import { type DrawConstraint, type RawSegmentStatusCount } from '@copalibre/domain';
 import type {
   Fixture,
   Group,
@@ -27,32 +17,35 @@ import type {
   RawStageStatusCount,
   TournamentCompletionSummary,
 } from '@copalibre/domain';
-import type { Kysely, Transaction } from 'kysely';
-import { InvariantViolationError, NotFoundError } from '../errors.js';
-import { newId } from '../ids.js';
-import {
-  toFixture,
-  toGroup,
-  toMatch,
-  toRecordedEvent,
-  toSegment,
-  toStage,
-  toZone,
-} from '../mapping.js';
+import type { Kysely } from 'kysely';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
+import type { PersistedFixtureNode } from '../fixture-graph.js';
 import type { AuditContext } from './enrollment-repository.js';
 
-export interface PersistedDraw<T> {
-  readonly assignment: GroupAssignment;
-  readonly entities: readonly T[];
-  readonly seed?: number;
-}
+import { SeasonRepository } from './competition/season-repository.js';
+import { ZoneGroupRepository } from './competition/zone-group-repository.js';
+import { PromotionPlanRepository } from './competition/promotion-plan-repository.js';
+import { DrawRepository } from './competition/draw-repository.js';
+import { FixtureRepository } from './competition/fixture-repository.js';
+import { StageRepository } from './competition/stage-repository.js';
+import { MatchRepository } from './competition/match-repository.js';
+import { SegmentTimerRepository } from './competition/segment-timer-repository.js';
+import { MatchEventRepository } from './competition/match-event-repository.js';
+import { MatchRosterRepository } from './competition/match-roster-repository.js';
+import { FixtureSurplusRepository } from './competition/fixture-surplus-repository.js';
+import { assertStageHasNoFixtures } from './competition/competition-support.js';
 
-/** Structural output shared with the pure tournament-engine group draw. */
-export interface GroupAssignment {
-  readonly groups: Readonly<Record<string, number>>;
-}
+import type { GroupAssignment, PersistedDraw } from './competition/draw-repository.js';
+import type {
+  StageDeletionConsequences,
+  StageDeletionResult,
+} from './competition/stage-repository.js';
+export type { GroupAssignment, PersistedDraw } from './competition/draw-repository.js';
+export type {
+  StageDeletionConsequences,
+  StageDeletionResult,
+} from './competition/stage-repository.js';
 
 /**
  * Stage/Fixture/Match/Segment plus the append-only match-event log.
@@ -62,15 +55,39 @@ export interface GroupAssignment {
  * result can never be overwritten — `recordResult` refuses when a result is
  * already present, leaving the audited correction workflow as the
  * only path.
+ *
+ * Compatibility facade: every method delegates to a focused repository in
+ * `./competition/`. New code should use those classes (exported from the
+ * package index) instead of this one.
  */
 export class CompetitionRepository {
-  constructor(private readonly db: Kysely<Database>) {}
+  private readonly seasons: SeasonRepository;
+  private readonly zoneGroups: ZoneGroupRepository;
+  private readonly promotionPlans: PromotionPlanRepository;
+  private readonly draws: DrawRepository;
+  private readonly fixtures: FixtureRepository;
+  private readonly stages: StageRepository;
+  private readonly matches: MatchRepository;
+  private readonly segmentTimers: SegmentTimerRepository;
+  private readonly matchEvents: MatchEventRepository;
+  private readonly matchRosters: MatchRosterRepository;
+  private readonly fixtureSurplus: FixtureSurplusRepository;
 
-  /**
-   * One running of a tournament. Every tournament has at least one, so
-   * no reader ever meets a stage without an edition.
-   */
-  async createSeason(
+  constructor(private readonly db: Kysely<Database>) {
+    this.seasons = new SeasonRepository(db);
+    this.zoneGroups = new ZoneGroupRepository(db);
+    this.promotionPlans = new PromotionPlanRepository(db);
+    this.draws = new DrawRepository(db);
+    this.fixtures = new FixtureRepository(db, this.zoneGroups);
+    this.stages = new StageRepository(db, this.seasons);
+    this.matches = new MatchRepository(db);
+    this.segmentTimers = new SegmentTimerRepository(db);
+    this.matchEvents = new MatchEventRepository(db, this.stages);
+    this.matchRosters = new MatchRosterRepository(db);
+    this.fixtureSurplus = new FixtureSurplusRepository(db);
+  }
+
+  createSeason(
     uow: UnitOfWork,
     input: {
       readonly tournamentId: string;
@@ -78,83 +95,22 @@ export class CompetitionRepository {
       readonly ordinal: number;
     } & AuditContext,
   ): Promise<Season> {
-    const season: Season = {
-      seasonId: newId(),
-      tournamentId: input.tournamentId,
-      name: input.name,
-      ordinal: input.ordinal,
-    };
-    const valid = validateSeason(season);
-    if (!valid.ok) throw new InvariantViolationError(valid.error.message, valid.error.details);
-
-    await uow.tx
-      .insertInto('seasons')
-      .values({
-        season_id: season.seasonId,
-        tournament_id: season.tournamentId,
-        name: season.name,
-        ordinal: season.ordinal,
-        created_at: new Date(),
-      })
-      .execute();
-
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'season',
-      entityId: season.seasonId,
-      action: 'season.created',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { ...season },
-    });
-    return season;
+    return this.seasons.createSeason(uow, input);
   }
 
   /** The edition a tournament is on, creating the implicit first one if needed. */
-  async currentSeason(
+  currentSeason(
     uow: UnitOfWork,
     input: { readonly tournamentId: string } & AuditContext,
   ): Promise<Season> {
-    const row = await uow.tx
-      .selectFrom('seasons')
-      .selectAll()
-      .where('tournament_id', '=', input.tournamentId)
-      .orderBy('ordinal', 'desc')
-      .limit(1)
-      .executeTakeFirst();
-
-    if (row) {
-      return {
-        seasonId: row.season_id,
-        tournamentId: row.tournament_id,
-        name: row.name,
-        ordinal: row.ordinal,
-      };
-    }
-
-    return this.createSeason(uow, {
-      ...input,
-      name: IMPLICIT_SEASON_NAME,
-      ordinal: 1,
-    });
+    return this.seasons.currentSeason(uow, input);
   }
 
-  async listSeasons(tournamentId: string): Promise<readonly Season[]> {
-    const rows = await this.db
-      .selectFrom('seasons')
-      .selectAll()
-      .where('tournament_id', '=', tournamentId)
-      .orderBy('ordinal')
-      .execute();
-    return rows.map((row) => ({
-      seasonId: row.season_id,
-      tournamentId: row.tournament_id,
-      name: row.name,
-      ordinal: row.ordinal,
-    }));
+  listSeasons(tournamentId: string): Promise<readonly Season[]> {
+    return this.seasons.listSeasons(tournamentId);
   }
 
-  async createZone(
+  createZone(
     uow: UnitOfWork,
     input: {
       readonly stageId: string;
@@ -164,186 +120,53 @@ export class CompetitionRepository {
       readonly format?: Zone['format'];
     } & AuditContext,
   ): Promise<Zone> {
-    await this.assertStageHasNoFixtures(uow, input.stageId);
-    const zone: Zone = { zoneId: newId(), ...input };
-    const valid = validateZone(zone);
-    if (!valid.ok) throw new InvariantViolationError(valid.error.message, valid.error.details);
-    const row = await uow.tx
-      .insertInto('zones')
-      .values({
-        zone_id: zone.zoneId,
-        stage_id: zone.stageId,
-        number: zone.number,
-        name: zone.name,
-        format: zone.format ?? null,
-        draw_seed: null,
-        draw_constraints: null,
-        created_at: new Date(),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'zone',
-      entityId: zone.zoneId,
-      action: 'zone.created',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { ...zone },
-    });
-    return toZone(row);
+    return this.zoneGroups.createZone(uow, input);
   }
 
   /** Renames a zone — permitted at any time, seeded or not. */
-  async renameZone(
+  renameZone(
     uow: UnitOfWork,
     input: { readonly zoneId: string; readonly name: string } & AuditContext,
   ): Promise<Zone> {
-    const row = await uow.tx
-      .updateTable('zones')
-      .set({ name: input.name })
-      .where('zone_id', '=', input.zoneId)
-      .returningAll()
-      .executeTakeFirst();
-    if (!row) {
-      throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
-    }
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'zone',
-      entityId: input.zoneId,
-      action: 'zone.renamed',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { name: input.name },
-    });
-    return toZone(row);
+    return this.zoneGroups.renameZone(uow, input);
   }
 
-  /**
-   * Sets a zone's own format, or clears it (`null`) so the zone inherits its stage's again.
-   * Refused once the stage holds a fixture: a zone's format decides the fixtures it generates. The
-   * caller validates the format against the discipline's `availableFormats`.
-   */
-  async setZoneFormat(
+  setZoneFormat(
     uow: UnitOfWork,
     input: { readonly zoneId: string; readonly format: Zone['format'] | null } & AuditContext,
   ): Promise<Zone> {
-    const existing = await uow.tx
-      .selectFrom('zones')
-      .select('stage_id')
-      .where('zone_id', '=', input.zoneId)
-      .executeTakeFirst();
-    if (!existing) {
-      throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
-    }
-    await this.assertStageHasNoFixtures(uow, existing.stage_id);
-    const row = await uow.tx
-      .updateTable('zones')
-      .set({ format: input.format })
-      .where('zone_id', '=', input.zoneId)
-      .returningAll()
-      .executeTakeFirstOrThrow();
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'zone',
-      entityId: input.zoneId,
-      action: 'zone.format-set',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { format: input.format },
-    });
-    return toZone(row);
+    return this.zoneGroups.setZoneFormat(uow, input);
   }
 
-  /** Removes a zone, refused once an entrant has been assigned into it. */
-  async deleteZone(
-    uow: UnitOfWork,
-    input: { readonly zoneId: string } & AuditContext,
-  ): Promise<Zone> {
-    const assigned = await uow.tx
-      .selectFrom('zone_entrants')
-      .select('entrant_id')
-      .where('zone_id', '=', input.zoneId)
-      .executeTakeFirst();
-    if (assigned) {
-      throw new InvariantViolationError(
-        'Cannot remove a zone that already has an entrant assigned',
-        {
-          zoneId: input.zoneId,
-        },
-      );
-    }
-
-    const groups = await uow.tx
-      .selectFrom('groups')
-      .select('group_id')
-      .where('zone_id', '=', input.zoneId)
-      .execute();
-    const groupIds = groups.map((group) => group.group_id);
-    if (groupIds.length > 0) {
-      await uow.tx.deleteFrom('group_entrants').where('group_id', 'in', groupIds).execute();
-      await uow.tx.deleteFrom('groups').where('group_id', 'in', groupIds).execute();
-    }
-    await uow.tx.deleteFrom('promotion_plans').where('zone_id', '=', input.zoneId).execute();
-
-    const deleted = await uow.tx
-      .deleteFrom('zones')
-      .where('zone_id', '=', input.zoneId)
-      .returningAll()
-      .executeTakeFirst();
-    if (!deleted) {
-      throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
-    }
-
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'zone',
-      entityId: input.zoneId,
-      action: 'zone.deleted',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      previousState: { ...toZone(deleted) },
-    });
-    return toZone(deleted);
+  /** Removes a zone while retaining its assignments for the undo window. */
+  deleteZone(uow: UnitOfWork, input: { readonly zoneId: string } & AuditContext): Promise<Zone> {
+    return this.zoneGroups.deleteZone(uow, input);
   }
 
-  async listZonesOfStage(stageId: string): Promise<readonly Zone[]> {
-    const rows = await this.db
-      .selectFrom('zones')
-      .selectAll()
-      .where('stage_id', '=', stageId)
-      .orderBy('number')
-      .execute();
-    return rows.map(toZone);
+  restoreZone(uow: UnitOfWork, input: { readonly zoneId: string } & AuditContext): Promise<Zone> {
+    return this.zoneGroups.restoreZone(uow, input);
   }
 
-  async findZoneById(zoneId: string): Promise<Zone | undefined> {
-    const row = await this.db
-      .selectFrom('zones')
-      .selectAll()
-      .where('zone_id', '=', zoneId)
-      .executeTakeFirst();
-    return row === undefined ? undefined : toZone(row);
+  listZonesOfStage(stageId: string): Promise<readonly Zone[]> {
+    return this.zoneGroups.listZonesOfStage(stageId);
   }
 
-  async currentOrImplicitZone(
+  findZoneById(zoneId: string): Promise<Zone | undefined> {
+    return this.zoneGroups.findZoneById(zoneId);
+  }
+
+  findZoneByNumberIncludingDeleted(stageId: string, number: number): Promise<Zone | undefined> {
+    return this.zoneGroups.findZoneByNumberIncludingDeleted(stageId, number);
+  }
+
+  currentOrImplicitZone(
     uow: UnitOfWork,
     input: { readonly stageId: string } & AuditContext,
   ): Promise<Zone> {
-    const row = await uow.tx
-      .selectFrom('zones')
-      .selectAll()
-      .where('stage_id', '=', input.stageId)
-      .orderBy('number')
-      .limit(1)
-      .executeTakeFirst();
-    return row
-      ? toZone(row)
-      : this.createZone(uow, { ...input, number: 1, name: IMPLICIT_ZONE_NAME });
+    return this.zoneGroups.currentOrImplicitZone(uow, input);
   }
 
-  async createGroup(
+  createGroup(
     uow: UnitOfWork,
     input: {
       readonly zoneId: string;
@@ -351,138 +174,50 @@ export class CompetitionRepository {
       readonly name: string;
     } & AuditContext,
   ): Promise<Group> {
-    const zoneRow = await uow.tx
-      .selectFrom('zones')
-      .select('stage_id')
-      .where('zone_id', '=', input.zoneId)
-      .executeTakeFirst();
-    if (!zoneRow) {
-      throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
-    }
-    await this.assertStageHasNoFixtures(uow, zoneRow.stage_id);
-    const group: Group = { groupId: newId(), ...input };
-    const valid = validateGroup(group);
-    if (!valid.ok) throw new InvariantViolationError(valid.error.message, valid.error.details);
-    const row = await uow.tx
-      .insertInto('groups')
-      .values({
-        group_id: group.groupId,
-        zone_id: group.zoneId,
-        number: group.number,
-        name: group.name,
-        draw_seed: null,
-        draw_constraints: null,
-        created_at: new Date(),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'group',
-      entityId: group.groupId,
-      action: 'group.created',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { ...group },
-    });
-    return toGroup(row);
+    return this.zoneGroups.createGroup(uow, input);
   }
 
   /** Renames a group — permitted at any time, seeded or not. */
-  async renameGroup(
+  renameGroup(
     uow: UnitOfWork,
     input: { readonly groupId: string; readonly name: string } & AuditContext,
   ): Promise<Group> {
-    const row = await uow.tx
-      .updateTable('groups')
-      .set({ name: input.name })
-      .where('group_id', '=', input.groupId)
-      .returningAll()
-      .executeTakeFirst();
-    if (!row) {
-      throw new NotFoundError(`Group ${input.groupId} does not exist`, { groupId: input.groupId });
-    }
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'group',
-      entityId: input.groupId,
-      action: 'group.renamed',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { name: input.name },
-    });
-    return toGroup(row);
+    return this.zoneGroups.renameGroup(uow, input);
   }
 
-  /** Removes a group, refused once an entrant has been assigned into it. */
-  async deleteGroup(
+  /** Removes a group while retaining its assignments for the undo window. */
+  deleteGroup(uow: UnitOfWork, input: { readonly groupId: string } & AuditContext): Promise<Group> {
+    return this.zoneGroups.deleteGroup(uow, input);
+  }
+
+  restoreGroup(
     uow: UnitOfWork,
     input: { readonly groupId: string } & AuditContext,
   ): Promise<Group> {
-    const assigned = await uow.tx
-      .selectFrom('group_entrants')
-      .select('entrant_id')
-      .where('group_id', '=', input.groupId)
-      .executeTakeFirst();
-    if (assigned) {
-      throw new InvariantViolationError(
-        'Cannot remove a group that already has an entrant assigned',
-        { groupId: input.groupId },
-      );
-    }
-
-    const deleted = await uow.tx
-      .deleteFrom('groups')
-      .where('group_id', '=', input.groupId)
-      .returningAll()
-      .executeTakeFirst();
-    if (!deleted) {
-      throw new NotFoundError(`Group ${input.groupId} does not exist`, { groupId: input.groupId });
-    }
-
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'group',
-      entityId: input.groupId,
-      action: 'group.deleted',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      previousState: { ...toGroup(deleted) },
-    });
-    return toGroup(deleted);
+    return this.zoneGroups.restoreGroup(uow, input);
   }
 
-  async listGroupsOfZone(zoneId: string): Promise<readonly Group[]> {
-    const rows = await this.db
-      .selectFrom('groups')
-      .selectAll()
-      .where('zone_id', '=', zoneId)
-      .orderBy('number')
-      .execute();
-    return rows.map(toGroup);
+  listGroupsOfZone(zoneId: string): Promise<readonly Group[]> {
+    return this.zoneGroups.listGroupsOfZone(zoneId);
   }
 
-  async listEntrantIdsOfZone(zoneId: string): Promise<readonly string[]> {
-    const rows = await this.db
-      .selectFrom('zone_entrants')
-      .select('entrant_id')
-      .where('zone_id', '=', zoneId)
-      .orderBy('entrant_id')
-      .execute();
-    return rows.map((row) => row.entrant_id);
+  findGroupByNumberIncludingDeleted(zoneId: string, number: number): Promise<Group | undefined> {
+    return this.zoneGroups.findGroupByNumberIncludingDeleted(zoneId, number);
   }
 
-  async listEntrantIdsOfGroup(groupId: string): Promise<readonly string[]> {
-    const rows = await this.db
-      .selectFrom('group_entrants')
-      .select('entrant_id')
-      .where('group_id', '=', groupId)
-      .orderBy('entrant_id')
-      .execute();
-    return rows.map((row) => row.entrant_id);
+  listGroupEntrantIdsOfZone(zoneId: string): Promise<ReadonlyMap<string, readonly string[]>> {
+    return this.zoneGroups.listGroupEntrantIdsOfZone(zoneId);
   }
 
-  async createPromotionPlan(
+  listEntrantIdsOfZone(zoneId: string): Promise<readonly string[]> {
+    return this.zoneGroups.listEntrantIdsOfZone(zoneId);
+  }
+
+  listEntrantIdsOfGroup(groupId: string): Promise<readonly string[]> {
+    return this.zoneGroups.listEntrantIdsOfGroup(groupId);
+  }
+
+  createPromotionPlan(
     uow: UnitOfWork,
     input: {
       readonly zoneId: string;
@@ -495,103 +230,53 @@ export class CompetitionRepository {
     readonly nextStageId: string;
     readonly plan: Record<string, unknown>;
   }> {
-    const row = await uow.tx
-      .insertInto('promotion_plans')
-      .values({
-        promotion_plan_id: newId(),
-        zone_id: input.zoneId,
-        next_stage_id: input.nextStageId,
-        plan: JSON.stringify(input.plan),
-        created_at: new Date(),
-      })
-      .onConflict((conflict) =>
-        conflict.column('zone_id').doUpdateSet({
-          next_stage_id: input.nextStageId,
-          plan: JSON.stringify(input.plan),
-        }),
-      )
-      .returningAll()
-      .executeTakeFirstOrThrow();
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'zone',
-      entityId: input.zoneId,
-      action: 'promotion-plan.saved',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { nextStageId: input.nextStageId, plan: input.plan },
-    });
-    return {
-      promotionPlanId: row.promotion_plan_id,
-      zoneId: row.zone_id,
-      nextStageId: row.next_stage_id,
-      plan: row.plan as Record<string, unknown>,
-    };
+    return this.promotionPlans.createPromotionPlan(uow, input);
   }
 
-  async findPromotionPlan(zoneId: string): Promise<
+  findPromotionPlan(zoneId: string): Promise<
     | {
         readonly promotionPlanId: string;
         readonly zoneId: string;
         readonly nextStageId: string;
         readonly plan: Record<string, unknown>;
+        readonly confirmedResolution?: Readonly<Record<string, string>>;
       }
     | undefined
   > {
-    const row = await this.db
-      .selectFrom('promotion_plans')
-      .selectAll()
-      .where('zone_id', '=', zoneId)
-      .executeTakeFirst();
-    return row === undefined
-      ? undefined
-      : {
-          promotionPlanId: row.promotion_plan_id,
-          zoneId: row.zone_id,
-          nextStageId: row.next_stage_id,
-          plan: row.plan as Record<string, unknown>,
-        };
+    return this.promotionPlans.findPromotionPlan(zoneId);
   }
 
   /** Every stored promotion plan whose `nextStageId` targets the given stage. */
-  async findPromotionPlansTargetingStage(nextStageId: string): Promise<
+  findPromotionPlansTargetingStage(nextStageId: string): Promise<
     readonly {
       readonly promotionPlanId: string;
       readonly zoneId: string;
       readonly nextStageId: string;
       readonly plan: Record<string, unknown>;
+      readonly confirmedResolution?: Readonly<Record<string, string>>;
     }[]
   > {
-    const rows = await this.db
-      .selectFrom('promotion_plans')
-      .selectAll()
-      .where('next_stage_id', '=', nextStageId)
-      .execute();
-    return rows.map((row) => ({
-      promotionPlanId: row.promotion_plan_id,
-      zoneId: row.zone_id,
-      nextStageId: row.next_stage_id,
-      plan: row.plan as Record<string, unknown>,
-    }));
+    return this.promotionPlans.findPromotionPlansTargetingStage(nextStageId);
   }
 
-  async currentOrImplicitGroup(
+  confirmPromotionPlan(
+    uow: UnitOfWork,
+    input: {
+      readonly promotionPlanId: string;
+      readonly resolution: Readonly<Record<string, string>>;
+    } & AuditContext,
+  ): Promise<void> {
+    return this.promotionPlans.confirmPromotionPlan(uow, input);
+  }
+
+  currentOrImplicitGroup(
     uow: UnitOfWork,
     input: { readonly zoneId: string } & AuditContext,
   ): Promise<Group> {
-    const row = await uow.tx
-      .selectFrom('groups')
-      .selectAll()
-      .where('zone_id', '=', input.zoneId)
-      .orderBy('number')
-      .limit(1)
-      .executeTakeFirst();
-    return row
-      ? toGroup(row)
-      : this.createGroup(uow, { ...input, number: 1, name: IMPLICIT_GROUP_NAME });
+    return this.zoneGroups.currentOrImplicitGroup(uow, input);
   }
 
-  async assignZones(
+  assignZones(
     uow: UnitOfWork,
     input: {
       readonly stageId: string;
@@ -601,14 +286,10 @@ export class CompetitionRepository {
       readonly seed: number;
     } & AuditContext,
   ): Promise<PersistedDraw<Zone>> {
-    const zones = await this.persistZoneDraw(uow, input, input.assignment, input.zoneCount, {
-      seed: input.seed,
-      constraints: input.constraints,
-    });
-    return { assignment: input.assignment, entities: zones, seed: input.seed };
+    return this.draws.assignZones(uow, input);
   }
 
-  async assignZonesManually(
+  assignZonesManually(
     uow: UnitOfWork,
     input: {
       readonly stageId: string;
@@ -616,11 +297,10 @@ export class CompetitionRepository {
       readonly zoneCount: number;
     } & AuditContext,
   ): Promise<PersistedDraw<Zone>> {
-    const zones = await this.persistZoneDraw(uow, input, input.assignment, input.zoneCount);
-    return { assignment: input.assignment, entities: zones };
+    return this.draws.assignZonesManually(uow, input);
   }
 
-  async assignGroups(
+  assignGroups(
     uow: UnitOfWork,
     input: {
       readonly zoneId: string;
@@ -630,14 +310,10 @@ export class CompetitionRepository {
       readonly seed: number;
     } & AuditContext,
   ): Promise<PersistedDraw<Group>> {
-    const groups = await this.persistGroupDraw(uow, input, input.assignment, input.groupCount, {
-      seed: input.seed,
-      constraints: input.constraints,
-    });
-    return { assignment: input.assignment, entities: groups, seed: input.seed };
+    return this.draws.assignGroups(uow, input);
   }
 
-  async assignGroupsManually(
+  assignGroupsManually(
     uow: UnitOfWork,
     input: {
       readonly zoneId: string;
@@ -645,254 +321,15 @@ export class CompetitionRepository {
       readonly groupCount: number;
     } & AuditContext,
   ): Promise<PersistedDraw<Group>> {
-    const groups = await this.persistGroupDraw(uow, input, input.assignment, input.groupCount);
-    return { assignment: input.assignment, entities: groups };
-  }
-
-  private async persistZoneDraw(
-    uow: UnitOfWork,
-    input: { readonly stageId: string } & AuditContext,
-    assignment: GroupAssignment,
-    zoneCount: number,
-    replay?: { readonly seed: number; readonly constraints: readonly DrawConstraint[] },
-  ): Promise<readonly Zone[]> {
-    this.assertGroupAssignment(assignment, zoneCount);
-    await this.assertStageHasNoFixtures(uow, input.stageId);
-    const existing = await uow.tx
-      .selectFrom('zones')
-      .select('zone_id')
-      .where('stage_id', '=', input.stageId)
-      .executeTakeFirst();
-    if (existing) {
-      throw new InvariantViolationError('Zones have already been assigned for this stage', {
-        stageId: input.stageId,
-      });
-    }
-    const rows = await uow.tx
-      .insertInto('zones')
-      .values(
-        Array.from({ length: zoneCount }, (_unused, index) => ({
-          zone_id: newId(),
-          stage_id: input.stageId,
-          number: index + 1,
-          name: `Zona ${index + 1}`,
-          draw_seed: replay?.seed ?? null,
-          draw_constraints: replay ? JSON.stringify(replay.constraints) : null,
-          created_at: new Date(),
-        })),
-      )
-      .returningAll()
-      .execute();
-    const zones = rows.map(toZone);
-    const zoneByNumber = new Map(zones.map((zone) => [zone.number, zone.zoneId]));
-    await uow.tx
-      .insertInto('zone_entrants')
-      .values(
-        Object.entries(assignment.groups).map(([entrantId, zoneNumber]) => ({
-          zone_id: zoneByNumber.get(zoneNumber) as string,
-          entrant_id: entrantId,
-        })),
-      )
-      .execute();
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'stage',
-      entityId: input.stageId,
-      action: replay ? 'zones.drawn' : 'zones.manually-assigned',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { assignment, ...(replay ?? {}) },
-    });
-    return zones;
-  }
-
-  private async persistGroupDraw(
-    uow: UnitOfWork,
-    input: { readonly zoneId: string } & AuditContext,
-    assignment: GroupAssignment,
-    groupCount: number,
-    replay?: { readonly seed: number; readonly constraints: readonly DrawConstraint[] },
-  ): Promise<readonly Group[]> {
-    this.assertGroupAssignment(assignment, groupCount);
-    const zone = await uow.tx
-      .selectFrom('zones')
-      .select(['zone_id', 'stage_id'])
-      .where('zone_id', '=', input.zoneId)
-      .executeTakeFirst();
-    if (!zone)
-      throw new NotFoundError(`Zone ${input.zoneId} does not exist`, { zoneId: input.zoneId });
-    await this.assertStageHasNoFixtures(uow, zone.stage_id);
-    const existing = await uow.tx
-      .selectFrom('groups')
-      .select('group_id')
-      .where('zone_id', '=', input.zoneId)
-      .executeTakeFirst();
-    if (existing) {
-      throw new InvariantViolationError('Groups have already been assigned for this zone', {
-        zoneId: input.zoneId,
-      });
-    }
-    const zoneEntrants = await uow.tx
-      .selectFrom('zone_entrants')
-      .select('entrant_id')
-      .where('zone_id', '=', input.zoneId)
-      .execute();
-    this.assertAssignmentEntrants(
-      assignment,
-      zoneEntrants.map((entry) => entry.entrant_id),
-      'group',
-    );
-    const rows = await uow.tx
-      .insertInto('groups')
-      .values(
-        Array.from({ length: groupCount }, (_unused, index) => ({
-          group_id: newId(),
-          zone_id: input.zoneId,
-          number: index + 1,
-          name: `Grupo ${index + 1}`,
-          draw_seed: replay?.seed ?? null,
-          draw_constraints: replay ? JSON.stringify(replay.constraints) : null,
-          created_at: new Date(),
-        })),
-      )
-      .returningAll()
-      .execute();
-    const groups = rows.map(toGroup);
-    const groupByNumber = new Map(groups.map((group) => [group.number, group.groupId]));
-    await uow.tx
-      .insertInto('group_entrants')
-      .values(
-        Object.entries(assignment.groups).map(([entrantId, groupNumber]) => ({
-          group_id: groupByNumber.get(groupNumber) as string,
-          entrant_id: entrantId,
-        })),
-      )
-      .execute();
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'zone',
-      entityId: input.zoneId,
-      action: replay ? 'groups.drawn' : 'groups.manually-assigned',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { assignment, ...(replay ?? {}) },
-    });
-    return groups;
-  }
-
-  private assertGroupAssignment(assignment: GroupAssignment, count: number): void {
-    if (!Number.isInteger(count) || count < 1 || Object.keys(assignment.groups).length === 0) {
-      throw new InvariantViolationError(
-        'A zone/group assignment needs at least one numbered group',
-        {
-          count,
-        },
-      );
-    }
-    for (const position of Object.values(assignment.groups)) {
-      if (!Number.isInteger(position) || position < 1 || position > count) {
-        throw new InvariantViolationError(
-          `Assignment position ${position} is outside 1..${count}`,
-          {
-            position,
-            count,
-          },
-        );
-      }
-    }
-  }
-
-  private assertAssignmentEntrants(
-    assignment: GroupAssignment,
-    expectedEntrantIds: readonly string[],
-    kind: 'group',
-  ): void {
-    const supplied = Object.keys(assignment.groups).sort();
-    const expected = [...expectedEntrantIds].sort();
-    if (
-      supplied.length !== expected.length ||
-      supplied.some((entrantId, index) => entrantId !== expected[index])
-    ) {
-      throw new InvariantViolationError(
-        `A ${kind} draw must assign every entrant in its source zone exactly once`,
-        { expectedEntrantIds: expected, assignedEntrantIds: supplied },
-      );
-    }
+    return this.draws.assignGroupsManually(uow, input);
   }
 
   /** Public: also guards `TournamentRepository.updateStageConfiguration`, one layer over. */
-  async assertStageHasNoFixtures(uow: UnitOfWork, stageId: string): Promise<void> {
-    const fixture = await uow.tx
-      .selectFrom('fixtures')
-      .select('fixture_id')
-      .where('stage_id', '=', stageId)
-      .executeTakeFirst();
-    if (fixture) {
-      throw new InvariantViolationError(
-        'Cannot change this stage — its zones, groups, format or removal — after fixtures already exist',
-        { stageId },
-      );
-    }
+  assertStageHasNoFixtures(uow: UnitOfWork, stageId: string): Promise<void> {
+    return assertStageHasNoFixtures(uow, stageId);
   }
 
-  private async resolveFixtureScope(
-    uow: UnitOfWork,
-    input: { readonly stageId: string } & AuditContext,
-    fixture: { readonly zoneId?: string; readonly groupId?: string },
-  ): Promise<{ readonly zoneId: string; readonly groupId: string }> {
-    if (fixture.groupId) {
-      const group = await uow.tx
-        .selectFrom('groups')
-        .innerJoin('zones', 'zones.zone_id', 'groups.zone_id')
-        .select(['groups.group_id', 'groups.zone_id', 'zones.stage_id'])
-        .where('groups.group_id', '=', fixture.groupId)
-        .executeTakeFirst();
-      if (!group || group.stage_id !== input.stageId) {
-        throw new NotFoundError(
-          `Group ${fixture.groupId} does not belong to stage ${input.stageId}`,
-          {
-            groupId: fixture.groupId,
-            stageId: input.stageId,
-          },
-        );
-      }
-      if (fixture.zoneId && fixture.zoneId !== group.zone_id) {
-        throw new InvariantViolationError('Fixture group does not belong to its declared zone', {
-          groupId: fixture.groupId,
-          zoneId: fixture.zoneId,
-        });
-      }
-      return { zoneId: group.zone_id, groupId: group.group_id };
-    }
-
-    const zoneId = fixture.zoneId ?? (await this.currentOrImplicitZone(uow, input)).zoneId;
-    if (fixture.zoneId) {
-      const zone = await uow.tx
-        .selectFrom('zones')
-        .select('zone_id')
-        .where('zone_id', '=', zoneId)
-        .where('stage_id', '=', input.stageId)
-        .executeTakeFirst();
-      if (!zone) {
-        throw new NotFoundError(`Zone ${zoneId} does not belong to stage ${input.stageId}`, {
-          zoneId,
-          stageId: input.stageId,
-        });
-      }
-    }
-    const group = await this.currentOrImplicitGroup(uow, { ...input, zoneId });
-    return { zoneId, groupId: group.groupId };
-  }
-
-  /**
-   * A stage in a competition that has one edition.
-   *
-   * Not a shortcut around the season: it *resolves* the tournament's current
-   * edition, creating the implicit one the first time. A caller that runs a
-   * competition every year names the season itself; a caller that will only
-   * ever run it once should not have to invent a name for that fact.
-   */
-  async createStageInTournament(
+  createStageInTournament(
     uow: UnitOfWork,
     input: {
       readonly tournamentId: string;
@@ -901,16 +338,10 @@ export class CompetitionRepository {
       readonly format: TournamentFormat;
     } & AuditContext,
   ): Promise<Stage> {
-    const season = await this.currentSeason(uow, {
-      tournamentId: input.tournamentId,
-      organizationId: input.organizationId,
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-    });
-    return this.createStage(uow, { ...input, seasonId: season.seasonId });
+    return this.stages.createStageInTournament(uow, input);
   }
 
-  async createStage(
+  createStage(
     uow: UnitOfWork,
     input: {
       readonly seasonId: string;
@@ -919,162 +350,39 @@ export class CompetitionRepository {
       readonly format: TournamentFormat;
     } & AuditContext,
   ): Promise<Stage> {
-    const stageId = newId();
-    const row = await uow.tx
-      .insertInto('stages')
-      .values({
-        stage_id: stageId,
-        season_id: input.seasonId,
-        number: input.number,
-        name: input.name,
-        format: input.format,
-        stage_configuration_id: null,
-        created_at: new Date(),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    const stage = toStage(row);
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'stage',
-      entityId: stageId,
-      action: 'stage.created',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { ...stage },
-    });
-    return stage;
+    return this.stages.createStage(uow, input);
   }
 
   /** Renames a stage — carries no structural consequence, permitted whether the stage is seeded or not. */
-  async renameStage(
+  renameStage(
     uow: UnitOfWork,
     input: { readonly stageId: string; readonly name: string } & AuditContext,
   ): Promise<Stage> {
-    const row = await uow.tx
-      .updateTable('stages')
-      .set({ name: input.name })
-      .where('stage_id', '=', input.stageId)
-      .returningAll()
-      .executeTakeFirst();
-    if (!row) {
-      throw new NotFoundError(`Stage ${input.stageId} does not exist`, { stageId: input.stageId });
-    }
-    const stage = toStage(row);
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'stage',
-      entityId: input.stageId,
-      action: 'stage.renamed',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { name: input.name },
-    });
-    return stage;
+    return this.stages.renameStage(uow, input);
   }
 
   /** Changes a stage's format, refused once it holds a fixture (`assertStageHasNoFixtures`). */
-  async changeStageFormat(
+  changeStageFormat(
     uow: UnitOfWork,
     input: { readonly stageId: string; readonly format: TournamentFormat } & AuditContext,
   ): Promise<Stage> {
-    await this.assertStageHasNoFixtures(uow, input.stageId);
-    const row = await uow.tx
-      .updateTable('stages')
-      .set({ format: input.format })
-      .where('stage_id', '=', input.stageId)
-      .returningAll()
-      .executeTakeFirst();
-    if (!row) {
-      throw new NotFoundError(`Stage ${input.stageId} does not exist`, { stageId: input.stageId });
-    }
-    const stage = toStage(row);
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'stage',
-      entityId: input.stageId,
-      action: 'stage.format-changed',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { format: input.format },
-    });
-    return stage;
+    return this.stages.changeStageFormat(uow, input);
   }
 
-  /**
-   * Removes a stage, refused once it holds a fixture or a promotion plan
-   * already targets it — cascades only the stage's own zones, groups and
-   * their entrant assignments, never a fixture (there are none, by the guard
-   * above) and never another stage's record.
-   */
-  async deleteStage(
+  /** Read-only consequence counts for the stage removal confirmation. */
+  previewDeleteStage(stageId: string): Promise<StageDeletionConsequences> {
+    return this.stages.previewDeleteStage(stageId);
+  }
+
+  deleteStage(
     uow: UnitOfWork,
-    input: { readonly stageId: string } & AuditContext,
-  ): Promise<Stage> {
-    await this.assertStageHasNoFixtures(uow, input.stageId);
-
-    const incomingPlan = await uow.tx
-      .selectFrom('promotion_plans')
-      .select('promotion_plan_id')
-      .where('next_stage_id', '=', input.stageId)
-      .executeTakeFirst();
-    if (incomingPlan) {
-      throw new InvariantViolationError(
-        'Cannot remove a stage that a promotion plan already targets',
-        { stageId: input.stageId },
-      );
-    }
-
-    const zones = await uow.tx
-      .selectFrom('zones')
-      .select('zone_id')
-      .where('stage_id', '=', input.stageId)
-      .execute();
-    const zoneIds = zones.map((zone) => zone.zone_id);
-
-    if (zoneIds.length > 0) {
-      const groups = await uow.tx
-        .selectFrom('groups')
-        .select('group_id')
-        .where('zone_id', 'in', zoneIds)
-        .execute();
-      const groupIds = groups.map((group) => group.group_id);
-
-      if (groupIds.length > 0) {
-        await uow.tx.deleteFrom('group_entrants').where('group_id', 'in', groupIds).execute();
-        await uow.tx.deleteFrom('groups').where('group_id', 'in', groupIds).execute();
-      }
-      await uow.tx.deleteFrom('zone_entrants').where('zone_id', 'in', zoneIds).execute();
-      await uow.tx.deleteFrom('promotion_plans').where('zone_id', 'in', zoneIds).execute();
-      await uow.tx.deleteFrom('zones').where('zone_id', 'in', zoneIds).execute();
-    }
-
-    await uow.tx.deleteFrom('stage_configurations').where('stage_id', '=', input.stageId).execute();
-
-    const deleted = await uow.tx
-      .deleteFrom('stages')
-      .where('stage_id', '=', input.stageId)
-      .returningAll()
-      .executeTakeFirst();
-    if (!deleted) {
-      throw new NotFoundError(`Stage ${input.stageId} does not exist`, { stageId: input.stageId });
-    }
-
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'stage',
-      entityId: input.stageId,
-      action: 'stage.deleted',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      previousState: { ...toStage(deleted) },
-    });
-    return toStage(deleted);
+    input: { readonly stageId: string; readonly confirmationName: string } & AuditContext,
+  ): Promise<StageDeletionResult> {
+    return this.stages.deleteStage(uow, input);
   }
 
   /** Bulk fixture insert — the shape the generator will hand over. */
-  async createFixtures(
+  createFixtures(
     uow: UnitOfWork,
     input: {
       readonly stageId: string;
@@ -1090,138 +398,23 @@ export class CompetitionRepository {
       }[];
     } & AuditContext,
   ): Promise<readonly Fixture[]> {
-    if (input.fixtures.length === 0) {
-      throw new InvariantViolationError('Cannot create an empty fixture set', {
-        stageId: input.stageId,
-      });
-    }
-
-    // Scope creation is intentionally ordered: the first unscoped fixture may
-    // create the implicit zone/group, which every later fixture in this same
-    // transaction must then reuse.
-    const scopedFixtures = [] as Array<
-      (typeof input.fixtures)[number] & { readonly zoneId: string; readonly groupId: string }
-    >;
-    for (const fixture of input.fixtures) {
-      scopedFixtures.push({
-        ...fixture,
-        ...(await this.resolveFixtureScope(uow, input, fixture)),
-      });
-    }
-    const rows = await uow.tx
-      .insertInto('fixtures')
-      .values(
-        scopedFixtures.map((fixture) => ({
-          fixture_id: newId(),
-          stage_id: input.stageId,
-          zone_id: fixture.zoneId,
-          group_id: fixture.groupId,
-          round: fixture.round,
-          role: fixture.role ?? null,
-          home_entrant_id: fixture.homeEntrantId ?? null,
-          away_entrant_id: fixture.awayEntrantId ?? null,
-          created_at: new Date(),
-        })),
-      )
-      .returningAll()
-      .execute();
-
-    const fixtures = rows.map(toFixture);
-
-    if (fixtures.length > 0) {
-      const matchRows = fixtures.flatMap((fixture, fixtureIndex) => {
-        const count = input.fixtures[fixtureIndex]?.matchCount ?? input.matchCount ?? 1;
-        return Array.from({ length: count }, (_, mIdx) => ({
-          match_id: newId(),
-          fixture_id: fixture.fixtureId,
-          number: mIdx + 1,
-          status: 'scheduled' as const,
-          result: null,
-          created_at: new Date(),
-        }));
-      });
-      await uow.tx.insertInto('matches').values(matchRows).execute();
-
-      for (const m of matchRows) {
-        await uow.recordAudit({
-          organizationId: input.organizationId,
-          entityType: 'match',
-          entityId: m.match_id,
-          action: 'match.created',
-          actor: input.actor,
-          authorizationContext: input.authorizationContext,
-          resultingState: { ...toMatch(m) },
-        });
-      }
-    }
-
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'stage',
-      entityId: input.stageId,
-      action: 'fixtures.generated',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { fixtureCount: fixtures.length },
-    });
-    await uow.publishEvent({
-      organizationId: input.organizationId,
-      stream: `stage:${input.stageId}`,
-      entityId: input.stageId,
-      eventType: 'fixtures.generated',
-      projectionVersion: 1,
-      payload: { stageId: input.stageId, fixtureCount: fixtures.length },
-    });
-
-    return fixtures;
+    return this.fixtures.createFixtures(uow, input);
   }
 
-  /**
-   * Every generated fixture of a stage, with its real `fixtureId` — what a
-   * schedule builder assigns a time and venue to. Distinct from the bracket
-   * graph's own node ids (`packages/tournament-engine`'s `match.id`), which
-   * are never persisted and never equal a `fixtureId`.
-   */
-  /**
-   * The zone one fixture belongs to — all a caller needs to pick the zone's own series declaration
-   * without listing the stage's fixtures. `undefined` for a fixture that does not exist.
-   */
-  async findFixtureZoneId(fixtureId: string, uow?: UnitOfWork): Promise<string | undefined> {
-    const row = await (uow?.tx ?? this.db)
-      .selectFrom('fixtures')
-      .select('zone_id')
-      .where('fixture_id', '=', fixtureId)
-      .executeTakeFirst();
-    return row?.zone_id ?? undefined;
+  findFixtureZoneId(fixtureId: string, uow?: UnitOfWork): Promise<string | undefined> {
+    return this.fixtures.findFixtureZoneId(fixtureId, uow);
   }
 
   /** The zone a group belongs to, or `undefined` for a group that does not exist. */
-  async findGroupZoneId(groupId: string): Promise<string | undefined> {
-    const row = await this.db
-      .selectFrom('groups')
-      .select('zone_id')
-      .where('group_id', '=', groupId)
-      .executeTakeFirst();
-    return row?.zone_id;
+  findGroupZoneId(groupId: string): Promise<string | undefined> {
+    return this.fixtures.findGroupZoneId(groupId);
   }
 
-  async listFixturesOfStage(stageId: string): Promise<readonly Fixture[]> {
-    const rows = await this.db
-      .selectFrom('fixtures')
-      .selectAll()
-      .where('stage_id', '=', stageId)
-      .orderBy('round')
-      .execute();
-    return rows.map(toFixture);
+  listFixturesOfStage(stageId: string, uow?: UnitOfWork): Promise<readonly Fixture[]> {
+    return this.fixtures.listFixturesOfStage(stageId, uow);
   }
 
-  /**
-   * Replaces a stage's fixture graph in place — the write side of reseeding.
-   * Only reachable once `classifyEngineMutation` has already refused a
-   * `blocked_after_results` request. Guarded against matches that have
-   * progressed beyond scheduled or have results recorded.
-   */
-  async replaceFixtures(
+  replaceFixtures(
     uow: UnitOfWork,
     input: {
       readonly stageId: string;
@@ -1236,205 +429,64 @@ export class CompetitionRepository {
       }[];
     } & AuditContext,
   ): Promise<readonly Fixture[]> {
-    if (input.fixtures.length === 0) {
-      throw new InvariantViolationError('Cannot replace a fixture set with an empty one', {
-        stageId: input.stageId,
-      });
-    }
-
-    const attached = await uow.tx
-      .selectFrom('matches')
-      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
-      .select('matches.match_id')
-      .where('fixtures.stage_id', '=', input.stageId)
-      .where((eb) =>
-        eb.or([eb('matches.status', '!=', 'scheduled'), eb('matches.result', 'is not', null)]),
-      )
-      .executeTakeFirst();
-    if (attached) {
-      throw new InvariantViolationError(
-        'Cannot replace fixtures once a match has started or recorded results',
-        { stageId: input.stageId },
-      );
-    }
-
-    const previousCount = await uow.tx
-      .selectFrom('fixtures')
-      .select((eb) => eb.fn.countAll<number>().as('count'))
-      .where('stage_id', '=', input.stageId)
-      .executeTakeFirstOrThrow();
-
-    const stageFixtureIds = uow.tx
-      .selectFrom('fixtures')
-      .select('fixture_id')
-      .where('stage_id', '=', input.stageId);
-
-    await uow.tx.deleteFrom('matches').where('fixture_id', 'in', stageFixtureIds).execute();
-    await uow.tx.deleteFrom('fixtures').where('stage_id', '=', input.stageId).execute();
-
-    const scopedFixtures = await Promise.all(
-      input.fixtures.map(async (fixture) => ({
-        ...fixture,
-        ...(await this.resolveFixtureScope(uow, input, fixture)),
-      })),
-    );
-    const rows = await uow.tx
-      .insertInto('fixtures')
-      .values(
-        scopedFixtures.map((fixture) => ({
-          fixture_id: newId(),
-          stage_id: input.stageId,
-          zone_id: fixture.zoneId,
-          group_id: fixture.groupId,
-          round: fixture.round,
-          home_entrant_id: fixture.homeEntrantId ?? null,
-          away_entrant_id: fixture.awayEntrantId ?? null,
-          created_at: new Date(),
-        })),
-      )
-      .returningAll()
-      .execute();
-
-    const fixtures = rows.map(toFixture);
-
-    if (fixtures.length > 0) {
-      const matchRows = fixtures.flatMap((fixture, fixtureIndex) => {
-        const count = input.fixtures[fixtureIndex]?.matchCount ?? input.matchCount ?? 1;
-        return Array.from({ length: count }, (_, mIdx) => ({
-          match_id: newId(),
-          fixture_id: fixture.fixtureId,
-          number: mIdx + 1,
-          status: 'scheduled' as const,
-          result: null,
-          created_at: new Date(),
-        }));
-      });
-      await uow.tx.insertInto('matches').values(matchRows).execute();
-    }
-
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'stage',
-      entityId: input.stageId,
-      action: 'fixtures.regenerated',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      previousState: { fixtureCount: previousCount.count },
-      resultingState: { fixtureCount: fixtures.length },
-    });
-    await uow.publishEvent({
-      organizationId: input.organizationId,
-      stream: `stage:${input.stageId}`,
-      entityId: input.stageId,
-      eventType: 'fixtures.regenerated',
-      projectionVersion: 1,
-      payload: { stageId: input.stageId, fixtureCount: fixtures.length },
-    });
-
-    return fixtures;
+    return this.fixtures.replaceFixtures(uow, input);
   }
 
-  /**
-   * Anulls unplayed surplus matches of a decided series, setting their status
-   * to `not-required` and freeing their schedule slot assignments atomically.
-   */
-  async anullSurplusMatches(
+  /** Publishes a complete stage draw, including stages mixing elimination and legacy formats. */
+  publishFixturePlans(
+    uow: UnitOfWork,
+    input: {
+      readonly stageId: string;
+      readonly plans: readonly {
+        readonly zoneId?: string;
+        readonly nodes?: readonly PersistedFixtureNode[];
+        readonly fixtures?: readonly {
+          readonly round: number;
+          readonly homeEntrantId?: string;
+          readonly awayEntrantId?: string;
+        }[];
+        readonly matchCount?: number;
+      }[];
+    } & AuditContext,
+  ): Promise<readonly Fixture[]> {
+    return this.fixtures.publishFixturePlans(uow, input);
+  }
+
+  /** Persists every node and its complete series span for one zone. */
+  createFixtureGraph(
+    uow: UnitOfWork,
+    input: {
+      readonly stageId: string;
+      readonly zoneId: string;
+      readonly nodes: readonly PersistedFixtureNode[];
+    } & AuditContext,
+  ): Promise<readonly Fixture[]> {
+    return this.fixtures.createFixtureGraph(uow, input);
+  }
+
+  /** Replaces one zone's complete graph only while none of its matches progressed. */
+  replaceFixtureGraph(
+    uow: UnitOfWork,
+    input: {
+      readonly stageId: string;
+      readonly zoneId: string;
+      readonly nodes: readonly PersistedFixtureNode[];
+    } & AuditContext,
+  ): Promise<readonly Fixture[]> {
+    return this.fixtures.replaceFixtureGraph(uow, input);
+  }
+
+  anullSurplusMatches(
     uow: UnitOfWork,
     input: {
       readonly fixtureId: string;
       readonly anulledMatchNumbers: readonly number[];
     } & AuditContext,
   ): Promise<readonly Match[]> {
-    if (input.anulledMatchNumbers.length === 0) return [];
-
-    const matches = await uow.tx
-      .selectFrom('matches')
-      .selectAll()
-      .where('fixture_id', '=', input.fixtureId)
-      .where('number', 'in', input.anulledMatchNumbers)
-      .where('status', '=', 'scheduled')
-      .execute();
-
-    if (matches.length === 0) return [];
-
-    const matchIds = matches.map((m) => m.match_id);
-
-    // Read the assignments before deleting them: the slot an anulled game had occupied is a
-    // fact an organizer still needs after it is freed ("game five is no longer required — it
-    // had Court 2 at 19:00, now free"), and once the row is gone the audit trail is the only
-    // place that fact can live.
-    const releasedAssignments = await uow.tx
-      .selectFrom('match_schedule_assignments')
-      .select(['match_id', 'slot_id'])
-      .where('match_id', 'in', matchIds)
-      .execute();
-    const releasedSlotByMatch = new Map(
-      releasedAssignments.map((row) => [row.match_id, row.slot_id]),
-    );
-
-    await uow.tx
-      .updateTable('matches')
-      .set({ status: 'not-required' })
-      .where('match_id', 'in', matchIds)
-      .execute();
-
-    await uow.tx.deleteFrom('match_schedule_officials').where('match_id', 'in', matchIds).execute();
-
-    await uow.tx
-      .deleteFrom('match_schedule_assignments')
-      .where('match_id', 'in', matchIds)
-      .execute();
-
-    for (const m of matches) {
-      const updatedMatch: Match = {
-        ...toMatch(m),
-        status: 'not-required',
-      };
-      const releasedSlotId = releasedSlotByMatch.get(m.match_id);
-      await uow.recordAudit({
-        organizationId: input.organizationId,
-        entityType: 'match',
-        entityId: m.match_id,
-        action: 'match.anulled',
-        actor: input.actor,
-        authorizationContext: input.authorizationContext,
-        previousState: {
-          ...toMatch(m),
-          ...(releasedSlotId === undefined ? {} : { releasedSlotId }),
-        },
-        resultingState: { ...updatedMatch },
-      });
-      await uow.publishEvent({
-        organizationId: input.organizationId,
-        stream: `match:${m.match_id}`,
-        entityId: m.match_id,
-        eventType: 'match.anulled',
-        projectionVersion: 1,
-        payload: {
-          matchId: m.match_id,
-          fixtureId: input.fixtureId,
-          number: m.number,
-          status: 'not-required',
-          ...(releasedSlotId === undefined ? {} : { releasedSlotId }),
-        },
-      });
-    }
-
-    return matches.map((m) => ({ ...toMatch(m), status: 'not-required' as const }));
+    return this.fixtureSurplus.anullSurplusMatches(uow, input);
   }
 
-  /**
-   * Returns anulled matches a correction has made necessary again to `scheduled`, as an audited
-   * fact naming the correction that revived them.
-   *
-   * Deliberately restores no schedule: the slot each of these held was released when the series
-   * settled, and by now it may be occupied by someone else's match, in another venue's grid, on
-   * a day that has already been published. Silently re-taking it would double-book a real match;
-   * silently taking a different one would invent a fixture time nobody chose. So the match comes
-   * back playable and unplaced, and an organizer places it — which is also the only way the
-   * decision to give it a slot ends up in the record with a name against it.
-   */
-  async reinstateAnulledMatches(
+  reinstateAnulledMatches(
     uow: UnitOfWork,
     input: {
       readonly fixtureId: string;
@@ -1443,152 +495,25 @@ export class CompetitionRepository {
       readonly reason: string;
     } & AuditContext,
   ): Promise<readonly Match[]> {
-    if (input.matchNumbers.length === 0) return [];
-
-    const matches = await uow.tx
-      .selectFrom('matches')
-      .selectAll()
-      .where('fixture_id', '=', input.fixtureId)
-      .where('number', 'in', input.matchNumbers)
-      .where('status', '=', 'not-required')
-      .execute();
-
-    if (matches.length === 0) return [];
-
-    const matchIds = matches.map((m) => m.match_id);
-    await uow.tx
-      .updateTable('matches')
-      .set({ status: 'scheduled' })
-      .where('match_id', 'in', matchIds)
-      .execute();
-
-    for (const m of matches) {
-      const reinstated: Match = { ...toMatch(m), status: 'scheduled' };
-      await uow.recordAudit({
-        organizationId: input.organizationId,
-        entityType: 'match',
-        entityId: m.match_id,
-        action: 'match.reinstated',
-        actor: input.actor,
-        authorizationContext: input.authorizationContext,
-        previousState: { ...toMatch(m) },
-        resultingState: { ...reinstated },
-        reason: input.reason,
-      });
-      await uow.publishEvent({
-        organizationId: input.organizationId,
-        stream: `match:${m.match_id}`,
-        entityId: m.match_id,
-        eventType: 'match.reinstated',
-        projectionVersion: 1,
-        payload: {
-          matchId: m.match_id,
-          fixtureId: input.fixtureId,
-          number: m.number,
-          status: 'scheduled',
-          reason: input.reason,
-        },
-      });
-    }
-
-    return matches.map((m) => ({ ...toMatch(m), status: 'scheduled' as const }));
+    return this.fixtureSurplus.reinstateAnulledMatches(uow, input);
   }
 
-  async createMatch(
+  createMatch(
     uow: UnitOfWork,
     input: { readonly fixtureId: string; readonly number: number } & AuditContext,
   ): Promise<Match> {
-    const existing = await uow.tx
-      .selectFrom('matches')
-      .selectAll()
-      .where('fixture_id', '=', input.fixtureId)
-      .where('number', '=', input.number)
-      .executeTakeFirst();
-    if (existing) {
-      return toMatch(existing);
-    }
-
-    const matchId = newId();
-    const row = await uow.tx
-      .insertInto('matches')
-      .values({
-        match_id: matchId,
-        fixture_id: input.fixtureId,
-        number: input.number,
-        status: 'scheduled',
-        result: null,
-        created_at: new Date(),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    const match = toMatch(row);
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'match',
-      entityId: matchId,
-      action: 'match.created',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { ...match },
-    });
-    return match;
+    return this.matches.createMatch(uow, input);
   }
 
-  async listMatchesForStage(stageId: string, uow?: UnitOfWork): Promise<readonly Match[]> {
-    const handle = uow?.tx ?? this.db;
-    const rows = await handle
-      .selectFrom('matches')
-      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
-      .selectAll('matches')
-      .where('fixtures.stage_id', '=', stageId)
-      .orderBy('matches.number')
-      .execute();
-    return rows.map(toMatch);
+  listMatchesForStage(stageId: string, uow?: UnitOfWork): Promise<readonly Match[]> {
+    return this.matches.listMatchesForStage(stageId, uow);
   }
 
-  /**
-   * The slot each anulled match of a stage had occupied before a decided series freed it.
-   *
-   * Sourced from the `match.anulled` audit record rather than from a schedule table, because
-   * anulling deletes the assignment — the slot goes back to whoever wants it. A builder that
-   * only reported "no longer required" would leave an organizer wondering what happened to
-   * Court 2 at 19:00; this is what lets it say so. A match anulled while unscheduled has no
-   * entry, which is not the same as one whose slot the audit record predates.
-   */
-  async listReleasedSlotsOfStage(stageId: string): Promise<ReadonlyMap<string, string>> {
-    const rows = await this.db
-      .selectFrom('audit_log')
-      .innerJoin('matches', 'matches.match_id', 'audit_log.entity_id')
-      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
-      .select(['audit_log.entity_id as match_id', 'audit_log.previous_state as previous_state'])
-      .where('fixtures.stage_id', '=', stageId)
-      .where('audit_log.entity_type', '=', 'match')
-      .where('audit_log.action', '=', 'match.anulled')
-      .orderBy('audit_log.occurred_at', 'desc')
-      .execute();
-
-    const released = new Map<string, string>();
-    for (const row of rows) {
-      if (released.has(row.match_id)) continue;
-      const previous = row.previous_state;
-      const parsed = (typeof previous === 'string' ? JSON.parse(previous) : previous) as
-        { readonly releasedSlotId?: unknown } | null | undefined;
-      const slotId = parsed?.releasedSlotId;
-      if (typeof slotId === 'string') released.set(row.match_id, slotId);
-    }
-    return released;
+  listReleasedSlotsOfStage(stageId: string): Promise<ReadonlyMap<string, string>> {
+    return this.matches.listReleasedSlotsOfStage(stageId);
   }
 
-  /**
-   * Moves a match through the states `applyMatchCommand` permits.
-   *
-   * The transition itself was decided in the domain; this writes it and says
-   * who was allowed to. A finalized match is refused here as well as there,
-   * because an invariant enforced in one layer is enforced only until someone
-   * calls the other one.
-   */
-  async applyCommand(
+  applyCommand(
     uow: UnitOfWork,
     input: {
       readonly matchId: string;
@@ -1598,189 +523,40 @@ export class CompetitionRepository {
       readonly grantedBy: string;
     } & AuditContext,
   ): Promise<Match> {
-    const existing = await this.findMatchIn(uow.tx, input.matchId);
-    if (!existing) {
-      throw new NotFoundError(`Match ${input.matchId} does not exist`, { matchId: input.matchId });
-    }
-    if (existing.status === 'finalized') {
-      throw new InvariantViolationError(
-        `Match ${input.matchId} is finalized; use the audited correction workflow`,
-        { matchId: input.matchId },
-      );
-    }
-
-    const row = await uow.tx
-      .updateTable('matches')
-      .set({ status: input.status })
-      .where('match_id', '=', input.matchId)
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    const match = toMatch(row);
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'match',
-      entityId: input.matchId,
-      action: `match.${input.command}`,
-      actor: input.actor,
-      authorizationContext: `${input.authorizationContext} via ${input.grantedBy}`,
-      previousState: { ...existing },
-      resultingState: { ...match },
-    });
-    return match;
+    return this.matches.applyCommand(uow, input);
   }
 
-  /** Starts, pauses or completes a segment; the clock is derived from this. */
-  async setSegmentState(
+  setSegmentState(
     uow: UnitOfWork,
     input: {
       readonly segmentId: string;
       readonly state: Segment['state'];
+      readonly reason?: string;
     } & AuditContext,
   ): Promise<Segment> {
-    const existing = await uow.tx
-      .selectFrom('segments')
-      .selectAll()
-      .where('segment_id', '=', input.segmentId)
-      .executeTakeFirst();
-    if (!existing) {
-      throw new NotFoundError(`Segment ${input.segmentId} does not exist`, {
-        segmentId: input.segmentId,
-      });
-    }
-
-    const now = new Date();
-    let elapsedSeconds = existing.elapsed_seconds;
-    if (
-      input.state !== 'active' &&
-      existing.state === 'active' &&
-      existing.clock_started_at !== null
-    ) {
-      elapsedSeconds += Math.max(
-        0,
-        Math.floor((now.getTime() - existing.clock_started_at.getTime()) / 1000),
-      );
-    }
-    const row = await uow.tx
-      .updateTable('segments')
-      .set({
-        state: input.state,
-        elapsed_seconds: elapsedSeconds,
-        clock_started_at: input.state === 'active' ? (existing.clock_started_at ?? now) : null,
-      })
-      .where('segment_id', '=', input.segmentId)
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    const segment = toSegment(row);
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'segment',
-      entityId: input.segmentId,
-      action: `segment.${input.state}`,
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      // Both sides of the move, matching `adjustSegmentClock` — an explicit
-      // Start/Pause/End has to read from the same trail as a correction to it.
-      previousState: { ...toSegment(existing) },
-      resultingState: { ...segment },
-    });
-    return segment;
+    return this.segmentTimers.setSegmentState(uow, input);
   }
 
   /** Explicit clock correction; elapsed time is a durable match fact, never browser state. */
-  async adjustSegmentClock(
+  adjustSegmentClock(
     uow: UnitOfWork,
     input: { readonly segmentId: string; readonly elapsedSeconds: number } & AuditContext,
   ): Promise<Segment> {
-    if (!Number.isInteger(input.elapsedSeconds) || input.elapsedSeconds < 0) {
-      throw new InvariantViolationError('Elapsed seconds must be a non-negative integer', {
-        elapsedSeconds: input.elapsedSeconds,
-      });
-    }
-    const existing = await uow.tx
-      .selectFrom('segments')
-      .selectAll()
-      .where('segment_id', '=', input.segmentId)
-      .executeTakeFirst();
-    if (!existing) {
-      throw new NotFoundError(`Segment ${input.segmentId} does not exist`, {
-        segmentId: input.segmentId,
-      });
-    }
-    const now = new Date();
-    const row = await uow.tx
-      .updateTable('segments')
-      .set({
-        elapsed_seconds: input.elapsedSeconds,
-        clock_started_at: existing.state === 'active' ? now : null,
-      })
-      .where('segment_id', '=', input.segmentId)
-      .returningAll()
-      .executeTakeFirstOrThrow();
-    const segment = toSegment(row);
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'segment',
-      entityId: input.segmentId,
-      action: 'segment.clock-adjusted',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      previousState: { ...toSegment(existing) },
-      resultingState: { ...segment },
-    });
-    return segment;
+    return this.segmentTimers.adjustSegmentClock(uow, input);
   }
 
-  async resolveTimer(
+  resolveTimer(
     uow: UnitOfWork,
     input: { readonly timerId: string; readonly matchId: string } & AuditContext,
   ): Promise<void> {
-    const existing = await uow.tx
-      .selectFrom('match_timer_resolutions')
-      .select('timer_id')
-      .where('timer_id', '=', input.timerId)
-      .executeTakeFirst();
-    if (existing) return;
-    await uow.tx
-      .insertInto('match_timer_resolutions')
-      .values({
-        timer_id: input.timerId,
-        match_id: input.matchId,
-        actor: input.actor,
-        resolved_at: new Date(),
-      })
-      .execute();
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'match-timer',
-      entityId: input.timerId,
-      action: 'match-timer.resolved',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { matchId: input.matchId, resolved: true },
-    });
+    return this.segmentTimers.resolveTimer(uow, input);
   }
 
-  async resolvedTimerIds(matchId: string): Promise<ReadonlySet<string>> {
-    const rows = await this.db
-      .selectFrom('match_timer_resolutions')
-      .select('timer_id')
-      .where('match_id', '=', matchId)
-      .execute();
-    return new Set(rows.map((row) => row.timer_id));
+  resolvedTimerIds(matchId: string, uow?: UnitOfWork): Promise<ReadonlySet<string>> {
+    return this.segmentTimers.resolvedTimerIds(matchId, uow);
   }
 
-  /**
-   * Supersedes a result, keeping the one it replaced.
-   *
-   * The only write path over a finalized outcome, and it is not an update in
-   * the ordinary sense: the audit row carries the prior state, the replacement
-   * and the operator's reason, so the chain of what a result has been stays
-   * readable in order. `recordResult` still refuses a match that has one, which
-   * is what leaves this as the single door.
-   */
-  async supersedeResult(
+  supersedeResult(
     uow: UnitOfWork,
     input: {
       readonly matchId: string;
@@ -1791,91 +567,14 @@ export class CompetitionRepository {
       readonly blockedPropagation?: { readonly stageId: string; readonly reason: string };
     } & AuditContext,
   ): Promise<Match> {
-    const existing = await this.findMatchIn(uow.tx, input.matchId);
-    if (!existing?.result) {
-      throw new InvariantViolationError(`Match ${input.matchId} has no result to supersede`, {
-        matchId: input.matchId,
-      });
-    }
-
-    const row = await uow.tx
-      .updateTable('matches')
-      .set({ result: JSON.stringify(input.result) })
-      .where('match_id', '=', input.matchId)
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    const match = toMatch(row);
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'match',
-      entityId: input.matchId,
-      action: 'match.result-superseded',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      previousState: { ...existing.result },
-      // Retained as supporting evidence in the audit trail — never
-      // read back as authority for anything; the operator's own reason and
-      // replacement above are what the correction actually rests on.
-      resultingState:
-        input.sourceReportId === undefined
-          ? { ...input.result }
-          : { ...input.result, sourceReportId: input.sourceReportId },
-      reason: input.reason,
-    });
-
-    await uow.publishEvent({
-      organizationId: input.organizationId,
-      stream: `match:${input.matchId}`,
-      entityId: input.matchId,
-      eventType: 'result.superseded',
-      projectionVersion: 1,
-      payload: {
-        matchId: input.matchId,
-        reason: input.reason,
-        // Named in the event so a downstream consumer does not have to infer
-        // that a rebuild was deliberately withheld.
-        ...(input.blockedPropagation
-          ? { blockedPropagation: { ...input.blockedPropagation } }
-          : {}),
-      },
-    });
-
-    return match;
+    return this.matchEvents.supersedeResult(uow, input);
   }
 
-  /**
-   * The notification identities already published for a match.
-   *
-   * Threshold rules are a fold over the whole log, so recomputation after every
-   * event re-derives every earlier crossing. Publishing only what is new is
-   * what keeps a reconnect from raising an alert twice — delivery deduplicates
-   * on the same key afterwards, which is the second line rather than the first.
-   */
-  async publishedNotificationKeys(matchId: string): Promise<ReadonlySet<string>> {
-    const rows = await this.db
-      .selectFrom('outbox_events')
-      .select('payload')
-      .where('entity_id', '=', matchId)
-      .where('event_type', '=', 'notification.raised')
-      .execute();
-
-    const keys = new Set<string>();
-    for (const row of rows) {
-      const key = (row.payload as { identityKey?: unknown }).identityKey;
-      if (typeof key === 'string') keys.add(key);
-    }
-    return keys;
+  publishedNotificationKeys(matchId: string): Promise<ReadonlySet<string>> {
+    return this.matchEvents.publishedNotificationKeys(matchId);
   }
 
-  /**
-   * The stage after this one, and whether it has started.
-   *
-   * "Started" is read as *any match in it has been played or is being played*,
-   * because that is what makes a rebuild destructive: a bracket nobody has
-   * touched can be redrawn, and one that has been played cannot.
-   */
-  async nextStageState(
+  nextStageState(
     tournamentId: string,
     stageId: string,
   ): Promise<
@@ -1886,39 +585,10 @@ export class CompetitionRepository {
       }
     | undefined
   > {
-    const stages = await this.listStages(tournamentId);
-    const current = stages.find((stage) => stage.stageId === stageId);
-    const next = stages.find((stage) => stage.number === (current?.number ?? 0) + 1);
-    if (!next) return undefined;
-
-    const rows = await this.db
-      .selectFrom('matches')
-      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
-      .select(['matches.status', 'fixtures.home_entrant_id', 'fixtures.away_entrant_id'])
-      .where('fixtures.stage_id', '=', next.stageId)
-      .execute();
-
-    const qualified = new Set<string>();
-    for (const row of rows) {
-      if (row.home_entrant_id) qualified.add(row.home_entrant_id);
-      if (row.away_entrant_id) qualified.add(row.away_entrant_id);
-    }
-
-    return {
-      stageId: next.stageId,
-      started: rows.some((row) => row.status !== 'scheduled'),
-      qualifiedEntrantIds: [...qualified],
-    };
+    return this.matchEvents.nextStageState(tournamentId, stageId);
   }
 
-  /**
-   * Selects (or replaces) one entrant's roster for a match. One row per
-   * `(matchId, entrantId)` — a second call for the same pair overwrites the
-   * prior selection, audited each time; a match's roster is a revisable
-   * match-time fact the console can correct, not an append-only log the way
-   * events are.
-   */
-  async setMatchRoster(
+  setMatchRoster(
     uow: UnitOfWork,
     input: {
       readonly matchId: string;
@@ -1926,81 +596,25 @@ export class CompetitionRepository {
       readonly members: readonly MatchRosterMember[];
     } & AuditContext,
   ): Promise<void> {
-    const previous = await uow.tx
-      .selectFrom('match_rosters')
-      .select('roster_members')
-      .where('match_id', '=', input.matchId)
-      .where('entrant_id', '=', input.entrantId)
-      .executeTakeFirst();
-
-    await uow.tx
-      .insertInto('match_rosters')
-      .values({
-        match_id: input.matchId,
-        entrant_id: input.entrantId,
-        roster_members: JSON.stringify(input.members),
-        updated_at: new Date(),
-      })
-      .onConflict((conflict) =>
-        conflict.columns(['match_id', 'entrant_id']).doUpdateSet({
-          roster_members: JSON.stringify(input.members),
-          updated_at: new Date(),
-        }),
-      )
-      .execute();
-
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'match-roster',
-      // No dedicated roster id exists — the match itself is the audited
-      // entity, with the entrant it was set for carried in the state.
-      entityId: input.matchId,
-      action: 'match-roster.set',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      ...(previous
-        ? { previousState: { entrantId: input.entrantId, members: previous.roster_members } }
-        : {}),
-      resultingState: { entrantId: input.entrantId, members: input.members },
-    });
+    return this.matchRosters.setMatchRoster(uow, input);
   }
 
   /** Every entrant's current roster selection for a match, keyed by entrant id. */
-  async matchRoster(matchId: string): Promise<readonly MatchRoster[]> {
-    const rows = await this.db
-      .selectFrom('match_rosters')
-      .select(['entrant_id', 'roster_members'])
-      .where('match_id', '=', matchId)
-      .execute();
-    return rows.map((row) => ({
-      matchId,
-      entrantId: row.entrant_id,
-      members: row.roster_members,
-    }));
+  matchRoster(matchId: string): Promise<readonly MatchRoster[]> {
+    return this.matchRosters.matchRoster(matchId);
   }
 
   /** The stage a match belongs to, which is what scopes an appointment. */
-  async stageOfMatch(matchId: string): Promise<string | undefined> {
-    const row = await this.db
-      .selectFrom('matches')
-      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
-      .select('fixtures.stage_id')
-      .where('matches.match_id', '=', matchId)
-      .executeTakeFirst();
-    return row?.stage_id;
+  stageOfMatch(matchId: string): Promise<string | undefined> {
+    return this.matches.stageOfMatch(matchId);
   }
 
-  async listSegments(matchId: string): Promise<readonly Segment[]> {
-    const rows = await this.db
-      .selectFrom('segments')
-      .selectAll()
-      .where('match_id', '=', matchId)
-      .orderBy('number')
-      .execute();
-    return rows.map(toSegment);
+  /** With a unit of work, reads on its transaction, so a caller holding a row lock needs no second connection. */
+  listSegments(matchId: string, uow?: UnitOfWork): Promise<readonly Segment[]> {
+    return this.segmentTimers.listSegments(matchId, uow);
   }
 
-  async createSegment(
+  createSegment(
     uow: UnitOfWork,
     input: {
       readonly matchId: string;
@@ -2008,381 +622,83 @@ export class CompetitionRepository {
       readonly number: number;
     } & AuditContext,
   ): Promise<Segment> {
-    const segmentId = newId();
-    const row = await uow.tx
-      .insertInto('segments')
-      .values({
-        segment_id: segmentId,
-        match_id: input.matchId,
-        segment_type: input.type,
-        number: input.number,
-        state: 'pending',
-        elapsed_seconds: 0,
-        clock_started_at: null,
-        created_at: new Date(),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    const segment = toSegment(row);
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'segment',
-      entityId: segmentId,
-      action: 'segment.created',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: { ...segment },
-    });
-    return segment;
+    return this.segmentTimers.createSegment(uow, input);
   }
 
-  /**
-   * Appends one domain fact. There is deliberately no update or delete
-   * counterpart: the event log is the audit input, so corrections supersede
-   * rather than rewrite (that workflow owns the correction).
-   */
-  async appendEvent(
+  appendEvent(
     uow: UnitOfWork,
     input: {
       readonly event: Omit<RecordedEvent, 'sequence'>;
       readonly sequence: number;
     } & AuditContext,
   ): Promise<RecordedEvent> {
-    const { event } = input;
-    const row = await uow.tx
-      .insertInto('match_events')
-      .values({
-        event_id: event.eventId,
-        match_id: event.matchId,
-        segment_id: event.segmentId,
-        definition_code: event.definitionCode,
-        occurred_at: new Date(event.occurredAt),
-        sequence: input.sequence,
-        side: event.side ?? null,
-        person_id: event.personId ?? null,
-        payload: JSON.stringify(event.payload),
-        notes: event.notes ?? null,
-        segment_elapsed_seconds: event.segmentElapsedSeconds ?? null,
-        created_at: new Date(),
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    const recorded = toRecordedEvent(row);
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'match-event',
-      entityId: recorded.eventId,
-      action: 'event.recorded',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      resultingState: {
-        definitionCode: recorded.definitionCode,
-        sequence: recorded.sequence,
-      },
-    });
-    await uow.publishEvent({
-      organizationId: input.organizationId,
-      stream: `match:${recorded.matchId}`,
-      entityId: recorded.matchId,
-      eventType: 'match.event-recorded',
-      projectionVersion: recorded.sequence,
-      payload: {
-        eventId: recorded.eventId,
-        matchId: recorded.matchId,
-        definitionCode: recorded.definitionCode,
-        occurredAt: recorded.occurredAt,
-        ...(recorded.side === undefined ? {} : { side: recorded.side }),
-        ...(recorded.personId === undefined ? {} : { personId: recorded.personId }),
-      },
-    });
-
-    return recorded;
+    return this.matchEvents.appendEvent(uow, input);
   }
 
-  /** Next sequence number for a match's event log. */
-  async nextEventSequence(matchId: string): Promise<number> {
-    const row = await this.db
-      .selectFrom('match_events')
-      .select('sequence')
-      .where('match_id', '=', matchId)
-      .orderBy('sequence', 'desc')
-      .limit(1)
-      .executeTakeFirst();
-    return (row?.sequence ?? 0) + 1;
+  nextEventSequence(matchId: string, uow?: UnitOfWork): Promise<number> {
+    return this.matchEvents.nextEventSequence(matchId, uow);
   }
 
-  async listEvents(matchId: string): Promise<readonly RecordedEvent[]> {
-    const rows = await this.db
-      .selectFrom('match_events')
-      .selectAll()
-      .where('match_id', '=', matchId)
-      .orderBy('sequence')
-      .execute();
-    return rows.map(toRecordedEvent);
+  listEvents(matchId: string, uow?: UnitOfWork): Promise<readonly RecordedEvent[]> {
+    return this.matchEvents.listEvents(matchId, uow);
   }
 
-  /**
-   * A collector-threshold rule's cross-match baseline: every event in
-   * the stage's *other* matches whose definition code the collector watches.
-   * A direct, scoped `match_events` read rather than a `statistic_totals`
-   * read — the general fold engine does not exist yet, and this
-   * rule needs to see the current stage's live, in-progress matches, which a
-   * finalisation-triggered projection would not carry anyway. An empty
-   * `definitionCodes` array (a non-event-sourced collector) short-circuits
-   * without a query, since nothing in `match_events` could match it.
-   */
-  async eventsInStageExcludingMatch(
+  eventsInStageExcludingMatch(
     stageId: string,
     excludeMatchId: string,
     definitionCodes: readonly string[] | undefined,
   ): Promise<readonly RecordedEvent[]> {
-    if (definitionCodes !== undefined && definitionCodes.length === 0) return [];
-
-    let query = this.db
-      .selectFrom('match_events')
-      .innerJoin('matches', 'matches.match_id', 'match_events.match_id')
-      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
-      .selectAll('match_events')
-      .where('fixtures.stage_id', '=', stageId)
-      .where('match_events.match_id', '!=', excludeMatchId);
-    if (definitionCodes !== undefined) {
-      query = query.where('match_events.definition_code', 'in', definitionCodes);
-    }
-
-    const rows = await query.execute();
-    return rows.map(toRecordedEvent);
+    return this.matchEvents.eventsInStageExcludingMatch(stageId, excludeMatchId, definitionCodes);
   }
 
-  /**
-   * Records a calculated result exactly once. A second attempt is refused —
-   * "The MVP permits no direct overwrite of an outcome" (tournament-engine
-   * decision record); superseding requires the audited correction workflow.
-   */
-  async recordResult(
+  recordResult(
     uow: UnitOfWork,
     input: { readonly matchId: string; readonly result: MatchResult } & AuditContext,
   ): Promise<Match> {
-    const existing = await this.findMatchIn(uow.tx, input.matchId);
-    if (!existing) {
-      throw new NotFoundError(`Match ${input.matchId} does not exist`, {
-        matchId: input.matchId,
-      });
-    }
-    if (existing.result) {
-      throw new InvariantViolationError(
-        `Match ${input.matchId} already has a result; use the audited correction workflow to supersede it`,
-        { matchId: input.matchId },
-      );
-    }
-
-    const row = await uow.tx
-      .updateTable('matches')
-      .set({ status: 'finalized', result: JSON.stringify(input.result) })
-      .where('match_id', '=', input.matchId)
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    const match = toMatch(row);
-    await uow.recordAudit({
-      organizationId: input.organizationId,
-      entityType: 'match',
-      entityId: input.matchId,
-      action: 'match.finalized',
-      actor: input.actor,
-      authorizationContext: input.authorizationContext,
-      previousState: { status: existing.status, result: null },
-      resultingState: { status: match.status, result: { ...input.result } },
-      reason: 'match finalized from recorded facts',
-    });
-    await uow.publishEvent({
-      organizationId: input.organizationId,
-      stream: `match:${input.matchId}`,
-      entityId: input.matchId,
-      eventType: 'match.finalized',
-      projectionVersion: 1,
-      payload: { matchId: input.matchId, result: { ...input.result } },
-    });
-
-    return match;
+    return this.matchEvents.recordResult(uow, input);
   }
 
   /** Reads through the caller's transaction when given one, so a write it just made is visible. */
-  async findMatch(matchId: string, uow?: UnitOfWork): Promise<Match | undefined> {
-    return this.findMatchIn(uow?.tx ?? this.db, matchId);
-  }
-
-  private async findMatchIn(
-    executor: Kysely<Database> | Transaction<Database>,
-    matchId: string,
-  ): Promise<Match | undefined> {
-    const row = await executor
-      .selectFrom('matches')
-      .selectAll()
-      .where('match_id', '=', matchId)
-      .executeTakeFirst();
-    return row ? toMatch(row) : undefined;
+  findMatch(matchId: string, uow?: UnitOfWork): Promise<Match | undefined> {
+    return this.matches.findMatch(matchId, uow);
   }
 
   /** The stages of one edition, in order. */
-  async listStages(seasonId: string): Promise<readonly Stage[]> {
-    const rows = await this.db
-      .selectFrom('stages')
-      .selectAll()
-      .where('season_id', '=', seasonId)
-      .orderBy('number')
-      .execute();
-    return rows.map(toStage);
+  listStages(seasonId: string): Promise<readonly Stage[]> {
+    return this.stages.listStages(seasonId);
   }
 
   /** Every stage a tournament has ever played, across its editions. */
-  async listStagesOfTournament(tournamentId: string): Promise<readonly Stage[]> {
-    const rows = await this.db
-      .selectFrom('stages')
-      .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
-      .selectAll('stages')
-      .where('seasons.tournament_id', '=', tournamentId)
-      .orderBy('seasons.ordinal')
-      .orderBy('stages.number')
-      .execute();
-    return rows.map(toStage);
+  listStagesOfTournament(tournamentId: string): Promise<readonly Stage[]> {
+    return this.stages.listStagesOfTournament(tournamentId);
   }
 
   /** The edition a stage belongs to, which is what scopes "the next stage". */
-  async seasonOfStage(stageId: string): Promise<string | undefined> {
-    const row = await this.db
-      .selectFrom('stages')
-      .select('season_id')
-      .where('stage_id', '=', stageId)
-      .executeTakeFirst();
-    return row?.season_id;
+  seasonOfStage(stageId: string): Promise<string | undefined> {
+    return this.stages.seasonOfStage(stageId);
   }
 
   /** The tournament an edition belongs to (`CompetitionContext` chain). */
-  async tournamentOfSeason(seasonId: string): Promise<string | undefined> {
-    const row = await this.db
-      .selectFrom('seasons')
-      .select('tournament_id')
-      .where('season_id', '=', seasonId)
-      .executeTakeFirst();
-    return row?.tournament_id;
+  tournamentOfSeason(seasonId: string): Promise<string | undefined> {
+    return this.stages.tournamentOfSeason(seasonId);
   }
 
-  /**
-   * Every finalized match in scope for a statistics rebuild:
-   * organization-wide, or narrowed to one tournament. Ordered so a rebuild's
-   * output is deterministic across runs, which is what idempotence is checked
-   * against.
-   */
-  async listFinalizedMatches(scope: {
+  listFinalizedMatches(scope: {
     readonly organizationId: string;
     readonly tournamentId?: string;
   }): Promise<readonly string[]> {
-    let query = this.db
-      .selectFrom('matches')
-      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
-      .innerJoin('stages', 'stages.stage_id', 'fixtures.stage_id')
-      .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
-      .innerJoin('tournaments', 'tournaments.tournament_id', 'seasons.tournament_id')
-      .select('matches.match_id')
-      .where('matches.status', '=', 'finalized')
-      .where('tournaments.organization_id', '=', scope.organizationId);
-    if (scope.tournamentId !== undefined) {
-      query = query.where('tournaments.tournament_id', '=', scope.tournamentId);
-    }
-
-    const rows = await query.orderBy('matches.created_at').orderBy('matches.match_id').execute();
-    return rows.map((row) => row.match_id);
+    return this.matches.listFinalizedMatches(scope);
   }
 
-  /**
-   * Per-stage match counts grouped by status for a tournament.
-   * Uses a single GROUP BY query across stages, fixtures, and matches.
-   * Stages with zero fixtures/matches return a single row with status = null and count = 0.
-   */
-  async countTournamentMatchesByStatus(
-    tournamentId: string,
-  ): Promise<readonly RawStageStatusCount[]> {
-    const rows = await this.db
-      .selectFrom('stages')
-      .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
-      .leftJoin('fixtures', 'fixtures.stage_id', 'stages.stage_id')
-      .leftJoin('matches', 'matches.fixture_id', 'fixtures.fixture_id')
-      .select([
-        'stages.stage_id as stageId',
-        'stages.number as stageNumber',
-        'stages.name as stageName',
-        'matches.status as status',
-        this.db.fn.count<string>('matches.match_id').as('count'),
-      ])
-      .where('seasons.tournament_id', '=', tournamentId)
-      .groupBy(['stages.stage_id', 'stages.number', 'stages.name', 'matches.status'])
-      .orderBy('stages.number', 'asc')
-      .execute();
-
-    return rows.map((r) => ({
-      stageId: r.stageId,
-      stageNumber: r.stageNumber,
-      stageName: r.stageName,
-      status: r.status,
-      count: parseInt(String(r.count), 10) || 0,
-    }));
+  countTournamentMatchesByStatus(tournamentId: string): Promise<readonly RawStageStatusCount[]> {
+    return this.matches.countTournamentMatchesByStatus(tournamentId);
   }
 
-  /**
-   * Match counts per stage, zone and group, for the per-segment progress of a
-   * tournament. A fixture without a zone or group contributes no row.
-   */
-  async countTournamentMatchesBySegment(
-    tournamentId: string,
-  ): Promise<readonly RawSegmentStatusCount[]> {
-    const rows = await this.db
-      .selectFrom('stages')
-      .innerJoin('seasons', 'seasons.season_id', 'stages.season_id')
-      .innerJoin('fixtures', 'fixtures.stage_id', 'stages.stage_id')
-      .innerJoin('zones', 'zones.zone_id', 'fixtures.zone_id')
-      .innerJoin('groups', 'groups.group_id', 'fixtures.group_id')
-      .leftJoin('matches', 'matches.fixture_id', 'fixtures.fixture_id')
-      .select([
-        'stages.stage_id as stageId',
-        'zones.zone_id as zoneId',
-        'zones.name as zoneName',
-        'zones.number as zoneNumber',
-        'groups.group_id as groupId',
-        'groups.name as groupName',
-        'groups.number as groupNumber',
-        'matches.status as status',
-        this.db.fn.count<string>('matches.match_id').as('count'),
-      ])
-      .where('seasons.tournament_id', '=', tournamentId)
-      .groupBy([
-        'stages.stage_id',
-        'zones.zone_id',
-        'zones.name',
-        'zones.number',
-        'groups.group_id',
-        'groups.name',
-        'groups.number',
-        'matches.status',
-      ])
-      .execute();
-
-    return rows.map((r) => ({
-      ...r,
-      count: parseInt(String(r.count), 10) || 0,
-    }));
+  countTournamentMatchesBySegment(tournamentId: string): Promise<readonly RawSegmentStatusCount[]> {
+    return this.matches.countTournamentMatchesBySegment(tournamentId);
   }
 
-  /**
-   * Tournament-wide completion summary rolled up across every stage.
-   * Reuses the platform definition: resolved = finalized + forfeited.
-   */
-  async getTournamentCompletion(tournamentId: string): Promise<TournamentCompletionSummary> {
-    const [counts, segments] = await Promise.all([
-      this.countTournamentMatchesByStatus(tournamentId),
-      this.countTournamentMatchesBySegment(tournamentId),
-    ]);
-    return foldTournamentCompletion(counts, segments);
+  getTournamentCompletion(tournamentId: string): Promise<TournamentCompletionSummary> {
+    return this.matches.getTournamentCompletion(tournamentId);
   }
 }

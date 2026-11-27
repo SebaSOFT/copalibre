@@ -17,7 +17,8 @@ import {
   replaceStage,
   replaceZone,
 } from '../lib/stage-authoring.js';
-import { SERIES_CLASS_LABELS, STAGE_FORMAT_LABELS } from '../lib/stage-format-labels.js';
+import { SERIES_CLASS_LABELS } from '../lib/stage-format-labels.js';
+import { formatEnum } from '../lib/presentation-formatting.js';
 import {
   derivePreviewEntrantCount,
   derivePreviewPlaceholders,
@@ -190,13 +191,10 @@ export function StageListEditor({
                         disabled={readOnly}
                         id={`stage-${stage.number}-format`}
                         onValueChange={(val) => patchStage(stage.number, { format: val })}
-                        options={formats.map((format) => {
-                          const label = STAGE_FORMAT_LABELS[format];
-                          return {
-                            value: format,
-                            label: label === undefined ? format : intl.formatMessage(label),
-                          };
-                        })}
+                        options={formats.map((format) => ({
+                          value: format,
+                          label: formatEnum(intl, 'format', format),
+                        }))}
                         value={stage.format}
                       />
                       {formatHintText !== undefined && (
@@ -525,6 +523,7 @@ function SeriesValueFields({
               value: resolutionClass,
               label: intl.formatMessage(SERIES_CLASS_LABELS[resolutionClass]),
             }))}
+            placeholder={intl.formatMessage(messages.selectPlaceholder)}
             value={series.resolutionClass ?? ''}
           />
         </Field>
@@ -582,9 +581,7 @@ function ZoneFields({
   readonly showSeries: boolean;
 }): React.JSX.Element {
   const zones = stage.zones ?? [];
-  const stageFormatLabel = STAGE_FORMAT_LABELS[stage.format];
-  const stageFormat =
-    stageFormatLabel === undefined ? stage.format : intl.formatMessage(stageFormatLabel);
+  const stageFormat = formatEnum(intl, 'format', stage.format);
 
   return (
     <details>
@@ -655,13 +652,10 @@ function ZoneFields({
                               format: stageFormat,
                             }),
                           },
-                          ...formats.map((format) => {
-                            const label = STAGE_FORMAT_LABELS[format];
-                            return {
-                              value: format,
-                              label: label === undefined ? format : intl.formatMessage(label),
-                            };
-                          }),
+                          ...formats.map((format) => ({
+                            value: format,
+                            label: formatEnum(intl, 'format', format),
+                          })),
                         ]}
                         value={zone.format ?? INHERIT_ZONE_FORMAT}
                       />
@@ -779,6 +773,7 @@ function WeightedAllocationFields({
             id={`stage-${stageNumber}-allocation-attribute`}
             onValueChange={(val) => onChange({ ...allocation, attributeKey: val })}
             options={attributeKeys.map((key) => ({ value: key, label: key }))}
+            placeholder={intl.formatMessage(messages.selectPlaceholder)}
             value={allocation.attributeKey ?? ''}
           />
         ) : (

@@ -2,12 +2,21 @@ import {
   BREAKPOINTS,
   COLOR_PRIMITIVES,
   CONTROL_DENSITY_SPACING,
+  FIGURE_SIZE,
   FONT_SIZE,
+  FONT_FAMILIES,
+  FONT_STYLESHEETS,
+  FONT_WEIGHTS,
+  ICON_TOKENS,
+  LAYOUT_TOKENS,
+  LINE_HEIGHT,
   MOTION,
   SPACING,
   TOUCH_TARGET,
+  TYPOGRAPHY,
 } from './primitives.js';
 import { CONTRAST_GATES, contrastRatio } from './contrast.js';
+import { FONT_FALLBACKS, fallbackFontFaces } from './font-fallbacks.js';
 import { PROTECTED_TOKENS, SEMANTIC_COLORS, isProtected, resolveSemantic } from './semantic.js';
 import {
   BADGE_TONES,
@@ -28,12 +37,15 @@ import {
 } from './components.js';
 import { FORBIDDEN, formatHits, scanForForbidden } from './forbidden.js';
 import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { generateCss } from './generate/css.js';
+import { generateCss, generateDeferredFontsCss, generatePublicCss } from './generate/css.js';
 import { generateTailwindModule, generateTailwindTheme } from './generate/tailwind.js';
 import { generateStyleGuide } from './generate/style-guide.js';
 import { designTokenDifferences, readDesignTokens } from './design-document.js';
+
+const require = createRequire(import.meta.url);
 
 describe('committed design documentation', () => {
   it('matches the token source in both directions from any working directory', () => {
@@ -46,6 +58,39 @@ describe('the token source', () => {
   it('resolves a semantic token to its primitive', () => {
     expect(resolveSemantic('state-live')).toBe(COLOR_PRIMITIVES['cyan-400']);
     expect(resolveSemantic('state-warning')).toBe(COLOR_PRIMITIVES['amber-400']);
+    expect(resolveSemantic('state-live', 'light')).toBe(COLOR_PRIMITIVES['light-cyan-800']);
+    expect(resolveSemantic('primary', 'light')).toBe(COLOR_PRIMITIVES['cyan-400']);
+  });
+
+  it.each([
+    ['body text on panel', 'text-primary', 'surface-panel', 4.5],
+    ['secondary text on panel', 'text-secondary', 'surface-panel', 4.5],
+    ['emblem monogram on frame', 'text-on-emblem-frame', 'surface-emblem-frame', 4.5],
+    ['muted labels on chrome', 'text-muted', 'surface-chrome', 4.5],
+    ['accent text on panel', 'text-accent', 'surface-panel', 4.5],
+    ['live text on panel', 'state-live', 'surface-panel', 4.5],
+    ['upcoming text on chrome', 'state-upcoming', 'surface-chrome', 4.5],
+    ['positive text on chrome', 'state-positive', 'surface-chrome', 4.5],
+    ['destructive text on panel', 'state-destructive', 'surface-panel', 4.5],
+    ['form boundaries on chrome', 'border-control', 'surface-chrome', 3],
+    ['focus ring on panel', 'focus-ring', 'surface-panel', 3],
+    ['primary action text on fill', 'primary-text', 'primary', 4.5],
+  ] as const)(
+    'meets the L3 Sunlight contrast contract for %s',
+    (_name, foreground, background, minimum) => {
+      expect(
+        contrastRatio(resolveSemantic(foreground, 'light'), resolveSemantic(background, 'light')),
+      ).toBeGreaterThanOrEqual(minimum);
+    },
+  );
+
+  it('keeps the decorative L3 structure hairline below the non-text indicator threshold', () => {
+    expect(
+      contrastRatio(
+        resolveSemantic('border-muted', 'light'),
+        resolveSemantic('surface-panel', 'light'),
+      ),
+    ).toBeCloseTo(2.71, 1);
   });
 
   it('gives every state a non-colour cue', () => {
@@ -73,17 +118,92 @@ describe('the token source', () => {
     expect(SPACING['4']).toBe('16px');
   });
 
-  it('defines the documented font-size scale in ascending order', () => {
+  it('emits rem-based page containers and responsive gutters to CSS and Tailwind', () => {
+    expect(LAYOUT_TOKENS).toEqual({
+      container: { public: '75rem', reading: '45rem', control: '90rem', form: '45rem' },
+      gutter: { sm: '1rem', md: '1.5rem', lg: '2rem' },
+      split: {
+        'main-rail': 'minmax(0, 8fr) minmax(0, 4fr)',
+        'chart-panel': 'minmax(0, 7fr) minmax(0, 5fr)',
+        'media-form': 'minmax(0, 4fr) minmax(0, 8fr)',
+      },
+    });
+
+    const css = generateCss();
+    for (const [name, value] of Object.entries(LAYOUT_TOKENS.container)) {
+      expect(css).toContain(`--cl-layout-container-${name}: ${value};`);
+      expect(css).toContain(
+        `.cl-container--${name} { max-width: var(--cl-layout-container-${name}); }`,
+      );
+    }
+    for (const [name, value] of Object.entries(LAYOUT_TOKENS.gutter)) {
+      expect(css).toContain(`--cl-layout-gutter-${name}: ${value};`);
+    }
+    for (const [name, value] of Object.entries(LAYOUT_TOKENS.split)) {
+      expect(css).toContain(`--cl-layout-split-${name}: ${value};`);
+    }
+
+    const theme = generateTailwindTheme();
+    expect(theme.maxWidth).toEqual({
+      'cl-public': '75rem',
+      'cl-reading': '45rem',
+      'cl-control': '90rem',
+      'cl-form': '45rem',
+    });
+    expect(theme.spacing).toMatchObject({
+      'cl-gutter-sm': '1rem',
+      'cl-gutter-md': '1.5rem',
+      'cl-gutter-lg': '2rem',
+    });
+    expect(theme.gridTemplateColumns).toEqual({
+      'cl-main-rail': 'minmax(0, 8fr) minmax(0, 4fr)',
+      'cl-chart-panel': 'minmax(0, 7fr) minmax(0, 5fr)',
+      'cl-media-form': 'minmax(0, 4fr) minmax(0, 8fr)',
+    });
+  });
+
+  it('defines the documented font-size tokens in scale order', () => {
     expect(Object.entries(FONT_SIZE)).toEqual([
       ['xs', '0.75rem'],
       ['sm', '0.875rem'],
       ['base', '1rem'],
       ['md', '1.125rem'],
-      ['lg', '1.25rem'],
-      ['xl', '1.5rem'],
-      ['2xl', '1.875rem'],
-      ['3xl', '2.25rem'],
+      ['lg', 'clamp(1.125rem, 1.099rem + 0.1127vw, 1.2rem)'],
+      ['xl', 'clamp(1.266rem, 1.204rem + 0.262vw, 1.44rem)'],
+      ['2xl', 'clamp(1.424rem, 1.317rem + 0.457vw, 1.728rem)'],
+      ['3xl', 'clamp(1.602rem, 1.436rem + 0.7088vw, 2.074rem)'],
     ]);
+  });
+
+  it('keeps numeric figure sizes fixed outside the fluid heading scale', () => {
+    expect(FIGURE_SIZE).toEqual({
+      lg: '1.25rem',
+      xl: '1.5rem',
+      '2xl': '1.875rem',
+    });
+  });
+
+  it('generates and applies the documented line-height roles', () => {
+    expect(LINE_HEIGHT).toEqual({
+      display: '1.1',
+      headline: '1.2',
+      title: '1.3',
+      body: '1.5',
+      label: '1.4',
+      figure: '1.2',
+    });
+
+    const css = generateCss();
+    for (const [role, value] of Object.entries(LINE_HEIGHT)) {
+      expect(css).toContain(`--cl-line-height-${role}: ${value};`);
+    }
+    expect(css).toContain('html { line-height: var(--cl-line-height-body); }');
+    expect(css).toContain(
+      'h1 { font-size: var(--cl-font-size-3xl); line-height: var(--cl-line-height-display); }',
+    );
+    expect(css).toContain(
+      '.cl-label { font-family: var(--cl-font-mono); text-transform: uppercase; font-size: var(--cl-font-size-xs); line-height: var(--cl-line-height-label); }',
+    );
   });
 
   it('defines exactly the visual-review breakpoint widths', () => {
@@ -93,6 +213,187 @@ describe('the token source', () => {
       ['lg', '1024px'],
       ['xl', '1440px'],
     ]);
+  });
+
+  it('defines the icon size, stroke and Tabler optical scale', () => {
+    expect(ICON_TOKENS).toEqual({
+      size: { inline: 16, control: 20, header: 24 },
+      stroke: 1.5,
+      tablerOpticalScale: 1.1,
+    });
+  });
+});
+
+describe('script-aware typography', () => {
+  it('delivers every named web face and keeps CSS and Tailwind stacks in order', () => {
+    expect(TYPOGRAPHY).toEqual({
+      display:
+        "'Barlow Condensed', 'Barlow Condensed Fallback', 'Roboto Condensed Variable', 'Noto Sans SC Variable', 'Arial Narrow', system-ui, sans-serif",
+      body: "'Barlow', 'Barlow Fallback', 'Roboto Variable', 'Noto Sans SC Variable', system-ui, -apple-system, 'Segoe UI', sans-serif",
+      mono: "'JetBrains Mono Variable', 'JetBrains Mono Fallback', 'Noto Sans SC Variable', ui-monospace, 'SFMono-Regular', monospace",
+    });
+
+    const platformFallbacks = new Set([
+      'Arial Narrow',
+      'Segoe UI',
+      'SFMono-Regular',
+      ...FONT_FALLBACKS.map(({ family }) => family),
+    ]);
+    const namedWebFamilies = [
+      ...new Set(
+        Object.values(TYPOGRAPHY)
+          .flatMap((stack) => [...stack.matchAll(/'([^']+)'/g)].map(([, family]) => family))
+          .filter((family) => family !== undefined && !platformFallbacks.has(family)),
+      ),
+    ];
+    expect(namedWebFamilies.sort()).toEqual([...FONT_FAMILIES].sort());
+
+    const declaredFamilies = new Set(
+      FONT_STYLESHEETS.flatMap((stylesheet) =>
+        [
+          ...readFileSync(require.resolve(stylesheet), 'utf8').matchAll(
+            /font-family:\s*'([^']+)'/g,
+          ),
+        ].map(([, family]) => family),
+      ),
+    );
+    expect([...declaredFamilies].sort()).toEqual([...FONT_FAMILIES].sort());
+
+    const css = generateCss();
+    for (const [role, stack] of Object.entries(TYPOGRAPHY)) {
+      expect(css).toContain(`--cl-font-${role}: ${stack};`);
+    }
+    expect(generateTailwindTheme().fontFamily).toEqual({
+      display: [
+        'Barlow Condensed',
+        'Barlow Condensed Fallback',
+        'Roboto Condensed Variable',
+        'Noto Sans SC Variable',
+        'Arial Narrow',
+        'system-ui',
+        'sans-serif',
+      ],
+      body: [
+        'Barlow',
+        'Barlow Fallback',
+        'Roboto Variable',
+        'Noto Sans SC Variable',
+        'system-ui',
+        '-apple-system',
+        'Segoe UI',
+        'sans-serif',
+      ],
+      mono: [
+        'JetBrains Mono Variable',
+        'JetBrains Mono Fallback',
+        'Noto Sans SC Variable',
+        'ui-monospace',
+        'SFMono-Regular',
+        'monospace',
+      ],
+    });
+  });
+
+  it('follows every brand face with a fallback face matched to its metrics', () => {
+    const css = generateCss();
+    const brandFaces = ['Barlow Condensed', 'Barlow', 'JetBrains Mono Variable'];
+    for (const stack of Object.values(TYPOGRAPHY)) {
+      const families = [...stack.matchAll(/'([^']+)'/g)].map(([, family]) => family);
+      for (const [index, family] of families.entries()) {
+        if (!brandFaces.includes(family ?? '')) continue;
+        const fallback = FONT_FALLBACKS.find(({ brand }) => brand === family);
+        expect(fallback).toBeDefined();
+        expect(families[index + 1]).toBe(fallback?.family);
+      }
+    }
+    expect(FONT_FALLBACKS.map(({ brand }) => brand).sort()).toEqual([...brandFaces].sort());
+
+    for (const { family, brand } of FONT_FALLBACKS) {
+      const faces = [
+        ...css.matchAll(new RegExp(`@font-face \\{\\n  font-family: '${family}';[^}]*\\}`, 'g')),
+      ].map(([face]) => face);
+      expect(faces).toHaveLength(1);
+      // A monospace brand face stands on a monospace local face, so uppercase labels keep their width.
+      expect(faces[0]).toContain(
+        brand.startsWith('JetBrains Mono') ? "local('Courier New')" : "local('Arial')",
+      );
+      for (const face of faces) {
+        for (const descriptor of [
+          'size-adjust',
+          'ascent-override',
+          'descent-override',
+          'line-gap-override',
+        ]) {
+          expect(face).toMatch(new RegExp(`${descriptor}: \\d+(\\.\\d+)?%;`));
+        }
+      }
+    }
+    // Derived from each brand face's own metrics, not one number for all of them.
+    expect(
+      new Set(fallbackFontFaces().map((face) => face.match(/size-adjust: ([^;]+);/)?.[1])).size,
+    ).toBe(fallbackFontFaces().length);
+  });
+
+  it('keeps every brand face swapping in rather than hiding text', () => {
+    for (const stylesheet of FONT_STYLESHEETS) {
+      const faces =
+        readFileSync(require.resolve(stylesheet), 'utf8').match(/@font-face\s*\{[^}]*\}/g) ?? [];
+      expect(faces.length).toBeGreaterThan(0);
+      for (const face of faces) expect(face).toContain('font-display: swap');
+    }
+  });
+
+  it('imports every face from a bundled package, first and never from another origin', () => {
+    const css = generateCss();
+    const leadingImports = css.split('\n').slice(0, FONT_STYLESHEETS.length);
+    expect(leadingImports).toEqual(
+      FONT_STYLESHEETS.map((stylesheet) => `@import '${stylesheet}';`),
+    );
+    expect(css).not.toMatch(/@import\s+url\(/);
+    expect(css).not.toMatch(/https?:\/\/[^\s'"]*font/i);
+    for (const weight of Object.values(FONT_WEIGHTS)) {
+      expect(FONT_STYLESHEETS).toContain(`@fontsource/barlow/${weight}.css`);
+      expect(FONT_STYLESHEETS).toContain(`@fontsource/barlow-condensed/${weight}.css`);
+    }
+  });
+
+  it('paints a public page with its text and heading faces only, and adds the rest after it paints', () => {
+    const publicCss = generatePublicCss();
+    const imports = (css: string): string[] =>
+      [...css.matchAll(/^@import '([^']+)';$/gm)].map((match) => match[1] ?? '');
+    expect(imports(publicCss)).toEqual([
+      '@fontsource/barlow/400.css',
+      '@fontsource/barlow-condensed/700.css',
+      '@fontsource-variable/roboto-condensed/wght.css',
+      '@fontsource-variable/roboto/wght.css',
+    ]);
+    expect(imports(generateDeferredFontsCss())).toEqual([
+      '@fontsource/barlow/500.css',
+      '@fontsource/barlow/600.css',
+      '@fontsource/barlow/700.css',
+      '@fontsource/barlow-condensed/400.css',
+      '@fontsource/barlow-condensed/500.css',
+      '@fontsource/barlow-condensed/600.css',
+      '@fontsource-variable/jetbrains-mono/wght.css',
+      '@fontsource-variable/noto-sans-sc/wght.css',
+    ]);
+    // Every face is in exactly one of the two.
+    expect([...imports(publicCss), ...imports(generateDeferredFontsCss())].sort()).toEqual(
+      [...FONT_STYLESHEETS].sort(),
+    );
+    // The same tokens and stacks: only the faces a page asks for change.
+    expect(publicCss.replace(/^@import .*\n/gm, '')).toBe(
+      generateCss().replace(/^@import .*\n/gm, ''),
+    );
+    expect(publicCss).toContain(`--cl-font-body: ${TYPOGRAPHY.body};`);
+    // Every other surface keeps loading them with its stylesheet.
+    expect(generateCss()).toContain("@import '@fontsource-variable/noto-sans-sc/wght.css';");
+  });
+
+  it('removes uppercase tracking for Chinese-language content', () => {
+    expect(generateCss()).toContain(
+      ':lang(zh) {\n  --cl-tracking-wide: normal;\n  --cl-tracking-wider: normal;\n  --cl-tracking-widest: normal;\n}',
+    );
   });
 });
 
@@ -167,6 +468,7 @@ describe('the badge contract', () => {
       'stage',
       'muted',
       'positive',
+      'negative',
     ]);
     for (const tone of Object.values(BADGE_TONES)) {
       expect(SEMANTIC_COLORS[tone.color]).toBeDefined();
@@ -187,11 +489,53 @@ describe('the badge contract', () => {
 describe('the CSS output', () => {
   const css = generateCss();
 
+  it('emits dark defaults and both guarded and explicit L3 theme blocks', () => {
+    expect(css).toContain(':root {\n  color-scheme: dark;');
+    expect(css).toContain(
+      '@media (prefers-color-scheme: light) {\n  :root:not([data-theme="dark"]) {',
+    );
+    expect(css).toContain(':root[data-theme="light"] {\n  color-scheme: light;');
+    expect(css).toContain('--cl-glow-cyan: 0 0 0 2px var(--cl-color-light-cyan-800);');
+    expect(css).toContain('--cl-chart-1: var(--cl-chart-1-light);');
+  });
+
   it('generates a token-backed rule for every badge tone', () => {
     for (const [name, tone] of Object.entries(BADGE_TONES)) {
       expect(css).toContain(`--cl-badge-${name}-color: var(--cl-${tone.color});`);
+      expect(css).toContain(
+        `--cl-badge-${name}-background: color-mix(in srgb, var(--cl-badge-${name}-color) 15%, transparent);`,
+      );
       expect(css).toContain(`.cl-badge--${name} {`);
       expect(css).toContain(`color: var(--cl-badge-${name}-color);`);
+    }
+    expect(css).toContain(
+      '--cl-badge-verified-background: color-mix(in srgb, var(--cl-state-positive) 15%, transparent);',
+    );
+  });
+
+  it('keeps positive badges above AA with a tinted panel surface in the light theme', () => {
+    const foreground = resolveSemantic('state-positive', 'light');
+    const panel = resolveSemantic('surface-panel', 'light');
+    const channels = (value: string) =>
+      value.match(/[0-9a-f]{2}/gi)?.map((part) => parseInt(part, 16));
+    const foregroundChannels = channels(foreground);
+    const panelChannels = channels(panel);
+    const tintedPanel = `#${foregroundChannels
+      ?.map((channel, index) =>
+        Math.round((channel ?? 0) * 0.15 + (panelChannels?.[index] ?? 0) * 0.85)
+          .toString(16)
+          .padStart(2, '0'),
+      )
+      .join('')}`;
+
+    expect(contrastRatio(foreground, tintedPanel)).toBeGreaterThanOrEqual(
+      CONTRAST_GATES.normalText,
+    );
+    for (const name of ['final', 'positive', 'verified']) {
+      expect(css).toContain(
+        `--cl-badge-${name}-background: color-mix(in srgb, var(--cl-state-positive) 15%, var(--cl-surface-panel));`,
+      );
+      expect(css).toContain(`.cl-badge--${name} { background: var(--cl-badge-${name}-background,`);
     }
   });
 
@@ -199,6 +543,11 @@ describe('the CSS output', () => {
     expect(css).toContain(
       '.cl-inline-alert--warning { border-left-color: var(--cl-state-warning); }',
     );
+  });
+
+  it('leaves native calendar icons to the active color scheme', () => {
+    expect(css).toContain('.cl-input::-webkit-calendar-picker-indicator {');
+    expect(css).not.toContain('filter: invert(0.8);');
   });
 
   it('uses cyan for informational alert rims and pulses live alerts in green', () => {
@@ -215,13 +564,88 @@ describe('the CSS output', () => {
     for (const name of Object.keys(SEMANTIC_COLORS)) expect(css).toContain(`--cl-${name}:`);
   });
 
+  it('keeps emblem monograms on one line and sizes each length step from the frame width', () => {
+    expect(css).toContain('white-space: nowrap;');
+    // The tile is an inline-size container, so a share of `cqi` is a share of the tile's rendered width,
+    // whatever length the emblem was given (a percentage of its wrapper included).
+    expect(css).toMatch(/\.cl-entrant-emblem \{[^}]*container-type: inline-size;/);
+    // Every step is a share of the tile, so a longer abbreviation takes a smaller one at every size.
+    const shares = ['short', 'medium', 'long', 'longest'].map((step) => {
+      const match = css.match(
+        new RegExp(
+          `\\.cl-entrant-emblem__monogram--${step} \\{ font-size: calc\\(100cqi \\* ([0-9.]+)\\); \\}`,
+        ),
+      );
+      return Number(match?.[1]);
+    });
+    expect(shares.every((share) => share > 0)).toBe(true);
+    expect([...shares].sort((a, b) => b - a)).toEqual(shares);
+  });
+
   it('declares every font-size and breakpoint primitive', () => {
     for (const [name, value] of Object.entries(FONT_SIZE)) {
       expect(css).toContain(`--cl-font-size-${name}: ${value};`);
     }
+    for (const [name, value] of Object.entries(FIGURE_SIZE)) {
+      expect(css).toContain(`--cl-font-size-figure-${name}: ${value};`);
+    }
     for (const [name, value] of Object.entries(BREAKPOINTS)) {
       expect(css).toContain(`--cl-breakpoint-${name}: ${value};`);
     }
+  });
+
+  it('maps bare heading levels to their semantic type and line-height roles', () => {
+    const headings = [
+      ['h1', '3xl', 'display'],
+      ['h2', '2xl', 'headline'],
+      ['h3', 'xl', 'title'],
+      ['h4', 'lg', 'title'],
+      ['h5', 'md', 'body'],
+      ['h6', 'base', 'body'],
+    ] as const;
+
+    for (const [heading, size, lineHeight] of headings) {
+      expect(css).toContain(
+        `${heading} { font-size: var(--cl-font-size-${size}); line-height: var(--cl-line-height-${lineHeight}); }`,
+      );
+    }
+  });
+
+  it('interpolates heading tokens between the two-ratio scale endpoints', () => {
+    const headings = [
+      ['lg', 1],
+      ['xl', 2],
+      ['2xl', 3],
+      ['3xl', 4],
+    ] as const;
+
+    for (const [name, exponent] of headings) {
+      const value = FONT_SIZE[name];
+      const match = /^clamp\(([\d.]+)rem,\s*([\d.]+)rem\s*\+\s*([\d.]+)vw,\s*([\d.]+)rem\)$/.exec(
+        value,
+      );
+      if (match === null) throw new Error(`${name} must combine rem and vw in a clamp`);
+
+      const minimum = Number(match[1]) * 16;
+      const intercept = Number(match[2]) * 16;
+      const slopeVw = Number(match[3]);
+      const maximum = Number(match[4]) * 16;
+      const sizeAt = (viewport: number) =>
+        Math.min(maximum, Math.max(minimum, intercept + (slopeVw * viewport) / 100));
+      const lowerEndpoint = 16 * 1.125 ** exponent;
+      const upperEndpoint = 16 * 1.2 ** exponent;
+
+      expect(Math.abs(sizeAt(375) - lowerEndpoint)).toBeLessThanOrEqual(0.1);
+      expect(Math.abs(sizeAt(1440) - upperEndpoint)).toBeLessThanOrEqual(0.1);
+    }
+  });
+
+  it('declares the icon geometry tokens', () => {
+    for (const [name, value] of Object.entries(ICON_TOKENS.size)) {
+      expect(css).toContain(`--cl-icon-size-${name}: ${value}px;`);
+    }
+    expect(css).toContain(`--cl-icon-stroke: ${ICON_TOKENS.stroke};`);
+    expect(css).toContain(`--cl-icon-tabler-optical-scale: ${ICON_TOKENS.tablerOpticalScale};`);
   });
 
   it('points a semantic token at a primitive rather than repeating the hex', () => {
@@ -253,6 +677,37 @@ describe('the CSS output', () => {
     expect(css).toContain(`--cl-motion-base: ${MOTION.instant};`);
   });
 
+  it('defines score, event-entry and live-dot cues with motion-safe properties', () => {
+    expect(MOTION.flash).toBe('600ms');
+    expect(MOTION.pulse).toBe('2000ms');
+    expect(css).toContain('.cl-flash-on-change { animation: cl-flash var(--cl-motion-flash)');
+    expect(css).toContain('.cl-enter-once { animation: cl-enter var(--cl-motion-base)');
+    expect(css).toContain('.cl-live-dot { animation: cl-pulse var(--cl-motion-pulse)');
+
+    const allowed = new Set(['background-color', 'opacity', 'transform']);
+    for (const keyframe of ['cl-flash', 'cl-enter', 'cl-pulse']) {
+      const line = css.split('\n').find((entry) => entry.includes(`@keyframes ${keyframe} `));
+      expect(line).toBeDefined();
+      const properties = [...(line ?? '').matchAll(/(?:^|[{};]\s*)([a-z-]+)\s*:/g)].map(
+        (match) => match[1],
+      );
+      expect(properties.length).toBeGreaterThan(0);
+      expect(properties.every((property) => allowed.has(property ?? ''))).toBe(true);
+    }
+  });
+
+  it('holds the flash fill and removes all cue motion for reduced-motion viewers', () => {
+    expect(css).toContain('animation-duration: 0s !important;');
+    expect(css).toContain('transition-duration: 0s !important;');
+    expect(css).toContain(
+      '.cl-flash-on-change { animation: none !important; transition-duration: 0s !important; background-color: var(--cl-color-cyan-950); }',
+    );
+    expect(css).toContain(
+      '.cl-enter-once { animation: none !important; opacity: 1; transform: translateY(0); }',
+    );
+    expect(css).toContain('.cl-live-dot { animation: none !important; opacity: 1; }');
+  });
+
   it('uses corner-shape and border-radius for chamfer styling without clip-path', () => {
     expect(css).toContain('corner-shape: bevel;');
     expect(css).toContain('border-radius: 0 var(--cl-chamfer-size) 0 var(--cl-chamfer-size);');
@@ -260,7 +715,7 @@ describe('the CSS output', () => {
     expect(css).not.toMatch(/\.cl-image-frame\s*\{[^}]*clip-path/);
   });
 
-  it('meets AA for text and essential indicators on every surface level', () => {
+  it('meets AA for text and essential indicators on every surface level in both themes', () => {
     // Every level a container can resolve to, including the two row steps this
     // change adds. A level whose body text fails here is a level nobody can
     // read on, which is the failure adding surfaces quietly introduces.
@@ -274,22 +729,59 @@ describe('the CSS output', () => {
       'surface-row-alt',
     ] as const;
 
-    for (const level of levels) {
-      const background = COLOR_PRIMITIVES[SEMANTIC_COLORS[level].primitive];
+    for (const theme of ['dark', 'light'] as const) {
+      for (const level of levels) {
+        const background = resolveSemantic(level, theme);
+        expect(
+          contrastRatio(resolveSemantic('text-primary', theme), background),
+        ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+        expect(
+          contrastRatio(resolveSemantic('text-secondary', theme), background),
+        ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
+        // Muted panel separators are decorative. Essential indicators must use
+        // the strong role; a 1.2:1 separator is not a WCAG non-text AA pass.
+        expect(
+          contrastRatio(resolveSemantic('border-strong', theme), background),
+        ).toBeGreaterThanOrEqual(CONTRAST_GATES.nonTextIndicator);
+        expect(
+          contrastRatio(resolveSemantic('focus-ring', theme), background),
+        ).toBeGreaterThanOrEqual(CONTRAST_GATES.nonTextIndicator);
+      }
+    }
+  });
+
+  it('keeps status text at AA on the raised well in both themes', () => {
+    // The context rail and the public in-progress badge print labels on this
+    // well. `text-muted` measured 4.04:1 here in the dark theme, so these
+    // labels use `text-secondary`.
+    for (const theme of ['dark', 'light'] as const) {
       expect(
-        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['text-primary'].primitive], background),
+        contrastRatio(
+          resolveSemantic('text-secondary', theme),
+          resolveSemantic('surface-raised', theme),
+        ),
       ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
-      expect(
-        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['text-secondary'].primitive], background),
-      ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
-      // Muted panel separators are decorative. Essential indicators must use
-      // the strong role; a 1.2:1 separator is not a WCAG non-text AA pass.
-      expect(
-        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['border-strong'].primitive], background),
-      ).toBeGreaterThanOrEqual(CONTRAST_GATES.nonTextIndicator);
-      expect(
-        contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['focus-ring'].primitive], background),
-      ).toBeGreaterThanOrEqual(CONTRAST_GATES.nonTextIndicator);
+    }
+  });
+
+  it('keeps the TV live badge text at AA on its red tint over every TV surface', () => {
+    // The badge paints 15% `state-destructive` over whatever surface holds it,
+    // and TV is always dark. The worst case is the lightest surface beneath it.
+    const tint = resolveSemantic('state-destructive', 'dark');
+    const channels = (value: string) =>
+      [1, 3, 5].map((offset) => parseInt(value.slice(offset, offset + 2), 16));
+    for (const level of ['surface-base', 'surface-panel', 'surface-chrome'] as const) {
+      const surface = channels(resolveSemantic(level, 'dark'));
+      const tinted = `#${channels(tint)
+        .map((channel, index) =>
+          Math.round(channel * 0.15 + (surface[index] ?? 0) * 0.85)
+            .toString(16)
+            .padStart(2, '0'),
+        )
+        .join('')}`;
+      expect(contrastRatio(resolveSemantic('text-primary', 'dark'), tinted)).toBeGreaterThanOrEqual(
+        CONTRAST_GATES.normalText,
+      );
     }
   });
 
@@ -299,19 +791,19 @@ describe('the CSS output', () => {
     // never a translucent scrim, since that inherits unpredictable video
     // color behind it. Both must clear normal-text AA on their own, not just
     // the non-text gate, since the marker's text is the fact being broadcast.
-    const well = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-base'].primitive];
-    expect(SEMANTIC_COLORS['surface-base'].primitive).toBe('ink-950');
+    const well = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-base'].primitive.dark];
+    expect(SEMANTIC_COLORS['surface-base'].primitive.dark).toBe('ink-950');
     expect(
-      contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['state-positive'].primitive], well),
+      contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['state-positive'].primitive.dark], well),
     ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
     expect(
-      contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['state-upcoming'].primitive], well),
+      contrastRatio(COLOR_PRIMITIVES[SEMANTIC_COLORS['state-upcoming'].primitive.dark], well),
     ).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
   });
 
   it('separates actual selection fills from neutral chrome without tinting ordinary controls', () => {
-    const selected = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-raised'].primitive];
-    const chrome = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-chrome'].primitive];
+    const selected = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-raised'].primitive.dark];
+    const chrome = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-chrome'].primitive.dark];
     expect(selected).not.toBe(chrome);
     expect(chrome).toBe(COLOR_PRIMITIVES['ink-850']);
     expect(FILE_PICKER_TOKENS['selection-present'].background).toBe('surface-raised');
@@ -321,9 +813,9 @@ describe('the CSS output', () => {
   });
 
   it('keeps the calibrated action legible against its own fill', () => {
-    const primary = COLOR_PRIMITIVES[SEMANTIC_COLORS.primary.primitive];
-    const hover = COLOR_PRIMITIVES[SEMANTIC_COLORS['primary-hover'].primitive];
-    const onAction = COLOR_PRIMITIVES[SEMANTIC_COLORS['surface-base'].primitive];
+    const primary = COLOR_PRIMITIVES[SEMANTIC_COLORS.primary.primitive.dark];
+    const hover = COLOR_PRIMITIVES[SEMANTIC_COLORS['primary-hover'].primitive.dark];
+    const onAction = COLOR_PRIMITIVES[SEMANTIC_COLORS['primary-text'].primitive.dark];
     expect(contrastRatio(onAction, primary)).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
     expect(contrastRatio(onAction, hover)).toBeGreaterThanOrEqual(CONTRAST_GATES.normalText);
   });
@@ -351,6 +843,30 @@ describe('the CSS output', () => {
     expect(imageFrameRule).toContain('position: relative;');
     expect(imageFrameRule).toContain('aspect-ratio: 4 / 5;');
     expect(imageFrameRule).toContain('background: var(--cl-surface-chrome);');
+    expect(css).toContain('background: var(--cl-surface-emblem-frame);');
+    expect(css).toContain('color: var(--cl-text-on-emblem-frame);');
+    expect(css).toContain(
+      '.cl-entrant-emblem--bare .cl-entrant-emblem__fallback { color: var(--cl-text-primary); }',
+    );
+  });
+
+  it('scales the emblem frame cut and padding with the emblem size, within the token bounds', () => {
+    // A fixed 14px cut and 8px padding left a 16px emblem no room for its image.
+    const emblemRule = /\.cl-entrant-emblem \{([^}]+)\}/.exec(css)?.[1] ?? '';
+    const controlRule =
+      /\.cl-image-frame--control\.cl-entrant-emblem \{([^}]+)\}/.exec(css)?.[1] ?? '';
+
+    expect(emblemRule).toContain('--cl-emblem-cut-max: 14px;');
+    expect(emblemRule).toContain(
+      '--cl-chamfer-size: clamp(4px, calc(var(--entrant-emblem-size, 48px) * 0.375 - 4px), var(--cl-emblem-cut-max));',
+    );
+    expect(emblemRule).toContain(
+      '--cl-emblem-inset: clamp(1px, calc(var(--entrant-emblem-size, 48px) / 4 - 4px), var(--cl-space-2));',
+    );
+    expect(css).toMatch(/\.cl-entrant-emblem img \{[^}]*padding: var\(--cl-emblem-inset\);/);
+    expect(controlRule).toContain('--cl-emblem-cut-max: 8px;');
+    expect(emblemRule).not.toContain('clip-path');
+    expect(controlRule).not.toContain('clip-path');
   });
 
   it('cuts a badge on its left pair, never with clip-path', () => {
@@ -388,6 +904,32 @@ describe('the CSS output', () => {
     expect(css).toContain(
       ':where([data-surface="broadcast"], .cl-broadcast, .tv-root-container) :where(.cl-card, .cl-well) { --cl-content-level: panel; background: var(--cl-surface-content); }',
     );
+  });
+
+  it('pads the card header like the card body and runs the strip to the card edge', () => {
+    const block = (selector: string) =>
+      css.slice(css.indexOf(`${selector} {`), css.indexOf('}', css.indexOf(`${selector} {`)));
+
+    expect(block('.cl-card')).toContain('padding: var(--cl-space-4);');
+    expect(block('.cl-card__header')).toContain('padding: var(--cl-space-4);');
+
+    const strip = block('.cl-card > .cl-card__header:first-child');
+    expect(strip).toContain('max-width: none;');
+    expect(strip).toContain('margin-block-start: calc(-1 * var(--cl-space-4) - 1px);');
+    expect(strip).toContain(
+      'margin-inline: calc(-1 * var(--cl-space-4)) calc(-1 * var(--cl-space-4) - 1px);',
+    );
+    // The state rail is the border on that side; a second line would sit beside it.
+    expect(strip).toContain('border-inline-start: 0;');
+  });
+
+  it('cuts the header strip where it meets a chamfered corner', () => {
+    const selector = '.cl-card:is(.cl-chamfer, .cl-chamfer-tr) > .cl-card__header:first-child';
+    const start = css.indexOf(`${selector} {`);
+    expect(start).toBeGreaterThan(-1);
+    expect(start).toBeGreaterThan(css.indexOf('@supports (corner-top-right-shape: bevel)'));
+    expect(start).toBeLessThan(css.indexOf('@supports (corner-shape: bevel)'));
+    expect(css.slice(start, css.indexOf('}', start))).toContain('corner-top-right-shape: bevel;');
   });
 
   it("lets the level rules win over a card's own styling", () => {
@@ -437,6 +979,46 @@ describe('the CSS output', () => {
     expect(css).toContain('min-height: var(--cl-touch-target);');
   });
 
+  it('keeps the checkbox and radio target apart from the box they show', () => {
+    expect(css).toMatch(
+      /\.cl-checkbox, \.cl-radio \{[^}]*flex: none;[^}]*width: var\(--cl-touch-target\);[^}]*height: var\(--cl-touch-target\);[^}]*background: transparent;/,
+    );
+    expect(css).toMatch(
+      /\.cl-checkbox__box, \.cl-radio__box \{[^}]*width: 1\.25rem;[^}]*height: 1\.25rem;/,
+    );
+    expect(css).toContain(
+      '.cl-toggle > .cl-checkbox, .cl-toggle > .cl-radio {\n  margin-inline: calc((1.25rem - var(--cl-touch-target)) / 2);',
+    );
+    expect(css).toContain(
+      '.cl-toggle:has(> .cl-checkbox, > .cl-radio) {\n  padding-inline-end: calc((var(--cl-touch-target) - 1.25rem) / 2);',
+    );
+  });
+
+  it('puts the focus ring on the checkbox and radio box, not on the target', () => {
+    expect(css).toMatch(
+      /\.cl-checkbox\.cl-focusable:focus-visible, \.cl-radio\.cl-focusable:focus-visible \{\s*box-shadow: none;/,
+    );
+    expect(css).toMatch(
+      /\.cl-checkbox:focus-visible \.cl-checkbox__box, \.cl-radio:focus-visible \.cl-radio__box \{\s*box-shadow: 0 0 0 /,
+    );
+  });
+
+  it('keeps a checked checkbox or radio readable in forced colours', () => {
+    expect(css).toMatch(
+      /@media \(forced-colors: active\) \{\s*\.cl-checkbox__indicator, \.cl-radio__indicator \{\s*forced-color-adjust: none;\s*background-color: CanvasText;/,
+    );
+  });
+
+  it('holds a fit column to its content only where the cell is a table cell', () => {
+    expect(css).toContain(
+      `@media (width >= ${BREAKPOINTS.md}) { .cl-data-table__table [data-fit] { width: 1%; } }`,
+    );
+  });
+
+  it('styles data-table captions as left-aligned headers', () => {
+    expect(css).toMatch(/\.cl-data-table__caption \{[^}]*text-align: left;/);
+  });
+
   it('gives focus a two-layer ring', () => {
     // One ring vanishes against whichever surface happens to match it.
     expect(css).toContain('.cl-focusable:focus-visible');
@@ -451,6 +1033,15 @@ describe('the CSS output', () => {
 
   it('uses tabular figures for numbers that change', () => {
     expect(css).toContain('font-variant-numeric: tabular-nums;');
+  });
+
+  it('makes stat figures larger than their labels', () => {
+    expect(css).toContain(
+      '.cl-stat-tile__value {\n  font-family: var(--cl-font-display);\n  font-size: var(--cl-font-size-figure-2xl);',
+    );
+    expect(css).toContain(
+      '.cl-metric-strip__label { display: block; color: var(--cl-text-muted); font-family: var(--cl-font-mono); font-size: var(--cl-font-size-xs);',
+    );
   });
 
   it('emits a rule per form-control atom/state', () => {
@@ -468,6 +1059,14 @@ describe('the CSS output', () => {
       'selection-present',
     ]) {
       expect(css).toContain(`.cl-file-picker--${state} {`);
+    }
+  });
+
+  it('paints a resting checkbox or radio box on the base ground with a boundary that reads', () => {
+    for (const tokens of [CHECKBOX_TOKENS, RADIO_TOKENS]) {
+      expect(tokens.default.background).toBe('surface-base');
+      expect(tokens.default.border).toBe('border-strong');
+      expect(tokens.disabled.background).toBe('surface-panel');
     }
   });
 
@@ -499,13 +1098,25 @@ describe('the CSS output', () => {
 
     expect(FILE_PICKER_TOKENS.error.border).toBe('state-destructive');
     expect(FILE_PICKER_TOKENS.error.focusRing).toBe('state-destructive');
-    expect(FILE_PICKER_TOKENS['drag-active'].border).toBe('primary');
+    expect(FILE_PICKER_TOKENS['drag-active'].border).toBe('border-accent');
   });
 
   it('emits the dialog backdrop and surface rules', () => {
     expect(css).toContain('.cl-dialog-backdrop {');
     expect(css).toContain('.cl-dialog-surface {');
     expect(css).toContain(`box-shadow: ${DIALOG_TOKENS.elevation};`);
+  });
+
+  it('keeps modal descriptions below translated titles', () => {
+    expect(css).toContain(
+      '.cl-modal__header { display: grid; grid-template-columns: minmax(0, 1fr) auto;',
+    );
+    expect(css).toContain('.cl-modal__title { grid-column: 1; grid-row: 1;');
+    expect(css).toContain('.cl-modal__description { grid-column: 1 / -1; grid-row: 2;');
+    expect(css).toContain('.cl-modal__close { grid-column: 2; grid-row: 1;');
+    expect(css).toContain(
+      `@media (width < ${BREAKPOINTS.sm}) { .cl-modal__footer { flex-direction: column; }`,
+    );
   });
 
   it('emits template layout rules including match console', () => {
@@ -534,8 +1145,20 @@ describe('the CSS output', () => {
     }
   });
 
+  it('sets the declared font size on every input atom', () => {
+    const rule = css.match(/\.cl-input, \.cl-select, \.cl-textarea \{[^}]*\}/)?.[0];
+    expect(rule).toContain('font-size: var(--cl-font-size-base);');
+    expect(FONT_SIZE.base).toBe('1rem');
+  });
+
   it('gives the custom select popover the control chamfer, mono typography, and a cyan active cue', () => {
     expect(css).toContain('.cl-select { font-family: var(--cl-font-mono); }');
+    expect(css).toContain(
+      'button.cl-select { display: flex; align-items: center; text-align: start; }',
+    );
+    expect(css).toContain(
+      '.cl-select__value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }',
+    );
     expect(css).toContain('.cl-select__content {');
     expect(css).toContain('font-family: var(--cl-font-mono)');
     expect(css).toContain(
@@ -544,7 +1167,7 @@ describe('the CSS output', () => {
     expect(css).toContain(
       '.cl-select[data-state="open"] .cl-select__icon { transform: rotate(180deg); }',
     );
-    expect(css).toContain('font-size: 10px');
+    expect(css).toContain('font-size: var(--cl-font-size-xs)');
   });
 
   it('stops the native select shim from intercepting pointer events', () => {
@@ -576,7 +1199,12 @@ describe('the Tailwind output', () => {
   });
 
   it('sources font sizes and screens directly from the primitives', () => {
-    expect(theme.fontSize).toEqual(FONT_SIZE);
+    expect(theme.fontSize).toEqual({
+      ...FONT_SIZE,
+      ...Object.fromEntries(
+        Object.entries(FIGURE_SIZE).map(([name, value]) => [`figure-${name}`, value]),
+      ),
+    });
     expect(theme.screens).toEqual(BREAKPOINTS);
   });
 
@@ -586,6 +1214,12 @@ describe('the Tailwind output', () => {
 
   it('prefixes the density spacing subset', () => {
     expect(theme.densitySpacing['cl-density-row-gap']).toBe(SPACING['2']);
+  });
+
+  it('emits the shared icon geometry', () => {
+    expect(theme.iconSize).toEqual({ inline: '16px', control: '20px', header: '24px' });
+    expect(theme.iconStroke).toBe(1.5);
+    expect(theme.iconTablerOpticalScale).toBe(1.1);
   });
 });
 
@@ -642,6 +1276,10 @@ describe('the style guide', () => {
       expect(html).toContain(`data-font-size="${name}"`);
       expect(html).toContain(`var(--cl-font-size-${name})`);
     }
+    for (const name of Object.keys(FIGURE_SIZE)) {
+      expect(html).toContain(`data-font-size="figure-${name}"`);
+      expect(html).toContain(`var(--cl-font-size-figure-${name})`);
+    }
   });
 
   it('renders radio, file-picker and surface alternation samples', () => {
@@ -664,8 +1302,8 @@ describe('button CTA treatments', () => {
     expect(css).toContain('.cl-btn:disabled');
   });
 
-  it('keeps primary on state-live and secondary on the raised neutral pairing', () => {
-    expect(css).toMatch(/\.cl-btn--primary \{[^}]*var\(--cl-state-live\)/);
+  it('keeps primary on its semantic action token and secondary on the raised neutral pairing', () => {
+    expect(css).toMatch(/\.cl-btn--primary \{[^}]*var\(--cl-primary\)/);
     expect(css).toMatch(/\.cl-btn--secondary \{[^}]*var\(--cl-surface-chrome\)/);
     expect(css).toMatch(/\.cl-btn--secondary \{[^}]*var\(--cl-border-muted\)/);
   });
@@ -695,9 +1333,74 @@ describe('button CTA treatments', () => {
 describe('public table and pill treatments', () => {
   const css = generateCss();
 
+  it('keeps public actions visible while mobile navigation expands in page flow', () => {
+    expect(css).toContain(
+      '.cl-public-header__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--cl-space-4);',
+    );
+    expect(css).toContain('.cl-public-header__brand { display: flex; min-width: 0; }');
+    expect(css).toContain(
+      '.cl-public-header__nav { display: flex; align-items: center; justify-self: stretch; min-width: 0; }',
+    );
+    expect(css).toContain('.cl-public-header__global-label { display: none; }');
+    expect(css).toContain(
+      '.cl-public-header__links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); width: 100%;',
+    );
+    expect(css).toContain(
+      '.cl-public-header__context-band { background: var(--cl-surface-panel); border-block: 1px solid var(--cl-border-muted); }',
+    );
+    expect(css).toContain('.cl-public-header__context-row { padding-block: var(--cl-space-2); }');
+    expect(css).toContain(
+      '.cl-public-header__tournament-nav { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; }',
+    );
+    expect(css).toContain(
+      '.cl-public-header__tournament-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cl-space-4); min-width: 0;',
+    );
+    expect(css).toContain(
+      '.cl-public-header__tournament-link[aria-current="page"] { color: var(--cl-text-primary); text-decoration: underline;',
+    );
+    expect(css).toContain(
+      '.cl-public-header__actions { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end;',
+    );
+    expect(css).toContain(
+      '.cl-public-header__toggle { display: none; place-items: center; min-width: var(--cl-touch-target);',
+    );
+    expect(css).toContain(
+      '@media (max-width: 768px) {\n  .cl-public-header__row { grid-template-columns: minmax(0, 1fr); gap: var(--cl-space-2);',
+    );
+    expect(css).toContain('  .cl-public-header__brand { grid-column: 1; grid-row: 1; }');
+    expect(css).toContain(
+      '  .cl-public-header__actions { grid-column: 1; grid-row: 2; justify-content: space-between; width: 100%; }',
+    );
+    expect(css).toContain(
+      '  .cl-public-header__nav { display: grid; grid-column: 1; grid-row: 3; align-items: stretch;',
+    );
+    expect(css).toContain('  .cl-public-header__global-label { display: block;');
+    expect(css).toContain('  .cl-public-header__toggle:not([hidden]) { display: inline-grid; }');
+    // With scripting, the compact menu paints closed until the header script takes over.
+    const compact = css.slice(css.indexOf('@media (max-width: 768px) {\n  .cl-public-header__row'));
+    expect(compact).toContain(
+      'html[data-scripting] .cl-public-header:not([data-nav-ready]) .cl-public-header__nav, html[data-scripting] .cl-public-header:not([data-nav-ready]) .cl-public-header__context-band { display: none; }',
+    );
+    expect(compact).toContain(
+      'html[data-scripting] .cl-public-header:not([data-nav-ready]) .cl-public-header__toggle { display: inline-grid !important; }',
+    );
+    expect(css).toContain(
+      '  .cl-public-header__links, .cl-public-header__tournament-links { flex-direction: column; align-items: stretch;',
+    );
+    expect(css).toContain(
+      '  .cl-public-header__tournament-nav { display: grid; grid-template-columns: minmax(0, 1fr);',
+    );
+    expect(css).toContain(
+      '  .cl-public-header__tournament-link[aria-current="page"] { border-inline-start: 2px solid var(--cl-primary); }',
+    );
+    expect(css).not.toContain('.cl-public-header__cta-item');
+  });
+
   it('gives every table a header treatment and tabular figures', () => {
     expect(css).toMatch(/\.cl-table \{[^}]*font-variant-numeric: tabular-nums/);
-    expect(css).toContain('.cl-tabular-nums { font-variant-numeric: tabular-nums; }');
+    expect(css).toContain(
+      '.cl-tabular-nums { font-variant-numeric: tabular-nums; line-height: var(--cl-line-height-figure); }',
+    );
     expect(css).toMatch(/\.cl-table thead th \{[^}]*var\(--cl-surface-chrome\)/);
     expect(css).toMatch(/\.cl-table thead th \{[^}]*text-transform: uppercase/);
   });
@@ -723,15 +1426,69 @@ describe('public table and pill treatments', () => {
     expect(css).toMatch(/\.cl-table-scroll \{[^}]*overflow-x: auto/);
   });
 
+  describe('narrow-screen table modes', () => {
+    const narrow = css.slice(
+      css.indexOf(
+        '@media (width < 768px) {\n  .cl-data-table:not(.cl-data-table--stacked) .cl-cell-name',
+      ),
+    );
+    const narrowBlock = narrow.slice(0, narrow.indexOf('\n}\n') + 3);
+
+    it('hides low-priority columns below the medium breakpoint and shows the row disclosure', () => {
+      expect(narrowBlock).toContain('.cl-data-table--priority [data-priority="low"]');
+      expect(narrowBlock).toContain('.cl-table--priority [data-priority="low"] { display: none; }');
+      expect(narrowBlock).toContain('.cl-data-table--priority .cl-more');
+      // The disclosure is out of the way on a wide screen.
+      expect(css).toContain('.cl-more { display: none; }');
+    });
+
+    it('turns each row into a card of label–value pairs in stacked mode', () => {
+      expect(narrowBlock).toContain('.cl-data-table--stacked .cl-data-table__table td::before');
+      expect(narrowBlock).toContain('content: attr(data-label)');
+      // The header row stays for assistive technology, visually hidden rather than removed.
+      expect(narrowBlock).toMatch(/\.cl-data-table--stacked thead \{[^}]*clip-path: inset\(50%\)/);
+      expect(narrowBlock).not.toMatch(/\.cl-data-table--stacked thead \{[^}]*display: none/);
+    });
+
+    it('lets a stacked card show its name over two lines before it truncates', () => {
+      expect(narrowBlock).toMatch(
+        /\.cl-data-table--stacked \.cl-cell-name__text \{[^}]*-webkit-line-clamp: 2/,
+      );
+      // The one-line width cap belongs to tables that keep their columns, not to cards.
+      expect(narrowBlock).toContain('.cl-data-table:not(.cl-data-table--stacked) .cl-cell-name');
+    });
+
+    it('never breaks a name mid-word: it truncates with an ellipsis', () => {
+      expect(css).toMatch(/\.cl-cell-name \{[^}]*white-space: nowrap; overflow-wrap: normal/);
+      expect(css).toMatch(/\.cl-cell-name__text \{[^}]*text-overflow: ellipsis/);
+      expect(css).toMatch(/\.cl-cell-name \.cl-entrant-name \{[^}]*text-overflow: ellipsis/);
+    });
+
+    it('pins the first column of a scrolling table and shades the edge with more to scroll', () => {
+      expect(css).toMatch(
+        /\.cl-data-table--scroll \.cl-data-table__table :is\(th, td\):first-child[^{]*\{[^}]*position: sticky/,
+      );
+      expect(css).toMatch(
+        /\.cl-data-table--scroll, \.cl-table-scroll \{[^}]*var\(--cl-scroll-edge\)/,
+      );
+      expect(css).toMatch(
+        /--cl-scroll-edge: color-mix\(in srgb, var\(--cl-text-primary\) \d+%, transparent\)/,
+      );
+    });
+  });
+
   it('renders pills as bounded, gapped controls meeting the touch target', () => {
     expect(css).toMatch(/\.cl-pill-group \{[^}]*gap: var\(--cl-space-2\)/);
     expect(css).toMatch(/\.cl-pill \{[^}]*min-height: var\(--cl-touch-target\)/);
     expect(css).toMatch(/\.cl-pill \{[^}]*border: 1px solid var\(--cl-border-muted\)/);
   });
 
-  it('marks the active pill by fill and border, not color alone', () => {
+  it('marks an active pill with the cyan well, signal text, and an emphasized border', () => {
     expect(css).toMatch(
-      /\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*var\(--cl-state-live\)/,
+      /\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*background: var\(--cl-surface-raised\)/,
+    );
+    expect(css).toMatch(
+      /\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*color: var\(--cl-state-live\)/,
     );
     expect(css).toMatch(/\.cl-pill--active,\n\.cl-pill\[aria-current\] \{[^}]*border-color/);
   });
@@ -739,6 +1496,18 @@ describe('public table and pill treatments', () => {
 
 describe('compact match card', () => {
   const css = generateCss();
+
+  it('keeps the report link on the title and extends its target across the card', () => {
+    expect(css).toContain('.cl-match-card--linked { position: relative; }');
+    expect(css).toContain('.cl-match-card__report-link { color: inherit; text-decoration: none; }');
+    expect(css).toContain(
+      '.cl-match-card__report-link:hover, .cl-match-card__report-link:focus-visible { text-decoration: underline; }',
+    );
+    expect(css).toContain('.cl-match-card__report-link::after { content: ""; }');
+    expect(css).toContain(
+      '.cl-match-card__report-link::after, .cl-match-card__hit-area { position: absolute; inset: 0; z-index: 1; }',
+    );
+  });
 
   it('lays the compact card out as a dense flex row, not the full card grid', () => {
     expect(css).toMatch(/\.cl-match-card--compact \{[^}]*display: inline-flex/);
@@ -748,6 +1517,11 @@ describe('compact match card', () => {
   it('sizes the compact grids denser than the full-card grids', () => {
     expect(css).toMatch(/\.cl-matches-view__grid--compact \{[^}]*minmax\(min\(100%, 220px\)/);
     expect(css).toMatch(/\.cl-match-card-grid--compact \{[^}]*minmax\(min\(100%, 220px\)/);
+    expect(css).toMatch(/\.cl-match-card-grid--compact-summary \{[^}]*minmax\(min\(100%, 280px\)/);
+  });
+
+  it('keeps compact match links at the shared minimum touch target', () => {
+    expect(css).toMatch(/\.cl-match-card--compact \{[^}]*min-height: var\(--cl-touch-target\)/);
   });
 
   it('colors the state dot per semantic state, never leaving it uncolored', () => {
@@ -766,10 +1540,10 @@ describe('compact match card', () => {
   });
 
   it('pulses only the live dot, and stops under reduced motion', () => {
-    expect(css).toMatch(/\.cl-match-card__compact-dot\.cl-state--live \{[^}]*cl-badge-pulse/);
-    expect(css).toMatch(
-      /prefers-reduced-motion: reduce\) \{ \.cl-match-card__compact-dot\.cl-state--live \{ animation: none/,
+    expect(css).toContain(
+      '.cl-live-dot { animation: cl-pulse var(--cl-motion-pulse) ease-in-out infinite alternate; }',
     );
+    expect(css).not.toContain('cl-badge-pulse');
   });
 });
 

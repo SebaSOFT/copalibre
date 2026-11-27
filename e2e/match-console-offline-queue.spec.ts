@@ -1,17 +1,15 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
+import AxeBuilder from '@axe-core/playwright';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
- * the console's durable write queue. `window.__offline` (toggled from
- * the test via `page.evaluate`) simulates "the backend is unreachable" —
- * every mocked API call rejects with a network-level error while the flag
- * is set — deliberately not Playwright's `context.setOffline(true)`, which
- * would also block the page's own reload in this environment (no service
- * worker ships here, by design).
+ * The console's durable write queue. The primary flow uses Playwright's real
+ * offline context; the reload-survival cases also gate mocked API calls so
+ * the page itself can still reload in this environment.
  */
 
 const matchId = '00000000-0000-7000-8000-000000000003';
-const matchPath = `/organizations/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+const matchPath = `/api/organizations/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
 
 function projection() {
   return {
@@ -63,6 +61,13 @@ function projection() {
     ],
     rosterRoles: [],
     eligibleStaffIds: [],
+    segmentPlan: {
+      regulation: { type: 'half', typeLabel: 'Half', count: 2, maximum: 2 },
+      addable: [
+        { type: 'half', typeLabel: 'Half', withinPlan: true },
+        { type: 'extra-time', typeLabel: 'Extra time', withinPlan: true },
+      ],
+    },
     entrants: [
       { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
       { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },
@@ -74,19 +79,29 @@ function projection() {
 
 async function mockMatchConsole(page: Page): Promise<void> {
   await page.addInitScript(
-    ({ initial, path, tokenEndpoint }) => {
+    ({ initial, path, tokenEndpoint, matchId }) => {
       let state =
         JSON.parse(window.sessionStorage.getItem('match-console-state') ?? 'null') ?? initial;
       const persist = () =>
         window.sessionStorage.setItem('match-console-state', JSON.stringify(state));
       window.__offline = window.sessionStorage.getItem('match-console-offline') === '1';
+      let streamController: ReadableStreamDefaultController<Uint8Array> | undefined;
+      let latestProjectionFrame: Uint8Array | undefined;
+      const emitProjectionFrame = () => {
+        if (!streamController || !latestProjectionFrame) return;
+        try {
+          streamController.enqueue(latestProjectionFrame);
+        } catch {
+          streamController = undefined;
+        }
+      };
+      window.__emitProjectionAck = emitProjectionFrame;
 
       const realFetch = window.fetch.bind(window);
       window.fetch = async (input, init) => {
         const url = String(input);
         const method = init?.method ?? 'GET';
         const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
-
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
@@ -95,16 +110,89 @@ async function mockMatchConsole(page: Page): Promise<void> {
         if (!url.startsWith(path) && !url.startsWith('/events/')) {
           return realFetch(input, init);
         }
-        if (window.__offline) throw new TypeError('Failed to fetch');
-
+        if (window.__offline || !navigator.onLine) throw new TypeError('Failed to fetch');
         if (url === `${path}/console`) return Response.json(state);
-        if (url === `/events/control/liga-mendocina`) return new Response('', { status: 403 });
+        if (url.startsWith('/events/control/liga-mendocina')) {
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+                emitProjectionFrame();
+              },
+              cancel() {
+                streamController = undefined;
+              },
+            }),
+            { headers: { 'Content-Type': 'text/event-stream' } },
+          );
+        }
+
+        if (url === `${path}/segments` && method === 'POST') {
+          // Counted outside the page state, so a replay that the queue sent twice shows up.
+          const posts = Number(window.sessionStorage.getItem('match-console-segment-posts') ?? '0');
+          window.sessionStorage.setItem('match-console-segment-posts', String(posts + 1));
+          const number = state.segments.length + 1;
+          state = {
+            ...state,
+            segments: [
+              ...state.segments,
+              {
+                segmentId: `segment-added-${number}`,
+                type: body.type,
+                number,
+                state: 'pending',
+                elapsedSeconds: 0,
+              },
+            ],
+            projectionVersion: state.projectionVersion + 1,
+          };
+          persist();
+          return Response.json({
+            matchId: state.matchId,
+            status: state.status,
+            clockRunning: false,
+            runningTimers: [],
+          });
+        }
+
+        if (url === `${path}/commands/end` && method === 'POST') {
+          state = {
+            ...state,
+            segments: state.segments.map((segment) =>
+              segment.state === 'active' ? { ...segment, state: 'completed' } : segment,
+            ),
+            projectionVersion: state.projectionVersion + 1,
+          };
+          persist();
+          return Response.json({
+            matchId: state.matchId,
+            status: state.status,
+            clockRunning: false,
+            runningTimers: [],
+          });
+        }
+
+        const reopenMatch = url.match(new RegExp(`^${path}/segments/([^/]+)/reopen$`));
+        if (reopenMatch && method === 'POST') {
+          // Counted outside the page state, so a replay that the queue sent twice shows up.
+          const posts = Number(window.sessionStorage.getItem('match-console-reopen-posts') ?? '0');
+          window.sessionStorage.setItem('match-console-reopen-posts', String(posts + 1));
+          state = {
+            ...state,
+            segments: state.segments.map((segment) =>
+              segment.segmentId === reopenMatch[1] ? { ...segment, state: 'pending' } : segment,
+            ),
+            projectionVersion: state.projectionVersion + 1,
+          };
+          persist();
+          return Response.json(state);
+        }
 
         if (url === `${path}/events` && method === 'POST') {
           // The one event definition this refuses on replay, however many
           // are already queued ahead of it — the server-side "same
           // validation a live action goes through" is proven directly in
-          // match-console.integration.test.ts's own idempotency coverage
+          // match-console.commands-and-clock.integration.test.ts's own idempotency coverage
           // This mock only needs to stand in for a refusal.
           // being possible at all, so the drain-continues-past-it behavior
           // is provable from the UI.
@@ -133,6 +221,18 @@ async function mockMatchConsole(page: Page): Promise<void> {
             projectionVersion: state.projectionVersion + 1,
           };
           persist();
+          latestProjectionFrame = new TextEncoder().encode(
+            `data: ${JSON.stringify({
+              eventId: `outbox-${state.projectionVersion}`,
+              organizationId: 'organization-1',
+              stream: 'control',
+              entityId: matchId,
+              eventType: 'match.console-projection',
+              projectionVersion: state.projectionVersion,
+              createdAt: new Date().toISOString(),
+              payload: { matchId },
+            })}\n\n`,
+          );
           return Response.json({
             eventId: `event-${state.events.length}`,
             definitionCode: body.definitionCode,
@@ -144,7 +244,7 @@ async function mockMatchConsole(page: Page): Promise<void> {
         return new Response('Not found', { status: 404 });
       };
     },
-    { initial: projection(), path: matchPath, tokenEndpoint: TOKEN_ENDPOINT },
+    { initial: projection(), path: matchPath, tokenEndpoint: TOKEN_ENDPOINT, matchId },
   );
 }
 
@@ -165,12 +265,10 @@ async function selectEnglish(page: Page): Promise<void> {
 }
 
 /**
- * The queued count and last-synced time are on-demand detail behind the
- * console's one connectivity icon, so every assertion on them has to
- * ask for them the way an operator would — a focus or a hover.
+ * Queue and sync details remain visible in the console header.
  */
 async function openSyncDetail(page: Page): Promise<void> {
-  await page.getByRole('status', { name: /^Sync status: / }).focus();
+  await expect(page.locator('.cl-connection-status')).toBeVisible();
 }
 
 test('queues a recorded event while offline, then drains it once back online', async ({ page }) => {
@@ -181,22 +279,110 @@ test('queues a recorded event while offline, then drains it once back online', a
   );
   await page.goto(loginCallbackUrl());
   await selectEnglish(page);
-  await page.getByRole('button', { name: 'Apply clock' }).waitFor();
+  await page.getByRole('button', { name: 'Correct', exact: true }).waitFor();
 
+  await page.context().setOffline(true);
   await setOffline(page, true);
   await page.getByRole('button', { name: 'Gol', exact: true }).click();
 
   await openSyncDetail(page);
-  await expect(page.getByText('1 queued action')).toBeVisible();
-  await expect(page.getByText('Not yet synced')).toBeVisible();
+  await expect(page.locator('.cl-connection-status')).toContainText('Offline');
+  await expect(page.locator('.cl-connection-status')).toContainText('1 queued action');
+  await expect(page.locator('.cl-event-sync-mark')).toHaveText('Queued');
 
   await setOffline(page, false);
+  await page.context().setOffline(false);
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
 
   await openSyncDetail(page);
-  await expect(page.getByText('No queued actions')).toBeVisible();
-  await expect(page.getByText(/^Last synced /)).toBeVisible();
-  await expect(page.getByText('goal', { exact: false })).toBeVisible();
+  await expect(page.locator('.cl-connection-status')).not.toContainText('queued', {
+    timeout: 12_000,
+  });
+  await expect(page.locator('.cl-event-sync-mark')).toHaveText('Sent');
+  await page.evaluate(() => window.__emitProjectionAck?.());
+  await expect(page.locator('.cl-event-sync-mark')).toHaveText('Confirmed');
+  await expect(page.locator('.cl-connection-status')).toContainText('Last synced');
+});
+
+test('an added segment queued offline is sent once on reconnection', async ({ page }) => {
+  await mockMatchConsole(page);
+  await seedLoginTransaction(
+    page,
+    `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`,
+  );
+  await page.goto(loginCallbackUrl());
+  await selectEnglish(page);
+  await page.getByRole('button', { name: 'Add segment', exact: true }).waitFor();
+
+  await page.context().setOffline(true);
+  await setOffline(page, true);
+  await page.getByRole('combobox', { name: 'Segment to add' }).selectOption('extra-time');
+  await page.getByRole('button', { name: 'Add segment', exact: true }).click();
+  await expect(page.locator('.cl-connection-status')).toContainText('1 queued action');
+
+  await setOffline(page, false);
+  await page.context().setOffline(false);
+  await page.evaluate(() => window.dispatchEvent(new Event('online')));
+  await expect(page.locator('.cl-connection-status')).not.toContainText('queued', {
+    timeout: 12_000,
+  });
+
+  await expect
+    .poll(() => page.evaluate(() => window.sessionStorage.getItem('match-console-segment-posts')))
+    .toBe('1');
+});
+
+test('the time correction form and the clock commands keep a gap between them', async ({
+  page,
+}) => {
+  await mockMatchConsole(page);
+  await seedLoginTransaction(
+    page,
+    `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`,
+  );
+  await page.goto(loginCallbackUrl());
+  await selectEnglish(page);
+  const time = page.locator('input#console-clock-time');
+  await time.waitFor();
+
+  const gap = await time.evaluate((input) => {
+    const commands = document.querySelector('.cl-clock-commands') as HTMLElement;
+    const form = input.closest('.cl-platform-form-grid') as HTMLElement;
+    return form.getBoundingClientRect().top - commands.getBoundingClientRect().bottom;
+  });
+  expect(gap).toBe(12);
+});
+
+test('a segment reopened offline is sent once on reconnection', async ({ page }) => {
+  await mockMatchConsole(page);
+  await seedLoginTransaction(
+    page,
+    `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`,
+  );
+  await page.goto(loginCallbackUrl());
+  await selectEnglish(page);
+  await page.getByRole('button', { name: 'End segment' }).click();
+  await expect(page.getByRole('button', { name: 'Reopen segment…' })).toBeVisible();
+
+  await page.context().setOffline(true);
+  await setOffline(page, true);
+  await page.getByRole('button', { name: 'Reopen segment…' }).click();
+  await page.getByLabel('Reason').fill('Ended by mistake');
+  await page.getByRole('button', { name: 'Reopen segment', exact: true }).click();
+  await expect(page.locator('.cl-connection-status')).toContainText('1 queued action');
+
+  await setOffline(page, false);
+  await page.context().setOffline(false);
+  await page.evaluate(() => window.dispatchEvent(new Event('online')));
+  await expect(page.locator('.cl-connection-status')).not.toContainText('queued', {
+    timeout: 12_000,
+  });
+
+  await expect
+    .poll(() => page.evaluate(() => window.sessionStorage.getItem('match-console-reopen-posts')))
+    .toBe('1');
+  // The fixture's half has no time on it, so a reopened half has not started: it offers Start segment.
+  await expect(page.getByRole('button', { name: 'Start segment' })).toBeVisible();
 });
 
 test('a queued action survives a refresh while offline, and drains once back online', async ({
@@ -207,7 +393,7 @@ test('a queued action survives a refresh while offline, and drains once back onl
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await selectEnglish(page);
-  await page.getByRole('button', { name: 'Apply clock' }).waitFor();
+  await page.getByRole('button', { name: 'Correct', exact: true }).waitFor();
 
   await setOffline(page, true);
   await page.getByRole('button', { name: 'Gol', exact: true }).click();
@@ -223,7 +409,8 @@ test('a queued action survives a refresh while offline, and drains once back onl
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await selectEnglish(page);
-  await expect(page.getByText('Could not load the match’s authoritative state.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();
+  await expect(page.locator('.cl-skeleton[aria-busy="true"]')).toBeVisible();
   await expect
     .poll(() =>
       page.evaluate(
@@ -247,9 +434,9 @@ test('a queued action survives a refresh while offline, and drains once back onl
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await selectEnglish(page);
-  await expect(page.getByRole('button', { name: 'Apply clock' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Correct', exact: true })).toBeVisible();
   await openSyncDetail(page);
-  await expect(page.getByText('No queued actions')).toBeVisible();
+  await expect(page.getByText('goal', { exact: false })).toBeVisible();
 });
 
 test('a refused item does not block the rest of the queue from draining', async ({ page }) => {
@@ -260,7 +447,7 @@ test('a refused item does not block the rest of the queue from draining', async 
   );
   await page.goto(loginCallbackUrl());
   await selectEnglish(page);
-  await page.getByRole('button', { name: 'Apply clock' }).waitFor();
+  await page.getByRole('button', { name: 'Correct', exact: true }).waitFor();
 
   // Two queued items, in order: the first ("Gol") the mock always accepts;
   // the second ("Refuse me") the mock always refuses (400) — see the mock's
@@ -269,7 +456,7 @@ test('a refused item does not block the rest of the queue from draining', async 
   await page.getByRole('button', { name: 'Gol', exact: true }).click();
   await page.getByRole('button', { name: 'Refuse me', exact: true }).click();
   await openSyncDetail(page);
-  await expect(page.getByText('2 queued actions')).toBeVisible();
+  await expect(page.locator('.cl-connection-status')).toContainText('2 queued actions');
 
   await setOffline(page, false);
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
@@ -288,14 +475,38 @@ test('a refused item does not block the rest of the queue from draining', async 
   // listed below with the server's reason, is what proves the drain
   // actually reached — and did not silently drop — the second item.
   await openSyncDetail(page);
-  await expect(page.getByText('No queued actions')).toBeVisible();
+  await expect(page.locator('.cl-connection-status')).toContainText('1 refused action', {
+    timeout: 12_000,
+  });
+  await page.evaluate(() => window.__emitProjectionAck?.());
+  await expect(page.locator('.cl-event-sync-mark[data-state="confirmed"]')).toHaveText('Confirmed');
+  await expect(page.locator('.cl-event-sync-mark[data-state="refused"]')).toContainText(
+    'This event was refused for the e2e scenario',
+  );
   await expect(
     page.getByText('Refused (record-event): This event was refused for the e2e scenario'),
   ).toBeVisible();
 });
 
+test('the control shell has no unlabeled icon-only buttons', async ({ page }) => {
+  await mockMatchConsole(page);
+  await seedLoginTransaction(
+    page,
+    `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`,
+  );
+  await page.goto(loginCallbackUrl());
+  await selectEnglish(page);
+  await page.getByRole('button', { name: 'Correct', exact: true }).waitFor();
+
+  const { violations } = await new AxeBuilder({ page }).withRules(['button-name']).analyze();
+  expect(violations).toEqual([]);
+  const statusAudit = await new AxeBuilder({ page }).include('.cl-connection-status').analyze();
+  expect(statusAudit.violations).toEqual([]);
+});
+
 declare global {
   interface Window {
     __offline?: boolean;
+    __emitProjectionAck?: () => void;
   }
 }

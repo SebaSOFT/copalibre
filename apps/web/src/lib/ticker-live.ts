@@ -1,7 +1,7 @@
 import { RealtimeClient } from '@copalibre/realtime';
 import { applyEvent, markConnected, type LiveDashboard, type LiveMatch } from './live-state.js';
-
-const PULSE_MS = 480;
+import { enterElementOnce } from './entry-once.js';
+import { flashValue } from './value-flash.js';
 
 /**
  * Live-patches the server-rendered score ticker in place.
@@ -34,9 +34,11 @@ export function mountLiveTicker(root: ParentNode = document): void {
   };
 
   // Shown only while the stream is down, so the page never describes its own normal state.
-  const notice = root.querySelector<HTMLElement>('[data-connection-notice]');
+  const notices = root.querySelectorAll<HTMLElement>(
+    '[data-ticker-connection-notice], [data-connection-notice]',
+  );
   const showNotice = (visible: boolean): void => {
-    if (notice) notice.hidden = !visible;
+    for (const notice of notices) notice.hidden = !visible;
   };
 
   let dashboard = buildInitialDashboard(byMatchId);
@@ -54,8 +56,12 @@ export function mountLiveTicker(root: ParentNode = document): void {
         const next = applyEvent(dashboard, event);
         for (const match of next.matches) {
           const previous = dashboard.matches.find((m) => m.matchId === match.matchId);
-          if (previous && previous !== match)
+          if (previous && previous !== match) {
             patchItem(byMatchId.get(match.matchId), match, labels);
+            if (previous.state !== 'live' && match.state === 'live') {
+              for (const item of byMatchId.get(match.matchId) ?? []) enterElementOnce(item);
+            }
+          }
         }
         dashboard = next;
       },
@@ -122,18 +128,20 @@ function patchItem(
     const figureEl = el.querySelector<HTMLElement>('.cl-ticker__figure');
     if (figureEl && figureEl.textContent !== figure) {
       figureEl.textContent = figure;
-      figureEl.classList.remove('cl-ticker__figure--pulse');
-      // Force a reflow so re-adding the class restarts the animation on a
-      // second score change within the previous pulse's window.
-      void figureEl.offsetWidth;
-      figureEl.classList.add('cl-ticker__figure--pulse');
-      setTimeout(() => figureEl.classList.remove('cl-ticker__figure--pulse'), PULSE_MS);
+      flashValue(figureEl);
     }
 
     const badgeEl = el.querySelector<HTMLElement>('.cl-badge');
     if (badgeEl && badgeLabel && badgeEl.textContent !== badgeLabel) {
-      badgeEl.textContent = badgeLabel;
       badgeEl.className = badgeEl.className.replace(/cl-badge--\S+/, `cl-badge--${badgeClass}`);
+      badgeEl.replaceChildren();
+      if (match.state === 'live') {
+        const dot = badgeEl.ownerDocument.createElement('span');
+        dot.className = 'cl-badge__dot cl-live-dot';
+        dot.setAttribute('aria-hidden', 'true');
+        badgeEl.append(dot);
+      }
+      badgeEl.append(badgeEl.ownerDocument.createTextNode(badgeLabel));
     }
 
     el.dataset.matchState = match.state;

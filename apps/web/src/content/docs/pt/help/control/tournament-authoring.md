@@ -42,3 +42,11 @@ rascunho → publicado → iniciado → finalizado → arquivado. Cada etapa é 
 outra tela, nunca algo que esta tela faça por você. Uma vez **iniciado**, a disciplina e o perfil de
 torneio ficam congelados na versão que tinham naquele momento — um torneio em andamento nunca muda
 suas regras no meio do caminho.
+
+## Descanso mínimo entre partidas
+
+A tela **Configurações** de um torneio criado define o descanso mínimo, em minutos, entre o fim de uma
+partida de um participante e o início da próxima. Ele é verificado sempre que partidas deste torneio
+são pré-visualizadas ou publicadas no [planejador de horários](/help/control/schedule); uma alocação
+que deixa menos descanso é um conflito que nomeia as duas partidas. Deixe vazio para não aplicar
+nenhuma regra. Alterá-lo não move nenhuma partida: vale a partir da próxima pré-visualização.

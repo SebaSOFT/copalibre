@@ -9,7 +9,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const TOURNAMENT = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 
 const overview = {
@@ -147,7 +147,8 @@ test('the matches page lists a table per group and draws each cup as a bracket',
   await expect(first.getByRole('rowheader')).toHaveText(['Round 1', 'Round 2']);
 
   for (const cup of CUPS) {
-    await expect(schedule.getByRole('heading', { name: cup })).toBeVisible();
+    await expect(schedule.getByRole('heading', { name: cup, level: 3 })).toBeVisible();
+    await expect(schedule.getByRole('heading', { name: cup, level: 5 })).toBeVisible();
   }
   await expect(schedule.locator('.cl-bracket-stage')).toHaveCount(3);
   // A knockout zone is its bracket only: its matches are not listed again as rows.
@@ -171,14 +172,38 @@ test('a state filter turns the knockout zones into a list of matches', async ({ 
   await expect(page.locator('.cl-match-schedule').getByRole('table')).toHaveCount(3);
 });
 
+test('mobile matches stay visible before optional filters', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${TOURNAMENT}/matches`);
+
+  const filters = page.locator('.cl-match-schedule-filters');
+  expect(await filters.getAttribute('open')).toBeNull();
+  // A phone lists the open day's matches, not the tables.
+  await expect(
+    page.locator('.cl-match-schedule .cl-match-day[open] .cl-match-day-row').first(),
+  ).toBeInViewport();
+
+  await filters.locator('summary').click();
+  expect(await filters.getAttribute('open')).not.toBeNull();
+  await filters
+    .getByRole('navigation', { name: 'Filter by match state' })
+    .getByRole('link', { name: 'Final', exact: true })
+    .click();
+
+  await expect(page).toHaveURL(/state=final/);
+  expect(await page.locator('.cl-match-schedule-filters').getAttribute('open')).not.toBeNull();
+});
+
 test('every filter row is titled and the view choice is offered for a short scope', async ({
   page,
 }) => {
   await page.goto(`${TOURNAMENT}/matches`);
+  await page.locator('.cl-match-schedule-filters summary').click();
   await expect(page.locator('.cl-filter-row__title')).toHaveText([
     'Stage',
     'Zone',
     'Group',
+    'Day',
     'State',
     'View',
   ]);
@@ -187,9 +212,31 @@ test('every filter row is titled and the view choice is offered for a short scop
   await expect(page.locator('.cl-filter-row__title')).toHaveText([
     'Stage',
     'Group',
+    'Day',
     'State',
     'View',
   ]);
+});
+
+test('public header and match-card icons are server-rendered without JavaScript', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto(`${TOURNAMENT}/matches?stageNumber=1&group=Grupo%20A&view=cards`);
+
+  const headerLanguageIcon = page.locator(
+    '.cl-public-header__locale svg.cl-icon:not(.cl-public-header__caret)',
+  );
+  const firstCard = page.locator('.cl-match-card').first();
+  await expect(headerLanguageIcon).toHaveCount(1);
+  await expect(page.locator('.cl-public-header__locale svg.cl-public-header__caret')).toHaveCount(
+    1,
+  );
+  await expect(firstCard).toBeVisible();
+  await expect(firstCard.locator('.cl-entrant-emblem__fallback svg.cl-icon')).toHaveCount(2);
+
+  await context.close();
 });
 
 test('the tournament page keeps every stage one click away once all is played', async ({
@@ -197,12 +244,12 @@ test('the tournament page keeps every stage one click away once all is played', 
 }) => {
   await page.goto(TOURNAMENT);
 
-  const stages = page.locator('.cl-match-schedule details');
-  await expect(stages).toHaveCount(2);
-  // Every match is final, so nothing is left to follow and no stage starts open.
-  await expect(stages.nth(0)).not.toHaveAttribute('open', '');
-  await expect(stages.nth(1)).not.toHaveAttribute('open', '');
+  const allMatches = page.getByRole('link', { name: 'See every match' });
+  await expect(allMatches).toHaveAttribute('href', `${TOURNAMENT}/matches`);
+  await allMatches.click();
 
-  await stages.nth(0).locator('summary').click();
-  await expect(stages.nth(0).getByRole('table')).toHaveCount(2);
+  const schedule = page.locator('.cl-match-schedule');
+  await expect(schedule.getByRole('heading', { name: 'Fase de grupos' })).toBeVisible();
+  await expect(schedule.getByRole('heading', { name: 'Copas' })).toBeVisible();
+  await expect(schedule.getByRole('table')).toHaveCount(2);
 });

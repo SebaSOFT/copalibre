@@ -17,11 +17,13 @@ import {
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiExtraModels,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import {
   IdentityPrincipalRepository,
@@ -34,7 +36,7 @@ import {
   type Database,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
-import type { ObjectStorageAdapter } from '@copalibre/object-storage';
+import { derivedObjectKeys, type ObjectStorageAdapter } from '@copalibre/object-storage';
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import {
@@ -76,7 +78,17 @@ export class OrganizationsController {
       'When called without filters, returns public organizations with at least one published tournament. ' +
       'When called with "?mine=true", returns organizations the authenticated caller belongs to.',
   })
-  @ApiOkResponse({ type: OrganizationResponse, isArray: true })
+  @ApiExtraModels(OrganizationResponse, MyOrganizationResponse)
+  @ApiOkResponse({
+    description:
+      'Public organizations by default; with ?mine=true, organizations available to the authenticated caller.',
+    schema: {
+      oneOf: [
+        { type: 'array', items: { $ref: getSchemaPath(OrganizationResponse) } },
+        { type: 'array', items: { $ref: getSchemaPath(MyOrganizationResponse) } },
+      ],
+    },
+  })
   async list(
     @Query('mine') mine: string | undefined,
     @Req() request: RequestWithSubject,
@@ -97,6 +109,7 @@ export class OrganizationsController {
         organizationId: membership.organizationId,
         organizationAlias: membership.organizationAlias,
         organizationName: membership.organizationName,
+        timezone: membership.timezone,
         role: membership.role,
         ...(membership.emblemObjectId ? { emblemObjectId: membership.emblemObjectId } : {}),
       }));
@@ -314,7 +327,12 @@ export class OrganizationsController {
           authorizationContext: (subject?.scopes ?? []).join(' '),
         }),
       );
-      await this.storage.delete({ key: deleted.storageKey });
+      // Renditions are derived files with no row of their own: they leave with their original.
+      await Promise.all(
+        [deleted.storageKey, ...derivedObjectKeys(deleted.storageKey)].map((key) =>
+          this.storage.delete({ key }),
+        ),
+      );
       return deleted;
     } catch (error) {
       if (error instanceof InvariantViolationError) {

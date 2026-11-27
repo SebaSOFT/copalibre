@@ -10,7 +10,19 @@ export type BracketRole =
 export function parseBracketRole(role: string): BracketRole {
   const range = /^places-(\d+)-(\d+)$/.exec(role);
   if (range) return { kind: 'places', from: Number(range[1]), to: Number(range[2]) };
-  const single = /^place-(\d+)$/.exec(role);
+  // A persisted graph carries the engine's branch: `placement-3` for one place.
+  const single = /^place(?:ment)?-(\d+)$/.exec(role);
   if (single) return { kind: 'place', place: Number(single[1]) };
   return { kind: 'other', code: role };
+}
+
+/**
+ * The role a group of placement games is listed under. The engine names a places round only by its
+ * top place (`pl5`), so its range is read from how many games it holds: two places per game.
+ */
+export function placementGroupRole(role: string, games: number): string {
+  const round = /^pl(\d+)$/.exec(role);
+  if (!round) return role;
+  const from = Number(round[1]);
+  return `places-${from}-${from + 2 * games - 1}`;
 }

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../../../e2e/csp-guard.js';
 import {
   loginCallbackUrl,
   seedLoginTransaction,
@@ -25,10 +25,10 @@ async function mockOrganizationApi(
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url.includes('/auth/pat') && method === 'GET') {
+        if (url.includes('/api/auth/pat') && method === 'GET') {
           return Response.json([]);
         }
-        if (url.endsWith('/organizations/liga-mendocina') && method === 'GET') {
+        if (url.endsWith('/api/organizations/liga-mendocina') && method === 'GET') {
           return Response.json({
             organizationId: 'org-1',
             alias: 'liga-mendocina',
@@ -38,7 +38,13 @@ async function mockOrganizationApi(
             ...(emblemObjectId === undefined ? {} : { emblemObjectId }),
           });
         }
-        if (url.endsWith('/organizations/liga-mendocina/emblem') && method === 'POST') {
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage')) {
+          return Response.json({ totalBytes: 0, objectCount: 0 });
+        }
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage/objects')) {
+          return Response.json([]);
+        }
+        if (url.endsWith('/api/organizations/liga-mendocina/emblem') && method === 'POST') {
           emblemObjectId = 'obj-1';
           window.__e2eEmblemUploadCount = (window.__e2eEmblemUploadCount ?? 0) + 1;
           return Response.json({ objectId: emblemObjectId }, { status: 201 });
@@ -59,7 +65,7 @@ test('selecting a file opens the crop modal; confirming it uploads and renders t
   // The `<img>` tag's own GET goes through the network stack, not the
   // in-page `window.fetch` override above — this is the browser resolving
   // `organizationEmblemUrl()`, standing in for the real emblem-serving route.
-  await page.route('**/organizations/liga-mendocina/emblem', (route) => {
+  await page.route('**/organizations/liga-mendocina/emblem*', (route) => {
     if (route.request().method() !== 'GET') return route.fallback();
     return route.fulfill({
       status: 200,
@@ -67,7 +73,7 @@ test('selecting a file opens the crop modal; confirming it uploads and renders t
       body: Buffer.from(ONE_PIXEL_PNG_BASE64, 'base64'),
     });
   });
-  const target = '/control/liga-mendocina/preferences';
+  const target = '/control/liga-mendocina/organization';
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
@@ -75,7 +81,8 @@ test('selecting a file opens the crop modal; confirming it uploads and renders t
   // This control shell defaults to Spanish; select English by value (not by
   // its translated label) so the rest of this spec's English assertions
   // hold regardless of that default.
-  await page.getByRole('combobox').selectOption('en');
+  await page.getByLabel('Idioma', { exact: true }).selectOption('en');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 
   await expect(page.getByRole('img', { name: 'No emblem uploaded' })).toBeVisible();
 
@@ -116,13 +123,13 @@ test('selecting a file opens the crop modal; confirming it uploads and renders t
   await dialog.getByLabel('Zoom').fill('1.5');
   await dialog.getByLabel('Rotation').fill('15');
 
-  const confirmButton = dialog.getByRole('button', { name: 'Use image' });
+  const confirmButton = dialog.getByRole('button', { name: 'Apply' });
   await expect(confirmButton).toBeEnabled();
   await confirmButton.click();
 
   await expect(dialog).toBeHidden();
   await expect(page.getByText('Emblem uploaded.')).toBeVisible();
-  const emblem = page.locator('.cl-image-frame img');
+  const emblem = page.locator('.cl-image-frame img').first();
   await expect(emblem).toBeVisible();
   expect(await emblem.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
 });
@@ -131,7 +138,7 @@ test('cancelling the crop modal leaves the placeholder in place and uploads noth
   page,
 }) => {
   await mockOrganizationApi(page, { uploaded: { calls: 0 } });
-  const target = '/control/liga-mendocina/preferences';
+  const target = '/control/liga-mendocina/organization';
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
@@ -139,7 +146,7 @@ test('cancelling the crop modal leaves the placeholder in place and uploads noth
   // This control shell defaults to Spanish; select English by value (not by
   // its translated label) so the rest of this spec's English assertions
   // hold regardless of that default.
-  await page.getByRole('combobox').selectOption('en');
+  await page.getByLabel('Idioma', { exact: true }).selectOption('en');
 
   await expect(page.getByRole('img', { name: 'No emblem uploaded' })).toBeVisible();
 
@@ -168,10 +175,10 @@ test('club emblem renders as visible image in control panel clubs list', async (
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url.includes('/auth/pat')) {
+        if (url.includes('/api/auth/pat')) {
           return Response.json([]);
         }
-        if (url.endsWith('/organizations/liga-mendocina')) {
+        if (url.endsWith('/api/organizations/liga-mendocina')) {
           return Response.json({
             organizationId: 'org-1',
             alias: 'liga-mendocina',
@@ -180,7 +187,13 @@ test('club emblem renders as visible image in control panel clubs list', async (
             timezone: 'America/Argentina/San_Juan',
           });
         }
-        if (url.endsWith('/organizations/liga-mendocina/clubs')) {
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage')) {
+          return Response.json({ totalBytes: 0, objectCount: 0 });
+        }
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage/objects')) {
+          return Response.json([]);
+        }
+        if (url.endsWith('/api/organizations/liga-mendocina/clubs')) {
           return Response.json([
             {
               clubId: 'club-1',
@@ -191,13 +204,24 @@ test('club emblem renders as visible image in control panel clubs list', async (
             },
           ]);
         }
+        if (url.endsWith('/api/organizations')) {
+          return Response.json([
+            { organizationId: 'org-1', organizationAlias: 'liga-mendocina', role: 'admin' },
+          ]);
+        }
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage')) {
+          return Response.json({ totalBytes: 0, objectCount: 0 });
+        }
+        if (url.endsWith('/api/organizations/liga-mendocina/storage-usage/objects')) {
+          return Response.json([]);
+        }
         return originalFetch(input, init);
       };
     },
     { tokenEndpoint: TOKEN_ENDPOINT },
   );
 
-  await page.route('**/organizations/liga-mendocina/clubs/club-1/emblem', (route) => {
+  await page.route('**/organizations/liga-mendocina/clubs/club-1/emblem*', (route) => {
     if (route.request().method() !== 'GET') return route.fallback();
     return route.fulfill({
       status: 200,
@@ -213,10 +237,16 @@ test('club emblem renders as visible image in control panel clubs list', async (
 
   const emblemImg = page.locator('.cl-role-user .cl-image-frame img');
   await expect(emblemImg).toBeVisible();
-  await expect(emblemImg).toHaveJSProperty('naturalWidth', 1);
+  // A `srcset` candidate's natural width is scaled by `sizes`, so the 1-pixel mock reads 0 there:
+  // check that it loaded, from the rendition a 32px frame asks for.
+  await expect
+    .poll(() =>
+      emblemImg.evaluate((image: HTMLImageElement) => (image.complete ? image.currentSrc : '')),
+    )
+    .toContain('/api/organizations/liga-mendocina/clubs/club-1/emblem?width=64');
   await expect(emblemImg).toHaveAttribute(
     'src',
-    '/organizations/liga-mendocina/clubs/club-1/emblem',
+    '/api/organizations/liga-mendocina/clubs/club-1/emblem',
   );
 });
 
@@ -235,10 +265,10 @@ test('uploading tournament emblem in control panel renders in tournament setting
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url.includes('/auth/pat')) {
+        if (url.includes('/api/auth/pat')) {
           return Response.json([]);
         }
-        if (url.endsWith('/organizations/liga-mendocina')) {
+        if (url.endsWith('/api/organizations/liga-mendocina')) {
           return Response.json({
             organizationId: 'org-1',
             alias: 'liga-mendocina',
@@ -269,7 +299,7 @@ test('uploading tournament emblem in control panel renders in tournament setting
     { tokenEndpoint: TOKEN_ENDPOINT },
   );
 
-  await page.route('**/organizations/liga-mendocina/tournaments/apertura-2026/emblem', (route) => {
+  await page.route('**/organizations/liga-mendocina/tournaments/apertura-2026/emblem*', (route) => {
     if (route.request().method() !== 'GET') return route.fallback();
     return route.fulfill({
       status: 200,
@@ -283,7 +313,7 @@ test('uploading tournament emblem in control panel renders in tournament setting
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByRole('combobox').selectOption('en');
+  await page.getByLabel('Idioma', { exact: true }).selectOption('en');
 
   await expect(page.getByRole('img', { name: 'No tournament emblem uploaded' })).toBeVisible();
 
@@ -304,13 +334,13 @@ test('uploading tournament emblem in control panel renders in tournament setting
     // removal succeeded or already in cropping phase
   }
 
-  const useImage = dialog.getByRole('button', { name: 'Use image' });
+  const useImage = dialog.getByRole('button', { name: 'Apply' });
   await expect(useImage).toBeEnabled({ timeout: 15000 });
   await useImage.click();
   await expect(dialog).toBeHidden();
 
   await expect(page.getByText('Tournament emblem uploaded.')).toBeVisible();
-  const emblemImg = page.locator('.cl-tournament-settings__emblem-section .cl-image-frame img');
+  const emblemImg = page.locator('.cl-workspace-template__primary .cl-image-frame img');
   await expect(emblemImg).toBeVisible();
   expect(await emblemImg.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
   await expect(emblemImg).toHaveAttribute(
@@ -327,12 +357,12 @@ test('focusing FilePicker and choosing a file displays the chosen filename and c
   page,
 }) => {
   await mockOrganizationApi(page, { uploaded: { calls: 0 } });
-  const target = '/control/liga-mendocina/preferences';
+  const target = '/control/liga-mendocina/organization';
   await seedLoginTransaction(page, target);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByRole('combobox').selectOption('en');
+  await page.getByLabel('Idioma', { exact: true }).selectOption('en');
 
   const fileInput = page.getByLabel('Upload emblem');
   await fileInput.focus();

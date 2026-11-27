@@ -1,3 +1,4 @@
+import { expectReadRetry } from './resilient-read.test-support.js';
 import { jest } from '@jest/globals';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { ClubManagementPage } from '../pages/ClubManagementPage.js';
@@ -30,8 +31,9 @@ describe('ClubManagementPage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /clubs/i }));
+    await screen.findByText('Club Atlético Huracán Las Heras');
     expect(container.querySelector('.cl-list-screen')).not.toBeNull();
-    expect(container.querySelector('.cl-list-screen__header')).not.toBeNull();
+    expect(container.querySelector('.cl-page-header')).not.toBeNull();
     expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
     expect(screen.getByText('Club Atlético Huracán Las Heras')).toBeDefined();
   });
@@ -69,6 +71,7 @@ describe('ClubManagementPage', () => {
                   organizationId: 'org-1',
                   organizationAlias: 'liga-mendocina',
                   organizationName: 'Liga Mendocina',
+                  timezone: 'America/Argentina/Buenos_Aires',
                   role: 'referee' as const,
                 },
               ]),
@@ -102,7 +105,7 @@ describe('ClubManagementPage', () => {
     );
 
     await waitFor(() => screen.getByText('Club Atlético Huracán Las Heras'));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit club' }));
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'nuevo-alias' } });
     fireEvent.change(screen.getByLabelText('Abbreviation'), { target: { value: 'NEW' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -140,7 +143,9 @@ describe('ClubManagementPage', () => {
     fireEvent.change(screen.getByLabelText('New club name'), { target: { value: 'Gimnasia' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add club' }));
 
-    await waitFor(() => screen.getByText('Could not load clubs.'));
+    await expectReadRetry();
+    expect(screen.getByText('Club Atlético Huracán Las Heras')).toBeDefined();
+    expect(document.querySelector('.cl-stale-mark')).not.toBeNull();
   });
 
   it('resets optimistic emblem when upload fails', async () => {
@@ -155,7 +160,7 @@ describe('ClubManagementPage', () => {
     );
 
     await waitFor(() => screen.getByText('Club Atlético Huracán Las Heras'));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit club' }));
 
     const file = new File(['fake-bytes'], 'emblem.png', { type: 'image/png' });
     const input = screen.getByLabelText('Upload emblem') as HTMLInputElement;
@@ -169,9 +174,9 @@ describe('ClubManagementPage', () => {
     });
     fireEvent.load(img);
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
-    fireEvent.click(screen.getByText('Use image'));
+    fireEvent.click(screen.getByText('Apply'));
 
     await waitFor(() => expect(uploadClubEmblem).toHaveBeenCalled());
   });
@@ -182,7 +187,7 @@ describe('ClubManagementPage', () => {
     );
 
     await waitFor(() => screen.getByText('Club Atlético Huracán Las Heras'));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit club' }));
 
     const file = new File(['fake-bytes'], 'emblem.png', { type: 'image/png' });
     const input = screen.getByLabelText('Upload emblem') as HTMLInputElement;

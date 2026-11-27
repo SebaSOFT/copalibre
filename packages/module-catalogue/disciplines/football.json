@@ -1,11 +1,11 @@
 {
   "alias": "football",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "name": { "en": "Football", "es": "Fútbol" },
   "description": {
     "en": "Team discipline with timed halves, goal scoring, set pieces, cards, and player statistics."
   },
-  "images": [{ "key": "modules/football/1.3.0/football-01.jpg" }],
+  "images": [{ "key": "modules/football/1.4.0/football-01.jpg" }],
   "attribution": {
     "author": "CopaLibre",
     "licence": "AGPL-3.0-only",
@@ -435,25 +435,130 @@
   "statistics": [
     {
       "code": "goals-for",
-      "label": { "en": "Goals for", "es": "Goles a favor" },
+      "label": {
+        "en": "Goals for",
+        "es": "Goles a favor",
+        "fr": "Buts pour",
+        "de": "Erzielte Tore",
+        "it": "Gol fatti",
+        "pt": "Gols pró",
+        "ru": "Забитые голы",
+        "zh": "进球"
+      },
       "aggregation": "sum"
     },
     {
       "code": "goals-against",
-      "label": { "en": "Goals against", "es": "Goles en contra" },
+      "label": {
+        "en": "Goals against",
+        "es": "Goles en contra",
+        "fr": "Buts contre",
+        "de": "Gegentore",
+        "it": "Gol subiti",
+        "pt": "Gols contra",
+        "ru": "Пропущенные голы",
+        "zh": "失球"
+      },
       "aggregation": "sum"
     },
     {
       "code": "player-own-goals",
-      "label": { "en": "Own goals", "es": "Goles en contra" },
+      "label": {
+        "en": "Own goals",
+        "es": "Goles en contra",
+        "fr": "Buts contre son camp",
+        "de": "Eigentore",
+        "it": "Autogol",
+        "pt": "Gols contra",
+        "ru": "Автоголы",
+        "zh": "乌龙球"
+      },
       "aggregation": "sum"
     },
-    { "code": "assists", "label": { "en": "Assists", "es": "Asistencias" }, "aggregation": "sum" },
-    { "code": "wins", "label": { "en": "Wins", "es": "Victorias" }, "aggregation": "sum" },
-    { "code": "draws", "label": { "en": "Draws", "es": "Empates" }, "aggregation": "sum" },
-    { "code": "losses", "label": { "en": "Losses", "es": "Derrotas" }, "aggregation": "sum" },
-    { "code": "points", "label": { "en": "Points", "es": "Puntos" }, "aggregation": "sum" },
-    { "code": "played", "label": { "en": "Played", "es": "Jugados" }, "aggregation": "count" }
+    {
+      "code": "assists",
+      "label": {
+        "en": "Assists",
+        "es": "Asistencias",
+        "fr": "Passes décisives",
+        "de": "Vorlagen",
+        "it": "Assist",
+        "pt": "Assistências",
+        "ru": "Передачи",
+        "zh": "助攻"
+      },
+      "aggregation": "sum"
+    },
+    {
+      "code": "wins",
+      "label": {
+        "en": "Wins",
+        "es": "Victorias",
+        "fr": "Victoires",
+        "de": "Siege",
+        "it": "Vittorie",
+        "pt": "Vitórias",
+        "ru": "Победы",
+        "zh": "胜场"
+      },
+      "aggregation": "sum"
+    },
+    {
+      "code": "draws",
+      "label": {
+        "en": "Draws",
+        "es": "Empates",
+        "fr": "Nuls",
+        "de": "Unentschieden",
+        "it": "Pareggi",
+        "pt": "Empates",
+        "ru": "Ничьи",
+        "zh": "平局"
+      },
+      "aggregation": "sum"
+    },
+    {
+      "code": "losses",
+      "label": {
+        "en": "Losses",
+        "es": "Derrotas",
+        "fr": "Défaites",
+        "de": "Niederlagen",
+        "it": "Sconfitte",
+        "pt": "Derrotas",
+        "ru": "Поражения",
+        "zh": "负场"
+      },
+      "aggregation": "sum"
+    },
+    {
+      "code": "points",
+      "label": {
+        "en": "Points",
+        "es": "Puntos",
+        "fr": "Points",
+        "de": "Punkte",
+        "it": "Punti",
+        "pt": "Pontos",
+        "ru": "Очки",
+        "zh": "积分"
+      },
+      "aggregation": "sum"
+    },
+    {
+      "code": "played",
+      "label": {
+        "en": "Played",
+        "es": "Jugados",
+        "fr": "Joués",
+        "de": "Gespielt",
+        "it": "Giocate",
+        "pt": "Jogos",
+        "ru": "Игры",
+        "zh": "已赛"
+      },
+      "aggregation": "count"
+    }
   ],
   "rosterRoles": [
     { "code": "goalkeeper", "label": { "en": "Goalkeeper", "es": "Arquero" }, "badge": "GK" },
@@ -462,14 +567,32 @@
   "collectors": [
     {
       "code": "player-goals",
-      "label": { "en": "Goals", "es": "Goles" },
+      "label": {
+        "en": "Goals",
+        "es": "Goles",
+        "fr": "Buts",
+        "de": "Tore",
+        "it": "Gol",
+        "pt": "Gols",
+        "ru": "Голы",
+        "zh": "进球"
+      },
       "source": { "kind": "event", "definitionCodes": ["goal"], "actorSource": "primary" },
       "measure": { "kind": "count" },
       "granularity": { "actor": "person", "competition": "match" }
     },
     {
       "code": "player-assists",
-      "label": { "en": "Assists", "es": "Asistencias" },
+      "label": {
+        "en": "Assists",
+        "es": "Asistencias",
+        "fr": "Passes décisives",
+        "de": "Vorlagen",
+        "it": "Assist",
+        "pt": "Assistências",
+        "ru": "Передачи",
+        "zh": "助攻"
+      },
       "source": {
         "kind": "event",
         "definitionCodes": ["goal"],
@@ -480,28 +603,64 @@
     },
     {
       "code": "player-appearances",
-      "label": { "en": "Appearances", "es": "Partidos jugados" },
+      "label": {
+        "en": "Appearances",
+        "es": "Partidos jugados",
+        "fr": "Apparitions",
+        "de": "Einsätze",
+        "it": "Presenze",
+        "pt": "Partidas",
+        "ru": "Матчи",
+        "zh": "出场"
+      },
       "source": { "kind": "participation" },
       "measure": { "kind": "count" },
       "granularity": { "actor": "person", "competition": "match" }
     },
     {
       "code": "player-yellow-cards",
-      "label": { "en": "Yellow cards", "es": "Tarjetas amarillas" },
+      "label": {
+        "en": "Yellow cards",
+        "es": "Tarjetas amarillas",
+        "fr": "Cartons jaunes",
+        "de": "Gelbe Karten",
+        "it": "Cartellini gialli",
+        "pt": "Cartões amarelos",
+        "ru": "Желтые карточки",
+        "zh": "黄牌"
+      },
       "source": { "kind": "event", "definitionCodes": ["yellow-card"], "actorSource": "primary" },
       "measure": { "kind": "count" },
       "granularity": { "actor": "person", "competition": "match" }
     },
     {
       "code": "player-red-cards",
-      "label": { "en": "Red cards", "es": "Tarjetas rojas" },
+      "label": {
+        "en": "Red cards",
+        "es": "Tarjetas rojas",
+        "fr": "Cartons rouges",
+        "de": "Rote Karten",
+        "it": "Cartellini rossi",
+        "pt": "Cartões vermelhos",
+        "ru": "Красные карточки",
+        "zh": "红牌"
+      },
       "source": { "kind": "event", "definitionCodes": ["red-card"], "actorSource": "primary" },
       "measure": { "kind": "count" },
       "granularity": { "actor": "person", "competition": "match" }
     },
     {
       "code": "goalkeeper-goals-conceded",
-      "label": { "en": "Goals conceded", "es": "Goles recibidos" },
+      "label": {
+        "en": "Goals conceded",
+        "es": "Goles recibidos",
+        "fr": "Buts encaissés",
+        "de": "Gegentore",
+        "it": "Gol subiti",
+        "pt": "Gols sofridos",
+        "ru": "Пропущенные голы",
+        "zh": "失球"
+      },
       "source": {
         "kind": "event",
         "definitionCodes": ["goal"],
@@ -515,7 +674,16 @@
     {
       "code": "group-standings-default",
       "target": "group-phase",
-      "label": { "en": "Group Standings", "es": "Tabla de Posiciones" },
+      "label": {
+        "en": "Group Standings",
+        "es": "Tabla de Posiciones",
+        "fr": "Classement du groupe",
+        "de": "Gruppentabelle",
+        "it": "Classifica del girone",
+        "pt": "Classificação do grupo",
+        "ru": "Таблица группы",
+        "zh": "小组积分榜"
+      },
       "entityGranularity": "team",
       "defaultSort": [
         { "columnCode": "points", "direction": "desc" },
@@ -524,61 +692,151 @@
       "columns": [
         {
           "code": "rank",
-          "header": { "en": "Pos", "es": "#" },
+          "header": {
+            "en": "Pos",
+            "es": "#",
+            "fr": "Pos",
+            "de": "Pl.",
+            "it": "Pos",
+            "pt": "Pos",
+            "ru": "№",
+            "zh": "排名"
+          },
           "source": { "kind": "rank" },
           "format": "number"
         },
         {
           "code": "name",
-          "header": { "en": "Team", "es": "Equipo" },
+          "header": {
+            "en": "Team",
+            "es": "Equipo",
+            "fr": "Équipe",
+            "de": "Mannschaft",
+            "it": "Squadra",
+            "pt": "Equipe",
+            "ru": "Команда",
+            "zh": "球队"
+          },
           "source": { "kind": "entrant-name" },
           "format": "text"
         },
         {
           "code": "played",
-          "header": { "en": "P", "es": "PJ" },
+          "header": {
+            "en": "P",
+            "es": "PJ",
+            "fr": "J",
+            "de": "Sp",
+            "it": "G",
+            "pt": "J",
+            "ru": "И",
+            "zh": "赛"
+          },
           "source": { "kind": "collector", "code": "played" },
           "format": "number"
         },
         {
           "code": "wins",
-          "header": { "en": "W", "es": "PG" },
+          "header": {
+            "en": "W",
+            "es": "PG",
+            "fr": "G",
+            "de": "S",
+            "it": "V",
+            "pt": "V",
+            "ru": "В",
+            "zh": "胜"
+          },
           "source": { "kind": "collector", "code": "wins" },
           "format": "number"
         },
         {
           "code": "draws",
-          "header": { "en": "D", "es": "PE" },
+          "header": {
+            "en": "D",
+            "es": "PE",
+            "fr": "N",
+            "de": "U",
+            "it": "N",
+            "pt": "E",
+            "ru": "Н",
+            "zh": "平"
+          },
           "source": { "kind": "collector", "code": "draws" },
           "format": "number"
         },
         {
           "code": "losses",
-          "header": { "en": "L", "es": "PP" },
+          "header": {
+            "en": "L",
+            "es": "PP",
+            "fr": "P",
+            "de": "N",
+            "it": "P",
+            "pt": "D",
+            "ru": "П",
+            "zh": "负"
+          },
           "source": { "kind": "collector", "code": "losses" },
           "format": "number"
         },
         {
           "code": "gf",
-          "header": { "en": "GF", "es": "GF" },
+          "header": {
+            "en": "GF",
+            "es": "GF",
+            "fr": "BP",
+            "de": "T",
+            "it": "GF",
+            "pt": "GP",
+            "ru": "ЗМ",
+            "zh": "进球"
+          },
           "source": { "kind": "collector", "code": "goals-for" },
           "format": "number"
         },
         {
           "code": "ga",
-          "header": { "en": "GA", "es": "GC" },
+          "header": {
+            "en": "GA",
+            "es": "GC",
+            "fr": "BC",
+            "de": "GT",
+            "it": "GS",
+            "pt": "GC",
+            "ru": "ПМ",
+            "zh": "失球"
+          },
           "source": { "kind": "collector", "code": "goals-against" },
           "format": "number"
         },
         {
           "code": "gd",
-          "header": { "en": "GD", "es": "Dif" },
+          "header": {
+            "en": "GD",
+            "es": "Dif",
+            "fr": "DB",
+            "de": "TD",
+            "it": "DR",
+            "pt": "SG",
+            "ru": "РМ",
+            "zh": "净胜球"
+          },
           "source": { "kind": "computed", "expression": "gf - ga" },
           "format": "number"
         },
         {
           "code": "points",
-          "header": { "en": "Pts", "es": "Pts" },
+          "header": {
+            "en": "Pts",
+            "es": "Pts",
+            "fr": "Pts",
+            "de": "Pkt",
+            "it": "Pt",
+            "pt": "Pts",
+            "ru": "О",
+            "zh": "积分"
+          },
           "source": { "kind": "collector", "code": "points" },
           "format": "number"
         }
@@ -587,7 +845,16 @@
     {
       "code": "top-scorers",
       "target": "player-ranking",
-      "label": { "en": "Top Scorers", "es": "Tabla de Goleadores" },
+      "label": {
+        "en": "Top Scorers",
+        "es": "Tabla de Goleadores",
+        "fr": "Meilleurs buteurs",
+        "de": "Torschützenliste",
+        "it": "Capocannonieri",
+        "pt": "Artilheiros",
+        "ru": "Бомбардиры",
+        "zh": "最佳射手"
+      },
       "entityGranularity": "person",
       "defaultSort": [
         { "columnCode": "goals", "direction": "desc" },
@@ -596,49 +863,121 @@
       "columns": [
         {
           "code": "rank",
-          "header": { "en": "Rank", "es": "Pos" },
+          "header": {
+            "en": "Rank",
+            "es": "Pos",
+            "fr": "Rang",
+            "de": "Rang",
+            "it": "Pos",
+            "pt": "Pos",
+            "ru": "Место",
+            "zh": "排名"
+          },
           "source": { "kind": "rank" },
           "format": "number"
         },
         {
           "code": "player",
-          "header": { "en": "Player", "es": "Jugador" },
+          "header": {
+            "en": "Player",
+            "es": "Jugador",
+            "fr": "Joueur",
+            "de": "Spieler",
+            "it": "Giocatore",
+            "pt": "Jogador",
+            "ru": "Игрок",
+            "zh": "球员"
+          },
           "source": { "kind": "actor-name" },
           "format": "text"
         },
         {
           "code": "team",
-          "header": { "en": "Team", "es": "Equipo" },
+          "header": {
+            "en": "Team",
+            "es": "Equipo",
+            "fr": "Équipe",
+            "de": "Mannschaft",
+            "it": "Squadra",
+            "pt": "Equipe",
+            "ru": "Команда",
+            "zh": "球队"
+          },
           "source": { "kind": "team-name" },
           "format": "text"
         },
         {
           "code": "goals",
-          "header": { "en": "Goals", "es": "Goles" },
+          "header": {
+            "en": "Goals",
+            "es": "Goles",
+            "fr": "Buts",
+            "de": "Tore",
+            "it": "Gol",
+            "pt": "Gols",
+            "ru": "Голы",
+            "zh": "进球"
+          },
           "source": { "kind": "collector", "code": "player-goals" },
           "format": "number"
         },
         {
           "code": "played",
-          "header": { "en": "Matches", "es": "PJ" },
+          "header": {
+            "en": "Matches",
+            "es": "PJ",
+            "fr": "Matchs",
+            "de": "Spiele",
+            "it": "Partite",
+            "pt": "Jogos",
+            "ru": "Матчи",
+            "zh": "场次"
+          },
           "source": { "kind": "collector", "code": "player-appearances" },
           "format": "number"
         },
         {
           "code": "goals-per-match",
-          "header": { "en": "Goals/M", "es": "Goles/PJ" },
+          "header": {
+            "en": "Goals/M",
+            "es": "Goles/PJ",
+            "fr": "Buts/M",
+            "de": "Tore/Sp",
+            "it": "Gol/P",
+            "pt": "Gols/J",
+            "ru": "Голы/И",
+            "zh": "场均进球"
+          },
           "source": { "kind": "computed", "expression": "goals / max(played, 1)" },
           "format": "decimal-2"
         },
         {
           "code": "assists",
-          "header": { "en": "Assists", "es": "Asistencias" },
+          "header": {
+            "en": "Assists",
+            "es": "Asistencias",
+            "fr": "Passes décisives",
+            "de": "Vorlagen",
+            "it": "Assist",
+            "pt": "Assistências",
+            "ru": "Передачи",
+            "zh": "助攻"
+          },
           "source": { "kind": "collector", "code": "player-assists" },
           "format": "number"
         },
         {
           "code": "cards",
-          "header": { "en": "Y/R Cards", "es": "Tarjetas A/R" },
+          "header": {
+            "en": "Y/R Cards",
+            "es": "Tarjetas A/R",
+            "fr": "Cartons J/R",
+            "de": "Karten G/R",
+            "it": "Cartellini G/R",
+            "pt": "Cartões A/V",
+            "ru": "Карточки Ж/К",
+            "zh": "黄/红牌"
+          },
           "source": {
             "kind": "composite",
             "numerator": "player-yellow-cards",
@@ -651,7 +990,16 @@
     {
       "code": "goalkeeper-zamora",
       "target": "player-ranking",
-      "label": { "en": "Goalkeeper Rankings (Zamora)", "es": "Valla Menos Vencida" },
+      "label": {
+        "en": "Goalkeeper Rankings (Zamora)",
+        "es": "Valla Menos Vencida",
+        "fr": "Classement des gardiens (Zamora)",
+        "de": "Torhüter-Rangliste (Zamora)",
+        "it": "Classifica portieri (Zamora)",
+        "pt": "Classificação de goleiros (Zamora)",
+        "ru": "Рейтинг вратарей (Замора)",
+        "zh": "门将排名（萨莫拉奖）"
+      },
       "entityGranularity": "person",
       "filter": {
         "requiresRole": "goalkeeper",
@@ -664,37 +1012,91 @@
       "columns": [
         {
           "code": "rank",
-          "header": { "en": "Rank", "es": "Pos" },
+          "header": {
+            "en": "Rank",
+            "es": "Pos",
+            "fr": "Rang",
+            "de": "Rang",
+            "it": "Pos",
+            "pt": "Pos",
+            "ru": "Место",
+            "zh": "排名"
+          },
           "source": { "kind": "rank" },
           "format": "number"
         },
         {
           "code": "goalkeeper",
-          "header": { "en": "Goalkeeper", "es": "Arquero" },
+          "header": {
+            "en": "Goalkeeper",
+            "es": "Arquero",
+            "fr": "Gardien",
+            "de": "Torhüter",
+            "it": "Portiere",
+            "pt": "Goleiro",
+            "ru": "Вратарь",
+            "zh": "门将"
+          },
           "source": { "kind": "actor-name" },
           "format": "text"
         },
         {
           "code": "team",
-          "header": { "en": "Team", "es": "Equipo" },
+          "header": {
+            "en": "Team",
+            "es": "Equipo",
+            "fr": "Équipe",
+            "de": "Mannschaft",
+            "it": "Squadra",
+            "pt": "Equipe",
+            "ru": "Команда",
+            "zh": "球队"
+          },
           "source": { "kind": "team-name" },
           "format": "text"
         },
         {
           "code": "conceded",
-          "header": { "en": "Goals Conceded", "es": "Goles Recibidos" },
+          "header": {
+            "en": "Goals Conceded",
+            "es": "Goles Recibidos",
+            "fr": "Buts encaissés",
+            "de": "Gegentore",
+            "it": "Gol subiti",
+            "pt": "Gols sofridos",
+            "ru": "Пропущенные голы",
+            "zh": "失球"
+          },
           "source": { "kind": "collector", "code": "goalkeeper-goals-conceded" },
           "format": "number"
         },
         {
           "code": "played",
-          "header": { "en": "Matches", "es": "PJ" },
+          "header": {
+            "en": "Matches",
+            "es": "PJ",
+            "fr": "Matchs",
+            "de": "Spiele",
+            "it": "Partite",
+            "pt": "Jogos",
+            "ru": "Матчи",
+            "zh": "场次"
+          },
           "source": { "kind": "collector", "code": "player-appearances" },
           "format": "number"
         },
         {
           "code": "ratio",
-          "header": { "en": "Goals/Match", "es": "Promedio" },
+          "header": {
+            "en": "Goals/Match",
+            "es": "Promedio",
+            "fr": "Moyenne",
+            "de": "Schnitt",
+            "it": "Media",
+            "pt": "Média",
+            "ru": "Среднее",
+            "zh": "场均失球"
+          },
           "source": { "kind": "computed", "expression": "conceded / max(played, 1)" },
           "format": "decimal-2"
         }

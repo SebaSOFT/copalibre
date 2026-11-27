@@ -27,11 +27,13 @@ import {
 import { effectiveFormat, type TournamentFormat } from '@copalibre/domain';
 import {
   AllocationError,
+  QualificationError,
   allocateSeeds,
   classifyEngineMutation,
   generateFixtures,
   isDuelMatch,
   slotsOf,
+  withQualifierSources,
   type FixtureGraph,
   type GeneratedMatch,
 } from '@copalibre/tournament-engine';
@@ -44,6 +46,7 @@ import {
   withTransaction,
   type Database,
   type StageMatchRecord,
+  type PersistedFixtureNode,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import type { RequestWithSubject } from '../auth/request-context.js';
@@ -54,6 +57,7 @@ import {
   BracketMatchResponse,
   PublishSeedingRequest,
   SeedingClassificationResponse,
+  SeedingQualifierZoneResponse,
   SeedingResponse,
 } from '../dto/standings.dto.js';
 import { resolveTournament } from './standings.controller.js';
@@ -68,17 +72,22 @@ import {
 import { readStageSeries, readStageSeriesByPosition, seriesResponseOf } from './stage-series.js';
 import { PublicSeriesStateResponse } from '../dto/public-tournament.dto.js';
 import { DATABASE } from '../database.token.js';
+import { persistedFixtureNodes, placementPlayOf } from './persisted-fixture-plan.js';
+import { zoneEntrantResolution } from '../zone-entrant-resolution.js';
+import { persistedBracketMatches } from './persisted-bracket.js';
+import { qualifierLabelsForRecords } from './fixture-sources.js';
+import {
+  QualifierRoutingError,
+  stageQualifierPlans,
+  stageQualifierZones,
+  type StageQualifierZone,
+} from './stage-qualifiers.js';
 
 /**
  * Seeding and the bracket the engine builds from it.
  *
- * The bracket is generated here rather than read out of the fixtures table
- * because the persisted rows carry a round and two entrants and nothing about
- * where a slot comes from — a losers'-bracket match sourcing "loser of WB-R1-M2"
- * has no column to live in. Generation is deterministic in format plus seed
- * order, so regenerating from the stored seed order reproduces exactly the
- * structure the fixtures were created from; the persisted matches supply status
- * and scores over the top of it.
+ * Persisted graphs carry their complete topology and sources. Legacy fixtures use the
+ * deterministic generated structure with their recorded status and scores overlaid.
  */
 @ApiTags('seeding')
 @Controller('organizations/:organizationAlias/tournaments/:tournamentAlias/stages/:stageNumber')
@@ -129,9 +138,30 @@ export class SeedingController {
             ? record
             : await readModel.stageRecord(stageId, undefined, zone.zoneId);
         const zoneRecords = await readModel.matches(stageId, undefined, zone.zoneId);
-        // Placement games sit beside the generated graph, not on it.
-        const persisted = graphRecordsOf(zoneRecords);
         const format = effectiveFormat(zone, { format: record.format as TournamentFormat });
+        if (zoneRecords.length > 0 && zoneRecords.every((match) => match.node !== undefined)) {
+          const series = await readStageSeriesByPosition(this.db, {
+            tournamentId,
+            stageId,
+            zoneId: zone.zoneId,
+            records: zoneRecords,
+          });
+          return {
+            ...zone,
+            format,
+            matches: persistedBracketMatches(
+              zoneRecords,
+              (match) => {
+                const state = series.get(match.fixtureId);
+                return state === undefined ? undefined : seriesResponseOf(state);
+              },
+              matchFormat,
+              await qualifierLabelsForRecords(this.db, zoneRecords),
+            ),
+          };
+        }
+        // Legacy placement games sit beside the generated graph.
+        const persisted = graphRecordsOf(zoneRecords);
         const graph = this.graphOf(format, zoneRecord?.entrantIds ?? []);
         const ambiguousPositions = ambiguousRoundPositions(graph.matches);
         const seriesByPosition = await readStageSeriesByPosition(this.db, {
@@ -179,22 +209,88 @@ export class SeedingController {
         };
       }),
     );
-    const resolvedNamesMap = await new EnrollmentRepository(this.db).resolveEntrantNames(
-      record.entrantIds,
+    const qualifiers = await this.qualifiersOf(stageId, record.format);
+    const entrantIds = [
+      ...new Set([
+        ...record.entrantIds,
+        ...zoneResponses.flatMap((zone) =>
+          zone.matches.flatMap((match) =>
+            match.slots.flatMap((slot) => (slot.entrantId === undefined ? [] : [slot.entrantId])),
+          ),
+        ),
+      ]),
+    ];
+    const resolvedEntrants = await new EnrollmentRepository(this.db).resolveEntrantPodiumDetails(
+      entrantIds,
     );
     const names: Record<string, string> = {};
-    for (const [entrantId, entry] of resolvedNamesMap) {
+    for (const [entrantId, entry] of resolvedEntrants) {
       names[entrantId] = entry.name;
     }
+    const zonesWithEntrantDetails = zoneResponses.map((zone) => ({
+      ...zone,
+      matches: zone.matches.map((match) => ({
+        ...match,
+        slots: match.slots.map((slot) => {
+          const entrant =
+            slot.entrantId === undefined ? undefined : resolvedEntrants.get(slot.entrantId);
+          return entrant === undefined
+            ? slot
+            : {
+                ...slot,
+                ...(entrant.abbreviation === undefined
+                  ? {}
+                  : { abbreviation: entrant.abbreviation }),
+                ...(entrant.clubId === undefined ? {} : { clubId: entrant.clubId }),
+                ...(entrant.emblemObjectId === undefined
+                  ? {}
+                  : { emblemObjectId: entrant.emblemObjectId }),
+              };
+        }),
+      })),
+    }));
 
     return {
       stageId,
+      releasedAssignments: Number(
+        (
+          await this.db
+            .selectFrom('match_schedule_assignments')
+            .innerJoin('matches', 'matches.match_id', 'match_schedule_assignments.match_id')
+            .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+            .select(({ fn }) => fn.countAll().as('count'))
+            .where('fixtures.stage_id', '=', stageId)
+            .where('match_schedule_assignments.published', '=', true)
+            .executeTakeFirstOrThrow()
+        ).count,
+      ),
       format: record.format,
       seeds: seedOrder.map((entrantId, index) => ({ seed: index + 1, entrantId })),
-      zones: zoneResponses,
+      zones: zonesWithEntrantDetails,
       hasRecordedResults: record.hasRecordedResults,
       names,
+      ...(qualifiers === undefined ? {} : { qualifiers: qualifiers.map(qualifierZoneResponse) }),
     };
+  }
+
+  /**
+   * The qualifier seeds promotion plans route into the stage, or none when no plan targets it. A
+   * plan whose routing no longer fits the stage's zones reads as none here; generating ahead
+   * reports why.
+   */
+  private async qualifiersOf(
+    stageId: string,
+    format: string,
+  ): Promise<readonly StageQualifierZone[] | undefined> {
+    try {
+      const plans = await stageQualifierPlans(this.db, stageId);
+      if (plans.length === 0) return undefined;
+      return await stageQualifierZones(this.db, { stageId, format }, plans);
+    } catch (error) {
+      if (error instanceof QualifierRoutingError || error instanceof QualificationError)
+        return undefined;
+      throw error;
+    }
   }
 
   /**
@@ -267,6 +363,15 @@ export class SeedingController {
       request,
     );
 
+    const audit = {
+      organizationId,
+      actor: actorOf(request),
+      authorizationContext: authorizationContextOf(request),
+    };
+    if (body.ahead === true) {
+      return this.publishAhead(stageNumber, { stageId, tournamentId, record }, audit);
+    }
+
     const seeds = body.seeds ?? [];
     if (seeds.length === 0) {
       throw new UnprocessableEntityException('A seed order must name every entrant', {
@@ -321,61 +426,37 @@ export class SeedingController {
     // in slots, and what the engine later anulls if the series decides early. A zone declaring none
     // (or a stage declaring none) passes no `matchCount` at all and gets the one match per fixture
     // it has always got.
-    const fixtures: {
-      round: number;
-      homeEntrantId?: string;
-      awayEntrantId?: string;
+    const plans: {
       zoneId?: string;
+      nodes?: readonly PersistedFixtureNode[];
+      fixtures?: readonly { round: number; homeEntrantId?: string; awayEntrantId?: string }[];
       matchCount?: number;
     }[] = [];
-    let seriesSpan: { readonly matchCount?: number } = {};
     for (const plan of newPlans) {
       const declaration = await readStageSeries(this.db, {
         tournamentId,
         stageId,
         zoneId: plan.zoneId,
       });
-      const graph = this.graphOf(plan.format, plan.entrantIds);
-      if (plan.zoneId === undefined) {
-        seriesSpan = declaration === undefined ? {} : { matchCount: declaration.span };
-        fixtures.push(...resolvedFixtureInputs(graph));
-        continue;
-      }
-      for (const fixture of resolvedFixtureInputs(graph)) {
-        fixtures.push({
-          ...fixture,
-          zoneId: plan.zoneId,
-          ...(declaration === undefined ? {} : { matchCount: declaration.span }),
-        });
-      }
+      const graph = this.graphOf(
+        plan.format,
+        plan.entrantIds,
+        placementPlayOf(record.overrides, plan.zoneId),
+      );
+      const elimination =
+        plan.format === 'single-elimination' || plan.format === 'double-elimination';
+      plans.push({
+        ...(plan.zoneId === undefined ? {} : { zoneId: plan.zoneId }),
+        ...(elimination
+          ? { nodes: persistedFixtureNodes(graph, declaration?.span ?? 1) }
+          : {
+              fixtures: resolvedFixtureInputs(graph),
+              ...(declaration === undefined ? {} : { matchCount: declaration.span }),
+            }),
+      });
     }
 
-    const competition = new CompetitionRepository(this.db);
-    try {
-      await withTransaction(this.db, (uow) =>
-        record.hasGeneratedFixtures
-          ? competition.replaceFixtures(uow, {
-              stageId,
-              fixtures,
-              ...seriesSpan,
-              organizationId,
-              actor: actorOf(request),
-              authorizationContext: authorizationContextOf(request),
-            })
-          : competition.createFixtures(uow, {
-              stageId,
-              fixtures,
-              ...seriesSpan,
-              organizationId,
-              actor: actorOf(request),
-              authorizationContext: authorizationContextOf(request),
-            }),
-      );
-    } catch (error) {
-      if (error instanceof InvariantViolationError)
-        throw new ConflictException(error.message, { errorCode: 'seeding-conflict' });
-      throw error;
-    }
+    await this.persistPlans(stageId, plans, audit);
 
     return {
       mutationClass: classification.mutationClass,
@@ -383,6 +464,126 @@ export class SeedingController {
       invalidates: [...classification.invalidates],
       persisted: true,
     };
+  }
+
+  /**
+   * Generates every destination zone's elimination structure from the qualifier positions the
+   * promotion plans route to it, before the prior stage completes. Seed `k` is the zone's `k`-th
+   * qualifier position, so the bracket's seed-slot order applies unchanged. The sides stay
+   * undecided until an organizer confirms the qualification.
+   */
+  private async publishAhead(
+    stageNumber: number,
+    stage: {
+      readonly stageId: string;
+      readonly tournamentId: string;
+      readonly record: {
+        readonly format: string;
+        readonly overrides: Readonly<Record<string, unknown>>;
+        readonly hasRecordedResults: boolean;
+        readonly hasGeneratedFixtures: boolean;
+      };
+    },
+    audit: {
+      readonly organizationId: string;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<SeedingClassificationResponse> {
+    const { stageId, tournamentId, record } = stage;
+    let zones: readonly StageQualifierZone[];
+    try {
+      const qualifierPlans = await stageQualifierPlans(this.db, stageId);
+      if (qualifierPlans.length === 0) {
+        throw new UnprocessableEntityException(
+          `No reviewed promotion plan routes to stage ${stageNumber}; save one before generating it ahead`,
+          { errorCode: 'seeding-promotion-plan-missing' },
+        );
+      }
+      zones = await stageQualifierZones(
+        this.db,
+        { stageId, format: record.format },
+        qualifierPlans,
+      );
+    } catch (error) {
+      if (error instanceof QualifierRoutingError || error instanceof QualificationError)
+        throw new UnprocessableEntityException(error.message, {
+          errorCode: 'seeding-unprocessable-entity',
+        });
+      throw error;
+    }
+    const unsupported = zones.find(
+      (zone) => zone.format !== 'single-elimination' && zone.format !== 'double-elimination',
+    );
+    if (unsupported !== undefined) {
+      throw new UnprocessableEntityException(
+        `Only single- and double-elimination zones can be generated ahead; ${unsupported.zoneName ?? 'the stage'} plays ${unsupported.format}`,
+        { errorCode: 'seeding-unprocessable-entity' },
+      );
+    }
+
+    const classification = classifyEngineMutation(
+      { kind: 'seeding' },
+      {
+        hasRecordedResults: record.hasRecordedResults,
+        hasGeneratedFixtures: record.hasGeneratedFixtures,
+      },
+    );
+    if (classification.mutationClass === 'blocked_after_results') {
+      throw new ConflictException(classification.reason, { errorCode: 'seeding-conflict' });
+    }
+
+    const plans: { zoneId?: string; nodes: readonly PersistedFixtureNode[] }[] = [];
+    for (const zone of zones) {
+      const declaration = await readStageSeries(this.db, {
+        tournamentId,
+        stageId,
+        zoneId: zone.zoneId,
+      });
+      const placeholders = zone.seeds.map((_, index) => `qualifier-${index + 1}`);
+      const graph = withQualifierSources(
+        this.graphOf(zone.format, placeholders, placementPlayOf(record.overrides, zone.zoneId)),
+        zone.seeds,
+      );
+      plans.push({
+        ...(zone.zoneId === undefined ? {} : { zoneId: zone.zoneId }),
+        nodes: persistedFixtureNodes(graph, declaration?.span ?? 1),
+      });
+    }
+    await this.persistPlans(stageId, plans, audit);
+
+    return {
+      mutationClass: classification.mutationClass,
+      reason: classification.reason,
+      invalidates: [...classification.invalidates],
+      persisted: true,
+    };
+  }
+
+  /** Replaces the stage's fixtures and resolves every zone they land in, in one transaction. */
+  private async persistPlans(
+    stageId: string,
+    plans: Parameters<CompetitionRepository['publishFixturePlans']>[1]['plans'],
+    audit: {
+      readonly organizationId: string;
+      readonly actor: string;
+      readonly authorizationContext: string;
+    },
+  ): Promise<void> {
+    const competition = new CompetitionRepository(this.db);
+    try {
+      await withTransaction(this.db, async (uow) => {
+        const created = await competition.publishFixturePlans(uow, { stageId, plans, ...audit });
+        const zoneIds = new Set(
+          created.flatMap((fixture) => (fixture.zoneId ? [fixture.zoneId] : [])),
+        );
+        for (const zoneId of zoneIds) await zoneEntrantResolution(this.db).run(uow, zoneId, audit);
+      });
+    } catch (error) {
+      if (error instanceof InvariantViolationError)
+        throw new ConflictException(error.message, { errorCode: 'seeding-conflict' });
+      throw error;
+    }
   }
 
   /** The stage's zones with the entrants drawn into each, in the shape the fixture planner reads. */
@@ -410,10 +611,15 @@ export class SeedingController {
     };
   }
 
-  private graphOf(format: string, entrantIds: readonly string[]): FixtureGraph {
+  private graphOf(
+    format: string,
+    entrantIds: readonly string[],
+    placementPlay: 'none' | 'third-place' | 'all-places' = 'none',
+  ): FixtureGraph {
     const generated = generateFixtures({
       format: format as FixtureGraph['format'],
       entrants: entrantIds.map((entrantId, index) => ({ entrantId, seed: index + 1 })),
+      ...(format === 'single-elimination' ? { placementPlay } : {}),
     });
     if (!generated.ok)
       throw new UnprocessableEntityException(generated.error.message, {
@@ -481,6 +687,15 @@ export class SeedingController {
   }
 }
 
+function qualifierZoneResponse(zone: StageQualifierZone): SeedingQualifierZoneResponse {
+  return {
+    ...(zone.zoneId === undefined ? {} : { zoneId: zone.zoneId }),
+    ...(zone.zoneName === undefined ? {} : { zoneName: zone.zoneName }),
+    format: zone.format,
+    seeds: zone.seeds.map((seed) => ({ ...seed })),
+  };
+}
+
 /** The tournament's currently accepted registrations, in registration order. */
 async function acceptedEntrantIds(
   db: Kysely<Database>,
@@ -523,6 +738,11 @@ export function toBracketMatch(
     round: match.round,
     position: match.position,
     status: recorded?.status ?? 'scheduled',
+    ...(recorded !== undefined &&
+    recorded.status === 'finalized' &&
+    recorded.winnerEntrantId !== undefined
+      ? { winnerEntrantId: recorded.winnerEntrantId }
+      : {}),
     ...(options.matchFormat === undefined ? {} : { format: options.matchFormat }),
     slots: slotsOf(match).map((slot, index) => {
       const recordedEntrantId = index === 0 ? recorded?.homeEntrantId : recorded?.awayEntrantId;

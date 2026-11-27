@@ -35,6 +35,21 @@ export type QueuedAction =
       readonly segmentId: string;
     }
   | {
+      readonly kind: 'segment-add';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+      readonly matchId: string;
+      readonly type: string;
+    }
+  | {
+      readonly kind: 'segment-reopen';
+      readonly organizationAlias: string;
+      readonly tournamentAlias: string;
+      readonly matchId: string;
+      readonly segmentId: string;
+      readonly reason: string;
+    }
+  | {
       readonly kind: 'timer-resolve';
       readonly organizationAlias: string;
       readonly tournamentAlias: string;
@@ -163,7 +178,13 @@ export async function clearAll(): Promise<void> {
 
 export type DrainOutcome =
   | { readonly kind: 'sent'; readonly id: string }
-  | { readonly kind: 'refused'; readonly id: string; readonly reason: string }
+  | {
+      readonly kind: 'refused';
+      readonly id: string;
+      readonly reason: string;
+      /** The server's stable code, so a caller can word a known refusal in the operator's language. */
+      readonly errorCode?: string;
+    }
   | { readonly kind: 'network-failure'; readonly id: string };
 
 /**
@@ -189,7 +210,13 @@ export async function drainQueue(
       if (isRefusal(error)) {
         const reason = error instanceof Error ? error.message : 'Refused';
         await markRefused(mutation.id, reason);
-        outcomes.push({ kind: 'refused', id: mutation.id, reason });
+        const errorCode = error instanceof ControlApiError ? error.errorCode : undefined;
+        outcomes.push({
+          kind: 'refused',
+          id: mutation.id,
+          reason,
+          ...(errorCode === undefined ? {} : { errorCode }),
+        });
         continue;
       }
       outcomes.push({ kind: 'network-failure', id: mutation.id });
@@ -217,6 +244,23 @@ async function replay(client: MatchConsoleApiClient, mutation: QueuedMutation): 
         action.matchId,
         action.command,
         action.segmentId,
+        idempotencyKey,
+      );
+    case 'segment-add':
+      return client.addMatchSegment(
+        action.organizationAlias,
+        action.tournamentAlias,
+        action.matchId,
+        action.type,
+        idempotencyKey,
+      );
+    case 'segment-reopen':
+      return client.reopenMatchSegment(
+        action.organizationAlias,
+        action.tournamentAlias,
+        action.matchId,
+        action.segmentId,
+        action.reason,
         idempotencyKey,
       );
     case 'timer-resolve':
@@ -301,7 +345,14 @@ export function describeQueuedAction(action: QueuedAction): string {
     case 'clock-adjust':
       return `Clock set to ${action.request.elapsedSeconds}s`;
     case 'clock-command':
-      return `Clock ${action.command} on segment ${action.segmentId}`;
+      // A Start that creates the regulation plan has no segment yet to name.
+      return action.segmentId === ''
+        ? `Clock ${action.command}`
+        : `Clock ${action.command} on segment ${action.segmentId}`;
+    case 'segment-add':
+      return `Segment ${action.type} added`;
+    case 'segment-reopen':
+      return `Reopen segment ${action.segmentId}: ${action.reason}`;
     case 'timer-resolve':
       return `Timer ${action.timerId} resolved`;
   }

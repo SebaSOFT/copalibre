@@ -1,42 +1,62 @@
 ---
+import EmptyState from '../../components/ui/molecules/EmptyState.astro';
 import PublicLayout from '../../layouts/PublicLayout.astro';
+import Container from '../../components/ui/atoms/layout/Container.astro';
 import OrganizationHeader from '../../components/ui/organisms/OrganizationHeader.astro';
 import TournamentSection from '../../components/ui/organisms/TournamentSection.astro';
 import OrganizationClubs from '../../components/ui/organisms/OrganizationClubs.astro';
 import {
+  fetchOrganizations,
   fetchOrganizationTournaments,
   organizationEmblemUrl,
   clubEmblemUrl,
+  mapPublicWinnerZones,
 } from '../../lib/public-api-client.ts';
 import { withListingPodiumEmblems } from '../../lib/podium-emblems.ts';
 import { featuredTournaments } from '../../lib/organization-page.ts';
 import { publicIntl } from '../../lib/i18n/public-intl.ts';
 import { messages } from '../../lib/i18n/public-messages.en.ts';
-import { resolvePathLocale } from '../../lib/locale.ts';
-import { isReservedOrganizationAlias } from '../../lib/public-route-guards.ts';
+import {
+  resolvePathLocale,
+  getLocaleHomePath,
+  getLocalizedNotFoundPath,
+} from '../../lib/locale.ts';
+import {
+  isPublicLocaleSegment,
+  isReservedOrganizationAlias,
+} from '../../lib/public-route-guards.ts';
 import type { SupportedLanguage } from '@copalibre/domain';
 import type { PublicTournamentListingItemResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
 
 export const prerender = false;
 
-const { organization } = Astro.params;
+const { locale, organization } = Astro.params;
+
+const rawPath = Astro.request?.url ? new URL(Astro.request.url).pathname : Astro.url.pathname;
+
+// Only a single segment after the locale can be a mistyped organization
+// alias. Anything deeper (`/es/a/b/c`) names nothing, so it gets the
+// adopted page-not-found composition instead of the organization message.
+if (!isPublicLocaleSegment(locale)) {
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvePathLocale(rawPath)));
+}
 
 if (!organization || isReservedOrganizationAlias(organization)) {
   return new Response(null, { status: 404 });
 }
 
-const rawPath = Astro.request?.url ? new URL(Astro.request.url).pathname : Astro.url.pathname;
 const resolvedLocale: SupportedLanguage = resolvePathLocale(rawPath);
 const intl = publicIntl(resolvedLocale);
 
-const listData = await fetchOrganizationTournaments(organization!);
+const [listData, organizations] = await Promise.all([
+  fetchOrganizationTournaments(organization!),
+  fetchOrganizations(),
+]);
+const organizationTimeZone = organizations?.find((one) => one.alias === organization)?.timezone;
 if (!listData) {
-  // Astro.rewrite('/404') targets the site's static-host fallback page
-  // (src/pages/404.astro, prerendered by design so any static host can
-  // serve it with no server config) — an on-demand route can't rewrite
-  // into a prerendered one, so an unknown organization renders its own
-  // not-found content below instead, with the response status set to
-  // match.
+  // A single unknown segment may be a mistyped organization alias, so it
+  // renders the organization-specific not-found content below (with a way
+  // to browse organizations) rather than the generic 404 page.
   Astro.response.status = 404;
 }
 
@@ -44,13 +64,27 @@ const localePrefix = resolvedLocale === 'en' ? '' : `/${resolvedLocale}`;
 const canonicalPath = `${localePrefix}/${encodeURIComponent(organization!)}`;
 
 const withEmblems = (items: readonly PublicTournamentListingItemResponse[]) =>
-  items.map((t) => withListingPodiumEmblems(organization!, t));
-const liveTournaments = withEmblems(listData?.tournaments.filter((t) => t.status === 'live') ?? []);
+  items.map((t) => {
+    const winners = mapPublicWinnerZones(t.winners, resolvedLocale);
+    return withListingPodiumEmblems(organization!, winners === undefined ? t : { ...t, winners });
+  });
+const featured = withEmblems(listData ? featuredTournaments(listData.tournaments) : []);
+const featuredTournamentIds = new Set(featured.map((tournament) => tournament.tournamentId));
+const liveTournaments = withEmblems(
+  listData?.tournaments.filter((t) => t.status === 'live') ?? [],
+).map((tournament) => ({
+  ...tournament,
+  featured: featuredTournamentIds.has(tournament.tournamentId),
+}));
 const upcomingTournaments = withEmblems(
-  listData?.tournaments.filter((t) => t.status === 'upcoming') ?? [],
+  listData?.tournaments.filter(
+    (t) => t.status === 'upcoming' && !featuredTournamentIds.has(t.tournamentId),
+  ) ?? [],
 );
 const finishedTournaments = withEmblems(
-  listData?.tournaments.filter((t) => t.status === 'finished') ?? [],
+  listData?.tournaments.filter(
+    (t) => t.status === 'finished' && !featuredTournamentIds.has(t.tournamentId),
+  ) ?? [],
 );
 const orgClubs = (listData?.clubs ?? []).map((club) => ({
   ...club,
@@ -59,8 +93,9 @@ const orgClubs = (listData?.clubs ?? []).map((club) => ({
 const organizationEmblemSrc = listData?.organizationEmblemObjectId
   ? organizationEmblemUrl(listData.organizationAlias)
   : undefined;
-// Live first, featured second: live is urgent, featured is curated.
-const featured = withEmblems(listData ? featuredTournaments(listData.tournaments) : []);
+// A tournament appears once. In-progress entries lead; featured entries that
+// are not already there follow in the curated section.
+const featuredOnly = featured.filter((tournament) => tournament.status !== 'live');
 
 const pageTitle = listData?.organizationName ?? intl.formatMessage(messages.orgPageNotFoundTitle);
 const structuredData = listData
@@ -84,93 +119,104 @@ const structuredData = listData
   noindex={!listData}
   structuredData={structuredData}
 >
-  {
-    !listData && (
-      <div class="cl-org-container">
-        <div class="cl-empty-state">
-          <p>{intl.formatMessage(messages.orgPageNotFoundBody)}</p>
+  {!listData && (
+    <Container class="cl-org-container" variant="public">
+      <Container variant="reading">
+        <EmptyState
+          icon="team"
+          headingLevel={1}
+          heading={intl.formatMessage(messages.orgPageNotFoundTitle)}
+          description={intl.formatMessage(messages.orgPageNotFoundBody)}
+          actionLabel={intl.formatMessage(messages.interactionBrowseOrganizations)}
+          href={getLocaleHomePath(resolvedLocale)}
+          secondaryAction={{
+            label: intl.formatMessage(messages.headerNavHelp),
+            href: `${resolvedLocale === 'en' ? '' : `/${resolvedLocale}`}/help/`,
+          }}
+        />
+      </Container>
+    </Container>
+  )}
+  {listData && (
+    <Container class="cl-org-container" variant="public">
+      <OrganizationHeader
+        organizationName={listData.organizationName}
+        emblemSrc={organizationEmblemSrc}
+        intl={intl}
+      />
+
+      {listData.tournaments.length === 0 && (
+        <div class="cl-empty-state cl-chamfer">
+          <p>{intl.formatMessage(messages.tournamentsEmpty)}</p>
         </div>
-      </div>
-    )
-  }
-  {
-    listData && (
-      <div class="cl-org-container">
-        <OrganizationHeader
-          organizationAlias={listData.organizationAlias}
-          organizationName={listData.organizationName}
-          emblemSrc={organizationEmblemSrc}
+      )}
+
+      {liveTournaments.length > 0 && (
+        <TournamentSection
+          headingId="heading-live"
+          heading={intl.formatMessage(messages.completionInProgress)}
+          tournaments={liveTournaments}
+          organizationAlias={organization!}
+          organizationTimeZone={organizationTimeZone}
+          localePrefix={localePrefix}
+          intl={intl}
+          gridClass="cl-grid-priority"
+        />
+      )}
+
+      {featuredOnly.length > 0 && (
+        <TournamentSection
+          headingId="heading-featured"
+          heading={intl.formatMessage(messages.orgPageFeaturedHeading)}
+          tournaments={featuredOnly}
+          organizationAlias={organization!}
+          organizationTimeZone={organizationTimeZone}
+          localePrefix={localePrefix}
+          intl={intl}
+          showCount={false}
+          featured={true}
+          sectionClass="cl-section-featured"
+          gridClass="cl-grid-featured"
+        />
+      )}
+
+      {upcomingTournaments.length > 0 && (
+        <TournamentSection
+          headingId="heading-upcoming"
+          heading={intl.formatMessage(messages.tournamentsUpcomingHeading)}
+          tournaments={upcomingTournaments}
+          organizationAlias={organization!}
+          organizationTimeZone={organizationTimeZone}
+          localePrefix={localePrefix}
           intl={intl}
         />
+      )}
 
-        {listData.tournaments.length === 0 && (
-          <div class="cl-empty-state">
-            <p>{intl.formatMessage(messages.tournamentsEmpty)}</p>
-          </div>
-        )}
+      {finishedTournaments.length > 0 && (
+        <TournamentSection
+          headingId="heading-finished"
+          heading={intl.formatMessage(messages.tournamentsFinishedHeading)}
+          tournaments={finishedTournaments}
+          organizationAlias={organization!}
+          organizationTimeZone={organizationTimeZone}
+          localePrefix={localePrefix}
+          intl={intl}
+        />
+      )}
 
-        {liveTournaments.length > 0 && (
-          <TournamentSection
-            headingId="heading-live"
-            heading={intl.formatMessage(messages.tournamentsLiveHeading)}
-            tournaments={liveTournaments}
-            organizationAlias={organization!}
-            localePrefix={localePrefix}
-            intl={intl}
-            showLiveDot={true}
-            sectionClass="cl-section-live"
-            gridClass="cl-grid-live"
-          />
-        )}
-
-        {featured.length > 0 && (
-          <TournamentSection
-            headingId="heading-featured"
-            heading={intl.formatMessage(messages.orgPageFeaturedHeading)}
-            tournaments={featured}
-            organizationAlias={organization!}
-            localePrefix={localePrefix}
-            intl={intl}
-            showCount={false}
-            featured={true}
-            sectionClass="cl-section-featured"
-            gridClass="cl-grid-featured"
-          />
-        )}
-
-        {upcomingTournaments.length > 0 && (
-          <TournamentSection
-            headingId="heading-upcoming"
-            heading={intl.formatMessage(messages.tournamentsUpcomingHeading)}
-            tournaments={upcomingTournaments}
-            organizationAlias={organization!}
-            localePrefix={localePrefix}
-            intl={intl}
-          />
-        )}
-
-        {finishedTournaments.length > 0 && (
-          <TournamentSection
-            headingId="heading-finished"
-            heading={intl.formatMessage(messages.tournamentsFinishedHeading)}
-            tournaments={finishedTournaments}
-            organizationAlias={organization!}
-            localePrefix={localePrefix}
-            intl={intl}
-          />
-        )}
-
-        <OrganizationClubs clubs={orgClubs} intl={intl} />
-      </div>
-    )
-  }
+      <OrganizationClubs
+        clubs={orgClubs}
+        intl={intl}
+        organizationAlias={organization!}
+        localePrefix={localePrefix}
+      />
+    </Container>
+  )}
 </PublicLayout>
 
 <style>
   .cl-org-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem 1.5rem 4rem;
+    padding-block: var(--cl-space-8) var(--cl-space-16);
     display: flex;
     flex-direction: column;
     gap: 2.5rem;
@@ -180,7 +226,6 @@ const structuredData = listData
     padding: 3rem 1rem;
     text-align: center;
     background-color: var(--cl-surface-panel);
-    border-radius: 12px;
     border: 1px dashed var(--cl-border-muted);
     color: var(--cl-text-muted);
   }
@@ -188,7 +233,7 @@ const structuredData = listData
   /* BREAKPOINTS.sm: retain readable padding at the 375px review width. */
   @media (max-width: 375px) {
     .cl-org-container {
-      padding: 1rem 0.75rem 2rem;
+      padding-block: var(--cl-space-4) var(--cl-space-8);
     }
   }
 </style>

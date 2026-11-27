@@ -8,13 +8,12 @@ invariant 5 (no mandatory hosted account).
 ## Requirements
 
 ### Requirement: Single multi-role image
-The release SHALL ship one Docker image capable of running as any documented process role (`api`,
-`events`, `worker`, `scheduler`, `migrate`, `doctor`, `web`), selected at container start without
-rebuilding the image. The `web` role SHALL serve server-rendered public pages for the subset of public
-routes that require per-request backend data; it SHALL NOT replace the existing static delivery of
-every other public, control-panel-shell, help, and TV route, which continues to be served as static
-files by a separate process in front of it. In addition, the release container image (`ghcr.io/sebasoft/copalibre:1.2.5`)
-SHALL include `git` in its runtime filesystem layers to support dynamic discipline module cloning and updates via `POST /admin/modules`.
+
+The release SHALL ship one Docker image able to run as any documented process role, selected at
+container start without rebuilding it. The `web` role SHALL serve server-rendered public pages only
+for the public routes that need per-request backend data, and SHALL NOT replace the static delivery
+of every other route. The release image SHALL include `git` in its runtime layers for discipline
+module cloning and updates through `POST /admin/modules`.
 
 #### Scenario: Same image runs two different roles
 - **WHEN** the image is started once with role `api` and again with role `worker`
@@ -30,20 +29,29 @@ SHALL include `git` in its runtime filesystem layers to support dynamic discipli
 - **WHEN** an operator invokes module addition requiring git cloning against the `api` container
 - **THEN** git executes successfully inside the container without `spawn git ENOENT` errors.
 
+#### Scenario: The roles
+
+- **WHEN** the image starts
+- **THEN** it can run as `api`, `events`, `worker`, `scheduler`, `migrate`, `doctor` or `web`
+
+#### Scenario: Static routes stay static
+
+- **WHEN** a public, control-panel-shell, help or TV route without per-request data is requested
+- **THEN** a separate process in front of the `web` role serves it as static files
+
+#### Scenario: The release image
+
+- **WHEN** `ghcr.io/sebasoft/copalibre:1.2.5` is inspected
+- **THEN** its runtime layers contain `git`
+
 ### Requirement: Docker Compose Level 1 install
-The repository SHALL provide a `docker-compose.yml` that starts a complete single-host CopaLibre
-installation (all process roles, PostgreSQL, and optional Redis/object storage/SMTP) with one
-command, and a separate dev profile with Compose Watch enabled. The installation SHALL include an
-integrated edge reverse proxy service that unifies network ingress under a single published host port
-(`COPALIBRE_PORT`, default 8080 or 80), routing `/api` (`/api/*`), `/auth` (`/auth/*`), `/organizations`
-(`/organizations/*`), `/objects` (`/objects/*`), `/admin` (`/admin/*`), `/installation` (`/installation/*`),
-and `/.well-known` (`/.well-known/*`) to the `api` service (port 3001), `/events` (`/events/*`) to the `events`
-service (port 3002, preserving SSE streaming), and all other requests (static assets, control panel shell, SSR public pages,
-TV kiosks) to the `web` service (port 4321). Edge reverse proxy and web proxy matchers SHALL match both bare
-prefixes and subpaths, ensuring queries such as `/organizations?mine=true` are not forwarded to web SSR.
-Individual microservices (`api`, `events`, `web`, `web-ssr`) SHALL NOT require external port exposure in production mode.
-When the optional object storage adapter is enabled, it SHALL be provided by a lightweight Garage container
-(`dxflrs/garage:v1.1.0`), and SHALL NOT require secondary auxiliary containers for bucket provisioning.
+
+The repository SHALL provide a `docker-compose.yml` starting a complete single-host installation
+with one command, and a dev profile with Compose Watch. It SHALL include an edge reverse proxy
+unifying ingress on one published port (`COPALIBRE_PORT`, default 8080 or 80), matching bare
+prefixes and subpaths alike. Services SHALL NOT require external port exposure in production.
+Enabled object storage SHALL be one Garage container (`dxflrs/garage:v1.3.1`) with no auxiliary
+provisioning container.
 
 #### Scenario: One-command install
 - **WHEN** an operator with Docker installed runs the documented Compose-up command against a fresh
@@ -61,7 +69,7 @@ When the optional object storage adapter is enabled, it SHALL be provided by a l
 
 #### Scenario: Single-port ingress routing
 - **WHEN** an operator starts the Docker Compose stack with default configuration
-- **THEN** only the edge reverse proxy port is published to the host, and browser calls to `/api/auth/login`, `/organizations?mine=true`, and `/control/platform` resolve through the same origin without CORS or 404 proxy errors.
+- **THEN** only the edge reverse proxy port is published to the host, and browser calls to `/api/auth/login`, `/api/organizations?mine=true`, and `/control/platform` resolve through the same origin without CORS or 404 proxy errors.
 
 #### Scenario: Automatic Compose override discovery
 - **WHEN** an operator creates `docker-compose.override.yml` in the installation directory
@@ -71,107 +79,39 @@ When the optional object storage adapter is enabled, it SHALL be provided by a l
 - **WHEN** an operator enables the optional `object-storage` service in Docker Compose or development profiles
 - **THEN** Garage provides the S3 endpoint without requiring auxiliary container sidecars for bucket initialization.
 
+#### Scenario: What one command starts
+
+- **WHEN** an operator runs the Compose install
+- **THEN** every process role and PostgreSQL start, with Redis, object storage and SMTP as options
+
+#### Scenario: Routing to the API
+
+- **WHEN** a request path starts with `/api`
+- **THEN** the edge proxy routes it to the `api` service on port 3001
+
+#### Scenario: Routing events and everything else
+
+- **WHEN** a request path starts with `/events`, or with anything else
+- **THEN** `/events` goes to the `events` service on port 3002 with SSE streaming preserved, and
+  every other request (static assets, control panel shell, SSR public pages, TV kiosks) to the `web`
+  service on port 4321
+
+#### Scenario: A bare prefix with a query
+
+- **WHEN** a request is `/organizations?mine=true`
+- **THEN** it matches the `/organizations` route and is not forwarded to web SSR
+
+#### Scenario: Services not published
+
+- **WHEN** the installation runs in production mode
+- **THEN** `api`, `events`, `web` and `web-ssr` need no external port
+
 ### Requirement: copalibre administrative CLI
-The release SHALL provide a `copalibre` CLI with `init`, `doctor`, `dev`, `dev --hybrid`, `start`,
-`migrate`, `create-admin`, `login`, `statistics-rebuild`, `backup`, `restore`, `upgrade-check`, `upgrade`, and
-`mcp` subcommands, distributed both as a standalone executable (downloadable via a documented install
-script, one per supported OS/architecture) and as source runnable from a checkout — the two SHALL
-behave identically for every subcommand. In addition to environment and service configuration checks,
-`copalibre doctor` SHALL inspect the local `.env` configuration file on the host before invoking containerized
-checks, validating the presence of required secrets and variables (`DATABASE_URL` or `POSTGRES_PASSWORD`,
-`COPALIBRE_APP_URL`, `COPALIBRE_BOOTSTRAP_TOKEN`, `COPALIBRE_JWT_ISSUER`, `GARAGE_RPC_SECRET`, and email provider keys),
-reporting missing, empty, or unconfigured variables as actionable failures before or alongside containerized execution.
-`copalibre doctor` SHALL inspect PostgreSQL database data structure integrity when the database is
-reachable, reporting detected discrepancies as a diagnostic check item (`data:tournament-status`) —
-informational, never a reason to fail the check or block `copalibre start`. When invoking containerized
-diagnostic runs, `copalibre doctor` SHALL utilize locally present container images without triggering redundant network image downloads.
-When invoked with `--fix` or `--interactive` on an interactive terminal, `copalibre doctor` SHALL
-initiate an interactive decision-support prompt workflow allowing an operator to repair a detected
-anomaly non-destructively; without a TTY, it SHALL report that repair requires one and apply nothing.
-Every invocation SHALL print a startup banner identifying the product, its version, and
-its license before running the requested subcommand, and that banner SHALL be written to a stream that
-never mixes with a subcommand's own stdout output. The ASCII monogram and full logo mark SHALL render
-in brand cyan color when output is directed to a color-capable TTY. Running `copalibre --help`/`-h` with no subcommand
-SHALL list every subcommand with a one-line summary formatted with sufficient column padding so no command name
-overlaps its summary description, and running `copalibre <subcommand> --help`/`-h`
-SHALL print that subcommand's usage line, a description of what it does, and its flags — for every
-documented subcommand, sourced from one place so the top-level summary and each subcommand's detail
-cannot drift apart. `upgrade-check` SHALL evaluate a given target CopaLibre version against every
-installed module's declared compatibility range and report pending database migrations, exiting
-non-zero if any installed module would become incompatible with the target version.
 
-`copalibre upgrade` SHALL coordinate the end-to-end upgrade lifecycle: (1) self-updating the CLI binary
-to the target or latest stable release, (2) reconciling `docker-compose.yml` and newly required `.env` variables,
-explicitly updating `COPALIBRE_VERSION` alongside image tags while preserving existing port bindings and volume configuration,
-(3) pulling updated container images and applying database migrations via `copalibre migrate`, (4) restarting the running stack
-with `--force-recreate` so updated container images and configuration variables are loaded into active service containers, and
-(5) detecting and prompting for available module updates.
-
-`copalibre init`, run in a directory with no prior CopaLibre installation, SHALL write a complete,
-runnable installation (a Compose file and its environment defaults) into that directory without
-requiring a checkout of this repository's source, and SHALL record the CopaLibre version and an
-installation identifier in that directory so later commands run from it identify the installation
-automatically. `copalibre init` SHALL execute host preflight validation (Docker daemon connectivity,
-socket permissions, Compose version, and port collision checks), prompt the operator interactively
-when run on a TTY for public application and API domains and email delivery provider configuration
-(`smtp`, `resend`, `brevo`, or `mailgun`) matching runtime-supported providers, and generate a fully-interpolated `.env` file
-containing sensible defaults and cryptographically random secrets for all required runtime variables,
-including `GARAGE_RPC_SECRET`, `COPALIBRE_JWKS_URI`, `COPALIBRE_JWT_AUDIENCE`, `COPALIBRE_JWT_ISSUER`,
-`COPALIBRE_PORT`, `COPALIBRE_API_PORT`, `COPALIBRE_EVENTS_PORT`, and `COPALIBRE_IMAGE`.
-In addition, `copalibre init` SHALL automatically generate a 2048-bit RSA keypair (`jwt-private.pem`
-and `jwks.json`) in the installation directory and configure the environment so asymmetric JWT verification
-works immediately without external OIDC dependencies. `copalibre init` SHALL scaffold a local `./modules/`
-directory hierarchy (`./modules/disciplines/` and `./modules/profiles/`) with README documentation and configure
-`COPALIBRE_MODULE_SOURCE_ALLOWLIST` with read-only bind-mounts in `docker-compose.yml` across backend containers
-(for rules engine and descriptors) and frontend containers (for media assets, emblems, and banners), prompting
-the operator during interactive initialization to select starter disciplines to provision. `copalibre init` SHALL also export
-production-tested reverse proxy configurations (`deploy/templates/nginx/`) incorporating unbuffered Server-Sent Events
-proxies, long-lived connection timeouts, and WebSocket upgrade rules for external gateways such as Nginx or CloudPanel.
-When run in a directory already containing an installation, `copalibre init` without interactive confirmation or `--repair`
-SHALL refuse rather than overwrite existing files; in interactive terminal mode or with `--repair`, it SHALL offer to
-reconcile and repair the installation non-destructively, creating timestamped backups of existing `.env` and `docker-compose.yml`
-files before appending missing environment variables, generating missing keypairs, or scaffolding missing directories. Repair SHALL
-preserve an existing `docker-compose.yml` byte-for-byte and inspect its service definitions against the shipped Compose template.
-When the template defines default-profile services missing from the installation, repair SHALL warn and print corresponding
-ready-to-review YAML service snippets without applying them; services behind optional profiles SHALL not trigger a warning.
-Email setup SHALL accept only `smtp`, `resend`, `brevo`, or `mailgun`; Mailgun requires both
-`COPALIBRE_MAILGUN_API_KEY` and `COPALIBRE_MAILGUN_DOMAIN`, and local SMTP remains the default.
-`doctor`, `start`, `stop`, `restart`, `status`, `migrate`, and `upgrade-check`, when run from a directory containing a recorded installation,
-SHALL operate against that directory's own files without requiring a checkout; version-sensitive subcommands
-(`init` re-run, `migrate`, `upgrade-check`) SHALL refuse with a message naming both versions when the running
-CLI's own version does not match the directory's recorded version. `init --module-dev` SHALL additionally write a
-companion Compose override file bind-mounting a local module-development directory into the installation,
-with no extra flag needed at the operator's own `docker compose` invocation.
-
-The standalone CLI binary SHALL load `.env` from the current working directory if present, and
-externalize or stub `sharp` to prevent CommonJS `import.meta.url` runtime crashes.
-
-`copalibre login` SHALL accept a personal access token (via flag, stdin, or an interactive prompt),
-validate it against the target installation, and store it so subsequent `statistics-rebuild` and
-`module` subcommands authenticate over the network. `statistics-rebuild`, when a stored credential
-exists for its target installation, SHALL operate over an authenticated HTTP call requiring
-organization-administrator authority for the named organization; without a stored credential, it
-SHALL operate over a direct database connection.
-
-copalibre start --dev SHALL start the containerized development Compose profile in the background.
-copalibre start, stop, and restart SHALL refuse a Kubernetes-mode installation with actionable
-Kubernetes-native alternatives and SHALL not mutate the cluster.
-
-copalibre stop SHALL stop the Compose installation without removing persistent volumes by default;
-with --down, it SHALL remove Compose containers and networks while retaining volumes. With --dev,
-it SHALL stop only the development Compose infrastructure profile; it SHALL not manage host-run foreground Yarn
-processes started separately by copalibre dev --hybrid.
-
-copalibre restart SHALL stop and start Compose services, bring PostgreSQL up before dependent
-services, run the Compose doctor check before bringing up the remaining services unless --no-doctor
-is supplied, and wait for services to become healthy. With --dev, it SHALL restart only the
-development Compose infrastructure profile without managing host-run foreground Yarn processes.
-
-copalibre status SHALL report the installation mode and service health. For Compose and development
-Compose it SHALL list container states and published ingress ports and probe the gateway health URL.
-With --json, it SHALL emit machine-readable status. For Kubernetes mode it SHALL report the recorded
-release, namespace, and optional context, query pods matching the release when kubectl is available,
-and print the exact inspection command when it is not.
+The release SHALL provide a `copalibre` CLI, distributed as a standalone executable (one per
+supported OS and architecture, through a documented install script) and as source runnable from a
+checkout, behaving identically in both forms for every subcommand. Each subcommand SHALL behave as
+the scenarios of this requirement state.
 
 #### Scenario: doctor catches misconfiguration before start
 - **WHEN** `copalibre doctor` runs against an installation missing a required secret or with an
@@ -377,19 +317,200 @@ and print the exact inspection command when it is not.
 - **WHEN** an operator runs copalibre start, copalibre stop, or copalibre restart in a directory initialized with --kubernetes
 - **THEN** the CLI refuses with actionable helm or kubectl commands appropriate to the requested lifecycle action
 
+#### Scenario: The subcommands
+
+- **WHEN** an operator lists the CLI's subcommands
+- **THEN** it offers `init`, `doctor`, `dev`, `dev --hybrid`, `start`, `migrate`, `create-admin`,
+  `login`, `statistics-rebuild`, `backup`, `restore`, `upgrade-check`, `upgrade` and `mcp`
+
+#### Scenario: doctor checks the host .env first
+
+- **WHEN** `copalibre doctor` runs
+- **THEN** before or alongside its containerized checks it reports missing, empty or unconfigured
+  `DATABASE_URL` or `POSTGRES_PASSWORD`, `COPALIBRE_APP_URL`, `COPALIBRE_BOOTSTRAP_TOKEN`,
+  `COPALIBRE_JWT_ISSUER`, `GARAGE_RPC_SECRET` and email provider keys as actionable failures
+
+#### Scenario: doctor reports data integrity informationally
+
+- **WHEN** the database is reachable when `copalibre doctor` runs
+- **THEN** it reports discrepancies as the `data:tournament-status` item, which never fails the
+  check or blocks `copalibre start`
+
+#### Scenario: doctor uses local images
+
+- **WHEN** doctor runs containerized checks
+- **THEN** it uses locally present images without downloading them again
+
+#### Scenario: doctor repairs only interactively
+
+- **WHEN** `copalibre doctor` runs with `--fix` or `--interactive`
+- **THEN** on a TTY it starts a non-destructive, decision-support repair prompt; without one it says
+  repair needs a TTY and applies nothing
+
+#### Scenario: The banner
+
+- **WHEN** any subcommand runs
+- **THEN** a banner naming the product, its version and its license is printed first, to a stream
+  that never mixes with the subcommand's stdout, with the monogram and logo in brand cyan on a
+  color-capable TTY
+
+#### Scenario: Help comes from one source
+
+- **WHEN** an operator runs `copalibre --help` or `copalibre <subcommand> --help`
+- **THEN** the top level lists every subcommand with a one-line summary, padded so no name overlaps
+  its summary, and each subcommand prints its usage line, description and flags, both from one
+  source so they cannot drift
+
+#### Scenario: upgrade-check evaluates a target
+
+- **WHEN** `upgrade-check` runs for a target version
+- **THEN** it checks every installed module's declared compatibility range, reports pending
+  migrations, and exits non-zero if any module would become incompatible
+
+#### Scenario: upgrade coordinates the whole lifecycle
+
+- **WHEN** `copalibre upgrade` runs
+- **THEN** it self-updates the CLI to the target or latest stable release; reconciles
+  `docker-compose.yml` and new `.env` variables, updating `COPALIBRE_VERSION` with the image tags
+  and preserving port bindings and volumes; pulls images and migrates through `copalibre migrate`;
+  restarts the stack with `--force-recreate`; and prompts for available module updates
+
+#### Scenario: init writes a runnable installation
+
+- **WHEN** `copalibre init` runs in a directory without an installation
+- **THEN** it writes a Compose file and environment defaults, needs no checkout, and records the
+  CopaLibre version and an installation identifier so later commands identify the installation
+
+#### Scenario: init preflights the host
+
+- **WHEN** `copalibre init` runs
+- **THEN** it checks Docker daemon connectivity, socket permissions, the Compose version and port
+  collisions
+
+#### Scenario: init asks and generates
+
+- **WHEN** `copalibre init` runs on a TTY
+- **THEN** it asks for the public application and API domains and an email provider, and writes a
+  fully-interpolated `.env` with defaults and random secrets for every required variable, including
+  `GARAGE_RPC_SECRET`, `COPALIBRE_JWKS_URI`, `COPALIBRE_JWT_AUDIENCE`, `COPALIBRE_JWT_ISSUER`,
+  `COPALIBRE_PORT`, `COPALIBRE_API_PORT`, `COPALIBRE_EVENTS_PORT` and `COPALIBRE_IMAGE`
+
+#### Scenario: init sets up JWT verification
+
+- **WHEN** `copalibre init` runs
+- **THEN** it generates a 2048-bit RSA keypair (`jwt-private.pem` and `jwks.json`) and configures
+  asymmetric JWT verification that works without an external OIDC provider
+
+#### Scenario: init scaffolds local modules
+
+- **WHEN** `copalibre init` runs
+- **THEN** it scaffolds `./modules/disciplines/` and `./modules/profiles/` with README
+  documentation, configures `COPALIBRE_MODULE_SOURCE_ALLOWLIST` with read-only bind-mounts for
+  backend containers (rules engine and descriptors) and frontend containers (media assets, emblems
+  and banners), and on a TTY asks which starter disciplines to provision
+
+#### Scenario: init exports proxy templates
+
+- **WHEN** `copalibre init` runs
+- **THEN** it exports `deploy/templates/nginx/` configurations with unbuffered SSE proxying,
+  long-lived connection timeouts and WebSocket upgrade rules for gateways such as Nginx or
+  CloudPanel
+
+#### Scenario: init repairs, never overwrites
+
+- **WHEN** `copalibre init` runs where an installation exists
+- **THEN** without interactive confirmation or `--repair` it refuses; with either it reconciles
+  non-destructively, backing up `.env` and `docker-compose.yml` with timestamps before adding
+  missing variables, keypairs or directories
+
+#### Scenario: Repair leaves the Compose file alone
+
+- **WHEN** repair finds default-profile services missing from the installation
+- **THEN** it keeps `docker-compose.yml` byte-for-byte, warns, and prints ready-to-review YAML
+  snippets without applying them; services behind optional profiles raise no warning
+
+#### Scenario: Email providers
+
+- **WHEN** email is configured
+- **THEN** only `smtp`, `resend`, `brevo` or `mailgun` is accepted, Mailgun needs
+  `COPALIBRE_MAILGUN_API_KEY` and `COPALIBRE_MAILGUN_DOMAIN`, and local SMTP is the default
+
+#### Scenario: Commands work from the installation directory
+
+- **WHEN** `doctor`, `start`, `stop`, `restart`, `status`, `migrate` or `upgrade-check` runs in a
+  directory with a recorded installation
+- **THEN** it operates on that directory's files without a checkout
+
+#### Scenario: Version-sensitive commands refuse a mismatch
+
+- **WHEN** `init` is re-run, or `migrate` or `upgrade-check` runs, with a CLI version different from
+  the directory's recorded one
+- **THEN** it refuses, naming both versions
+
+#### Scenario: init --module-dev
+
+- **WHEN** `init --module-dev` runs
+- **THEN** it also writes a Compose override bind-mounting a local module-development directory,
+  with no extra flag needed on `docker compose`
+
+#### Scenario: The standalone binary's environment
+
+- **WHEN** the standalone binary starts
+- **THEN** it loads `.env` from the working directory when present, and externalizes or stubs
+  `sharp` so no CommonJS `import.meta.url` crash occurs
+
+#### Scenario: login stores a token
+
+- **WHEN** `copalibre login` runs with a token from a flag, stdin or a prompt
+- **THEN** it validates the token against the installation and stores it for `statistics-rebuild`
+  and `module` subcommands
+
+#### Scenario: statistics-rebuild picks its channel
+
+- **WHEN** `statistics-rebuild` runs
+- **THEN** with a stored credential it calls HTTP requiring organization-administrator authority for
+  the organization; without one it uses a direct database connection
+
+#### Scenario: start --dev
+
+- **WHEN** `copalibre start --dev` runs
+- **THEN** the containerized development Compose profile starts in the background
+
+#### Scenario: Lifecycle commands and Kubernetes
+
+- **WHEN** `start`, `stop` or `restart` runs against a Kubernetes-mode installation
+- **THEN** it refuses with Kubernetes-native alternatives and does not mutate the cluster
+
+#### Scenario: stop
+
+- **WHEN** `copalibre stop` runs
+- **THEN** it stops the installation keeping volumes; `--down` removes containers and networks
+  keeping volumes; `--dev` stops only the development infrastructure profile and leaves processes
+  started by `dev --hybrid` alone
+
+#### Scenario: restart
+
+- **WHEN** `copalibre restart` runs
+- **THEN** it brings PostgreSQL up first, runs the Compose doctor check before the other services
+  unless `--no-doctor` is given, and waits for health; `--dev` restarts only the development
+  infrastructure profile
+
+#### Scenario: status
+
+- **WHEN** `copalibre status` runs
+- **THEN** it reports the mode and health: for Compose, container states, published ingress ports
+  and the gateway health URL, as JSON with `--json`; for Kubernetes, the recorded release, namespace
+  and context, the release's pods when `kubectl` is available, and otherwise the exact inspection
+  command
+
 ### Requirement: Kubernetes instance mode
 
 `copalibre init --kubernetes` SHALL scaffold a Helm `values.yaml` and record an installation marker
-identifying the target release, namespace, and (optionally) kube-context, without writing a Compose
-file or `.env` — Kubernetes' own Secret/ConfigMap mechanism stays authoritative for installation
-configuration. `statistics-rebuild` and `module` subcommands run from a directory with a
-Kubernetes-mode marker SHALL operate over the same authenticated HTTP surface Compose-mode instances
-use once a stored login credential exists for that directory, never from cluster introspection.
-`doctor`, `migrate`, `backup`, and `restore` SHALL refuse for a Kubernetes-mode marker rather than
-attempting a Compose-shaped action, naming the existing Helm Job or documented mechanism to use
-instead where one exists. The Helm chart SHALL provide a one-shot `create-admin` Job, matching the
-existing `doctor`/`migrate` Jobs' pattern, so installation bootstrap does not require `kubectl exec`
-into a running pod.
+with the release, namespace and optional kube-context, without a Compose file or `.env`. From such a
+directory, `statistics-rebuild` and `module` SHALL use the authenticated HTTP surface once logged
+in, never cluster introspection, and `doctor`, `migrate`, `backup` and `restore` SHALL refuse,
+naming the Helm Job or mechanism to use instead. The chart SHALL provide a one-shot `create-admin`
+Job.
 
 #### Scenario: init --kubernetes records an installation without a Compose file
 - **WHEN** `copalibre init --kubernetes --namespace <ns> --release <name>` is run in an empty
@@ -417,20 +538,24 @@ into a running pod.
   (`job-doctor.yaml`/`job-migrate.yaml`); `backup` and `restore` state plainly that no CLI or
   Helm-based equivalent exists yet
 
-### Requirement: Module management subcommands
-The `copalibre` CLI SHALL provide `module add`, `module list`, `module remove`, `module verify`,
-`module scaffold`, and `module validate-local`. Running `copalibre module --help`/`-h` SHALL list
-these subcommands with a one-line summary each, and running `copalibre module <subcommand>
---help`/`-h` SHALL print that subcommand's usage line, description, and flags, following the same
-one-source-of-truth rule as the top-level CLI's help.
+#### Scenario: Kubernetes owns configuration
 
-`copalibre init --module-dev` MAY write a companion Compose override file that bind-mounts a
-local directory into the running installation and pre-authorizes installing modules from it, so a
-module scaffolded via `module scaffold` can be installed and iterated on against a running instance
-without a source checkout. When an operator is logged in via `copalibre login`, `module`
-add/list/remove/verify SHALL operate over an authenticated HTTP call requiring installation-wide
-administrator authority; without a stored credential, they SHALL operate over a direct database
-connection.
+- **WHEN** a Kubernetes installation is configured
+- **THEN** its Secrets and ConfigMaps stay authoritative
+
+#### Scenario: Bootstrap without exec
+
+- **WHEN** an operator bootstraps the first admin
+- **THEN** the `create-admin` Job, like the `doctor` and `migrate` Jobs, needs no `kubectl exec`
+  into a running pod
+
+### Requirement: Module management subcommands
+
+The `copalibre` CLI SHALL provide `module add`, `list`, `remove`, `verify`, `scaffold` and
+`validate-local`, with `module --help` and each subcommand's help following the top-level one-source
+rule. Logged in, `add`, `list`, `remove` and `verify` SHALL call HTTP requiring installation-wide
+administrator authority; without a credential, they SHALL use a direct database connection. `init
+--module-dev` MAY write a Compose override mounting a local module directory.
 
 #### Scenario: An operator lists installed modules
 - **WHEN** the module-list command is run
@@ -463,18 +588,19 @@ connection.
   runs `copalibre module add`
 - **THEN** the command is refused, naming the required authority, and no module is installed
 
+#### Scenario: The module-dev mount
+
+- **WHEN** `init --module-dev` writes its override
+- **THEN** the mounted directory is pre-authorized, so a module made with `module scaffold` installs
+  and iterates against a running instance without a checkout
+
 ### Requirement: Verified backup and restore
 
-`copalibre backup` SHALL produce a compressed packet under `backups/` containing the database dump
-and a manifest recording the backup timestamp and the CopaLibre version that produced it, restorable
-into a clean installation via `copalibre restore` and passing an automated integrity check.
-`copalibre backup` SHALL retain no more than a configurable number of packets (`--retain`, default
-5), deleting the oldest beyond that count after each successful backup, and SHALL only ever delete
-files matching its own packet naming pattern. `copalibre restore` SHALL refuse to restore a packet
-whose recorded CopaLibre version is newer than the running installation's version unless explicitly
-overridden, SHALL run pending database migrations against the restored data automatically after a
-successful restore, and SHALL confirm that the resulting schema matches what the running
-installation expects before reporting success.
+`copalibre backup` SHALL produce a compressed, self-describing packet under `backups/` that
+`copalibre restore` restores into a clean installation passing an integrity check, and SHALL keep at
+most `--retain` packets (default 5), deleting only its own. `copalibre restore` SHALL refuse a
+packet from a newer version unless overridden, SHALL migrate the restored data automatically, and
+SHALL confirm the schema matches the installation before reporting success.
 
 #### Scenario: Restore into a clean install recovers all authoritative data
 
@@ -516,6 +642,18 @@ installation expects before reporting success.
 - **THEN** `copalibre restore` checks that the applied schema matches what the running installation
   expects and reports that confirmation, or reports a clear failure naming what to run next if it
   does not match
+
+#### Scenario: What a packet holds
+
+- **WHEN** a backup is taken
+- **THEN** the packet contains the database dump and a manifest with the backup timestamp and the
+  producing CopaLibre version
+
+#### Scenario: Pruning
+
+- **WHEN** a backup succeeds with more packets than `--retain`
+- **THEN** the oldest are deleted, and only files matching the packet naming pattern are ever
+  deleted
 
 ### Requirement: Reverse-proxy conformance
 The release SHALL document and test at least one reverse-proxy configuration (Caddy or NGINX)
@@ -572,7 +710,7 @@ application servers without manual intervention, when all infrastructure contain
 The application SHALL keep emblem and discipline-background URLs on the browser's application origin and route their requests to the API in local development and supported self-hosted proxy topologies. The proxy SHALL preserve the API's status, response bytes, and content type rather than serving a web fallback document.
 
 #### Scenario: Local development serves emblems and discipline backgrounds
-- **WHEN** a browser requests emblem upload, supported deletion, or read under `/organizations/*`, or requests a discipline background through `/objects/discipline-background-image`
+- **WHEN** a browser requests emblem upload, supported deletion, or read under `/api/organizations/*`, or requests a discipline background through `/api/objects/discipline-background-image`
 - **THEN** the local Astro development proxy forwards each request to the API and preserves its authorization, status, response bytes, and content type
 
 #### Scenario: Local development uses a configured loopback hostname
@@ -580,11 +718,11 @@ The application SHALL keep emblem and discipline-background URLs on the browser'
 - **THEN** the development web server accepts that hostname while retaining localhost as its default, and the same-origin emblem and discipline-background paths continue to use the local API proxy
 
 #### Scenario: Self-hosted gateway serves all media operations
-- **WHEN** a browser requests emblem upload, supported deletion, or read under `/organizations/*`, or a discipline background under `/objects/*` on the single-origin gateway
+- **WHEN** a browser requests emblem upload, supported deletion, or read under `/api/organizations/*`, or a discipline background under `/api/objects/*` on the single-origin gateway
 - **THEN** the gateway forwards the request to the API and preserves its authorization, status, response bytes, and content type
 
 #### Scenario: Self-hosted web edge serves all media operations
-- **WHEN** the browser requests emblem upload, supported deletion, or read under `/organizations/*`, or a discipline background under `/objects/*` through the self-hosted web edge
+- **WHEN** the browser requests emblem upload, supported deletion, or read under `/api/organizations/*`, or a discipline background under `/api/objects/*` through the self-hosted web edge
 - **THEN** the request reaches the API before static or SSR fallback and preserves its authorization, status, response bytes, and content type
 
 #### Scenario: Kubernetes web edge resolves the release-scoped API service
@@ -592,20 +730,12 @@ The application SHALL keep emblem and discipline-background URLs on the browser'
 - **THEN** Caddy sends browser-facing media requests to that release's API service and not to a fixed Compose-only hostname
 
 ### Requirement: Tournament status data-integrity diagnostic and repair
-`copalibre doctor` SHALL detect a tournament whose `status` column does not match one of the domain's
-canonical `TournamentStatus` values (`draft`, `published`, `started`, `finished`, `archived`) — a state
-reachable only through an out-of-band write, since the domain layer never produces one — and report it
-as an informational `data:tournament-status` check, naming the affected tournament(s) and their current
-status. This never fails the check or blocks `copalibre start`: it is information for the operator, and
-`copalibre doctor --fix` is the separate, explicit path that acts on it.
 
-When invoked with `--fix` or `--interactive` on an interactive terminal, `copalibre doctor` SHALL
-present each affected tournament, offer the five canonical statuses as resolution choices, and — once
-the operator selects one and confirms — update the `tournaments.status` column and record an
-`audit_log` entry (`data-integrity.repaired`, actor `operator:copalibre-doctor`, authorization context
-`doctor-repair`) inside one transaction. Declining either the selection or the confirmation prompt SHALL
-skip that tournament without any write. Without a TTY, `--fix`/`--interactive` SHALL report that repair
-requires an interactive terminal and apply nothing.
+`copalibre doctor` SHALL report a tournament whose `status` is not a canonical `TournamentStatus` as
+an informational `data:tournament-status` check naming each one and its status, never failing or
+blocking `copalibre start`. With `--fix` or `--interactive` on a TTY, it SHALL offer the canonical
+statuses and, once one is chosen and confirmed, update it and record an audit entry in one
+transaction; declining SHALL write nothing, and without a TTY it SHALL apply nothing.
 
 #### Scenario: A non-canonical status is reported without failing doctor
 - **WHEN** a tournament's `status` column holds `'completed'`, left over from an old import script
@@ -628,6 +758,18 @@ requires an interactive terminal and apply nothing.
 - **THEN** it reports that interactive repair requires a TTY and applies no changes, regardless of how
   many anomalies were detected
 
+#### Scenario: The canonical statuses
+
+- **WHEN** a status is checked
+- **THEN** `draft`, `published`, `started`, `finished` and `archived` are canonical; anything else
+  is reachable only through an out-of-band write
+
+#### Scenario: The audit entry
+
+- **WHEN** a repair is confirmed
+- **THEN** the entry is `data-integrity.repaired`, actor `operator:copalibre-doctor`, authorization
+  context `doctor-repair`
+
 ### Requirement: Static control entry redirects on the requested origin
 The pre-rendered `/control/` entry route SHALL send browsers to `/control/login` on the same origin that served the entry page, in local, reverse-proxy, and Kubernetes deployments. It SHALL preserve a supplied `returnTo` query parameter and SHALL NOT direct browsers to a build-time hostname or port.
 
@@ -648,19 +790,29 @@ The pre-rendered `/control/` entry route SHALL send browsers to `/control/login`
 - **THEN** the login route retains the parameter with its value safely URL-encoded
 
 ### Requirement: Public self-hosting documentation truthfulness
-The repository and its associated public documentation (`docs/self-hosting.md` and `copalibre-app`'s `/self-hosting` page) SHALL accurately describe the standalone CLI installation and canonical redirect endpoint, `copalibre init` directory scaffolding, required PostgreSQL and edge reverse proxy services, `copalibre backup` and `copalibre restore --confirm` procedures, and `copalibre upgrade-check` compatibility verification without fictitious commands, ports, or single-container SQLite deployments.
+
+The repository's `docs/self-hosting.md` and `copalibre-app`'s `/self-hosting` page SHALL accurately
+describe the self-hosted installation, without fictitious commands, ports, or single-container
+SQLite deployments.
 
 #### Scenario: Truthful Compose architecture presented in public self-hosting documentation
 - **WHEN** an operator or evaluator inspects the public self-hosting documentation
 - **THEN** the documented Compose architecture and references describe the real multi-service structure (`postgres`, `migrate`, `api`, `events`, `web`, `worker`, `scheduler`, `gateway`) and real published gateway ingress port (8080) rather than a non-existent single-container SQLite service.
 
 #### Scenario: Canonical installer redirect behavior
-- **WHEN** an operator executes `curl -fsSL https://copalibre.app/install.sh | bash`
+- **WHEN** an operator executes `curl -fsSL https://www.copalibre.app/install.sh | bash`
 - **THEN** the endpoint resolves or delegates to the official release installer script from GitHub Releases (`https://github.com/SebaSOFT/copalibre/releases/latest/download/install.sh`), installing the standalone `copalibre` binary without failure.
 
 #### Scenario: Truthful CLI commands and terminal examples
 - **WHEN** an operator follows the documented command examples on the self-hosting guide
 - **THEN** the commands match real CLI syntax (`copalibre backup`, `copalibre restore --file <path> --confirm`, `copalibre upgrade-check --target-version <version>`) and do not fail due to fictitious subcommands, missing required flags, or non-existent download endpoints.
+
+#### Scenario: What the documentation covers
+
+- **WHEN** the self-hosting documentation is read
+- **THEN** it covers the standalone CLI install and canonical redirect endpoint, `copalibre init`
+  scaffolding, the required PostgreSQL and edge reverse proxy services, `copalibre backup` and
+  `copalibre restore --confirm`, and `copalibre upgrade-check` compatibility verification
 
 ### Requirement: Lifecycle email notifications use the configured email provider without extra configuration
 Lifecycle email notifications SHALL be delivered by `apps/worker` through the same email provider
@@ -684,7 +836,7 @@ configuration. Loading demo data with `copalibre dev demo` SHALL NOT send email.
 ### Requirement: Public self-hosting documentation describes notification email behaviour
 The public self-hosting documentation SHALL state which lifecycle events send email, who receives it, that
 the language is the organization's primary language, that every email carries the organization header and
-the Copa Libre signature linking to `copalibre.app`, that imports and demo loading send no email, and that
+the Copa Libre signature linking to `www.copalibre.app`, that imports and demo loading send no email, and that
 a delivery whose outcome is unknown is not retried.
 
 #### Scenario: Documentation matches behaviour
@@ -705,3 +857,593 @@ a delivery whose outcome is unknown is not retried.
 #### Scenario: Doctor without a database skips the check
 - **WHEN** the database is not reachable
 - **THEN** the module-assets check is skipped with the reason
+
+### Requirement: Development and diagnostic tooling surface dead roles and support administrator recovery
+
+`copalibre dev --hybrid` SHALL exit non-zero and name the role when any process role exits.
+`copalibre doctor` SHALL report the native-token verifier configuration and the heartbeat of the
+worker, scheduler and events roles. An operator with database access SHALL be able to add an
+administrator to an existing organization through `copalibre organization add-admin`. That command
+SHALL issue an audited invitation and SHALL never set a password.
+
+#### Scenario: Worker down
+
+- **WHEN** the worker role crashes during `copalibre dev --hybrid`
+- **THEN** the command exits non-zero naming the worker, and the web server does not keep running
+  alone
+
+#### Scenario: Recover an organization without administrators
+
+- **WHEN** an operator runs `copalibre organization add-admin --organization panamericano-demo --email ops@example.org`
+- **THEN** an invitation is created and audited, and the invitee sets their own password through
+  acceptance
+
+### Requirement: The web role serves nothing under /api
+
+The web app SHALL serve no route of its own under `/api`. That prefix belongs to the API. Public API paths SHALL stay reachable on the app origin.
+
+#### Scenario: Public API path on the app origin
+
+- **WHEN** a browser requests a public API path under `/organizations` on the app origin
+- **THEN** the API answers it, not the web renderer
+
+### Requirement: copalibre status accepts only the API's health answer
+
+`copalibre status` SHALL report the gateway healthy only when the health response identifies the API role. A successful response from any other role or page SHALL NOT report the gateway healthy.
+
+#### Scenario: Another role answers
+
+- **WHEN** an operator runs `copalibre status` and the probe gets a 200 that does not identify the API
+- **THEN** the gateway is not reported healthy
+
+### Requirement: API routing is one prefix
+
+Every API route SHALL live under `/api`, including its health and readiness probes. Shipped proxy configurations SHALL route the API with that one prefix and SHALL NOT list individual API paths. `COPALIBRE_API_URL` SHALL stay an origin, with no path. API paths that other requirements name, such as `/auth/login`, are relative to this prefix.
+
+#### Scenario: API path on the app origin
+
+- **WHEN** a client requests a path under `/api` through the gateway or the web role
+- **THEN** the API answers it
+
+#### Scenario: Unknown API path
+
+- **WHEN** a client requests an unknown path under `/api`
+- **THEN** the API answers 404, not the web app
+
+#### Scenario: Former root path
+
+- **WHEN** a client requests `/organizations` at the root of the API service
+- **THEN** the API answers 404
+
+### Requirement: Well-known paths stay public and static
+
+`/.well-known/*` SHALL stay public at the root of the app origin and SHALL be served from static files only. A missing file SHALL answer 404, never a page of the application. TLS certificates and their ACME challenges SHALL belong to the TLS edge in front of the gateway.
+
+#### Scenario: Published file
+
+- **WHEN** a client requests a file that exists under `/.well-known/`
+- **THEN** the web role serves that file
+
+#### Scenario: Missing file
+
+- **WHEN** a client requests a missing path under `/.well-known/`
+- **THEN** the response is 404 and carries no application page
+
+### Requirement: Operators publish well-known files without rebuilding
+
+A Compose installation SHALL mount its `well-known/` directory, read-only, as the web role's `/.well-known/` directory.
+`copalibre init` SHALL create that directory empty, and `copalibre init --repair` SHALL create it when absent and SHALL keep its
+contents. The product SHALL
+ship no file there.
+
+#### Scenario: Publishing security.txt
+
+- **WHEN** an operator places `security.txt` in the installation's `well-known/` directory
+- **THEN** `/.well-known/security.txt` serves that file on the app origin, with no image rebuild and no restart
+
+#### Scenario: Fresh installation
+
+- **WHEN** an operator runs `copalibre init` in an empty directory
+- **THEN** `well-known/` exists and is empty, and `/.well-known/security.txt` answers 404
+
+#### Scenario: Repair keeps published files
+
+- **WHEN** an operator runs `copalibre init --repair` on an installation with files in `well-known/`
+- **THEN** those files are unchanged
+
+### Requirement: Font files keep their media type through every shipped proxy
+
+The web role SHALL serve existing `.woff2` files as `font/woff2` and `.woff` files as `font/woff`, declared in its own
+configuration rather than taken from the base image. Every shipped edge configuration (the reverse-proxy examples and the
+template `copalibre init --proxy nginx` writes) SHALL proxy those paths with no static-file rule and no `Content-Type`
+override.
+
+#### Scenario: Base image without a media-type table
+
+- **WHEN** the web role runs on a base image with no `/etc/mime.types` and a browser requests a bundled `.woff2` file
+- **THEN** the response is 200 with `Content-Type: font/woff2`
+
+#### Scenario: Missing font file
+
+- **WHEN** a request names a `.woff2` file that does not exist
+- **THEN** the response is 404 and carries no font media type
+
+#### Scenario: Generated NGINX template
+
+- **WHEN** an operator runs `copalibre init --proxy nginx`
+- **THEN** the written configuration proxies `/_astro/` font files to the gateway, has no `location` that serves `.woff2`
+  from disk, and documents the font media types
+
+### Requirement: Installations configure the identity origin the policy allows
+
+The Compose `web` service and the chart's web role SHALL pass `COPALIBRE_CSP_IDENTITY_ORIGIN` to the web role, empty by
+default. `copalibre init` SHALL set it to the issuer's origin when `--app-url` and an external issuer differ, and the
+chart SHALL derive it from `web.env.COPALIBRE_JWT_ISSUER` when not set explicitly. Shipped edge configurations SHALL
+not remove or override `Content-Security-Policy`.
+
+#### Scenario: Default installation
+
+- **WHEN** an operator runs `copalibre init` with native identity
+- **THEN** `.env` has `COPALIBRE_CSP_IDENTITY_ORIGIN` empty and the policy names only the application origin
+
+#### Scenario: Chart with an external issuer
+
+- **WHEN** the chart renders with `web.env.COPALIBRE_JWT_ISSUER` set to `https://id.example/realms/copa`
+- **THEN** the web role receives `COPALIBRE_CSP_IDENTITY_ORIGIN=https://id.example`
+
+### Requirement: The web hostname serves the event streams
+Every supported deployment SHALL route `/events` and `/events/*` on the hostname that serves Control to the
+events service, without response buffering, so the browser reaches `/api` and `/events` same-origin. This holds
+for the Docker Compose gateway, the web role on Kubernetes, each shipped reverse-proxy example and the local
+development server.
+
+#### Scenario: Kubernetes web hostname streams Control events
+- **WHEN** Control, served from the Helm chart's web hostname, opens `/events/control/<organization>`
+- **THEN** the web role proxies it to the events service and the stream delivers events, with the session
+  cookie sent same-origin
+
+#### Scenario: Local development streams through the dev server
+- **WHEN** an operator runs the web app in development and opens a Control screen with a live stream
+- **THEN** the dev server proxies `/events` to the local events service
+
+### Requirement: Installation tooling configures the session cookie
+`copalibre init` SHALL ask, in its interactive flow, the public URL and whether HTTPS is in use, accept both as
+flags in non-interactive mode, and write the session cookie setting to the installation's environment.
+`copalibre upgrade` SHALL add the setting to an existing installation that lacks it, derived from the scheme of
+`COPALIBRE_APP_URL`, and report the value it wrote. `copalibre doctor` SHALL warn when the setting disagrees with
+that scheme.
+
+#### Scenario: A guided install over HTTPS
+- **WHEN** an operator runs `copalibre init` and answers a public URL with HTTPS in use
+- **THEN** the written environment enables `Secure` session cookies
+
+#### Scenario: An existing installation is upgraded
+- **WHEN** `copalibre upgrade` runs on an installation whose `.env` has no session cookie setting
+- **THEN** it adds the setting derived from `COPALIBRE_APP_URL` and prints it
+
+#### Scenario: A mismatch is reported
+- **WHEN** `COPALIBRE_APP_URL` uses `https` and the setting disables `Secure`, or the reverse
+- **THEN** `copalibre doctor` reports a warning naming both values
+
+### Requirement: Operators can see which cookies the application sets
+The operator documentation SHALL list every cookie the application sets — the session cookie, the CSRF cookie and
+the native refresh cookie — with its purpose, lifetime, attributes and the reason it is strictly necessary and
+needs no consent prompt.
+
+#### Scenario: The cookie list matches the code
+- **WHEN** the documentation check runs
+- **THEN** every cookie name the API sets appears in the operator cookie list, and the list names no cookie the
+  API does not set
+
+### Requirement: Runtime roles connect with row privileges only
+
+An installation SHALL give its request and background roles a database credential that owns no schema
+object, cannot create in any schema and holds no administrative attribute or server-access role. Only
+the migrate role SHALL receive the schema owner credential, and only setup, backup and restore SHALL use
+the bootstrap superuser.
+
+#### Scenario: Compose hands the runtime credential to runtime roles
+
+- **WHEN** an operator starts the shipped Compose install
+- **THEN** `api`, `events`, `worker` and `scheduler` connect as the runtime role, `migrate` connects as the
+  owner role, and no service but `database-setup` and `database-tools` receives the bootstrap
+  superuser's password
+
+#### Scenario: The runtime role cannot change the schema or reach the server
+
+- **WHEN** a statement run with the runtime credential tries to create, alter, drop or truncate a table,
+  or to run `COPY … PROGRAM`
+- **THEN** PostgreSQL refuses it with a permission error
+
+#### Scenario: The runtime role cannot rewrite the audit trail
+
+- **WHEN** a statement run with the runtime credential tries to update or delete an `audit_log` row
+- **THEN** PostgreSQL refuses it, while inserting and reading audit rows still succeed
+
+#### Scenario: Setup runs on fresh and existing volumes
+
+- **WHEN** the Compose stack starts on an empty volume, or on a volume whose objects belong to the
+  bootstrap superuser
+- **THEN** a setup step creates the owner and runtime roles if missing, and moves ownership of every
+  object in `public` to the owner, before migrations run
+- **AND** running the setup again changes nothing
+
+#### Scenario: Helm keeps the owner credential in the migrate Job
+
+- **WHEN** the chart is rendered with `DATABASE_MIGRATION_URL` set
+- **THEN** only the migrate Job loads the Secret holding it, and the role Deployments and the doctor and
+  create-admin Jobs do not
+
+### Requirement: Installations keep database credentials separate across their lifecycle
+
+`copalibre init` SHALL generate distinct random passwords for the owner and runtime roles.
+`copalibre upgrade` SHALL add them to an existing installation without overwriting values that are
+already set, and SHALL report the addition. `copalibre restore` SHALL leave every restored object owned
+by the owner role and re-apply the runtime grants. `copalibre doctor` SHALL fail when the `DATABASE_URL`
+credential holds more privileges than the runtime needs.
+
+#### Scenario: Upgrade adds the missing passwords
+
+- **WHEN** `copalibre upgrade` runs on an installation whose `.env` lacks the owner or runtime password
+- **THEN** it writes a fresh random value for each missing one, leaves existing values untouched, and
+  prints which variables it added
+
+#### Scenario: Restore leaves the owner owning the data
+
+- **WHEN** `copalibre restore` completes
+- **THEN** no object in `public` is owned by the bootstrap superuser, and the runtime role can read and
+  write application rows
+
+#### Scenario: Doctor flags a privileged runtime credential
+
+- **WHEN** `copalibre doctor` runs with a `DATABASE_URL` whose role is a superuser, owns an object in
+  `public`, or may create in `public`
+- **THEN** the `database:runtime-privileges` check fails, names each problem, and points to the database
+  roles section of the self-hosting guide
+
+#### Scenario: Startup warns without refusing
+
+- **WHEN** a runtime role starts with a privileged database credential
+- **THEN** it logs one warning naming the problems, never the connection string, and keeps starting
+
+### Requirement: The web role compresses text responses and never the event streams or authentication responses
+
+The web role SHALL compress the text responses it serves or proxies when the client accepts it, preferring
+zstd over gzip, and SHALL NOT compress responses under `/events` or `/api/auth`. Every deployment of the
+shipped web role SHALL behave this way with no operator configuration.
+
+#### Scenario: A stylesheet is compressed
+
+- **WHEN** a browser that accepts gzip requests a built stylesheet from the web role
+- **THEN** the response carries `Content-Encoding: gzip` (or `zstd` when accepted) and is smaller than the file
+
+#### Scenario: A public page is compressed
+
+- **WHEN** a browser that accepts compression requests a public tournament page
+- **THEN** the server-rendered HTML arrives compressed and still carries its security headers
+
+#### Scenario: The event stream is not buffered
+
+- **WHEN** a browser opens an event stream under `/events` through the web role
+- **THEN** the response carries no `Content-Encoding` and each event reaches the browser as it is sent
+
+#### Scenario: Authentication responses are not compressed
+
+- **WHEN** a browser that accepts compression sends a request under `/api/auth` (sign-in, session,
+  invitation acceptance, refresh, personal access tokens) through the web role
+- **THEN** the response carries no `Content-Encoding`
+
+#### Scenario: Already-compressed formats pass through
+
+- **WHEN** a browser requests a font file or an image
+- **THEN** it is sent as stored, without a second encoding
+
+#### Scenario: Compose and Kubernetes behave alike
+
+- **WHEN** an operator runs the shipped web role under Docker Compose or Kubernetes
+- **THEN** text responses are compressed with no setting to change
+
+#### Scenario: A client that accepts no encoding
+
+- **WHEN** a client sends no `Accept-Encoding`
+- **THEN** it receives the same content uncompressed
+
+### Requirement: An installation can grant its first super-admin
+
+The `copalibre` CLI SHALL grant super-admin to an existing account only while the installation has no active super-admin, SHALL refuse once one exists, and SHALL record each grant and each refusal in the audit trail.
+
+#### Scenario: An installation with no super-admin
+
+- **WHEN** an operator grants super-admin to the email of an existing account on an installation that has none
+- **THEN** that account holds super-admin from its next sign-in, and the audit trail records the grant as made by the operator's command line
+
+#### Scenario: An installation that already has one
+
+- **WHEN** an operator runs the command while a super-admin is active
+- **THEN** it changes nothing, says where super-admins are managed, and the audit trail records the refused attempt
+
+#### Scenario: An email with no account
+
+- **WHEN** an operator names an email that no account has
+- **THEN** the command changes nothing and says the person must first accept an invitation or sign in once
+
+### Requirement: Two operators granting the first super-admin do not both succeed
+
+The grant SHALL be serialized, so that of any number of simultaneous attempts on an installation with no super-admin exactly one succeeds and the others are refused.
+
+#### Scenario: Two grants at once
+
+- **WHEN** two operators grant super-admin to different accounts at the same moment on an installation with none
+- **THEN** exactly one account holds it and the other attempt is refused
+
+### Requirement: The first super-admin grant is never offered to an agent
+
+The grant SHALL be available from the host's own command line only: `copalibre mcp` SHALL NOT expose it, and it SHALL NOT be reachable over HTTP.
+
+#### Scenario: The agent tool list
+
+- **WHEN** an agent lists the tools `copalibre mcp` exposes
+- **THEN** none grants super-admin
+
+### Requirement: Single-run containers are removed once the stack is up
+
+The CLI SHALL remove the containers of services that exist only to run a setup or a migration once, after `copalibre start`, `copalibre restart` and `copalibre upgrade` bring a Compose installation up and after `copalibre dev --hybrid` has seen the development infrastructure become healthy.
+
+#### Scenario: A production start
+
+- **WHEN** an operator runs `copalibre start` and the stack comes up
+- **THEN** the `database-setup` and `migrate` containers are removed, and the next start recreates and reruns them
+
+#### Scenario: A development infrastructure start
+
+- **WHEN** a developer runs `copalibre dev --hybrid` and the infrastructure reports healthy
+- **THEN** the `object-storage-init` container is stopped and removed, its image is kept, and the bucket and the key remain in the storage volume
+
+#### Scenario: Kubernetes mode and containers
+
+- **WHEN** the installation is in Kubernetes mode, or the CLI runs inside a container
+- **THEN** nothing is removed
+
+### Requirement: Cleanup removes only declared single-run services and never a running one
+
+The cleanup SHALL name services from one declared list per Compose file and SHALL remove stopped containers only, except a service declared as a readiness marker, which it stops after the stack reported healthy.
+
+#### Scenario: A running service
+
+- **WHEN** the cleanup runs while `postgres`, `api` or `gateway` is running
+- **THEN** those containers are untouched
+
+#### Scenario: A declared service with no container
+
+- **WHEN** a declared service has no container
+- **THEN** the cleanup does nothing for it and reports no error
+
+### Requirement: A failed cleanup does not fail the command
+
+A cleanup that fails SHALL print a notice on stderr and SHALL leave the command's exit status as the command itself decided it.
+
+#### Scenario: Compose refuses the removal
+
+- **WHEN** `docker compose rm` exits non-zero after a successful `copalibre start`
+- **THEN** `copalibre start` still exits 0 and prints one notice naming the services it could not remove
+
+### Requirement: A dev session removes the stopped containers of an earlier containerized session
+
+`copalibre dev --hybrid` SHALL remove the stopped application containers a previous containerized session left behind, and SHALL leave a running one alone.
+
+#### Scenario: Leftovers of a containerized session
+
+- **WHEN** `migrate` is exited and `api`, `events`, `worker`, `scheduler` and `web-ssr` are in `Created` state
+- **THEN** `copalibre dev --hybrid` removes those containers and starts the hybrid stack
+
+### Requirement: Loading demo data does not depend on a removed single-run container
+
+`copalibre dev demo` SHALL require the development database and object store to be running and healthy, and SHALL NOT require the single-run `object-storage-init` container, which the cleanup removes.
+
+#### Scenario: Demo load after the infrastructure cleanup
+
+- **WHEN** `postgres` and `object-storage` are healthy and no `object-storage-init` container exists
+- **THEN** `copalibre dev demo` loads the dataset
+
+#### Scenario: The object store is down
+
+- **WHEN** `object-storage` is not healthy
+- **THEN** `copalibre dev demo` refuses before loading anything and names `object-storage`
+
+### Requirement: The declared single-run list matches the Compose files
+
+The repository SHALL fail its tests when a declared service is missing from its Compose file, when a declared service is long-lived, or when a service that others wait on with `service_completed_successfully` is not declared.
+
+#### Scenario: A new migration-style service
+
+- **WHEN** a Compose file gains a service that others wait on with `service_completed_successfully` and it is not declared
+- **THEN** the test fails and names the service
+
+### Requirement: The upgrade identifies an installation by what it contains
+
+`copalibre upgrade` SHALL determine which release shipped the installation's `docker-compose.yml`, whether PostgreSQL holds data of an earlier major version, whether the database roles exist and whether `.env` carries settings of an earlier release, and SHALL act on those findings even when the installation marker already names the target version.
+
+#### Scenario: A marker moved ahead by an older CLI
+
+- **WHEN** a 1.2.6 CLI ran `copalibre upgrade`, so the marker names 2.0.0 while the Compose file, `.env` and data are still 1.2.6's
+- **THEN** the 2.0.0 CLI's `copalibre upgrade` completes the remaining steps instead of reporting that nothing is to be done
+
+#### Scenario: An installation already in the 2.0.0 shape
+
+- **WHEN** the Compose file is the shipped 2.0.0 file, PostgreSQL holds 18 data and `.env` has every 2.0.0 setting
+- **THEN** the upgrade changes no file and moves no data
+
+### Requirement: The upgrade backs up before it changes anything
+
+`copalibre upgrade` SHALL take a backup packet before it changes a file, an image or data, SHALL stop without changing anything when the backup fails, and SHALL print the packet's path.
+
+#### Scenario: The backup fails
+
+- **WHEN** the pre-upgrade backup exits non-zero
+- **THEN** the upgrade stops, no file, image or volume has changed, and the exit status is non-zero
+
+### Requirement: An unmodified Compose file is replaced by the shipped one
+
+When the installation's `docker-compose.yml` matches the file a published release shipped, ignoring the image tags and port bindings earlier upgrades rewrote, the upgrade SHALL replace it with the target release's file and SHALL keep the previous file beside it.
+
+#### Scenario: A 1.2.6 Compose file
+
+- **WHEN** an installation created by 1.2.6, or created earlier and upgraded by a 1.2.x CLI, is upgraded to 2.0.0
+- **THEN** `docker-compose.yml` is the shipped 2.0.0 file, and the previous file is kept as `docker-compose.yml.<previous version>.bak`
+
+### Requirement: A modified Compose file stops the upgrade
+
+When the installation's `docker-compose.yml` matches no published release's file, the upgrade SHALL leave it unchanged, SHALL write the target release's file as `docker-compose.yml.new` with a summary of the services and settings that differ, and SHALL stop before pulling images or changing data.
+
+#### Scenario: An operator added a service
+
+- **WHEN** the Compose file has a service no release shipped
+- **THEN** the upgrade exits non-zero, `docker-compose.yml` is unchanged, `docker-compose.yml.new` exists, and the output says to merge it and run the upgrade again
+
+### Requirement: PostgreSQL data moves to the new major version without loss
+
+When PostgreSQL holds data of an earlier major version, the upgrade SHALL restore that data into the new major version on a new volume, SHALL compare the row count of every table between the two, SHALL switch the installation to the new volume only when they match, and SHALL leave the old volume untouched until the upgrade has succeeded.
+
+#### Scenario: A 17 cluster with tournaments
+
+- **WHEN** a 1.2.6 installation holding tournaments, results and users is upgraded
+- **THEN** PostgreSQL 18 serves the same rows as 17 did
+
+#### Scenario: Counts differ after the restore
+
+- **WHEN** a table's row count differs between the 17 and the 18 cluster
+- **THEN** the installation stays on the 17 volume with its previous Compose file, the upgrade exits non-zero naming the table, and no data is deleted
+
+### Requirement: The old PostgreSQL data is removed once the upgrade succeeded
+
+After doctor passes at the end of the upgrade, the upgrade SHALL confirm that the pre-upgrade backup packet is complete and readable, SHALL then remove the earlier major version's data volume and its PostgreSQL image when no container uses it, and SHALL report both. An operator option SHALL keep them.
+
+#### Scenario: A successful upgrade from 1.2.6
+
+- **WHEN** the upgrade from 1.2.6 finished and doctor passed
+- **THEN** the PostgreSQL 17 volume and the `postgres:17` image no longer exist, and the output names the backup packet that is now the way back
+
+#### Scenario: The backup packet cannot be read
+
+- **WHEN** the pre-upgrade packet is missing or its dump cannot be listed
+- **THEN** the 17 volume is kept, the upgrade exits non-zero and says why
+
+#### Scenario: The operator keeps the old volume
+
+- **WHEN** the operator runs the upgrade with `--keep-old-volume`
+- **THEN** the 17 volume and image remain, and the output says how to remove them later
+
+#### Scenario: Doctor fails
+
+- **WHEN** doctor fails at the end of the upgrade
+- **THEN** nothing is removed
+
+### Requirement: Settings of an earlier release are migrated
+
+The upgrade SHALL rewrite settings whose shipped default changed meaning, SHALL generate the secrets a new release requires, SHALL add new settings with their defaults, SHALL keep every value the operator set, and SHALL list each change.
+
+#### Scenario: The legacy key set URL
+
+- **WHEN** `.env` has `COPALIBRE_JWKS_URI=http://api:3001/.well-known/jwks.json`
+- **THEN** it becomes `http://api:3001/api/auth/jwks.json`, and the output says so
+
+#### Scenario: An external identity provider
+
+- **WHEN** `COPALIBRE_JWKS_URI` points at an external provider
+- **THEN** it is unchanged
+
+### Requirement: The upgrade ends with doctor
+
+The upgrade SHALL run doctor once the stack is up and SHALL exit non-zero, leaving the stack running and printing the rollback steps, when doctor reports a failure.
+
+#### Scenario: Doctor fails after the upgrade
+
+- **WHEN** doctor reports a failing check after the upgraded stack started
+- **THEN** the upgrade exits non-zero, names the failing check, keeps the PostgreSQL 17 volume, and prints the backup packet and the old volume to roll back to
+
+### Requirement: The upgrade is proven from published releases
+
+The repository SHALL run, for release candidates, an upgrade from the published images of 1.2.6 and of the oldest supported release to the candidate, and SHALL fail when data is lost, a sign-in fails or doctor fails afterwards.
+
+#### Scenario: Upgrading a published 1.2.6 installation
+
+- **WHEN** the release-candidate run installs 1.2.6 from its published images, loads a tournament with results, and upgrades with the candidate CLI and images
+- **THEN** the tournament and its results are present, an administrator signs in, and doctor passes
+
+### Requirement: Doctor does not report shipped email defaults as configured
+
+Doctor SHALL report email delivery as not configured, with a warning naming the setting, while the sender address is in the `.local` domain (the shipped default `noreply@copalibre.local`, written with the shipped relay `smtp://host.docker.internal:1025`), and SHALL keep reporting a provider without its required credentials or sender as a failure. A relay at the shipped address with a real sender is configured.
+
+#### Scenario: An installation that accepted the defaults
+
+- **WHEN** `.env` has `COPALIBRE_EMAIL_PROVIDER=smtp`, `COPALIBRE_SMTP_URL=smtp://host.docker.internal:1025` and `COPALIBRE_EMAIL_FROM=noreply@copalibre.local`
+- **THEN** doctor reports a warning that email delivery is not configured, not a pass
+
+### Requirement: Doctor configures missing email delivery in a terminal
+
+When doctor runs in a terminal and email delivery is not configured, it SHALL offer to configure it, SHALL let the operator choose the provider from a numbered list, SHALL ask for that provider's credentials or connection URL without echoing secrets, and SHALL ask for a sender address.
+
+#### Scenario: Choosing Resend
+
+- **WHEN** the operator accepts, chooses Resend, types an API key and the sender `torneos@liga.example`
+- **THEN** `.env` has `COPALIBRE_EMAIL_PROVIDER=resend`, the API key and the sender, the key was not shown while typed, and the output lists the changed keys without their values
+
+#### Scenario: Declining
+
+- **WHEN** the operator answers no
+- **THEN** `.env` is unchanged and doctor reports the warning
+
+### Requirement: Doctor changes `.env` only as the operator confirmed
+
+Doctor SHALL change only the keys the operator configured, SHALL keep a backup of the previous `.env` readable only by its owner, SHALL keep `.env` readable only by its owner, and SHALL name the services that must restart to read the change.
+
+#### Scenario: Another key in the file
+
+- **WHEN** doctor configures email in a `.env` that also holds operator comments and custom keys
+- **THEN** the comments and the other keys are unchanged and a backup of the previous file exists
+
+### Requirement: Doctor can send a test email
+
+After configuring email, and on request at any time, doctor SHALL send a test email to an address the operator gives, through the same delivery the application uses, and SHALL report whether the provider accepted it.
+
+#### Scenario: Wrong API key
+
+- **WHEN** the provider rejects the configured API key
+- **THEN** doctor reports the failure with the provider's reason and does not report email as working
+
+### Requirement: Doctor never prompts without a terminal
+
+Without a terminal, doctor SHALL ask nothing and SHALL report as before, and the same configuration SHALL be possible through command flags.
+
+#### Scenario: A scripted run
+
+- **WHEN** doctor runs with no terminal and email is not configured
+- **THEN** it prints the warning with the flags that configure it, and waits for no input
+
+#### Scenario: Flags
+
+- **WHEN** an operator runs doctor with `--configure email` and the email flags
+- **THEN** `.env` is updated as in the interactive flow, with no question asked
+
+### Requirement: Doctor moves a 1.0.x public URL to the gateway
+
+Doctor SHALL report a warning when `COPALIBRE_APP_URL` points at port 4321 outside hybrid development and source checkouts, and in a terminal SHALL offer to replace it with the public URL the operator confirms, defaulting to the gateway's address; it SHALL also move `COPALIBRE_API_URL` when it was on port 3001 or the old URL, and `COPALIBRE_JWT_ISSUER` when it held the old URL.
+
+#### Scenario: An installation created by 1.0.5
+
+- **WHEN** `.env` has `COPALIBRE_APP_URL=http://localhost:4321`, `COPALIBRE_API_URL=http://localhost:3001` and no `COPALIBRE_PORT`, and the operator accepts the default
+- **THEN** both are `http://localhost:8080` and doctor names the services to restart
+
+#### Scenario: Hybrid development
+
+- **WHEN** `COPALIBRE_DEV_HYBRID=true`, or doctor runs in a source checkout, and `COPALIBRE_APP_URL=http://localhost:4321`
+- **THEN** doctor reports nothing about the public URL
+
+### Requirement: Doctor generates what needs no operator data and never rewrites a live password
+
+Doctor SHALL offer to replace a placeholder bootstrap token with a random value, and SHALL report a placeholder PostgreSQL password with the steps to change it instead of rewriting it.
+
+#### Scenario: Placeholder PostgreSQL password
+
+- **WHEN** `POSTGRES_PASSWORD` still holds the shipped placeholder
+- **THEN** doctor fails the check, explains how to change the password in the database and in `.env` together, and leaves `.env` unchanged

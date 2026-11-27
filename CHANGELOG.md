@@ -1,3 +1,128 @@
+## [2.0.0](https://github.com/SebaSOFT/copalibre/compare/v1.2.6...v2.0.0) (2026-11-27)
+
+### Breaking changes
+
+- **Every API route lives under `/api`** (OpenAPI 8.0.0 → 9.0.0). Health and readiness are `/api/health` and `/api/ready`, the key set is `/api/auth/jwks.json`, and `/.well-known/jwks.json` is removed. The refresh cookie's path is `/api/auth`. The events long poll moves from `/api/events` to `/events/poll`. Point every client, proxy rule and `COPALIBRE_JWKS_URI` at the new paths ([#507](https://github.com/SebaSOFT/copalibre/pull/507), [#503](https://github.com/SebaSOFT/copalibre/pull/503)).
+- **Control holds its access token in an `HttpOnly` session cookie** (OpenAPI 9.0.0 → 10.0.0). Native login, invitation acceptance and refresh set the session, CSRF and refresh cookies and answer with session metadata only; an OIDC token is exchanged through `POST /api/auth/session`; unsafe cookie-authenticated requests need the CSRF header. Bearer clients and personal access tokens are unchanged ([#513](https://github.com/SebaSOFT/copalibre/pull/513)).
+- **Personal-data defaults** (OpenAPI 7.6.0 → 8.0.0): tournaments declare whether they include minors, youth profiles are off by default, irreversible operations ask for confirmation, CSV exports start with the required columns only, and new personal access tokens preselect no scope and expire after 30 days ([#469](https://github.com/SebaSOFT/copalibre/pull/469)).
+- **PostgreSQL 18.** The Compose stack runs `postgres:18` on a new volume, `postgresql-data`, mounted at `/var/lib/postgresql`. `copalibre upgrade` moves the 17 data across, checks every table's row count, and removes the 17 volume only after doctor passes ([#427](https://github.com/SebaSOFT/copalibre/pull/427), [#557](https://github.com/SebaSOFT/copalibre/pull/557)).
+- **Separate database roles.** The runtime roles connect as `copalibre_app` (rows only) and migrations as `copalibre_owner`; a new `database-setup` role creates both on every Compose start. An external or Kubernetes database must run `deploy/postgres/roles.sql` once before upgrading ([#518](https://github.com/SebaSOFT/copalibre/pull/518)).
+- **A strict Content Security Policy on every page**, with no report-only stage. An identity provider on another origin must be declared in `COPALIBRE_CSP_IDENTITY_ORIGIN` ([#511](https://github.com/SebaSOFT/copalibre/pull/511)).
+- **`matchNumber` in a player's statistics rows means the match's stage ordinal**, the number the match page shows, instead of its index within a series, and the rows sort by stage and ordinal. A client that joined these rows to a series by `matchNumber` must read the stage ordinal instead.
+
+### Upgrading from 1.x
+
+- From 1.2.5 or 1.2.6: `copalibre upgrade --self`, then `copalibre upgrade`.
+- From 1.2.0 or earlier: install the 2.0.0 CLI, then `copalibre upgrade`.
+- After an older CLI already ran `copalibre upgrade`: run the 2.0.0 CLI's `copalibre upgrade` again; it repairs the half-upgraded installation.
+- The upgrade takes a backup first, replaces an unmodified `docker-compose.yml` (keeping `docker-compose.yml.<version>.bak`), migrates `.env`, moves PostgreSQL 17 to 18 and ends with `copalibre doctor`. A modified Compose file is not touched: the shipped one is written as `docker-compose.yml.new` and the upgrade stops. The move needs free space for a second copy of the database. See the help page "Updating" for rollback before and after the 17 volume is removed.
+- Kubernetes: bring your own PostgreSQL 18 or keep yours, run `deploy/postgres/roles.sql`, set both image pins and the new values, and follow `docs/deployment/enterprise-kubernetes.md`. Helm rollback does not undo database migrations.
+
+### Public visitors
+
+- **Live scoreboard and clock.** One scoreboard on the public match page and on TV shows the game clock, which ticks while it runs and holds when it pauses. Tickers and the public live views follow the same clock ([#578](https://github.com/SebaSOFT/copalibre/pull/578)).
+- **Competition context.** Match pages, stage headings, match cards and TV headers name the stage, zone and group a match belongs to. Placement labels read within their zone, a drawn knockout shows the side that advances, and TV brackets follow the page language ([#579](https://github.com/SebaSOFT/copalibre/pull/579)).
+- **Localized rules and events.** Tiebreak names, event kinds, discipline names and undecided sides on TV follow the page language, with a fallback to the primary language ([#580](https://github.com/SebaSOFT/copalibre/pull/580)).
+- **Group standings and progress.** Stage and overview pages show a standings table for each group, with a plan-order column and colored promotion bands. The overview adds tournament progress and overall places ([#581](https://github.com/SebaSOFT/copalibre/pull/581)).
+- **Times you can read.** Timestamps say "Yesterday", "Today" or "Tomorrow" in the organization's time zone, and public and TV pages state that zone. A scheduled match still not started 15 minutes after kickoff shows as delayed, and the schedule has a day filter on desktop ([#582](https://github.com/SebaSOFT/copalibre/pull/582)).
+- **Player profiles.** A player page shows the shirt number, career totals, each match with its opponent and score, and a link to the club. The player table can be searched and sorted, and the TV ticker names performers ([#583](https://github.com/SebaSOFT/copalibre/pull/583)).
+- **Club pages.** Each club in a tournament has a page with its group table, results, squad and knockout path. Team names link to it, and the matches page filters by club ([#588](https://github.com/SebaSOFT/copalibre/pull/588)).
+- **Organization club pages.** A club's page lists its titles and podium places, and every published tournament it entered, newest first ([#590](https://github.com/SebaSOFT/copalibre/pull/590)).
+- **Standings tie-breaks.** The standings table names the criterion that separated teams level on points. Match cards no longer show a "Decided by" line ([#591](https://github.com/SebaSOFT/copalibre/pull/591)).
+- **Public navigation.** Each tournament tab opens its own page and is current only there. A Live tab appears, and the bracket tab opens the first stage that draws one ([#595](https://github.com/SebaSOFT/copalibre/pull/595)).
+- **TV status and next match.** TV shows one tournament status (scheduled, live, in progress or finished) and the next match. Standings and match lists page through every row, and multicourt shows one tile per court ([#596](https://github.com/SebaSOFT/copalibre/pull/596)).
+- **TV bracket and pinned match.** Bracket crests show a readable monogram when a club has no emblem, and a pinned match keeps its rail on that match ([#597](https://github.com/SebaSOFT/copalibre/pull/597)).
+- **Match page timeline, lineups and series games.** The timeline shows who scored, when in the game and the running score, and each played segment opens and closes with its score. Lineups list the registered players before kickoff. Each game of a series has its own page, reached from the bracket ([#604](https://github.com/SebaSOFT/copalibre/pull/604)).
+- **Match counters.** Where a discipline declares them, the TV and the public match page show team fouls, timeouts and cards for each side while the game is played. Counters are for display only ([#601](https://github.com/SebaSOFT/copalibre/pull/601)).
+- **Phone scoreboard.** On a phone, both sides of the match scoreboard stay on one row, with long team names wrapping within their side ([#603](https://github.com/SebaSOFT/copalibre/pull/603)).
+- **Pre-release fixes.** TV refresh keeps matches that are not live, and a match that leaves live drops its live-only figures ([#576](https://github.com/SebaSOFT/copalibre/pull/576)).
+- Name a match segment by one word per language across Control, public and TV text, and show the segment in play by its ordinal, with the label in lower case after the ordinal where the language writes it so ([#567](https://github.com/SebaSOFT/copalibre/pull/567), [#568](https://github.com/SebaSOFT/copalibre/pull/568), [#569](https://github.com/SebaSOFT/copalibre/pull/569), [#570](https://github.com/SebaSOFT/copalibre/pull/570)).
+- Broadcast screen layouts, TV in the organization's language by default, reduced-motion-safe live cues, and stable hydration ([#466](https://github.com/SebaSOFT/copalibre/pull/466), [#499](https://github.com/SebaSOFT/copalibre/pull/499), [#453](https://github.com/SebaSOFT/copalibre/pull/453), [#517](https://github.com/SebaSOFT/copalibre/pull/517)).
+- Keep a pinned or featured scheduled match on screen through the TV's periodic refresh, and show a match that finishes with the score the matches view reports.
+- The player dialog shows stored text as text ([#501](https://github.com/SebaSOFT/copalibre/pull/501)).
+- Adopt the public tournament layouts, shared page widths and gutters, and the organization screen composed by role ([#476](https://github.com/SebaSOFT/copalibre/pull/476), [#473](https://github.com/SebaSOFT/copalibre/pull/473), [#555](https://github.com/SebaSOFT/copalibre/pull/555)).
+- The overview shows the discipline, venues, entrant count and tiebreakers; match cards name their group or round and show a live 0–0; long match lists are grouped by day on phones ([#537](https://github.com/SebaSOFT/copalibre/pull/537), [#532](https://github.com/SebaSOFT/copalibre/pull/532), [#534](https://github.com/SebaSOFT/copalibre/pull/534)).
+- Stage match cards show their times in the organization's time zone, and the standings CSV download is served on the application's own origin.
+- The player dialog shows statistic labels and competition roles in the page language.
+- Responsive data tables, humanized tournament data, clearer hierarchy and filter disclosure ([#485](https://github.com/SebaSOFT/copalibre/pull/485), [#468](https://github.com/SebaSOFT/copalibre/pull/468), [#474](https://github.com/SebaSOFT/copalibre/pull/474)).
+- Emblem renditions and a size-scaled emblem frame, with a stored abbreviation as fallback ([#528](https://github.com/SebaSOFT/copalibre/pull/528), [#455](https://github.com/SebaSOFT/copalibre/pull/455)).
+- Public performance budgets: the header paints closed, the web role compresses, fonts have metric-matched fallbacks, and a public page paints with its text and heading faces only, adding the other weights after its first paint ([#524](https://github.com/SebaSOFT/copalibre/pull/524), [#527](https://github.com/SebaSOFT/copalibre/pull/527), [#574](https://github.com/SebaSOFT/copalibre/pull/574)).
+- The page-not-found composition for deep unknown paths, the page language for undecided sides and column headers, and valid markup semantics ([#535](https://github.com/SebaSOFT/copalibre/pull/535), [#498](https://github.com/SebaSOFT/copalibre/pull/498), [#496](https://github.com/SebaSOFT/copalibre/pull/496), [#481](https://github.com/SebaSOFT/copalibre/pull/481)).
+- Shared icons, a validated chart palette, resilient interaction states, a system-aware sunlight theme, a fluid type scale, script font fallbacks, and shared page headers ([#450](https://github.com/SebaSOFT/copalibre/pull/450), [#451](https://github.com/SebaSOFT/copalibre/pull/451), [#452](https://github.com/SebaSOFT/copalibre/pull/452), [#458](https://github.com/SebaSOFT/copalibre/pull/458), [#464](https://github.com/SebaSOFT/copalibre/pull/464), [#454](https://github.com/SebaSOFT/copalibre/pull/454), [#465](https://github.com/SebaSOFT/copalibre/pull/465)).
+
+### Organization administrators
+
+- **Overlay modes.** The TV launcher offers every layout and overlay, and shows and copies the link it builds. The scorebug keeps the corner position inside the broadcast safe area. `mode=overlay-lower` is a lower third on the bottom band, so an existing lower-third source now renders at the bottom, and `mode=overlay-full` is a full-frame scene with the ticker. An overlay with no match paints nothing, and Transparent is the default background for the scorebug and the lower third ([#599](https://github.com/SebaSOFT/copalibre/pull/599)).
+- Accept the overlay's chroma colour with or without its leading hash, so a bare hex value typed into an OBS browser source is applied.
+- **Club aliases.** Every club carries an alias. The name suggests one when a club is created, and an alias another club holds is refused. Renaming a club's alias keeps its former links working ([#589](https://github.com/SebaSOFT/copalibre/pull/589), [#592](https://github.com/SebaSOFT/copalibre/pull/592)).
+- **Stream link.** Each game can carry a stream link, set in the schedule builder.
+- Organization aliases that collide with routes are reserved.
+- Invitees land on the root landing page, and an invitation submitted before the page hydrates keeps its token ([#516](https://github.com/SebaSOFT/copalibre/pull/516), [#495](https://github.com/SebaSOFT/copalibre/pull/495)).
+- Plan a match's segments when it starts, add segments while it is in progress, and offer one clear clock action per segment state; refuse start and resume without a segment, and keep the running clock on Apply clock ([#542](https://github.com/SebaSOFT/copalibre/pull/542), [#561](https://github.com/SebaSOFT/copalibre/pull/561), [#562](https://github.com/SebaSOFT/copalibre/pull/562), [#564](https://github.com/SebaSOFT/copalibre/pull/564)).
+- Resolve persisted fixture graphs, placement play and elimination brackets, and name an undecided side by its source on every surface ([#430](https://github.com/SebaSOFT/copalibre/pull/430), [#431](https://github.com/SebaSOFT/copalibre/pull/431), [#434](https://github.com/SebaSOFT/copalibre/pull/434), [#435](https://github.com/SebaSOFT/copalibre/pull/435)).
+- Generate a next stage ahead and confirm its qualification ([#436](https://github.com/SebaSOFT/copalibre/pull/436)).
+- Schedule integrity with durations, reasons and history; propagate published rescheduling; report conflicts that arise after publication; email the affected people ([#432](https://github.com/SebaSOFT/copalibre/pull/432), [#433](https://github.com/SebaSOFT/copalibre/pull/433), [#437](https://github.com/SebaSOFT/copalibre/pull/437), [#438](https://github.com/SebaSOFT/copalibre/pull/438)).
+- Choose a schedule slot by day then time, and open the officials picker one match at a time ([#538](https://github.com/SebaSOFT/copalibre/pull/538), [#539](https://github.com/SebaSOFT/copalibre/pull/539)).
+- Control layout foundation, adopted on the setup, operations and administration screens ([#475](https://github.com/SebaSOFT/copalibre/pull/475), [#482](https://github.com/SebaSOFT/copalibre/pull/482), [#483](https://github.com/SebaSOFT/copalibre/pull/483), [#548](https://github.com/SebaSOFT/copalibre/pull/548)).
+- One rail entry per screen, a Clubs entry and stage names in breadcrumbs; matches today and the analytics export ([#541](https://github.com/SebaSOFT/copalibre/pull/541), [#549](https://github.com/SebaSOFT/copalibre/pull/549)).
+- Name events, formats, tiebreakers and super-admins instead of printing identifiers ([#547](https://github.com/SebaSOFT/copalibre/pull/547)).
+- Form controls: fields keep one height and explain long text in a popover, select reads like an input, inputs at 16 px, visible checkbox and radio boxes, padded card headers ([#492](https://github.com/SebaSOFT/copalibre/pull/492), [#489](https://github.com/SebaSOFT/copalibre/pull/489), [#490](https://github.com/SebaSOFT/copalibre/pull/490), [#488](https://github.com/SebaSOFT/copalibre/pull/488), [#491](https://github.com/SebaSOFT/copalibre/pull/491)).
+- Accessibility: a skip link, the active language on auth screens, AA contrast for status text, and a correct heading outline ([#500](https://github.com/SebaSOFT/copalibre/pull/500), [#494](https://github.com/SebaSOFT/copalibre/pull/494), [#493](https://github.com/SebaSOFT/copalibre/pull/493), [#543](https://github.com/SebaSOFT/copalibre/pull/543)).
+- State expiries as readable dates, and link the product signature and docs to `www.copalibre.app` ([#497](https://github.com/SebaSOFT/copalibre/pull/497), [#429](https://github.com/SebaSOFT/copalibre/pull/429)).
+
+### System administrators
+
+- Upgrade every 1.x installation to 2.0, identifying it by its contents, with a pre-upgrade backup, row-count verification and a release-candidate test from published 1.2.6 and 1.0.5 images.
+- `copalibre doctor` configures the settings an installation is missing ([#558](https://github.com/SebaSOFT/copalibre/pull/558)); `start` and `restart` work on a fresh install and after `stop`, and Mailgun delivers under Compose without an explicit region; the tournament overview meets its paint budget ([#559](https://github.com/SebaSOFT/copalibre/pull/559), [#522](https://github.com/SebaSOFT/copalibre/pull/522)).
+- Grant the first super-admin from the host, only while none is active ([#551](https://github.com/SebaSOFT/copalibre/pull/551)).
+- Remove single-run containers once the stack is up ([#556](https://github.com/SebaSOFT/copalibre/pull/556)).
+- Before it stops anything, the upgrade measures the database and the free space beside its PostgreSQL volume, and refuses the move, changing nothing, when Docker's disk holds less than twice the database ([#571](https://github.com/SebaSOFT/copalibre/pull/571), [#573](https://github.com/SebaSOFT/copalibre/pull/573)).
+- Let operators publish their own `/.well-known/` files ([#508](https://github.com/SebaSOFT/copalibre/pull/508)).
+- Serve the fonts from the application origin ([#509](https://github.com/SebaSOFT/copalibre/pull/509)).
+- The CLI binary loads `sharp` only when it makes a rendition, so it starts on every platform ([#552](https://github.com/SebaSOFT/copalibre/pull/552)).
+- Security release gate: static checks and a Git-history secret scan run before any image is published, with fixes for the findings it reproduced ([#515](https://github.com/SebaSOFT/copalibre/pull/515)).
+- Harden native authentication and the development stack ([#449](https://github.com/SebaSOFT/copalibre/pull/449)).
+- The events service verifies native sessions against the API's key set, so Control's live stream accepts them beside an external provider ([#523](https://github.com/SebaSOFT/copalibre/pull/523)).
+- `copalibre doctor` warns about each organization whose stored time zone the runtime does not know, and names it. The warning does not stop `copalibre start` ([#607](https://github.com/SebaSOFT/copalibre/pull/607)).
+- Upgrading gives every club without an alias, or with a UUID as its alias, a suggested alias before the alias becomes required. The migration writes no audit event and no redirect ([#594](https://github.com/SebaSOFT/copalibre/pull/594)).
+
+### Integrators
+
+- Package the MCP server as an MCPB bundle, attached to each release and published to Smithery ([#457](https://github.com/SebaSOFT/copalibre/pull/457)).
+- Restore the interactive API reference at `/help/api-reference/`, with Try It authenticated by a personal access token ([#550](https://github.com/SebaSOFT/copalibre/pull/550)).
+- Commit each console command's idempotency key with its writes, and read an event's sequence inside its own transaction ([#565](https://github.com/SebaSOFT/copalibre/pull/565), [#566](https://github.com/SebaSOFT/copalibre/pull/566)).
+- Personal access tokens load from the path the API serves ([#487](https://github.com/SebaSOFT/copalibre/pull/487)).
+- Public match responses carry a `clock` snapshot (segment, elapsed seconds, whether it runs and when it was taken). The realtime `match.clock-changed` event carries the same clock, and tournament listings include `liveMatches`.
+- Match and bracket responses name the stage, zone and group of a match, and a finalized match names its `winnerEntrantId`.
+- Finalized matches separated by a tiebreak carry `decidingFactorCode` and `decidingFactorRule`, and match events carry `definitionCode` and localized `labels`.
+- The overview's standings preview uses the public table's ranking, with group-relative ranks and group names.
+- Person responses carry `shirtNumber` and `clubAlias`.
+- Club responses require `alias`, and the tournament overview lists `formerAliases`. A club create or update that reuses another club's alias answers `409 club-conflict`, where it answered 500. `GET /api/organizations/{organizationAlias}/public/clubs/{clubAlias}` returns an organization club page.
+- An organization's time zone must be one the runtime knows; the API answers 400 for any other.
+- Modules declare `matchCounters`: a code, a label, a short label of up to three characters, the events they count, a scope of `match` or `segment`, and an optional allowance and warning threshold. Existing modules validate unchanged.
+
+### Contributors
+
+- Prepare the 2.0.0 release: version pins and the first release notes ([#575](https://github.com/SebaSOFT/copalibre/pull/575)).
+- AGENTS.md lists every local gate for a change, requires a help claim for each new capability, and makes OpenSpec, rtk, CodeGraph and the communication rules mandatory ([#593](https://github.com/SebaSOFT/copalibre/pull/593), [#600](https://github.com/SebaSOFT/copalibre/pull/600)).
+- The release gate no longer requires a manual screen-reader pass; the checklist is optional ([#602](https://github.com/SebaSOFT/copalibre/pull/602)).
+- Test titles name behavior without planning task numbers ([#598](https://github.com/SebaSOFT/copalibre/pull/598)).
+- Large source files are split by responsibility, and a file-size check requires a recorded decision for any file over its limit ([#605](https://github.com/SebaSOFT/copalibre/pull/605)).
+- Lower the public LCP budget to 2200 ms ([#577](https://github.com/SebaSOFT/copalibre/pull/577)).
+- Demo loads anchored to a date and played up to a cutoff ([#439](https://github.com/SebaSOFT/copalibre/pull/439)).
+- Codify the design review contract and complete the closing design review ([#448](https://github.com/SebaSOFT/copalibre/pull/448), [#486](https://github.com/SebaSOFT/copalibre/pull/486), [#470](https://github.com/SebaSOFT/copalibre/pull/470), [#553](https://github.com/SebaSOFT/copalibre/pull/553)).
+- One interface copy voice, enforced in contribution review ([#456](https://github.com/SebaSOFT/copalibre/pull/456), [#467](https://github.com/SebaSOFT/copalibre/pull/467)).
+- Performance and kiosk release gates, run in their own job against the shipped path ([#472](https://github.com/SebaSOFT/copalibre/pull/472), [#519](https://github.com/SebaSOFT/copalibre/pull/519), [#520](https://github.com/SebaSOFT/copalibre/pull/520), [#521](https://github.com/SebaSOFT/copalibre/pull/521), [#525](https://github.com/SebaSOFT/copalibre/pull/525)).
+- Dependency refresh and advisory remediation: Dependabot batches, library updates, `astro`, `@astrojs/node`, `hono`, `@hono/node-server`, `basic-ftp`, `image-size` and `onnxruntime-web` raised or pinned for their advisories, with the remediations recorded ([#420](https://github.com/SebaSOFT/copalibre/pull/420), [#424](https://github.com/SebaSOFT/copalibre/pull/424), [#425](https://github.com/SebaSOFT/copalibre/pull/425), [#426](https://github.com/SebaSOFT/copalibre/pull/426), [#446](https://github.com/SebaSOFT/copalibre/pull/446), [#512](https://github.com/SebaSOFT/copalibre/pull/512), [#514](https://github.com/SebaSOFT/copalibre/pull/514), [#529](https://github.com/SebaSOFT/copalibre/pull/529), [#530](https://github.com/SebaSOFT/copalibre/pull/530), [#531](https://github.com/SebaSOFT/copalibre/pull/531), [#533](https://github.com/SebaSOFT/copalibre/pull/533), [#536](https://github.com/SebaSOFT/copalibre/pull/536), [#540](https://github.com/SebaSOFT/copalibre/pull/540), [#546](https://github.com/SebaSOFT/copalibre/pull/546)).
+- Test reliability: a faster integration suite sharing the demo load, clone tests with a realistic timeout, and four e2e tests that no longer fail on clean code ([#563](https://github.com/SebaSOFT/copalibre/pull/563), [#484](https://github.com/SebaSOFT/copalibre/pull/484), [#502](https://github.com/SebaSOFT/copalibre/pull/502)).
+- The CLI build check runs when a workspace package changes; the accepted specs validate with OpenSpec 2.0.0 ([#554](https://github.com/SebaSOFT/copalibre/pull/554), [#560](https://github.com/SebaSOFT/copalibre/pull/560), [#440](https://github.com/SebaSOFT/copalibre/pull/440)).
+- Contributor documentation: the release procedure, delivery lessons, tooling reference and proposal rules; an operator research kit; screenshots are attached to pull requests instead of committed ([#419](https://github.com/SebaSOFT/copalibre/pull/419), [#526](https://github.com/SebaSOFT/copalibre/pull/526), [#428](https://github.com/SebaSOFT/copalibre/pull/428), [#447](https://github.com/SebaSOFT/copalibre/pull/447), [#471](https://github.com/SebaSOFT/copalibre/pull/471), [#510](https://github.com/SebaSOFT/copalibre/pull/510), [#572](https://github.com/SebaSOFT/copalibre/pull/572)).
+
+### Deprecations
+
+- The `decidingFactor` field on match responses is deprecated. Read `decidingFactorCode` and `decidingFactorRule` instead.
+- `streamUrl` on a fixture is deprecated: it repeats the first game's link. Read `matches[].streamUrl` for every game.
+
 ## [1.2.6](https://github.com/SebaSOFT/copalibre/compare/v1.2.5...v1.2.6) (2026-10-09)
 
 ### Infrastructure and supply chain

@@ -2,6 +2,7 @@
 import type { IntlShape } from 'react-intl';
 import BracketView from './BracketView.astro';
 import { stagePath, type BracketMatch } from '../../../lib/bracket.ts';
+import type { MatchCardData } from '../../../lib/matches-view.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 /**
@@ -18,6 +19,10 @@ interface Props {
   readonly tournamentAlias: string;
   readonly stageNumber: number;
   readonly localePrefix?: string;
+  readonly zoneName?: string;
+  readonly matchesView?: readonly MatchCardData[];
+  readonly organizationTimeZone?: string;
+  readonly overallPlaceOffset?: number;
 }
 const {
   matches,
@@ -27,6 +32,10 @@ const {
   tournamentAlias,
   stageNumber,
   localePrefix = '',
+  zoneName,
+  matchesView,
+  organizationTimeZone,
+  overallPlaceOffset,
 } = Astro.props;
 ---
 
@@ -39,9 +48,13 @@ const {
     intl={intl}
     localePrefix={localePrefix}
     matches={matches}
+    matchesView={matchesView}
     organizationAlias={organizationAlias}
+    organizationTimeZone={organizationTimeZone}
     stageNumber={stageNumber}
     tournamentAlias={tournamentAlias}
+    zoneName={zoneName}
+    overallPlaceOffset={overallPlaceOffset}
   />
   <a
     class="cl-bracket-context__view-full"
@@ -61,3 +74,14 @@ const {
     justify-self: start;
   }
 </style>
+
+<script>
+  import { revealFocusedBracketMatch } from '../../../lib/bracket-overflow';
+  const reveal = (): void => {
+    document
+      .querySelectorAll<HTMLElement>('.cl-bracket-context')
+      .forEach(revealFocusedBracketMatch);
+  };
+  reveal();
+  document.addEventListener('astro:page-load', reveal);
+</script>

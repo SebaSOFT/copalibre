@@ -12,7 +12,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const TOURNAMENT = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const STAGE = `${TOURNAMENT}/stages/1`;
 
 const overview = {
@@ -137,10 +137,10 @@ test.beforeEach(() => {
 
 /** Round one of the winners' bracket, where both series crosses live. */
 function roundOne(page: import('@playwright/test').Page) {
-  return page.getByRole('region', { name: 'winner — round 1' });
+  return page.getByRole('region', { name: 'Main bracket · Semi-finals' });
 }
 
-test('7.3: shows the series bar, the running score, a pending cross and an aggregate tie', async ({
+test('shows the series bar, the running score, a pending cross and an aggregate tie', async ({
   page,
 }) => {
   await page.goto(bracketPath);
@@ -164,12 +164,16 @@ test('7.3: shows the series bar, the running score, a pending cross and an aggre
 
   // Nothing has advanced out of the undecided cross: the round-two cross still names its
   // dependency rather than an entrant.
-  const downstream = page.getByRole('region', { name: 'winner — round 2' });
-  await expect(downstream.getByText('Ganador del 1')).toBeVisible();
+  const downstream = page.getByRole('region', { name: 'Main bracket · Final' });
+  await expect(
+    downstream
+      .getByText('Winner of Match 1', { exact: true })
+      .or(downstream.getByTitle('Winner of Match 1', { exact: true })),
+  ).toBeVisible();
   await expect(downstream.getByText('Talleres')).toHaveCount(0);
 });
 
-test('7.4: series state is legible with color disabled and carries a text equivalent', async ({
+test('series state is legible with color disabled and carries a text equivalent', async ({
   page,
 }) => {
   await page.emulateMedia({ forcedColors: 'active' });
@@ -192,7 +196,7 @@ test('7.4: series state is legible with color disabled and carries a text equiva
   await expect(bestOfFive.getByLabel('Best of 5 series: 2 to 1')).toBeAttached();
 });
 
-test('7.4: a game that will not be played is distinguishable from one merely upcoming', async ({
+test('a game that will not be played is distinguishable from one merely upcoming', async ({
   page,
 }) => {
   bracketFixture = {
@@ -228,7 +232,9 @@ test('7.4: a game that will not be played is distinguishable from one merely upc
   };
   await page.goto(bracketPath);
 
-  const bestOfFive = roundOne(page).locator('[data-match="1"]');
+  const bestOfFive = page
+    .getByRole('region', { name: 'Main bracket · Final' })
+    .locator('[data-match="1"]');
   await expect(bestOfFive.locator('[data-state="not-required"]')).toHaveCount(1);
   await expect(bestOfFive.locator('[data-state="upcoming"]')).toHaveCount(0);
   await expect(bestOfFive.getByLabel('Game 5: will not be played')).toBeAttached();

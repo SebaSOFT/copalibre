@@ -86,14 +86,10 @@ using a bearer token from `COPALIBRE_MCP_TOKEN`, and SHALL NOT be registered unl
 
 ### Requirement: The server and its tools are self-explanatory to an AI client
 
-`copalibre mcp` SHALL advertise a top-level `instructions` string explaining what CopaLibre is, the
-installation-action, tournament-operational and descriptor-authoring tool categories, and when each
-applies. Every registered tool's `description` SHALL state what it does, when to use it, and what it
-requires (for example, a required token), not merely its name in prose.
-
-The `instructions` string SHALL state where an agent can retrieve the authoring contract in full, so an
-agent that needs more than a tool description knows what to fetch rather than inferring the artifact's
-shape from examples.
+`copalibre mcp` SHALL advertise a top-level `instructions` string explaining what CopaLibre is, its
+tool categories, and when each applies, and SHALL state where an agent can retrieve the authoring
+contract in full. Every registered tool's `description` SHALL state what it does, when to use it,
+and what it requires, not merely its name in prose.
 
 #### Scenario: The server advertises instructions
 
@@ -112,6 +108,23 @@ shape from examples.
 - **THEN** it learns that descriptor authoring is a supported category, which tools serve it, and where
   the full authoring contract can be retrieved
 
+#### Scenario: The categories named
+
+- **WHEN** an agent reads the instructions
+- **THEN** they name the installation-action, tournament-operational and descriptor-authoring tool
+  categories
+
+#### Scenario: Requirements are spelled out
+
+- **WHEN** a tool needs an API token
+- **THEN** its description says so
+
+#### Scenario: The contract is fetched, not guessed
+
+- **WHEN** an agent needs more than a tool description
+- **THEN** the instructions tell it what to fetch rather than leaving it to infer the artifact's
+  shape from examples
+
 ### Requirement: Module-authoring tools are always available
 
 `copalibre_module_scaffold`, `copalibre_module_validate_local`, and `copalibre_module_submit` SHALL
@@ -125,17 +138,12 @@ local filesystem and Git, never `apps/api`.
   `copalibre_module_submit` are listed and callable
 
 ### Requirement: Descriptor-authoring tools are always available
+
 `copalibre_descriptor_schema` and `copalibre_descriptor_validate` SHALL be registered on every
-`copalibre mcp` invocation, requiring no API token — they read the schema the installation already
-carries and validate a candidate locally, never calling `apps/api`.
-
-`copalibre_descriptor_schema` SHALL return the machine-readable discipline-descriptor schema together
-with, for each field, what that field governs while a competition is running. `copalibre_descriptor_validate`
-SHALL accept a candidate descriptor and return either acceptance or the validation errors, each naming
-the path within the descriptor that caused it.
-
-Validation SHALL be the same validation the platform applies when a module is installed. An agent SHALL
-NOT be able to produce a descriptor that this tool accepts and the installation later refuses.
+`copalibre mcp` invocation, requiring no API token and never calling `apps/api`. The schema tool
+SHALL return the discipline-descriptor schema with what each field governs during a competition. The
+validate tool SHALL return acceptance or errors naming each error's path, using the same validation
+as installation, so that it SHALL NOT accept a descriptor the installation later refuses.
 
 #### Scenario: Authoring tools work without any token configured
 - **WHEN** `copalibre mcp` starts with no `COPALIBRE_MCP_TOKEN` configured
@@ -157,21 +165,19 @@ NOT be able to produce a descriptor that this tool accepts and the installation 
 - **THEN** installing that descriptor as a module does not fail validation, because both apply the same
   rules
 
+#### Scenario: Validation is local
+
+- **WHEN** either tool runs
+- **THEN** it reads the schema the installation already carries and validates the candidate locally
+
 ### Requirement: Profile-authoring tools are always available
 
-`copalibre_profile_schema` and `copalibre_profile_validate` SHALL be registered on every
-`copalibre mcp` invocation, requiring no API token — they read the schema the installation already
-carries and validate a candidate locally, never calling `apps/api`, mirroring
-`copalibre_descriptor_schema`/`copalibre_descriptor_validate` for the tournament-profile module kind.
-
-`copalibre_profile_schema` SHALL return the machine-readable tournament-profile schema together
-with, for each field, what that field governs during a competition. `copalibre_profile_validate`
-SHALL accept a candidate tournament-profile document and return either acceptance or the validation
-errors, each naming the path within the document that caused it.
-
-Validation SHALL be the same validation the platform applies when a tournament-profile module is
-installed. An agent SHALL NOT be able to produce a tournament-profile document that this tool
-accepts and the installation later refuses.
+`copalibre_profile_schema` and `copalibre_profile_validate` SHALL be registered on every `copalibre
+mcp` invocation, requiring no API token and never calling `apps/api`, mirroring the
+descriptor-authoring tools for tournament profiles. The schema tool SHALL return the profile schema
+with what each field governs. The validate tool SHALL return acceptance or path-named errors, using
+the same validation as installation, so that it SHALL NOT accept a profile the installation later
+refuses.
 
 #### Scenario: Profile-authoring tools work without any token configured
 - **WHEN** `copalibre mcp` starts with no `COPALIBRE_MCP_TOKEN` configured
@@ -192,3 +198,8 @@ accepts and the installation later refuses.
 - **WHEN** `copalibre_profile_validate` accepts a candidate tournament-profile document
 - **THEN** installing that document as a module does not fail validation, because both apply the
   same rules
+
+#### Scenario: Validation is local
+
+- **WHEN** either tool runs
+- **THEN** it reads the schema the installation already carries and validates the candidate locally

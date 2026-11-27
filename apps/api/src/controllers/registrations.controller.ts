@@ -1,87 +1,82 @@
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  Inject,
-  Param,
-  Patch,
-  Post,
-  Query,
-  Req,
-} from '@nestjs/common';
-import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-} from '../http/error-contract.js';
-import {
-  ApiBearerAuth,
-  ApiBadRequestResponse,
-  ApiConflictResponse,
-  ApiCreatedResponse,
-  ApiForbiddenResponse,
-  ApiOkResponse,
-  ApiOperation,
   ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiOkResponse,
   ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
+  ApiCreatedResponse,
+  ApiConflictResponse,
 } from '@nestjs/swagger';
 import {
-  SUPPORTED_FORMATS,
-  canDecide,
-  isPlayerRole,
-  planBulkReview,
-  planRosterReconciliation,
-  teamMembershipsApply,
-  teamMembershipsEditable,
-  type CheckInWindow,
-  type Entrant,
-  type PlayerRole,
-  type ReviewDecision,
-} from '@copalibre/domain';
-import {
-  EnrollmentRepository,
-  IdentityPrincipalRepository,
-  InvariantViolationError,
-  OrganizationRepository,
-  PersonRepository,
-  TournamentRepository,
-  withTransaction,
-  type Database,
-} from '@copalibre/persistence';
+  Controller,
+  Inject,
+  Get,
+  Param,
+  Query,
+  Req,
+  Post,
+  HttpCode,
+  Body,
+  Patch,
+  Delete,
+} from '@nestjs/common';
+import { DATABASE } from '../database.token.js';
 import type { Kysely } from 'kysely';
-import type { RequestWithSubject } from '../auth/request-context.js';
+import {
+  type Database,
+  EnrollmentRepository,
+  PersonRepository,
+  IdentityPrincipalRepository,
+  withTransaction,
+  InvariantViolationError,
+  TournamentRepository,
+  OrganizationRepository,
+} from '@copalibre/persistence';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import {
-  BulkReviewRequest,
+  RegistrationResponse,
+  ProblemResponse,
+  TeamMemberResponse,
+  ReviewRegistrationRequest,
   BulkReviewResponse,
+  BulkReviewRequest,
   CreatePersonRequest,
   CreateTeamRequest,
-  DisciplineSummaryResponse,
-  EditTeamMembershipsRequest,
   PersonIdentityResponse,
-  ProblemResponse,
-  RegistrationResponse,
-  ReviewRegistrationRequest,
-  SetEntrantAbbreviationRequest,
-  TeamIdentityResponse,
-  TeamMemberResponse,
   UpdatePersonIdentityRequest,
+  TeamIdentityResponse,
   UpdateTeamIdentityRequest,
+  EditTeamMembershipsRequest,
 } from '../dto/organization.dto.js';
+import type { RequestWithSubject } from '../auth/request-context.js';
+import {
+  type Entrant,
+  canDecide,
+  planBulkReview,
+  type ReviewDecision,
+  teamMembershipsEditable,
+  teamMembershipsApply,
+  type PlayerRole,
+  isPlayerRole,
+  type CheckInWindow,
+} from '@copalibre/domain';
+import {
+  toResponse,
+  actorOf,
+  authorizationContextOf,
+  DEFAULT_TEAM_MEMBERSHIP_ROLE,
+} from '../registrations/context.js';
+import {
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '../http/error-contract.js';
+import { applyTeamRoster } from '../registrations/team-roster.js';
 import { enforcePolicy } from '../policy/resource-policy.js';
-import { DATABASE } from '../database.token.js';
 
-/**
- * A team-membership edit's request body carries no per-person role —
- * extending it to `{ personId, role }[]` is a larger, separable change this
- * endpoint's gap did not ask for. 'player' is the unmarked, common-case
- * membership; reconciliation only adds and removes, so this default cannot
- * demote an existing coach or substitute named again in a later edit.
- */
-const DEFAULT_TEAM_MEMBERSHIP_ROLE: PlayerRole = 'player';
+export { applyTeamRoster } from '../registrations/team-roster.js';
 
 /**
  * Registration review.
@@ -118,7 +113,8 @@ export class RegistrationsController {
       tournamentAlias,
       request,
     );
-    const entrants = await new EnrollmentRepository(this.db).listEntrants(tournament.tournamentId);
+    const enrollment = new EnrollmentRepository(this.db);
+    const entrants = await enrollment.listEntrants(tournament.tournamentId);
     const visible = entrants.filter(
       (entrant) => status === undefined || status === 'all' || entrant.status === status,
     );
@@ -135,6 +131,9 @@ export class RegistrationsController {
     const linkedPersonIds = await new IdentityPrincipalRepository(this.db).linkedPersonIds(
       organizationId,
       personIds,
+    );
+    const entrantLabels = await enrollment.resolveEntrantNames(
+      visible.map((entrant) => entrant.entrantId),
     );
 
     const teamEntrants = visible.filter(
@@ -173,7 +172,7 @@ export class RegistrationsController {
     }
 
     return visible.map((entrant) =>
-      toResponse(entrant, personById, linkedPersonIds, teamMembersByTeamId),
+      toResponse(entrant, personById, linkedPersonIds, teamMembersByTeamId, entrantLabels),
     );
   }
 
@@ -736,285 +735,6 @@ export class RegistrationsController {
       },
     });
 
-    return { organizationId: organization.organizationId, tournament };
-  }
-}
-
-/** The disciplines a wizard may choose from, with the formats each declares. */
-@ApiTags('disciplines')
-@Controller('disciplines')
-export class DisciplinesController {
-  constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
-
-  @Get()
-  @SecurityPlaneTag('public-read')
-  @ApiOperation({
-    summary: 'List installed disciplines and the formats they support',
-    description:
-      'The wizard filters formats from this response. A client-side list disagrees with the installation the day a module is added.',
-  })
-  @ApiOkResponse({ type: DisciplineSummaryResponse, isArray: true })
-  async list(): Promise<DisciplineSummaryResponse[]> {
-    const descriptors = await new TournamentRepository(this.db).listDescriptors();
-
-    return descriptors.map((descriptor) => ({
-      descriptorId: descriptor.descriptorId,
-      alias: descriptor.document.alias,
-      version: descriptor.version,
-      name: descriptor.document.name,
-      description: descriptor.document.description,
-      // The descriptor's own list, filtered to what the engine actually supports:
-      // a discipline may not advertise a format nothing can generate.
-      supportedFormats: descriptor.document.availableFormats.filter((format) =>
-        (SUPPORTED_FORMATS as readonly string[]).includes(format),
-      ),
-      ...(descriptor.document.formatDescriptions === undefined
-        ? {}
-        : { formatDescriptions: descriptor.document.formatDescriptions }),
-      fieldPolicies: descriptor.document.fieldPolicies,
-      defaults: descriptor.document.defaults,
-    }));
-  }
-}
-
-function toResponse(
-  entrant: Entrant,
-  personById: ReadonlyMap<
-    string,
-    { displayName: string; nationality?: string; photoObjectId?: string }
-  > = new Map(),
-  linkedPersonIds: ReadonlySet<string> = new Set(),
-  teamMembersByTeamId: ReadonlyMap<string, TeamMemberResponse[]> = new Map(),
-): RegistrationResponse {
-  if (entrant.entrantRef.kind === 'team') {
-    const teamMembers = teamMembersByTeamId.get(entrant.entrantRef.teamId);
-    return {
-      entrantId: entrant.entrantId,
-      tournamentId: entrant.tournamentId,
-      status: entrant.status,
-      teamId: entrant.entrantRef.teamId,
-      ...(entrant.abbreviation === undefined ? {} : { abbreviation: entrant.abbreviation }),
-      ...(teamMembers !== undefined ? { teamMembers } : {}),
-    };
-  }
-
-  const person = personById.get(entrant.entrantRef.personId);
-  return {
-    entrantId: entrant.entrantId,
-    tournamentId: entrant.tournamentId,
-    status: entrant.status,
-    personId: entrant.entrantRef.personId,
-    ...(entrant.abbreviation === undefined ? {} : { abbreviation: entrant.abbreviation }),
-    hasIdentityLink: linkedPersonIds.has(entrant.entrantRef.personId),
-    ...(person === undefined
-      ? {}
-      : {
-          displayName: person.displayName,
-          ...(person.nationality === undefined ? {} : { nationality: person.nationality }),
-          ...(person.photoObjectId === undefined ? {} : { photoObjectId: person.photoObjectId }),
-        }),
-  };
-}
-
-/**
- * Reconciles a team's persistent squad (`players`) to a desired
- * `personId -> role` map: enlists who is missing, dismisses who is no longer
- * named, updates the role of anyone named with a different one. Shared by
- * `editTeamMemberships` above and `ClubPortalController`'s roster submission —
- * the reconciliation itself does not care who is calling it,
- * only that the caller already validated every named person belongs to this
- * organization (and, for a club-scoped caller, to their own club).
- */
-export async function applyTeamRoster(
-  db: Kysely<Database>,
-  people: PersonRepository,
-  input: {
-    readonly organizationId: string;
-    readonly teamId: string;
-    readonly desiredRoleByPersonId: ReadonlyMap<string, PlayerRole>;
-    readonly actor: string;
-    readonly authorizationContext: string;
-    /** Set only when a club submits its squad for a tournament entrant; announces it in the same transaction. */
-    readonly submission?: { readonly entrantId: string; readonly tournamentId: string };
-  },
-): Promise<void> {
-  const currentSquad = await people.squadOf(input.teamId);
-  const plan = planRosterReconciliation(
-    currentSquad.map((player) => player.personId),
-    [...input.desiredRoleByPersonId.keys()],
-  );
-  const playerIdByPersonId = new Map(currentSquad.map((player) => [player.personId, player]));
-
-  await withTransaction(db, async (uow) => {
-    for (const personId of plan.toEnlist) {
-      const role = input.desiredRoleByPersonId.get(personId) ?? DEFAULT_TEAM_MEMBERSHIP_ROLE;
-      await people.enlist(uow, {
-        personId,
-        teamId: input.teamId,
-        role,
-        organizationId: input.organizationId,
-        actor: input.actor,
-        authorizationContext: input.authorizationContext,
-      });
-    }
-    for (const personId of plan.toRemove) {
-      const player = playerIdByPersonId.get(personId);
-      if (!player) continue;
-      await people.dismiss(uow, {
-        playerId: player.playerId,
-        organizationId: input.organizationId,
-        actor: input.actor,
-        authorizationContext: input.authorizationContext,
-      });
-    }
-    for (const player of currentSquad) {
-      const desiredRole = input.desiredRoleByPersonId.get(player.personId);
-      if (desiredRole && desiredRole !== player.role && !plan.toRemove.includes(player.personId)) {
-        await people.setPlayerRole(uow, {
-          playerId: player.playerId,
-          role: desiredRole,
-          organizationId: input.organizationId,
-          actor: input.actor,
-          authorizationContext: input.authorizationContext,
-        });
-      }
-    }
-    if (input.submission) {
-      await uow.publishEvent({
-        organizationId: input.organizationId,
-        stream: `tournament:${input.submission.tournamentId}`,
-        entityId: input.submission.entrantId,
-        eventType: 'entrant.squad-submitted',
-        projectionVersion: 1,
-        payload: {
-          entrantId: input.submission.entrantId,
-          tournamentId: input.submission.tournamentId,
-          teamId: input.teamId,
-          memberCount: input.desiredRoleByPersonId.size,
-          actor: input.actor,
-        },
-      });
-    }
-  });
-}
-
-function actorOf(request: RequestWithSubject): string {
-  return `user:${request.subject?.subjectId ?? 'unknown'}`;
-}
-
-function authorizationContextOf(request: RequestWithSubject): string {
-  return (request.subject?.scopes ?? []).join(' ');
-}
-
-@ApiTags('entrants')
-@Controller('organizations/:organizationAlias/tournaments/:tournamentAlias/entrants')
-export class EntrantsController {
-  constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
-
-  @Patch(':entrantId/abbreviation')
-  @SecurityPlaneTag('admin-control')
-  @RequireOrganizationCapability('org.manage-registrations')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Set one entrant’s tournament-scoped abbreviation' })
-  @ApiOkResponse({ type: RegistrationResponse })
-  @ApiBadRequestResponse({ type: ProblemResponse })
-  @ApiConflictResponse({ type: ProblemResponse })
-  @ApiUnauthorizedResponse({ type: ProblemResponse })
-  @ApiForbiddenResponse({ type: ProblemResponse })
-  async setAbbreviation(
-    @Param('organizationAlias') organizationAlias: string,
-    @Param('tournamentAlias') tournamentAlias: string,
-    @Param('entrantId') entrantId: string,
-    @Body() body: SetEntrantAbbreviationRequest,
-    @Req() request: RequestWithSubject,
-  ): Promise<RegistrationResponse> {
-    const { organizationId, tournament } = await this.resolve(
-      organizationAlias,
-      tournamentAlias,
-      request,
-    );
-    const enrollment = new EnrollmentRepository(this.db);
-    const entrant = await enrollment.findEntrant(entrantId);
-    if (!entrant || entrant.tournamentId !== tournament.tournamentId) {
-      throw new NotFoundException(`No registration ${entrantId} in this tournament`, {
-        errorCode: 'registration-not-found',
-      });
-    }
-    try {
-      const updated = await withTransaction(this.db, (uow) =>
-        enrollment.setEntrantAbbreviation(uow, {
-          entrantId,
-          abbreviation: body.abbreviation,
-          organizationId,
-          actor: actorOf(request),
-          authorizationContext: (request.subject?.scopes ?? []).join(' '),
-        }),
-      );
-      return toResponse(updated);
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.message.includes('already used'))
-          throw new ConflictException(error.message, { errorCode: 'registration-conflict' });
-        if (error.message.toLowerCase().includes('abbreviation')) {
-          throw new BadRequestException(error.message, { errorCode: 'registration-bad-request' });
-        }
-      }
-      throw error;
-    }
-  }
-
-  @Get('needing-abbreviation')
-  @SecurityPlaneTag('admin-control')
-  @RequireOrganizationCapability('org.manage-registrations')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'List entrants awaiting an officer-chosen abbreviation' })
-  @ApiOkResponse({ type: RegistrationResponse, isArray: true })
-  @ApiUnauthorizedResponse({ type: ProblemResponse })
-  @ApiForbiddenResponse({ type: ProblemResponse })
-  async needingAbbreviation(
-    @Param('organizationAlias') organizationAlias: string,
-    @Param('tournamentAlias') tournamentAlias: string,
-    @Req() request: RequestWithSubject,
-  ): Promise<RegistrationResponse[]> {
-    const { tournament } = await this.resolve(organizationAlias, tournamentAlias, request);
-    return (
-      await new EnrollmentRepository(this.db).listEntrantsNeedingAbbreviation(
-        tournament.tournamentId,
-      )
-    ).map((entrant) => toResponse(entrant));
-  }
-
-  private async resolve(
-    organizationAlias: string,
-    tournamentAlias: string,
-    request: RequestWithSubject,
-  ): Promise<{ readonly organizationId: string; readonly tournament: { tournamentId: string } }> {
-    const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
-    if (!organization)
-      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
-        errorCode: 'registration-not-found',
-      });
-    enforcePolicy({
-      plane: 'admin-control',
-      subject: request.subject,
-      resource: { organizationId: organization.organizationId },
-    });
-    const tournament = await new TournamentRepository(this.db).findByScopedAlias(
-      organizationAlias,
-      tournamentAlias,
-    );
-    if (!tournament)
-      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
-        errorCode: 'registration-not-found',
-      });
-    enforcePolicy({
-      plane: 'admin-control',
-      subject: request.subject,
-      resource: {
-        organizationId: organization.organizationId,
-        ownerTournamentId: tournament.tournamentId,
-      },
-    });
     return { organizationId: organization.organizationId, tournament };
   }
 }

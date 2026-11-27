@@ -58,10 +58,9 @@ configured endpoint or filesystem profile, not only that the configured URL is r
 ### Requirement: A capability may mark an object kind as publicly servable
 
 An object-storage caller SHALL be able to expose a reference-checked read endpoint for a declared
-public object kind (e.g. a person photo, a club emblem, a discipline's background image), distinct from
-the default — every other stored object (report evidence, module assets not declared public) remains
-reachable only through its owning capability's own authorized path, never through an unauthenticated
-read. A discipline background SHALL use `GET /objects/discipline-background-image?key=...`, and that
+public object kind, distinct from the default: every other stored object remains reachable only
+through its owning capability's own authorized path, never through an unauthenticated read. A
+discipline background SHALL use `GET /objects/discipline-background-image?key=...`, and that
 endpoint SHALL serve only keys referenced by an installed discipline descriptor.
 
 #### Scenario: A publicly servable object is retrievable by reference without authentication
@@ -90,6 +89,18 @@ endpoint SHALL serve only keys referenced by an installed discipline descriptor.
   public tournament page for that discipline
 - **THEN** the image's bytes and content type are returned without authentication, the same way a club
   emblem or person photo already is
+
+#### Scenario: Declared public kinds
+
+- **WHEN** a capability declares person photos, club emblems or discipline background images as
+  public
+- **THEN** each is readable through its own reference-checked endpoint
+
+#### Scenario: An undeclared module asset stays private
+
+- **WHEN** an anonymous client requests a module asset its module did not declare public, through
+  the public-serve path
+- **THEN** the request is rejected, as report evidence is
 
 ### Requirement: Per-organization storage usage is queryable
 The system SHALL be able to report, for a given organization, the total bytes and object count of every
@@ -138,3 +149,64 @@ the validated install paths cannot cause one discipline's imagery to be served f
 #### Scenario: A correctly attributed key is still served
 - **WHEN** a descriptor references a background key under its own module namespace
 - **THEN** the image is served normally
+
+### Requirement: Emblem renditions are derived from the original and never authoritative
+
+A raster emblem SHALL be servable at each width of a fixed list (64, 128 and 256 pixels) as a WebP rendition
+derived from its stored original. The original SHALL stay the only source of truth: a rendition SHALL be
+regenerated from it whenever missing, SHALL never be served once its original is replaced, and SHALL leave storage
+together with its original. Without a width, the original SHALL be served unchanged.
+
+#### Scenario: A list asks for a small emblem
+
+- **WHEN** a client requests a club emblem with `width=128`
+- **THEN** the response is a WebP image 128 pixels wide, keeping the original's aspect ratio and transparency,
+  with the same immutable cache header the original carries
+
+#### Scenario: No width asked
+
+- **WHEN** a client requests an emblem without `width`
+- **THEN** the response is the stored original, byte for byte, as before
+
+#### Scenario: A width outside the list
+
+- **WHEN** a client requests an emblem with a width that is not 64, 128 or 256
+- **THEN** the response is 400 and names the accepted widths, and nothing is generated or stored
+
+#### Scenario: The emblem is replaced
+
+- **WHEN** an administrator uploads a new emblem for a club that had one
+- **THEN** every rendition request returns a rendition of the new image, never of the old one
+
+#### Scenario: The original is deleted
+
+- **WHEN** an operator deletes a stored emblem that no entity references any more
+- **THEN** its renditions are deleted from storage with it; like the existing thumbnail, they have no metadata
+  record of their own
+
+#### Scenario: A vector or animated emblem
+
+- **WHEN** a client requests an SVG or GIF emblem with `width`
+- **THEN** the response is the stored original, since it has no raster rendition
+
+### Requirement: Renditions are made once, by the worker for new uploads and on first request for older ones
+
+After its malware scan passes, the worker SHALL store every listed rendition of a new raster emblem. When a
+requested rendition is missing, the serving route SHALL generate it once from the original, store it and serve it;
+later requests SHALL read the stored rendition. A pending or failed original SHALL get no rendition.
+
+#### Scenario: An emblem uploaded before renditions existed
+
+- **WHEN** the first request for its 64-pixel rendition arrives
+- **THEN** the rendition is generated, stored next to the original and served, and a second request reads the
+  stored file without generating it again
+
+#### Scenario: A new upload
+
+- **WHEN** a new club emblem passes its malware scan
+- **THEN** its three renditions exist in storage before any page requests them
+
+#### Scenario: An emblem still being scanned
+
+- **WHEN** a client requests a rendition of an emblem whose scan has not finished
+- **THEN** the response is the same 202 the original returns while pending, and no rendition is generated

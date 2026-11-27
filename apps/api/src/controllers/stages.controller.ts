@@ -1,111 +1,66 @@
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  Inject,
-  Logger,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Post,
-  Put,
-  Req,
-} from '@nestjs/common';
-import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-} from '../http/error-contract.js';
-import {
-  ApiBadRequestResponse,
-  ApiBearerAuth,
-  ApiConflictResponse,
-  ApiCreatedResponse,
-  ApiForbiddenResponse,
-  ApiNotFoundResponse,
-  ApiOkResponse,
-  ApiOperation,
   ApiTags,
+  ApiOperation,
+  ApiOkResponse,
+  ApiNotFoundResponse,
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiConflictResponse,
   ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
+  ApiQuery,
+  ApiBadRequestResponse,
 } from '@nestjs/swagger';
 import {
-  compileEffectiveRuleset,
-  effectiveFormat,
-  evaluateMutation,
-  isPlacementFormat,
-  SUPPORTED_FORMATS,
-  validateAllocation,
-  validateSeriesDeclaration,
-  validateStageGroupConfiguration,
-  type StageAllocation,
-  type StageGroupConfiguration,
-  type TournamentFormat,
-  type TournamentRuleset,
-} from '@copalibre/domain';
-import {
-  generateNextSwissRoundFixtures,
-  isDuelMatch,
-  type GeneratedMatch,
-} from '@copalibre/tournament-engine';
-import {
-  CompetitionRecordRepository,
-  CompetitionRepository,
-  InvariantViolationError,
-  StageReadModel,
-  TournamentRepository,
-  recordAuditRefusal,
-  withTransaction,
-  type Database,
-} from '@copalibre/persistence';
-import type { Kysely } from 'kysely';
-import type { RequestWithSubject } from '../auth/request-context.js';
-import { SecurityPlaneTag } from '../auth/security-plane.js';
-import { RequireOrganizationCapability } from '../auth/access-requirement.js';
-import {
-  CreateStageRequest,
-  NextRoundRequest,
-  ProblemResponse,
-  SeriesDeclarationRequest,
-  SeriesMutationPreviewResponse,
-  StageConfigurationRequest,
-  StageConfigurationResponse,
-  StageResponse,
-  UpdateStageRequest,
-} from '../dto/organization.dto.js';
-import { StageFixturesResponse } from '../dto/schedule.dto.js';
-import { resolveTournament } from './standings.controller.js';
-import { chooseRoundZone, inZone, isDynamicRoundFormat } from './stage-rounds.js';
-import {
-  guaranteedMatchCount,
-  readSeriesResolver,
-  readStageSeries,
-  resolveFixtureSeries,
-} from './stage-series.js';
+  Controller,
+  Logger,
+  Inject,
+  Get,
+  Param,
+  Req,
+  Post,
+  Body,
+  Patch,
+  ParseIntPipe,
+  Delete,
+  HttpCode,
+  Query,
+  Put,
+} from '@nestjs/common';
 import { DATABASE } from '../database.token.js';
+import type { Kysely } from 'kysely';
+import type { Database } from '@copalibre/persistence';
+import { SecurityPlaneTag } from '../auth/security-plane.js';
+import {
+  StageResponse,
+  ProblemResponse,
+  CreateStageRequest,
+  UpdateStageRequest,
+  StageDeletionResponse,
+  DeleteStageRequest,
+  SeriesMutationPreviewResponse,
+  SeriesDeclarationRequest,
+  StageConfigurationResponse,
+  StageConfigurationRequest,
+  NextRoundRequest,
+} from '../dto/organization.dto.js';
+import type { RequestWithSubject } from '../auth/request-context.js';
+import { list } from '../stages/stage-listing.js';
+import { RequireOrganizationCapability } from '../auth/access-requirement.js';
+import { create } from '../stages/create-stage.js';
+import { update } from '../stages/update-stage.js';
+import { remove } from '../stages/remove-stage.js';
+import { previewSeriesMutation } from '../stages/series-mutation-preview.js';
+import {
+  configuration,
+  previewConfigurationMutation,
+  updateConfiguration,
+} from '../stages/stage-configuration.js';
+import { StageFixturesResponse } from '../dto/schedule.dto.js';
+import { fixtures } from '../stages/fixtures.js';
+import { nextRound } from '../stages/next-round.js';
 
-/**
- * `StageAllocationRequest.attributeKey`/`direction` are optional on the DTO (only `manual` and
- * `automatic` need neither), so a weighted declaration missing either would reach domain
- * `validateAllocation` with `attributeKey` `undefined` and throw a raw `TypeError` instead of the
- * intended 400 — this closes that structural gap before the domain check runs.
- */
-export function assertAllocationRequestComplete(allocation: {
-  readonly mode: string;
-  readonly attributeKey?: string;
-  readonly direction?: string;
-}): void {
-  if (
-    allocation.mode === 'weighted' &&
-    (allocation.attributeKey === undefined || allocation.direction === undefined)
-  ) {
-    throw new BadRequestException(
-      'Weighted allocation requires both an attribute key and a direction',
-      { errorCode: 'stage-bad-request' },
-    );
-  }
-}
+export { assertAllocationRequestComplete } from '../stages/create-stage.js';
 
 /**
  * Stage creation.
@@ -138,42 +93,7 @@ export class StagesController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Req() request: RequestWithSubject,
   ): Promise<readonly StageResponse[]> {
-    const { tournament } = await resolveTournament(this.db, {
-      organizationAlias,
-      tournamentAlias,
-      request,
-    });
-
-    const stages = await new CompetitionRepository(this.db).listStagesOfTournament(
-      tournament.tournamentId,
-    );
-    const stageReadModel = new StageReadModel(this.db);
-    const descriptor = await new TournamentRepository(this.db).findDescriptor(
-      tournament.disciplineRef.descriptorId,
-      tournament.disciplineRef.version,
-    );
-    // Optional/backward-compatible: an uninstalled discipline module leaves both
-    // fields absent rather than refusing a stage list that worked before.
-    const availableFormats = descriptor?.availableFormats.filter((format) =>
-      (SUPPORTED_FORMATS as readonly string[]).includes(format),
-    );
-    const formatDescriptions = descriptor?.formatDescriptions;
-
-    return Promise.all(
-      stages.map(async (stage) => {
-        const record = await stageReadModel.stageRecord(stage.stageId);
-        return {
-          stageId: stage.stageId,
-          seasonId: stage.seasonId,
-          number: stage.number,
-          name: stage.name,
-          format: stage.format,
-          seeded: record?.hasGeneratedFixtures ?? false,
-          ...(availableFormats === undefined ? {} : { availableFormats }),
-          ...(formatDescriptions === undefined ? {} : { formatDescriptions }),
-        };
-      }),
-    );
+    return list(this.db, organizationAlias, tournamentAlias, request);
   }
 
   @Post()
@@ -196,160 +116,7 @@ export class StagesController {
     @Body() body: CreateStageRequest,
     @Req() request: RequestWithSubject,
   ): Promise<StageResponse> {
-    const { organizationId, tournament } = await resolveTournament(this.db, {
-      organizationAlias,
-      tournamentAlias,
-      request,
-    });
-
-    const tournaments = new TournamentRepository(this.db);
-    const descriptor = await tournaments.findDescriptor(
-      tournament.disciplineRef.descriptorId,
-      tournament.disciplineRef.version,
-    );
-    if (!descriptor) {
-      throw new BadRequestException(
-        `Discipline ${tournament.disciplineRef.descriptorId}@${tournament.disciplineRef.version} is not installed`,
-        { errorCode: 'stage-bad-request' },
-      );
-    }
-
-    const format = await this.resolveFormat(tournament.tournamentId, descriptor, body.format);
-
-    if (body.allocation !== undefined) {
-      assertAllocationRequestComplete(body.allocation);
-      const validated = validateAllocation(body.allocation as StageAllocation);
-      if (!validated.ok) {
-        throw new BadRequestException(validated.error.message, { errorCode: 'stage-bad-request' });
-      }
-    }
-    if (body.groupConfiguration == null && body.groupConfiguration !== undefined) {
-      throw new BadRequestException('Group configuration cannot be null', {
-        errorCode: 'stage-bad-request',
-      });
-    }
-    if (body.groupConfiguration !== undefined) {
-      const groupError = validateStageGroupConfiguration(
-        body.groupConfiguration as StageGroupConfiguration,
-      );
-      if (groupError) throw new BadRequestException(groupError, { errorCode: 'stage-bad-request' });
-    }
-
-    let ruleset: TournamentRuleset | undefined;
-    if (body.series !== undefined) {
-      // A placement format produces an ordering, not two sides that could
-      // contest a series — refused here, before anything is stored, rather
-      // than only surfacing later at fixture-generation time.
-      if (isPlacementFormat(format)) {
-        throw new BadRequestException(
-          `Stage format "${format}" produces an ordering rather than two sides, so it cannot declare a series`,
-          { errorCode: 'stage-bad-request' },
-        );
-      }
-      const validated = validateSeriesDeclaration(body.series);
-      if (!validated.ok) {
-        throw new BadRequestException(validated.error.message, { errorCode: 'stage-bad-request' });
-      }
-    }
-
-    if (
-      body.series !== undefined ||
-      body.allocation !== undefined ||
-      body.groupConfiguration !== undefined
-    ) {
-      const found = await new TournamentRepository(this.db).findLatestRuleset(
-        tournament.tournamentId,
-      );
-      if (!found) {
-        throw new BadRequestException(
-          'This tournament has no configured ruleset to attach a stage series or allocation declaration to',
-          { errorCode: 'stage-bad-request' },
-        );
-      }
-      ruleset = found;
-    }
-
-    const competition = new CompetitionRepository(this.db);
-    const existingStages = await competition.listStagesOfTournament(tournament.tournamentId);
-    const number = body.number ?? existingStages.length + 1;
-    if (existingStages.some((stage) => stage.number === number)) {
-      throw new ConflictException(`Stage ${number} already exists in "${tournamentAlias}"`, {
-        errorCode: 'stage-conflict',
-      });
-    }
-    const name = body.name ?? `Stage ${number}`;
-
-    try {
-      const stage = await withTransaction(this.db, async (uow) => {
-        const created = await competition.createStageInTournament(uow, {
-          tournamentId: tournament.tournamentId,
-          number,
-          name,
-          format,
-          organizationId,
-          actor: actorOf(request),
-          authorizationContext: authorizationContextOf(request),
-        });
-
-        if (ruleset !== undefined) {
-          const stageConfiguration = await tournaments.createStageConfiguration(uow, {
-            stageId: created.stageId,
-            rulesetId: ruleset.rulesetId,
-            organizationId,
-            overrides:
-              body.series === undefined
-                ? {}
-                : {
-                    'series.span': body.series.span,
-                    ...(body.series.resolutionClass === undefined
-                      ? {}
-                      : { 'series.resolutionClass': body.series.resolutionClass }),
-                    ...(body.series.neutralGround === undefined
-                      ? {}
-                      : { 'series.neutralGround': body.series.neutralGround }),
-                    ...(body.series.standingsAccounting === undefined
-                      ? {}
-                      : { 'series.standingsAccounting': body.series.standingsAccounting }),
-                  },
-            ...(body.allocation === undefined
-              ? {}
-              : { allocation: body.allocation as StageAllocation }),
-            ...(body.groupConfiguration === undefined
-              ? {}
-              : { groupConfiguration: body.groupConfiguration as StageGroupConfiguration }),
-            actor: actorOf(request),
-            authorizationContext: authorizationContextOf(request),
-          });
-
-          const compiledStage = compileEffectiveRuleset(descriptor, ruleset, stageConfiguration);
-          if (compiledStage.ok) {
-            await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
-              tournamentId: tournament.tournamentId,
-              stageId: created.stageId,
-              ruleset: compiledStage.value,
-              organizationId,
-              actor: actorOf(request),
-              authorizationContext: authorizationContextOf(request),
-            });
-          }
-        }
-
-        return created;
-      });
-      return {
-        stageId: stage.stageId,
-        seasonId: stage.seasonId,
-        number: stage.number,
-        name: stage.name,
-        format: stage.format,
-        ...(body.series === undefined ? {} : { series: body.series }),
-        ...(body.allocation === undefined ? {} : { allocation: body.allocation }),
-      };
-    } catch (error) {
-      if (error instanceof InvariantViolationError)
-        throw new ConflictException(error.message, { errorCode: 'stage-conflict' });
-      throw error;
-    }
+    return create(this.db, organizationAlias, tournamentAlias, body, request);
   }
 
   @Patch(':stageNumber')
@@ -374,106 +141,7 @@ export class StagesController {
     @Body() body: UpdateStageRequest,
     @Req() request: RequestWithSubject,
   ): Promise<StageResponse> {
-    const { tournament } = await resolveTournament(this.db, {
-      organizationAlias,
-      tournamentAlias,
-      request,
-    });
-
-    const competition = new CompetitionRepository(this.db);
-    const stage = await this.findStage(competition, tournament.tournamentId, stageNumber);
-
-    let format = stage.format;
-    if (body.format !== undefined) {
-      const tournaments = new TournamentRepository(this.db);
-      const descriptor = await tournaments.findDescriptor(
-        tournament.disciplineRef.descriptorId,
-        tournament.disciplineRef.version,
-      );
-      if (!descriptor) {
-        throw new BadRequestException(
-          `Discipline ${tournament.disciplineRef.descriptorId}@${tournament.disciplineRef.version} is not installed`,
-          { errorCode: 'stage-bad-request' },
-        );
-      }
-      format = await this.resolveFormat(tournament.tournamentId, descriptor, body.format);
-    }
-
-    if (body.allocation !== undefined) {
-      assertAllocationRequestComplete(body.allocation);
-      const validated = validateAllocation(body.allocation as StageAllocation);
-      if (!validated.ok) {
-        throw new BadRequestException(validated.error.message, { errorCode: 'stage-bad-request' });
-      }
-    }
-
-    try {
-      return await withTransaction(this.db, async (uow) => {
-        let updated = stage;
-        if (body.name !== undefined) {
-          updated = await competition.renameStage(uow, {
-            stageId: stage.stageId,
-            name: body.name,
-            organizationId: tournament.organizationId,
-            actor: actorOf(request),
-            authorizationContext: authorizationContextOf(request),
-          });
-        }
-        if (body.format !== undefined) {
-          updated = await competition.changeStageFormat(uow, {
-            stageId: stage.stageId,
-            format,
-            organizationId: tournament.organizationId,
-            actor: actorOf(request),
-            authorizationContext: authorizationContextOf(request),
-          });
-        }
-        if (body.allocation !== undefined) {
-          const tournaments = new TournamentRepository(this.db);
-          const existing = await tournaments.findLatestStageConfiguration(stage.stageId);
-          if (existing) {
-            await tournaments.updateStageConfiguration(uow, {
-              stageId: stage.stageId,
-              organizationId: tournament.organizationId,
-              changedOverrides: {},
-              allocation: body.allocation as StageAllocation,
-              actor: actorOf(request),
-              authorizationContext: authorizationContextOf(request),
-            });
-          } else {
-            const found = await tournaments.findLatestRuleset(tournament.tournamentId);
-            if (!found) {
-              throw new BadRequestException(
-                'This tournament has no configured ruleset to attach a stage allocation declaration to',
-                { errorCode: 'stage-bad-request' },
-              );
-            }
-            await tournaments.createStageConfiguration(uow, {
-              stageId: stage.stageId,
-              rulesetId: found.rulesetId,
-              organizationId: tournament.organizationId,
-              overrides: {},
-              allocation: body.allocation as StageAllocation,
-              actor: actorOf(request),
-              authorizationContext: authorizationContextOf(request),
-            });
-          }
-        }
-        return {
-          stageId: updated.stageId,
-          seasonId: updated.seasonId,
-          number: updated.number,
-          name: updated.name,
-          format: updated.format,
-          ...(body.allocation === undefined ? {} : { allocation: body.allocation }),
-        };
-      });
-    } catch (error) {
-      if (error instanceof InvariantViolationError) {
-        throw new ConflictException(error.message, { errorCode: 'stage-conflict' });
-      }
-      throw error;
-    }
+    return update(this.db, organizationAlias, tournamentAlias, stageNumber, body, request);
   }
 
   @Delete(':stageNumber')
@@ -482,13 +150,14 @@ export class StagesController {
   @RequireOrganizationCapability('org.manage-stages')
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Remove an unseeded stage',
+    summary: 'Preview or remove a stage and its fixtures',
     description:
-      'Refused once the stage already holds a generated fixture, or a promotion plan already ' +
-      'targets it, naming why. Cascades the stage’s own zones, groups and their entrant ' +
-      'assignments; never a fixture or another stage’s record.',
+      '`dryRun=true` reports the records that would be removed without changing data. Deletion ' +
+      'requires `confirmationName` to exactly match the current stage name.',
   })
-  @ApiOkResponse({ type: StageResponse })
+  @ApiQuery({ name: 'dryRun', required: false, enum: ['true', 'false'] })
+  @ApiOkResponse({ type: StageDeletionResponse })
+  @ApiBadRequestResponse({ type: ProblemResponse })
   @ApiConflictResponse({ type: ProblemResponse })
   @ApiUnauthorizedResponse({ type: ProblemResponse })
   @ApiForbiddenResponse({ type: ProblemResponse })
@@ -497,54 +166,11 @@ export class StagesController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
     @Param('stageNumber', ParseIntPipe) stageNumber: number,
+    @Query('dryRun') dryRun: string | undefined,
+    @Body() body: DeleteStageRequest,
     @Req() request: RequestWithSubject,
-  ): Promise<StageResponse> {
-    const { tournament } = await resolveTournament(this.db, {
-      organizationAlias,
-      tournamentAlias,
-      request,
-    });
-
-    const competition = new CompetitionRepository(this.db);
-    const stage = await this.findStage(competition, tournament.tournamentId, stageNumber);
-
-    try {
-      const deleted = await withTransaction(this.db, (uow) =>
-        competition.deleteStage(uow, {
-          stageId: stage.stageId,
-          organizationId: tournament.organizationId,
-          actor: actorOf(request),
-          authorizationContext: authorizationContextOf(request),
-        }),
-      );
-      return {
-        stageId: deleted.stageId,
-        seasonId: deleted.seasonId,
-        number: deleted.number,
-        name: deleted.name,
-        format: deleted.format,
-      };
-    } catch (error) {
-      if (error instanceof InvariantViolationError) {
-        throw new ConflictException(error.message, { errorCode: 'stage-conflict' });
-      }
-      throw error;
-    }
-  }
-
-  private async findStage(
-    competition: CompetitionRepository,
-    tournamentId: string,
-    stageNumber: number,
-  ) {
-    const stages = await competition.listStagesOfTournament(tournamentId);
-    const stage = stages.find((candidate) => candidate.number === stageNumber);
-    if (!stage) {
-      throw new NotFoundException(`No stage ${stageNumber} in this tournament`, {
-        errorCode: 'stage-not-found',
-      });
-    }
-    return stage;
+  ): Promise<StageDeletionResponse> {
+    return remove(this.db, organizationAlias, tournamentAlias, stageNumber, dryRun, body, request);
   }
 
   @Post(':stageNumber/series/preview')
@@ -570,99 +196,15 @@ export class StagesController {
     @Body() body: SeriesDeclarationRequest,
     @Req() request: RequestWithSubject,
   ): Promise<SeriesMutationPreviewResponse> {
-    const { tournament, organizationId } = await resolveTournament(this.db, {
+    return previewSeriesMutation(
+      this.db,
+      this.logger,
       organizationAlias,
       tournamentAlias,
+      stageNumber,
+      body,
       request,
-    });
-
-    const competition = new CompetitionRepository(this.db);
-    const stages = await competition.listStagesOfTournament(tournament.tournamentId);
-    const stage = stages.find((candidate) => candidate.number === stageNumber);
-    if (!stage)
-      throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`, {
-        errorCode: 'stage-not-found',
-      });
-
-    const descriptor = await new TournamentRepository(this.db).findDescriptor(
-      tournament.disciplineRef.descriptorId,
-      tournament.disciplineRef.version,
     );
-    if (!descriptor) {
-      throw new BadRequestException(
-        `Discipline ${tournament.disciplineRef.descriptorId}@${tournament.disciplineRef.version} is not installed`,
-        { errorCode: 'stage-bad-request' },
-      );
-    }
-
-    const readModel = new StageReadModel(this.db);
-    const record = await readModel.stageRecord(stage.stageId);
-    const matches = await readModel.matches(stage.stageId);
-    const generatedFixtures = matches.map((match) => ({
-      fixtureId: match.matchId,
-      stageId: stage.stageId,
-      hasResult: match.status === 'finalized',
-    }));
-    const hasRecordedResults = record?.hasRecordedResults ?? false;
-    const previousValues: Record<string, unknown> = record?.overrides ?? {};
-
-    const proposed: [string, unknown][] = [
-      ['series.span', body.span],
-      ...(body.resolutionClass === undefined
-        ? []
-        : [['series.resolutionClass', body.resolutionClass] as [string, unknown]]),
-      ...(body.neutralGround === undefined
-        ? []
-        : [['series.neutralGround', body.neutralGround] as [string, unknown]]),
-      ...(body.standingsAccounting === undefined
-        ? []
-        : [['series.standingsAccounting', body.standingsAccounting] as [string, unknown]]),
-    ];
-
-    const fields = await Promise.all(
-      proposed.map(async ([field, nextValue]) => {
-        const decision = evaluateMutation(descriptor.fieldPolicies, field, {
-          hasRecordedResults,
-          generatedFixtures,
-          previousValue: previousValues[field],
-          nextValue,
-        });
-        if (!decision.ok) {
-          // A classification consulted and found blocking, returned as a
-          // 200 decision rather than thrown — the one refusal shape the
-          // central exception filter cannot see, so it is recorded here
-          // instead.
-          // Awaited, not fire-and-forget: nothing has been sent to the
-          // caller yet, so awaiting adds no risk of altering a response
-          // already on the wire, and it removes the race a detached write
-          // would leave between this response and a reader of the trail.
-          await recordAuditRefusal(
-            this.db,
-            {
-              organizationId,
-              entityType: 'stage-series',
-              entityId: stage.stageId,
-              action: 'mutation.refused',
-              actor: actorOf(request),
-              authorizationContext: authorizationContextOf(request),
-              reason: decision.error.message,
-              previousState: { field, nextValue },
-            },
-            (error) => this.logger.error('Failed to record a refusal audit entry', error as Error),
-          );
-          return { field, blocked: true, reason: decision.error.message };
-        }
-        return {
-          field,
-          mutationClass: decision.value.mutationClass,
-          ...(decision.value.mutationClass === 'requires_rebuild'
-            ? { invalidatedFixtureCount: decision.value.invalidates.length }
-            : {}),
-        };
-      }),
-    );
-
-    return { fields };
   }
 
   @Get(':stageNumber/configuration')
@@ -680,22 +222,7 @@ export class StagesController {
     @Param('stageNumber', ParseIntPipe) stageNumber: number,
     @Req() request: RequestWithSubject,
   ): Promise<StageConfigurationResponse> {
-    const { tournament } = await resolveTournament(this.db, {
-      organizationAlias,
-      tournamentAlias,
-      request,
-    });
-    const competition = new CompetitionRepository(this.db);
-    const stage = await this.findStage(competition, tournament.tournamentId, stageNumber);
-    const configuration = await new TournamentRepository(this.db).findLatestStageConfiguration(
-      stage.stageId,
-    );
-    return {
-      overrides: { ...(configuration?.overrides ?? {}) },
-      ...(configuration?.groupConfiguration === undefined
-        ? {}
-        : { groupConfiguration: configuration.groupConfiguration }),
-    };
+    return configuration(this.db, organizationAlias, tournamentAlias, stageNumber, request);
   }
 
   @Post(':stageNumber/configuration/preview')
@@ -720,62 +247,15 @@ export class StagesController {
     @Body() body: StageConfigurationRequest,
     @Req() request: RequestWithSubject,
   ): Promise<SeriesMutationPreviewResponse> {
-    const { tournament, organizationId } = await resolveTournament(this.db, {
+    return previewConfigurationMutation(
+      this.db,
+      this.logger,
       organizationAlias,
       tournamentAlias,
+      stageNumber,
+      body,
       request,
-    });
-    const competition = new CompetitionRepository(this.db);
-    const stage = await this.findStage(competition, tournament.tournamentId, stageNumber);
-
-    const descriptor = await new TournamentRepository(this.db).findDescriptor(
-      tournament.disciplineRef.descriptorId,
-      tournament.disciplineRef.version,
     );
-    if (!descriptor) {
-      throw new BadRequestException(
-        `Discipline ${tournament.disciplineRef.descriptorId}@${tournament.disciplineRef.version} is not installed`,
-        { errorCode: 'stage-bad-request' },
-      );
-    }
-    const { hasRecordedResults, generatedFixtures, previousValues } =
-      await this.stageMutationContext(stage.stageId);
-
-    const fields = await Promise.all(
-      Object.entries(body.overrides).map(async ([field, nextValue]) => {
-        const decision = evaluateMutation(descriptor.fieldPolicies, field, {
-          hasRecordedResults,
-          generatedFixtures,
-          previousValue: previousValues[field],
-          nextValue,
-        });
-        if (!decision.ok) {
-          await recordAuditRefusal(
-            this.db,
-            {
-              organizationId,
-              entityType: 'stage-configuration',
-              entityId: stage.stageId,
-              action: 'mutation.refused',
-              actor: actorOf(request),
-              authorizationContext: authorizationContextOf(request),
-              reason: decision.error.message,
-              previousState: { field, nextValue },
-            },
-            (error) => this.logger.error('Failed to record a refusal audit entry', error as Error),
-          );
-          return { field, blocked: true, reason: decision.error.message };
-        }
-        return {
-          field,
-          mutationClass: decision.value.mutationClass,
-          ...(decision.value.mutationClass === 'requires_rebuild'
-            ? { invalidatedFixtureCount: decision.value.invalidates.length }
-            : {}),
-        };
-      }),
-    );
-    return { fields };
   }
 
   @Put(':stageNumber/configuration')
@@ -802,162 +282,15 @@ export class StagesController {
     @Body() body: StageConfigurationRequest,
     @Req() request: RequestWithSubject,
   ): Promise<StageConfigurationResponse> {
-    const { tournament, organizationId } = await resolveTournament(this.db, {
+    return updateConfiguration(
+      this.db,
+      this.logger,
       organizationAlias,
       tournamentAlias,
+      stageNumber,
+      body,
       request,
-    });
-    const competition = new CompetitionRepository(this.db);
-    const stage = await this.findStage(competition, tournament.tournamentId, stageNumber);
-
-    const tournaments = new TournamentRepository(this.db);
-    const descriptor = await tournaments.findDescriptor(
-      tournament.disciplineRef.descriptorId,
-      tournament.disciplineRef.version,
     );
-    if (!descriptor) {
-      throw new BadRequestException(
-        `Discipline ${tournament.disciplineRef.descriptorId}@${tournament.disciplineRef.version} is not installed`,
-        { errorCode: 'stage-bad-request' },
-      );
-    }
-    const { hasRecordedResults, generatedFixtures, previousValues } =
-      await this.stageMutationContext(stage.stageId);
-
-    if (body.groupConfiguration !== undefined && body.groupConfiguration !== null) {
-      const groupError = validateStageGroupConfiguration(body.groupConfiguration);
-      if (groupError) {
-        throw new BadRequestException(groupError, { errorCode: 'stage-bad-request' });
-      }
-    }
-
-    const fields = Object.entries(body.overrides);
-    for (const [field, nextValue] of fields) {
-      const decision = evaluateMutation(descriptor.fieldPolicies, field, {
-        hasRecordedResults,
-        generatedFixtures,
-        previousValue: previousValues[field],
-        nextValue,
-      });
-      if (!decision.ok) {
-        await recordAuditRefusal(
-          this.db,
-          {
-            organizationId,
-            entityType: 'stage-configuration',
-            entityId: stage.stageId,
-            action: 'mutation.refused',
-            actor: actorOf(request),
-            authorizationContext: authorizationContextOf(request),
-            reason: decision.error.message,
-            previousState: { field, nextValue },
-          },
-          (error) => this.logger.error('Failed to record a refusal audit entry', error as Error),
-        );
-        throw new ConflictException(decision.error.message, {
-          errorCode: 'stage-configuration-conflict',
-        });
-      }
-    }
-
-    const mergedOverrides = { ...previousValues, ...Object.fromEntries(fields) };
-    try {
-      return await withTransaction(this.db, async (uow) => {
-        await competition.assertStageHasNoFixtures(uow, stage.stageId);
-        if (fields.length === 0 && body.groupConfiguration === undefined) {
-          const current = await tournaments.findLatestStageConfiguration(stage.stageId);
-          return {
-            overrides: mergedOverrides,
-            ...(current?.groupConfiguration === undefined
-              ? {}
-              : { groupConfiguration: current.groupConfiguration }),
-          };
-        }
-
-        const currentConfiguration = await tournaments.findLatestStageConfiguration(stage.stageId);
-        const ruleset = await tournaments.findLatestRuleset(tournament.tournamentId);
-        if (!ruleset) {
-          throw new BadRequestException(
-            'This tournament has no configured ruleset to attach a stage configuration to',
-            { errorCode: 'stage-bad-request' },
-          );
-        }
-
-        const stageConfiguration = currentConfiguration
-          ? await tournaments.updateStageConfiguration(uow, {
-              stageId: stage.stageId,
-              organizationId,
-              changedOverrides: Object.fromEntries(fields),
-              ...(body.groupConfiguration === undefined
-                ? {}
-                : { groupConfiguration: body.groupConfiguration }),
-              actor: actorOf(request),
-              authorizationContext: authorizationContextOf(request),
-            })
-          : await tournaments.createStageConfiguration(uow, {
-              stageId: stage.stageId,
-              rulesetId: ruleset.rulesetId,
-              organizationId,
-              overrides: mergedOverrides,
-              ...(body.groupConfiguration == null
-                ? {}
-                : { groupConfiguration: body.groupConfiguration }),
-              actor: actorOf(request),
-              authorizationContext: authorizationContextOf(request),
-            });
-
-        const compiledStage = compileEffectiveRuleset(descriptor, ruleset, stageConfiguration);
-        if (compiledStage.ok) {
-          await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
-            tournamentId: tournament.tournamentId,
-            stageId: stage.stageId,
-            ruleset: compiledStage.value,
-            organizationId,
-            actor: actorOf(request),
-            authorizationContext: authorizationContextOf(request),
-          });
-        }
-        return {
-          overrides: mergedOverrides,
-          ...(stageConfiguration.groupConfiguration === undefined
-            ? {}
-            : { groupConfiguration: stageConfiguration.groupConfiguration }),
-        };
-      });
-    } catch (error) {
-      if (error instanceof InvariantViolationError) {
-        throw new ConflictException(error.message, { errorCode: 'stage-configuration-conflict' });
-      }
-      throw error;
-    }
-  }
-
-  /** Shared by the configuration preview and edit routes: what `evaluateMutation` needs to know. */
-  private async stageMutationContext(stageId: string): Promise<{
-    readonly hasRecordedResults: boolean;
-    readonly generatedFixtures: readonly {
-      fixtureId: string;
-      stageId: string;
-      hasResult: boolean;
-    }[];
-    readonly previousValues: Record<string, unknown>;
-  }> {
-    const readModel = new StageReadModel(this.db);
-    const record = await readModel.stageRecord(stageId);
-    const matches = await readModel.matches(stageId);
-    const generatedFixtures = matches.map((match) => ({
-      fixtureId: match.matchId,
-      stageId,
-      hasResult: match.status === 'finalized',
-    }));
-    const configuration = await new TournamentRepository(this.db).findLatestStageConfiguration(
-      stageId,
-    );
-    return {
-      hasRecordedResults: record?.hasRecordedResults ?? false,
-      generatedFixtures,
-      previousValues: configuration?.overrides ?? {},
-    };
   }
 
   @Get(':stageNumber/fixtures')
@@ -980,94 +313,7 @@ export class StagesController {
     @Param('stageNumber', ParseIntPipe) stageNumber: number,
     @Req() request: RequestWithSubject,
   ): Promise<StageFixturesResponse> {
-    const { tournament } = await resolveTournament(this.db, {
-      organizationAlias,
-      tournamentAlias,
-      request,
-    });
-
-    const competition = new CompetitionRepository(this.db);
-    const stages = await competition.listStagesOfTournament(tournament.tournamentId);
-    const stage = stages.find((candidate) => candidate.number === stageNumber);
-    if (!stage)
-      throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`, {
-        errorCode: 'stage-not-found',
-      });
-
-    const fixtures = await competition.listFixturesOfStage(stage.stageId);
-    const matches = await competition.listMatchesForStage(stage.stageId);
-    // Each fixture resolves against its own zone's declaration.
-    const seriesOf = await readSeriesResolver(this.db, {
-      tournamentId: tournament.tournamentId,
-      stageId: stage.stageId,
-    });
-    // Only paid for when a series exists: a stage of single matches anulls nothing, so there is
-    // no released slot to look up and no audit scan to run.
-    const releasedSlots = !seriesOf.declaresAny
-      ? new Map<string, string>()
-      : await competition.listReleasedSlotsOfStage(stage.stageId);
-
-    const matchesByFixture = new Map<string, typeof matches>();
-    for (const match of matches) {
-      matchesByFixture.set(match.fixtureId, [
-        ...(matchesByFixture.get(match.fixtureId) ?? []),
-        match,
-      ]);
-    }
-
-    return {
-      stageId: stage.stageId,
-      fixtures: fixtures.map((fixture) => {
-        const own = [...(matchesByFixture.get(fixture.fixtureId) ?? [])].sort(
-          (a, b) => a.number - b.number,
-        );
-        const declaration = seriesOf.forZone(fixture.zoneId);
-        const resolution =
-          declaration === undefined
-            ? undefined
-            : resolveFixtureSeries({
-                declaration,
-                homeEntrantId: fixture.homeEntrantId,
-                awayEntrantId: fixture.awayEntrantId,
-                matches: own,
-              });
-
-        return {
-          fixtureId: fixture.fixtureId,
-          matchId: own[0]?.matchId ?? fixture.fixtureId,
-          round: fixture.round,
-          ...(fixture.homeEntrantId === undefined ? {} : { homeEntrantId: fixture.homeEntrantId }),
-          ...(fixture.awayEntrantId === undefined ? {} : { awayEntrantId: fixture.awayEntrantId }),
-          matches: own.map((match) => {
-            const releasedSlotId = releasedSlots.get(match.matchId);
-            return {
-              matchId: match.matchId,
-              number: match.number,
-              status: match.status,
-              ...(releasedSlotId === undefined ? {} : { releasedSlotId }),
-            };
-          }),
-          ...(declaration === undefined
-            ? {}
-            : {
-                series: {
-                  span: declaration.span,
-                  ...(declaration.resolutionClass === undefined
-                    ? {}
-                    : { resolutionClass: declaration.resolutionClass }),
-                  guaranteedMatches: guaranteedMatchCount(declaration),
-                  matchesPlayed: resolution?.matchesPlayed ?? 0,
-                  anulledMatchNumbers: [...(resolution?.anulledMatchNumbers ?? [])],
-                  ...(resolution === undefined ? {} : { status: resolution.status }),
-                  ...(resolution === undefined ? {} : { explanation: resolution.explanation }),
-                  ...(resolution?.winnerEntrantId === undefined
-                    ? {}
-                    : { winnerEntrantId: resolution.winnerEntrantId }),
-                },
-              }),
-        };
-      }),
-    };
+    return fixtures(this.db, organizationAlias, tournamentAlias, stageNumber, request);
   }
 
   @Post(':stageNumber/rounds/next')
@@ -1094,267 +340,6 @@ export class StagesController {
     @Body() body: NextRoundRequest,
     @Req() request: RequestWithSubject,
   ): Promise<StageFixturesResponse> {
-    const { tournament, organizationId } = await resolveTournament(this.db, {
-      organizationAlias,
-      tournamentAlias,
-      request,
-    });
-
-    const competition = new CompetitionRepository(this.db);
-    const stages = await competition.listStagesOfTournament(tournament.tournamentId);
-    const stage = stages.find((candidate) => candidate.number === stageNumber);
-    if (!stage)
-      throw new NotFoundException(`No stage ${stageNumber} in "${tournamentAlias}"`, {
-        errorCode: 'stage-not-found',
-      });
-
-    // Rounds, pairings and results are per zone, so the zone the caller targets decides the format
-    // and every set read below. A stage with no zone yet is read as a whole, as it always was.
-    const zones = await competition.listZonesOfStage(stage.stageId);
-    const choice = chooseRoundZone(zones, stage, body?.zoneNumber);
-    if (choice.kind === 'unknown') {
-      throw new NotFoundException(`No zone ${choice.requested} in stage ${stageNumber}`, {
-        errorCode: 'zone-not-found',
-      });
-    }
-    if (choice.kind === 'required') {
-      throw new BadRequestException(
-        choice.eligible.length === 0
-          ? `Stage ${stageNumber} has several zones and none plays a format with dynamic rounds`
-          : `Stage ${stageNumber} has several zones: name one in zoneNumber (zones that can advance: ${choice.eligible.join(', ')})`,
-        { errorCode: 'stage-zone-required' },
-      );
-    }
-    const zone = choice.kind === 'zone' ? choice.zone : undefined;
-    const format = zone === undefined ? stage.format : effectiveFormat(zone, stage);
-    if (!isDynamicRoundFormat(format)) {
-      // Refused for the zone asked about; a sibling playing a dynamic format is unaffected.
-      throw new ConflictException(
-        zones.length > 1 && zone !== undefined
-          ? `Zone ${zone.number} plays ${format}, which does not support dynamic round generation`
-          : 'Only Swiss and single-elimination stages support dynamic round generation',
-        { errorCode: zones.length > 1 ? 'zone-not-dynamic' : 'stage-not-swiss' },
-      );
-    }
-
-    const fixtures = inZone(await competition.listFixturesOfStage(stage.stageId), zone);
-    if (fixtures.length === 0) {
-      throw new ConflictException('Stage has no initial fixtures generated', {
-        errorCode: 'stage-no-fixtures',
-      });
-    }
-
-    const zoneFixtureIds = new Set(fixtures.map((f) => f.fixtureId));
-    const matches = (await competition.listMatchesForStage(stage.stageId)).filter((m) =>
-      zoneFixtureIds.has(m.fixtureId),
-    );
-    const currentRound = Math.max(...fixtures.map((f) => f.round));
-    const currentRoundFixtures = fixtures
-      .filter((f) => f.round === currentRound)
-      .sort((a, b) => a.fixtureId.localeCompare(b.fixtureId));
-    const currentRoundFixtureIds = new Set(currentRoundFixtures.map((f) => f.fixtureId));
-    const currentRoundMatches = matches.filter((m) => currentRoundFixtureIds.has(m.fixtureId));
-
-    if (format === 'single-elimination' && currentRoundFixtures.length <= 1) {
-      throw new ConflictException('The single-elimination stage is already fully completed', {
-        errorCode: 'stage-already-completed',
-      });
-    }
-
-    const uncompleted = currentRoundMatches.filter(
-      (m) => m.status !== 'finalized' && m.status !== 'forfeited',
-    );
-    if (uncompleted.length > 0) {
-      throw new ConflictException(
-        `Round ${currentRound} has ${uncompleted.length} match(es) that are not completed`,
-        { errorCode: 'stage-round-incomplete' },
-      );
-    }
-
-    const readModel = new StageReadModel(this.db);
-    const stageRecord = await readModel.stageRecord(stage.stageId, undefined, zone?.zoneId);
-    const entrantIds = stageRecord?.entrantIds ?? [];
-    if (entrantIds.length < 2) {
-      throw new ConflictException('Stage has fewer than 2 entrants', {
-        errorCode: 'stage-insufficient-entrants',
-      });
-    }
-
-    const outcomes = await readModel.outcomes(stage.stageId, undefined, zone?.zoneId);
-    const nextRoundNumber = currentRound + 1;
-    const declaration = await readStageSeries(this.db, {
-      tournamentId: tournament.tournamentId,
-      stageId: stage.stageId,
-      zoneId: fixtures[0]?.zoneId,
-    });
-    const seriesSpan = declaration === undefined ? {} : { matchCount: declaration.span };
-
-    let newFixtures: readonly {
-      readonly round: number;
-      readonly homeEntrantId?: string;
-      readonly awayEntrantId?: string;
-      readonly zoneId?: string;
-      readonly groupId?: string;
-    }[];
-
-    if (format === 'single-elimination') {
-      const winners: string[] = [];
-      for (const f of currentRoundFixtures) {
-        const fixtureMatches = currentRoundMatches.filter((m) => m.fixtureId === f.fixtureId);
-        const outcome = outcomes.find((o) => o.fixtureId === f.fixtureId);
-        let winnerEntrantId = outcome?.winnerEntrantId;
-        if (!winnerEntrantId) {
-          for (const m of fixtureMatches) {
-            const res = m.result as {
-              winnerEntrantId?: string;
-              winner?: 'A' | 'B';
-            } | null;
-            if (res?.winnerEntrantId) {
-              winnerEntrantId = res.winnerEntrantId;
-              break;
-            }
-            if (res?.winner === 'A') {
-              winnerEntrantId = f.homeEntrantId ?? undefined;
-              break;
-            }
-            if (res?.winner === 'B') {
-              winnerEntrantId = f.awayEntrantId ?? undefined;
-              break;
-            }
-          }
-        }
-        if (!winnerEntrantId) {
-          throw new ConflictException(`Fixture in round ${currentRound} has no determined winner`, {
-            errorCode: 'fixture-winner-undetermined',
-          });
-        }
-        winners.push(winnerEntrantId);
-      }
-
-      const paired: {
-        round: number;
-        homeEntrantId?: string;
-        awayEntrantId?: string;
-        zoneId?: string;
-        groupId?: string;
-      }[] = [];
-      for (let i = 0; i < winners.length; i += 2) {
-        paired.push({
-          round: nextRoundNumber,
-          homeEntrantId: winners[i],
-          awayEntrantId: winners[i + 1],
-          zoneId: currentRoundFixtures[0]?.zoneId,
-          groupId: currentRoundFixtures[0]?.groupId,
-        });
-      }
-      newFixtures = paired;
-    } else {
-      const previousMatches: GeneratedMatch[] = fixtures.map((f, idx) => ({
-        id: `SWISS-R${f.round}-M${idx + 1}`,
-        shape: 'duel' as const,
-        bracket: 'winners' as const,
-        round: f.round,
-        position: idx + 1,
-        slotA: f.homeEntrantId
-          ? {
-              kind: 'entrant' as const,
-              entrantId: f.homeEntrantId,
-              seed: entrantIds.indexOf(f.homeEntrantId) + 1,
-            }
-          : { kind: 'bye' as const },
-        slotB: f.awayEntrantId
-          ? {
-              kind: 'entrant' as const,
-              entrantId: f.awayEntrantId,
-              seed: entrantIds.indexOf(f.awayEntrantId) + 1,
-            }
-          : { kind: 'bye' as const },
-      }));
-
-      const seededEntrants = entrantIds.map((entrantId, index) => ({
-        entrantId,
-        seed: index + 1,
-      }));
-
-      const nextMatches = generateNextSwissRoundFixtures({
-        round: nextRoundNumber,
-        entrants: seededEntrants,
-        previousMatches,
-        outcomes,
-        options: declaration ? { series: declaration } : undefined,
-      });
-
-      newFixtures = nextMatches
-        .filter((m) => isDuelMatch(m) && (m.matchNumber === undefined || m.matchNumber === 1))
-        .map((m) => {
-          if (!isDuelMatch(m)) return undefined;
-          return {
-            round: nextRoundNumber,
-            homeEntrantId: m.slotA.kind === 'entrant' ? m.slotA.entrantId : undefined,
-            awayEntrantId: m.slotB.kind === 'entrant' ? m.slotB.entrantId : undefined,
-            zoneId: fixtures[0]?.zoneId,
-            groupId: fixtures[0]?.groupId,
-          };
-        })
-        .filter((f): f is NonNullable<typeof f> => f !== undefined);
-    }
-
-    await withTransaction(this.db, (uow) =>
-      competition.createFixtures(uow, {
-        stageId: stage.stageId,
-        fixtures: newFixtures,
-        ...seriesSpan,
-        organizationId,
-        actor: actorOf(request),
-        authorizationContext: authorizationContextOf(request),
-      }),
-    );
-
-    return this.fixtures(organizationAlias, tournamentAlias, stageNumber, request);
+    return nextRound(this.db, organizationAlias, tournamentAlias, stageNumber, body, request);
   }
-
-  /**
-   * Defaults to the tournament's own configured format (set at tournament creation,
-   * `overrides['format']` on its latest ruleset — `tournaments.controller.ts`'s `create()`) when the
-   * request supplies none. An explicit override is validated identically to tournament creation's own
-   * check: a stage cannot be created in a format the installed discipline module does not support.
-   */
-  private async resolveFormat(
-    tournamentId: string,
-    descriptor: { readonly availableFormats: readonly string[] },
-    requested: string | undefined,
-  ): Promise<TournamentFormat> {
-    const available = new Set<string>(descriptor.availableFormats);
-
-    if (requested !== undefined) {
-      if (
-        !(SUPPORTED_FORMATS as readonly string[]).includes(requested) ||
-        !available.has(requested)
-      ) {
-        throw new BadRequestException(
-          `This tournament's discipline does not support ${requested}`,
-          { errorCode: 'stage-bad-request' },
-        );
-      }
-      return requested as TournamentFormat;
-    }
-
-    const ruleset = await new TournamentRepository(this.db).findLatestRuleset(tournamentId);
-    const configured = ruleset?.overrides['format'];
-    if (typeof configured !== 'string' || configured.length === 0) {
-      throw new BadRequestException(
-        'No format was supplied and this tournament has no configured format to default to',
-        { errorCode: 'stage-bad-request' },
-      );
-    }
-    return configured as TournamentFormat;
-  }
-}
-
-function actorOf(request: RequestWithSubject): string {
-  return `user:${request.subject?.subjectId ?? 'unknown'}`;
-}
-
-function authorizationContextOf(request: RequestWithSubject): string {
-  return (request.subject?.scopes ?? []).join(' ');
 }

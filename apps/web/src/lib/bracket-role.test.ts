@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { parseBracketRole } from './bracket-role.ts';
+import { parseBracketRole, placementGroupRole } from './bracket-role.ts';
 
 describe('parseBracketRole', () => {
   it('reads a single place and a range of places', () => {
@@ -12,5 +12,15 @@ describe('parseBracketRole', () => {
       kind: 'other',
       code: 'consolation-final',
     });
+  });
+
+  it('reads the engine branch of a persisted graph', () => {
+    expect(parseBracketRole('placement-7')).toEqual({ kind: 'place', place: 7 });
+    expect(parseBracketRole(placementGroupRole('pl5', 2))).toEqual({
+      kind: 'places',
+      from: 5,
+      to: 8,
+    });
+    expect(placementGroupRole('place-3', 1)).toBe('place-3');
   });
 });

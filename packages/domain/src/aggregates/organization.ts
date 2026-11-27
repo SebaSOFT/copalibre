@@ -22,12 +22,13 @@ export interface Club {
   readonly clubId: string;
   readonly organizationId: string;
   /**
-   * Path identifier, unique within the organization. Unlike the
+   * Path identifier, unique within the organization, and always present. Unlike the
    * abbreviation it may be **suggested** from the name: an alias is a
    * transformation with no judgement in it, and nobody reads a URL from the
-   * stands.
+   * stands. A club whose name folds to nothing gets a fallback (see
+   * `suggestRequiredClubAlias`).
    */
-  readonly alias?: string;
+  readonly alias: string;
   readonly name: string;
   /**
    * The short label a constrained surface shows, e.g. `C I` for "Casa de

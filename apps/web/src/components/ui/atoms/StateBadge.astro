@@ -1,18 +1,26 @@
 ---
 import type { IntlShape } from 'react-intl';
-import { presentState, type ResultState } from '../../../lib/result-state.ts';
-import { resultStateLabels } from '../../../lib/i18n/public-intl.ts';
+import { presentDelayedState, presentState, type ResultState } from '../../../lib/result-state.ts';
+import { delayedStateLabel, resultStateLabels } from '../../../lib/i18n/public-intl.ts';
+import Icon from './Icon.astro';
 
 interface Props {
   readonly state: ResultState;
   readonly intl: IntlShape;
+  readonly delayed?: boolean;
 }
-const { state, intl } = Astro.props;
-const presentation = presentState(state, resultStateLabels(intl));
+const { state, intl, delayed = false } = Astro.props;
+const presentation = delayed
+  ? presentDelayedState(delayedStateLabel(intl))
+  : presentState(state, resultStateLabels(intl));
 ---
 
-{/* Colour, icon and word together — a template cannot ask for just the colour. */}
+{/* Colour, motion cue and word together — a template cannot ask for just the colour. */}
 <span class={`cl-badge ${presentation.className}`}>
-  <span aria-hidden="true">{presentation.icon}</span>
+  {presentation.state === 'live' ? (
+    <span aria-hidden="true" class="cl-badge__dot cl-live-dot" />
+  ) : (
+    <Icon name={presentation.icon} size={16} />
+  )}
   <span>{presentation.label}</span>
 </span>

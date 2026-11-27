@@ -1,7 +1,9 @@
 # control-web/club-portal Specification
 
 ## Purpose
-TBD - created by archiving the club admin person management and roster submission change. Update Purpose after archive.
+Lets a club's own administrator manage the club without organizer help: a club-scoped directory of
+the people affiliated with the club, and the submission of a tournament squad roster for the club's
+entrants, each limited to the club the `club-admin` assignment names.
 
 ## Requirements
 

@@ -3,7 +3,9 @@
 ## Purpose
 Delivers authoritative projection updates to public spectators and authenticated operators live,
 with durable replay after disconnect and without ever exposing credentials in a URL.
+
 ## Requirements
+
 ### Requirement: Public SSE stream
 The system SHALL serve `GET /events/public/{organization}/tournaments/{tournament}` as an
 `text/event-stream` response with `Cache-Control: no-cache, no-transform`, requiring no
@@ -52,13 +54,18 @@ Bearer` header, not native `EventSource`, at `GET /events/control/{organizationA
 - **THEN** no access token or refresh credential appears anywhere in the request URL or query string
 
 ### Requirement: Long-polling fallback
-The system SHALL provide `GET /api/events?after=<cursor>&wait=<seconds>` with the same
+The system SHALL provide `GET /events/poll?after=<cursor>&wait=<seconds>` with the same
 authorization, cursor, replay, and projection semantics as the SSE contract, for clients or networks
 incompatible with persistent streaming.
 
 #### Scenario: Long-poll returns events and next cursor
 - **WHEN** a client calls the long-poll endpoint with a valid `after` cursor
 - **THEN** the response includes any events after that cursor and the next durable cursor to use on the following call
+
+#### Scenario: Long poll shares the event streams' routing
+
+- **WHEN** a client calls `/events/poll` on any host that carries the event streams
+- **THEN** the events service answers it, with no routing rule of its own
 
 ### Requirement: Public stream abuse controls
 Public SSE connections SHALL be subject to per-IP and per-resource connection limits and bounded
@@ -68,3 +75,78 @@ replay depth.
 - **WHEN** a single IP address opens more public SSE connections than the configured per-IP limit
 - **THEN** additional connection attempts from that IP are rejected until existing connections close or the limit window resets
 
+### Requirement: A placement change reaches the stream of its tournament
+
+Publishing a batch SHALL emit, in the same transaction, one event per published placement it creates,
+changes or withdraws, filed under the match, so that it reaches that match's tournament stream. The
+event SHALL carry the match, stage, start, estimated end, venue, whether the match was withdrawn, and its
+previous published placement, if any. An unpublished placement SHALL emit no public event.
+
+#### Scenario: A moved match reaches its tournament's public stream
+
+- **WHEN** an organizer publishes a batch moving a match of tournament A from 14:30 to 18:00
+- **THEN** a subscriber to tournament A's public stream receives one event for that match with its new
+  start and venue and its previous start, and a subscriber to tournament B receives nothing for it
+
+#### Scenario: Two tournaments in one batch reach two streams
+
+- **WHEN** one batch moves a match of tournament A and a match of tournament B
+- **THEN** each tournament's stream receives the event for its own match only
+
+#### Scenario: A withdrawal is announced
+
+- **WHEN** a published match is withdrawn from its slot
+- **THEN** its tournament stream receives an event stating the match is withdrawn, with its previous
+  placement
+
+#### Scenario: Unpublished work stays private
+
+- **WHEN** a placement is previewed but not published
+- **THEN** no event about it reaches any public stream
+
+### Requirement: The public stream publishes freed slots
+
+The public stream SHALL publish the event that marks a match not-required by an early series decision,
+naming the match, so public surfaces stop showing it in its former slot.
+
+#### Scenario: An anulled game leaves the public schedule live
+
+- **WHEN** a best-of-five is decided in three and its fourth and fifth games become not-required
+- **THEN** a public subscriber receives an event for each of those two matches, and receives no other
+  payload field than the match and its new status
+
+### Requirement: A side resolution reaches its tournament's public stream
+
+When the audited resolution sets or changes the entrant of a persisted side, the event it publishes SHALL
+be filed under that side's match, so it reaches the match's tournament stream. Its public form SHALL carry
+only the match, the side and the entrant.
+
+#### Scenario: A finalized quarter-final announces its semi-final side
+
+- **WHEN** a quarter-final of tournament A is finalized and its semi-final side resolves
+- **THEN** tournament A's public stream receives one event naming the semi-final match, the side and the
+  winning entrant, and no other field
+
+#### Scenario: Another tournament hears nothing
+
+- **WHEN** that resolution happens
+- **THEN** tournament B's public stream receives nothing for it
+
+### Requirement: The public stream publishes a match's clock changes
+
+Every command that changes a segment's clock (start, pause, adjust, end, reopen, segment change) SHALL publish a `match.clock-changed` event on the match's stream in the same unit of work. Its public payload SHALL carry only `matchId`, `segmentNumber`, `elapsedSeconds`, `running` and `changedAt`, and no other console projection field SHALL become public.
+
+#### Scenario: A referee starts the clock
+
+- **WHEN** an official starts the active segment's clock of a match in a published tournament
+- **THEN** the tournament's public stream delivers `match.clock-changed` for that match with `running: true` and the segment's elapsed seconds
+
+#### Scenario: A pause reaches every public viewer
+
+- **WHEN** an official pauses a running clock at 09:45
+- **THEN** the public stream delivers `match.clock-changed` with `running: false` and `elapsedSeconds: 585`
+
+#### Scenario: Console detail stays private
+
+- **WHEN** a clock command publishes its console projection and its clock change
+- **THEN** the public stream carries the clock change and does not carry the console projection or any field outside the five listed

@@ -211,6 +211,45 @@ Multi-round placement league with divisional partition and round-offset lobby sc
 }
 ```
 
+## Match counters
+
+A discipline declares `matchCounters` to show tallies of its recorded events beside the score. Each counter names:
+
+- `code`: kebab-case, unique within the descriptor.
+- `label`: a string or a localized map.
+- `shortLabel`: a string or a localized map, at most three characters per language.
+- `events`: the declared event codes it tallies, at least one.
+- `scope`: `match`, or `segment` to reset each segment.
+- `allowance` (optional): shown as "used / allowed".
+- `warnAt` (optional): highlighted at or above this value. Without it, the allowance is the warning value.
+
+```json
+"matchCounters": [
+  {
+    "code": "team-fouls",
+    "label": { "en": "Team fouls", "es": "Faltas de equipo" },
+    "shortLabel": "F",
+    "events": ["team-foul"],
+    "scope": "match",
+    "warnAt": 9
+  },
+  {
+    "code": "timeouts",
+    "label": "Timeouts",
+    "shortLabel": "TM",
+    "events": ["timeout"],
+    "scope": "segment",
+    "allowance": 1
+  }
+]
+```
+
+Validation rejects an event code the descriptor does not declare, a duplicate counter code, and a short label longer than three characters, each with the path of the entry. A descriptor without `matchCounters` stays valid.
+
+A person event counts for the side that person is rostered for in the match. A `segment` counter counts the segment in play, and between segments the last segment that started.
+
+Counters never block. A recording past its allowance is accepted, and no command or event is refused or warned about because a counter reached its allowance or warning value. A tournament ruleset may tune a counter per code under `overrides.matchCounters`, with `allowance`, `warnAt` or `hidden`; `null` clears the descriptor's default. That override changes no recorded data, so it is safe at any time.
+
 ## Freezing
 
 Once a tournament is `started`, its discipline and profile versions cannot change. Starting happens

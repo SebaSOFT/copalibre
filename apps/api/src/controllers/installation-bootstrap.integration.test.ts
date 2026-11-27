@@ -15,6 +15,7 @@ import { API_BODY_LIMIT_BYTES } from '../http-body-limit.js';
 import { InvitationAcceptanceController } from './organization-access.controller.js';
 import { InstallationBootstrapController } from './installation-bootstrap.controller.js';
 import { AUTH_THROTTLE_LIMIT as BOOTSTRAP_THROTTLE_LIMIT } from './auth.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 class BootstrapTokenVerifier {
   verify(token: string): Promise<AuthenticatedSubject> {
@@ -58,6 +59,7 @@ describe('installation bootstrap (integration)', () => {
     app = moduleRef.createNestApplication<NestFastifyApplication>(
       new FastifyAdapter({ bodyLimit: API_BODY_LIMIT_BYTES, trustProxy: true }),
     );
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -70,10 +72,44 @@ describe('installation bootstrap (integration)', () => {
     restore('COPALIBRE_APP_URL', originalEnvironment.appUrl);
   });
 
+  // Runs first, while the installation is still empty: a later bootstrap is
+  // refused because an organization exists, which would hide this refusal.
+  // Each from its own address, so these attempts leave the shared per-address
+  // bootstrap window to the tests below.
+  it.each([
+    ['login', '10.9.2.1'],
+    ['constructor', '10.9.2.2'],
+    ['administrator', '10.9.2.3'],
+  ])(
+    'refuses the reserved organization alias "%s" and writes nothing',
+    async (organizationAlias, address) => {
+      const response = await request({
+        method: 'POST',
+        url: '/api/installation/bootstrap/admin',
+        headers: { 'x-copalibre-bootstrap-token': 'bootstrap-secret', 'x-forwarded-for': address },
+        payload: {
+          organizationAlias,
+          organizationName: 'Liga Reservada',
+          email: 'admin@example.test',
+        },
+      });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json()).toMatchObject({
+        errorCode: 'installation-bootstrap-conflict',
+        message: expect.stringContaining('reserved'),
+      });
+      for (const table of ['organizations', 'audit_log', 'outbox_events'] as const) {
+        const rows = await scratch.db.selectFrom(table).selectAll().execute();
+        expect(rows).toHaveLength(0);
+      }
+    },
+  );
+
   it('creates and accepts exactly one first administrator through audit and outbox', async () => {
     const created = await request({
       method: 'POST',
-      url: '/installation/bootstrap/admin',
+      url: '/api/installation/bootstrap/admin',
       headers: { 'x-copalibre-bootstrap-token': 'bootstrap-secret' },
       payload: {
         organizationAlias: 'liga-orbital',
@@ -89,7 +125,7 @@ describe('installation bootstrap (integration)', () => {
 
     const accepted = await request({
       method: 'POST',
-      url: '/invitations/accept',
+      url: '/api/invitations/accept',
       headers: { authorization: 'Bearer accept-invitation' },
       payload: { token: invitationToken },
     });
@@ -114,7 +150,7 @@ describe('installation bootstrap (integration)', () => {
 
     const rejected = await request({
       method: 'POST',
-      url: '/installation/bootstrap/admin',
+      url: '/api/installation/bootstrap/admin',
       headers: { 'x-copalibre-bootstrap-token': 'bootstrap-secret' },
       payload: {
         organizationAlias: 'segunda-liga',
@@ -130,7 +166,7 @@ describe('installation bootstrap (integration)', () => {
   it('rejects a bootstrap payload missing the administrator email with 400', async () => {
     const response = await request({
       method: 'POST',
-      url: '/installation/bootstrap/admin',
+      url: '/api/installation/bootstrap/admin',
       headers: { 'x-copalibre-bootstrap-token': 'bootstrap-secret' },
       payload: {
         organizationAlias: 'liga-validacion',
@@ -158,7 +194,7 @@ describe('installation bootstrap (integration)', () => {
     const attempt = () =>
       request({
         method: 'POST',
-        url: '/installation/bootstrap/admin',
+        url: '/api/installation/bootstrap/admin',
         headers: {
           'x-copalibre-bootstrap-token': 'wrong-secret',
           'x-forwarded-for': '10.9.1.1',

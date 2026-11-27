@@ -5,6 +5,7 @@ import { getAsset, isSea } from 'node:sea';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse, stringify } from 'yaml';
+import { expectedSecureFor } from '@copalibre/auth';
 import { readCopalibreVersion } from './banner.js';
 import { writeInstallationMarker, type InstallationMarker } from './installation-marker.js';
 
@@ -16,16 +17,27 @@ export const LOCAL_DEFAULTS = {
   COPALIBRE_PORT: '8080',
   COPALIBRE_APP_URL: 'http://localhost:8080',
   COPALIBRE_API_URL: 'http://localhost:8080',
-  COPALIBRE_IMAGE: 'ghcr.io/sebasoft/copalibre:1.2.6',
-  COPALIBRE_WEB_IMAGE: 'ghcr.io/sebasoft/copalibre-web:1.2.6',
+  COPALIBRE_IMAGE: 'ghcr.io/sebasoft/copalibre:2.0.0',
+  COPALIBRE_WEB_IMAGE: 'ghcr.io/sebasoft/copalibre-web:2.0.0',
   POSTGRES_USER: 'copalibre',
   POSTGRES_PASSWORD: 'copalibre_dev_password',
   POSTGRES_DB: 'copalibre',
+  // The schema owner (migrations) and the runtime role (everything else); see
+  // deploy/postgres/roles.sql. `init` and `upgrade` write random values.
+  COPALIBRE_DATABASE_OWNER_PASSWORD: 'copalibre_owner_password_change_me',
+  COPALIBRE_DATABASE_APP_PASSWORD: 'copalibre_app_password_change_me',
   COPALIBRE_BOOTSTRAP_TOKEN: 'copalibre_bootstrap_token_secret',
-  COPALIBRE_JWKS_URI: 'http://api:3001/.well-known/jwks.json',
+  COPALIBRE_JWKS_URI: 'http://api:3001/api/auth/jwks.json',
   COPALIBRE_JWT_ISSUER: 'http://localhost:8080',
+  COPALIBRE_NATIVE_JWT_ISSUER: 'http://localhost:8080',
   COPALIBRE_JWT_AUDIENCE: 'copalibre',
   COPALIBRE_OIDC_CLIENT_ID: 'copalibre-local',
+  // Origin of an external OIDC provider, allowed by the web role's Content
+  // Security Policy for sign-in. Empty with the built-in provider.
+  COPALIBRE_CSP_IDENTITY_ORIGIN: '',
+  // `Secure` and the `__Host-` prefix on the browser session cookies. True for
+  // HTTPS and for localhost, which browsers treat as a secure context.
+  COPALIBRE_SESSION_COOKIE_SECURE: 'true',
   COPALIBRE_EMAIL_PROVIDER: 'smtp',
   COPALIBRE_EMAIL_FROM: 'noreply@copalibre.local',
   COPALIBRE_SMTP_URL: 'smtp://host.docker.internal:1025',
@@ -38,8 +50,16 @@ export const LOCAL_DEFAULTS = {
   COPALIBRE_SCHEDULER_PORT: '3004',
 } as const;
 
+/** Database passwords `init`, `upgrade` and `repair` generate rather than copy from the defaults. */
+export const GENERATED_DATABASE_SECRETS = [
+  'COPALIBRE_DATABASE_OWNER_PASSWORD',
+  'COPALIBRE_DATABASE_APP_PASSWORD',
+] as const;
+
 export const REQUIRED_SECRETS = [
   'POSTGRES_PASSWORD',
+  'COPALIBRE_DATABASE_OWNER_PASSWORD',
+  'COPALIBRE_DATABASE_APP_PASSWORD',
   'COPALIBRE_BOOTSTRAP_TOKEN',
   'COPALIBRE_JWKS_URI',
   'COPALIBRE_JWT_ISSUER',
@@ -94,6 +114,9 @@ export function localDefaultsEnvFile(overrides: Record<string, string> = {}): st
   const merged = {
     ...LOCAL_DEFAULTS,
     GARAGE_RPC_SECRET: overrides.GARAGE_RPC_SECRET ?? generateRandomSecret(32),
+    ...Object.fromEntries(
+      GENERATED_DATABASE_SECRETS.map((key) => [key, overrides[key] ?? generateRandomSecret(32)]),
+    ),
     ...overrides,
   };
   return [
@@ -204,6 +227,12 @@ export interface ReadAssetDependencies {
 }
 
 /**
+ * Installation directory the web role publishes under `/.well-known/`. It starts
+ * empty: every file placed there is public, so `init` writes nothing into it.
+ */
+export const WELL_KNOWN_DIR = 'well-known';
+
+/**
  * Reads one of the embedded compose assets: `sea.getAsset()` when running as
  * a packaged single-executable binary (the asset is bundled into the binary
  * itself, `build-binary.mjs`'s SEA config), otherwise a plain read from
@@ -241,6 +270,128 @@ export interface WriteInstallationAssetsOptions {
   readonly emailFrom?: string;
   readonly emailCredential?: string;
   readonly emailDomain?: string;
+  /** The Mailgun region that holds `emailDomain`; absent means the US. */
+  readonly emailRegion?: 'us' | 'eu';
+  /** An external OIDC provider; absent means the built-in identity provider. */
+  readonly oidc?: ExternalOidcOptions;
+  /** Whether operators reach the installation over HTTPS; absent derives it from `appUrl`. */
+  readonly https?: boolean;
+}
+
+/** The guided `init` question about HTTPS, defaulting to the application URL's own scheme. */
+export function httpsQuestion(appUrl: string): string {
+  return `Is HTTPS in use for ${appUrl}? ${urlIsHttps(appUrl) ? '[Y/n]' : '[y/N]'} `;
+}
+
+/** Reads the answer to `httpsQuestion`: empty takes the URL's scheme, otherwise yes or no. */
+export function httpsAnswer(answer: string, appUrl: string): boolean {
+  const trimmed = answer.trim();
+  return trimmed === '' ? urlIsHttps(appUrl) : /^y(es)?$/i.test(trimmed);
+}
+
+function urlIsHttps(appUrl: string): boolean {
+  return appUrl.trim().toLowerCase().startsWith('https:');
+}
+
+/**
+ * The `COPALIBRE_SESSION_COOKIE_SECURE` value for an installation: `true` over
+ * HTTPS and on localhost (a secure context for every browser), `false` only for
+ * plain HTTP on another host. An explicit "no HTTPS" against an `https` URL is a
+ * contradiction, refused rather than silently resolved either way.
+ */
+export function sessionCookieSecureSetting(
+  appUrl: string = LOCAL_DEFAULTS.COPALIBRE_APP_URL,
+  https?: boolean,
+): 'true' | 'false' {
+  const url = new URL(appUrl);
+  if (https === false && url.protocol === 'https:') {
+    throw new Error(`--no-https contradicts the https application URL ${appUrl}`);
+  }
+  const secure = https === true || expectedSecureFor(url);
+  return secure ? 'true' : 'false';
+}
+
+export interface ExternalOidcOptions {
+  /** The provider's exact `iss`. */
+  readonly issuer: string;
+  readonly clientId: string;
+  readonly jwksUri: string;
+}
+
+/**
+ * The environment an external OIDC provider needs: its issuer, key set and
+ * client, and its origin for the web role's Content Security Policy, which
+ * otherwise blocks sign-in and silent renewal in the browser. An issuer on the
+ * application's own origin needs no extra policy origin.
+ */
+export function externalOidcEnvironment(
+  oidc: ExternalOidcOptions,
+  appUrl: string = LOCAL_DEFAULTS.COPALIBRE_APP_URL,
+): Record<string, string> {
+  const issuerOrigin = new URL(oidc.issuer).origin;
+  return {
+    COPALIBRE_JWT_ISSUER: oidc.issuer,
+    COPALIBRE_JWKS_URI: oidc.jwksUri,
+    COPALIBRE_OIDC_CLIENT_ID: oidc.clientId,
+    COPALIBRE_CSP_IDENTITY_ORIGIN: issuerOrigin === new URL(appUrl).origin ? '' : issuerOrigin,
+  };
+}
+
+/**
+ * Validates the OIDC flags or answers. No issuer means the built-in identity
+ * provider; an issuer needs a client ID and a key set, and must be a URL.
+ */
+export function resolveOidcOptions(
+  issuer: string | undefined,
+  clientId: string | undefined,
+  jwksUri: string | undefined,
+): ExternalOidcOptions | undefined {
+  if (!issuer?.trim()) {
+    if (clientId?.trim() || jwksUri?.trim()) {
+      throw new Error('--oidc-client-id and --oidc-jwks-uri require --oidc-issuer');
+    }
+    return undefined;
+  }
+  for (const [flag, value] of [
+    ['--oidc-issuer', issuer],
+    ['--oidc-jwks-uri', jwksUri],
+  ] as const) {
+    if (value === undefined || !value.trim()) continue;
+    if (!/^https?:\/\//.test(value.trim()) || !URL.canParse(value.trim())) {
+      throw new Error(`${flag} must be an http(s) URL`);
+    }
+  }
+  if (!clientId?.trim()) throw new Error('--oidc-client-id is required with --oidc-issuer');
+  if (!jwksUri?.trim()) {
+    throw new Error(
+      '--oidc-jwks-uri is required: the issuer publishes no OpenID discovery document with a jwks_uri',
+    );
+  }
+  return { issuer: issuer.trim(), clientId: clientId.trim(), jwksUri: jwksUri.trim() };
+}
+
+/**
+ * Reads `jwks_uri` from the issuer's OpenID discovery document, so an operator
+ * normally types only the issuer. Undefined when the document is unreachable
+ * or has no key set; the caller then asks for it.
+ */
+export async function discoverJwksUri(
+  issuer: string,
+  fetchImplementation: typeof fetch = fetch,
+): Promise<string | undefined> {
+  try {
+    const discovery = new URL(
+      `${issuer.replace(/\/$/, '')}/.well-known/openid-configuration`,
+    ).toString();
+    const response = await fetchImplementation(discovery, { signal: AbortSignal.timeout(5_000) });
+    if (!response.ok) return undefined;
+    const document = (await response.json()) as { jwks_uri?: unknown };
+    return typeof document.jwks_uri === 'string' && document.jwks_uri
+      ? document.jwks_uri
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export interface WriteInstallationAssetsResult {
@@ -252,6 +403,8 @@ export interface WriteInstallationAssetsResult {
   readonly moduleDevFile?: string;
   readonly proxyConfigFile?: string;
   readonly marker: InstallationMarker;
+  /** The `COPALIBRE_SESSION_COOKIE_SECURE` value written to `.env`. */
+  readonly sessionCookieSecure: 'true' | 'false';
 }
 
 /**
@@ -264,6 +417,8 @@ export async function writeInstallationAssets(
   cwd: string,
   options: WriteInstallationAssetsOptions = {},
 ): Promise<WriteInstallationAssetsResult> {
+  // First: a contradictory HTTPS answer is refused before any file is written.
+  const sessionCookieSecure = sessionCookieSecureSetting(options.appUrl, options.https);
   const composeTarget = join(cwd, 'docker-compose.yml');
   const envTarget = join(cwd, '.env');
   const privateKeyTarget = join(cwd, 'jwt-private.pem');
@@ -312,8 +467,8 @@ export async function writeInstallationAssets(
 \t\t}
 \t}
 
-\t# Microservice API endpoints (incluye rutas base y subrutas)
-\t@api path /api /api/* /auth /auth/* /organizations /organizations/* /objects /objects/* /admin /admin/* /installation /installation/* /.well-known /.well-known/* /disciplines /disciplines/* /tournament-profiles /tournament-profiles/*
+\t# REST API
+\t@api path /api /api/*
 \thandle @api {
 \t\treverse_proxy api:3001
 \t}
@@ -341,10 +496,15 @@ export async function writeInstallationAssets(
     overrides.COPALIBRE_APP_URL = options.appUrl;
     overrides.COPALIBRE_API_URL = options.apiUrl ?? options.appUrl;
     overrides.COPALIBRE_JWT_ISSUER = options.appUrl;
+    overrides.COPALIBRE_NATIVE_JWT_ISSUER = options.appUrl;
   } else if (options.apiUrl) {
     overrides.COPALIBRE_API_URL = options.apiUrl;
   }
   Object.assign(overrides, emailEnvironmentOverrides(options));
+  if (options.oidc) {
+    Object.assign(overrides, externalOidcEnvironment(options.oidc, options.appUrl));
+  }
+  overrides.COPALIBRE_SESSION_COOKIE_SECURE = sessionCookieSecure;
 
   const extraLines = options.moduleDev
     ? ['COMPOSE_FILE=docker-compose.yml:docker-compose.module-dev.yml']
@@ -353,6 +513,7 @@ export async function writeInstallationAssets(
 
   // Scaffold local ./modules hierarchy and starter disciplines
   await scaffoldLocalModules(cwd, options.starterDisciplines ?? ['football', 'tennis']);
+  await mkdir(join(cwd, WELL_KNOWN_DIR), { recursive: true });
 
   // Handle proxy configuration export
   let proxyConfigFile: string | undefined;
@@ -399,6 +560,10 @@ server {
     proxy_send_timeout 86400s;
   }
 
+  # Keep every path proxied, static assets included: /_astro/* carries the
+  # scripts, styles and font files (.woff2, .woff) the app serves itself, with
+  # their own Content-Type (font/woff2, font/woff). Do not add a static location
+  # that serves them from local disk, and do not override their Content-Type.
   location / {
     proxy_pass http://127.0.0.1:8080;
     proxy_http_version 1.1;
@@ -435,6 +600,7 @@ server {
     ...(options.moduleDev ? { moduleDevFile: moduleDevTarget } : {}),
     ...(proxyConfigFile ? { proxyConfigFile } : {}),
     marker,
+    sessionCookieSecure,
   };
 }
 
@@ -455,6 +621,9 @@ function emailEnvironmentOverrides(
   }
   if (options.emailProvider === 'mailgun' && options.emailDomain) {
     overrides.COPALIBRE_MAILGUN_DOMAIN = options.emailDomain;
+  }
+  if (options.emailProvider === 'mailgun' && options.emailRegion === 'eu') {
+    overrides.COPALIBRE_MAILGUN_BASE_URL = 'https://api.eu.mailgun.net';
   }
   return overrides;
 }
@@ -591,6 +760,12 @@ async function ensureRepairAssets(
     await mkdir(dirname(gatewayCaddyFile), { recursive: true });
     await writeFile(gatewayCaddyFile, await readAsset('Caddyfile', options.assetsDir), 'utf8');
     createdAssets.push(gatewayCaddyFile);
+  }
+
+  const wellKnownDir = join(cwd, WELL_KNOWN_DIR);
+  if (!existsSync(wellKnownDir)) {
+    await mkdir(wellKnownDir, { recursive: true });
+    createdAssets.push(wellKnownDir);
   }
 
   const modulesDir = join(cwd, 'modules');

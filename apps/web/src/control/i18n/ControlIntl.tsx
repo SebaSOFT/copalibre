@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { IntlProvider } from 'react-intl';
 import {
   readBrowserLanguages,
@@ -63,6 +64,11 @@ export function ControlIntl({
   readonly children: React.ReactNode;
 }): React.JSX.Element {
   const resolved = locale ?? activeControlLanguage();
+  // The served page cannot know this: the language is a browser preference,
+  // so the document declares it here, and again whenever a switcher changes it.
+  useEffect(() => {
+    document.documentElement.lang = resolved;
+  }, [resolved]);
   return (
     <IntlProvider defaultLocale="en" locale={resolved} messages={CATALOGS[resolved]}>
       {children}

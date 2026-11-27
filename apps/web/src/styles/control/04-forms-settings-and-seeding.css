@@ -1,0 +1,319 @@
+.cl-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+.cl-input[type='file'] {
+  padding: var(--cl-space-1);
+}
+
+.cl-input[type='file']::file-selector-button {
+  background: var(--cl-surface-chrome);
+  color: var(--cl-text-primary);
+  border: 1px solid var(--cl-border-muted);
+  padding: var(--cl-space-1) var(--cl-space-3);
+  margin-right: var(--cl-space-3);
+  font-family: var(--cl-font-body);
+  font-size: var(--cl-font-size-sm);
+  cursor: pointer;
+  border-radius: var(--cl-radius-sm);
+  transition: background 120ms ease;
+}
+
+.cl-input[type='file']::file-selector-button:hover {
+  background: var(--cl-surface-hover, var(--cl-surface-chrome));
+}
+
+input[type='checkbox'].cl-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  min-height: 1.25rem;
+  min-width: 1.25rem;
+  margin: 0;
+  cursor: pointer;
+  border-radius: var(--cl-radius-sm);
+  background: var(--cl-surface-base);
+  border: 1px solid var(--cl-border-muted);
+  display: inline-grid;
+  place-content: center;
+  flex-shrink: 0;
+}
+
+input[type='checkbox'].cl-checkbox:hover {
+  border-color: var(--cl-border-hover);
+}
+
+input[type='checkbox'].cl-checkbox:checked {
+  background: var(--cl-state-live);
+  border-color: var(--cl-state-live);
+}
+
+input[type='checkbox'].cl-checkbox:checked::before {
+  content: '';
+  width: 0.55rem;
+  height: 0.55rem;
+  background-color: var(--cl-color-ink-950);
+  clip-path: polygon(14% 44%, 0 58%, 40% 98%, 100% 16%, 86% 2%, 40% 68%);
+}
+
+input[type='checkbox'].cl-checkbox:focus-visible {
+  outline: 2px solid var(--cl-focus-ring);
+  outline-offset: 2px;
+}
+
+.cl-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cl-space-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cl-link {
+  color: var(--cl-state-live);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.cl-link:hover {
+  opacity: 0.85;
+}
+
+.cl-link:focus-visible {
+  outline: 2px solid var(--cl-focus-ring);
+  outline-offset: 2px;
+}
+
+.cl-consequence-dialog__counts {
+  display: grid;
+  gap: var(--cl-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-consequence-dialog__counts li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--cl-space-2);
+  padding: var(--cl-space-2) var(--cl-space-3);
+  border-bottom: 1px solid var(--cl-border-muted);
+}
+
+.cl-tournament-settings__form-content {
+  display: grid;
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-tournament-settings__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--cl-space-4);
+  min-width: 0;
+}
+
+.cl-tournament-settings__field--wide {
+  grid-column: 1 / -1;
+}
+
+.cl-tournament-settings__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cl-space-3);
+}
+
+@media (width < 768px) {
+  .cl-tournament-settings__header-actions {
+    margin-block-start: var(--cl-space-2);
+  }
+}
+
+.cl-ruleset {
+  display: grid;
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-ruleset__parameter {
+  display: grid;
+  gap: var(--cl-space-1);
+  min-width: 0;
+}
+
+.cl-ruleset__key {
+  color: var(--cl-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--cl-font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+/* The table sizes to its widest cell, so a long value is capped and wraps instead of pushing Source and Action off-screen. */
+.cl-ruleset__current {
+  display: block;
+  max-inline-size: 26rem;
+  overflow-wrap: anywhere;
+}
+
+.cl-ruleset__value {
+  min-width: 0;
+  max-inline-size: 26rem;
+}
+
+.cl-ruleset__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--cl-space-4);
+}
+
+.cl-ruleset__add .cl-form-field {
+  flex: 1 1 16rem;
+}
+
+.cl-seeding__list,
+.cl-seeding__canvas {
+  display: grid;
+  align-content: start;
+  gap: var(--cl-space-4);
+  min-width: 0;
+}
+
+.cl-seeding__seeds {
+  display: grid;
+  gap: var(--cl-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-seeding__seed {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--cl-space-3);
+  padding-block: var(--cl-space-2);
+  border-block-end: 1px solid var(--cl-border-muted);
+}
+
+.cl-seeding__seed-tag {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: var(--cl-space-8);
+  padding-inline: var(--cl-space-2);
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-chrome);
+  font-family: var(--cl-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-seeding__seed-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cl-stage-identity__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--cl-space-4);
+}
+
+.cl-stage-identity__row .cl-form-field {
+  flex: 1 1 14rem;
+}
+
+.cl-stage-identity__danger {
+  padding-block-start: var(--cl-space-4);
+  border-block-start: 1px solid var(--cl-border-muted);
+}
+
+.cl-modal__content.cl-modal__content--wide {
+  width: min(56rem, calc(100vw - var(--cl-space-8)));
+}
+
+.cl-image-crop {
+  display: grid;
+  grid-template-columns: var(--cl-layout-split-main-rail);
+  gap: var(--cl-space-6);
+  min-width: 0;
+}
+
+.cl-image-crop__stage,
+.cl-image-crop__panel {
+  min-width: 0;
+}
+
+.cl-image-crop__panel {
+  display: grid;
+  align-content: start;
+  gap: var(--cl-space-4);
+}
+
+.cl-image-crop__previews {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--cl-space-4);
+}
+
+.cl-image-crop__preview {
+  overflow: hidden;
+  border: 1px solid var(--cl-border-muted);
+  background: var(--cl-surface-chrome);
+}
+
+.cl-image-crop__preview img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+@media (width < 768px) {
+  .cl-image-crop {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cl-promotion {
+  gap: var(--cl-space-8);
+}
+
+.cl-promotion__heading {
+  margin-block-end: var(--cl-space-4);
+}
+
+.cl-control .cl-promotion__parameters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  align-items: end;
+  gap: var(--cl-space-4);
+  max-inline-size: 45rem;
+}
+
+.cl-promotion__total {
+  display: flex;
+  align-items: baseline;
+  gap: var(--cl-space-2);
+  margin: 0;
+  color: var(--cl-text-secondary);
+}
+
+.cl-promotion__first-save {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.cl-promotion__total-figure {
+  color: var(--cl-text-primary);
+  font-size: var(--cl-font-size-figure-lg);
+  font-weight: var(--cl-weight-bold);
+  font-variant-numeric: tabular-nums;
+}

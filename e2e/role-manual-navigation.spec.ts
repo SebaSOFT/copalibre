@@ -1,11 +1,11 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 // The capability mapping reaches two surfaces a reader can
 // actually see — the control panel's own navigation, and the
 // help site's role manuals.
 
-const organizationsPath = '/organizations?mine=true';
+const organizationsPath = '/api/organizations?mine=true';
 
 async function mockOrganizationRole(page: Page, role: string): Promise<void> {
   await page.addInitScript(
@@ -33,7 +33,7 @@ async function mockOrganizationRole(page: Page, role: string): Promise<void> {
   );
 }
 
-test.describe('control-panel navigation follows the declared capability mapping (7.1)', () => {
+test.describe('control-panel navigation follows the declared capability mapping', () => {
   for (const [role, seesRoles] of [
     ['admin', true],
     ['club-admin', false],
@@ -57,12 +57,12 @@ test.describe('control-panel navigation follows the declared capability mapping 
       }
       // Every role keeps an ungated entry, proving this is a real filter,
       // not every navigation entry disappearing along with "Roles".
-      await expect(page.getByRole('link', { name: 'Torneos', exact: true })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Panel', exact: true })).toBeVisible();
     });
   }
 });
 
-test.describe('role manual pages are reachable from the help index (7.2)', () => {
+test.describe('role manual pages are reachable from the help index', () => {
   for (const [name, path, mustContain] of [
     ['Admin', 'admin', ['What it cannot do']],
     ['Club admin', 'club-admin', ['What it inherits', 'What it cannot do']],
@@ -84,9 +84,7 @@ test.describe('role manual pages are reachable from the help index (7.2)', () =>
   }
 });
 
-test('a club-admin is refused a control outside their club, naming ownership (7.3)', async ({
-  page,
-}) => {
+test('a club-admin is refused a control outside their club, naming ownership', async ({ page }) => {
   await page.addInitScript(
     ({ tokenEndpoint }) => {
       window.fetch = async (input, init) => {
@@ -95,12 +93,27 @@ test('a club-admin is refused a control outside their club, naming ownership (7.
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url === '/organizations/liga-mendocina/clubs' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/clubs' && method === 'GET') {
           return Response.json([
-            { clubId: 'club-2', organizationId: 'org-1', name: 'Casa de Italia' },
+            {
+              clubId: 'club-2',
+              organizationId: 'org-1',
+              name: 'Casa de Italia',
+              alias: 'casa-de-italia',
+            },
           ]);
         }
-        if (url === '/organizations/liga-mendocina/clubs/club-2' && method === 'PATCH') {
+        if (url === '/api/organizations?mine=true' && method === 'GET') {
+          return Response.json([
+            {
+              organizationId: 'org-1',
+              organizationAlias: 'liga-mendocina',
+              organizationName: 'Liga Mendocina',
+              role: 'club-admin',
+            },
+          ]);
+        }
+        if (url === '/api/organizations/liga-mendocina/clubs/club-2' && method === 'PATCH') {
           return Response.json(
             { message: 'subject is not scoped to administer this club' },
             { status: 403 },
@@ -124,7 +137,7 @@ test('a club-admin is refused a control outside their club, naming ownership (7.
   await expect(page.getByRole('alert')).toContainText('not scoped to administer this club');
 });
 
-test('inviting a tournament-admin requires selecting a tournament (7.4)', async ({ page }) => {
+test('inviting a tournament-admin requires selecting a tournament', async ({ page }) => {
   await page.addInitScript(
     ({ tokenEndpoint }) => {
       window.fetch = async (input, init) => {
@@ -133,15 +146,26 @@ test('inviting a tournament-admin requires selecting a tournament (7.4)', async 
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url === '/organizations/liga-mendocina/roles' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/roles' && method === 'GET') {
           return Response.json([]);
         }
-        if (url === '/organizations/liga-mendocina/tournaments' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/invitations' && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url === '/api/organizations/liga-mendocina/clubs' && method === 'GET') {
+          return Response.json([]);
+        }
+        if (url === '/api/organizations/liga-mendocina/roles/grantable' && method === 'GET') {
+          return Response.json({
+            roles: ['admin', 'club-admin', 'tournament-admin', 'referee', 'viewer'],
+          });
+        }
+        if (url === '/api/organizations/liga-mendocina/tournaments' && method === 'GET') {
           return Response.json([
             { tournamentId: 'tournament-1', alias: 'apertura', name: 'Apertura' },
           ]);
         }
-        if (url === '/organizations/liga-mendocina/invitations' && method === 'POST') {
+        if (url === '/api/organizations/liga-mendocina/invitations' && method === 'POST') {
           const body = JSON.parse(String(init?.body)) as { tournamentId?: string };
           if (!body.tournamentId) {
             return Response.json({ message: 'requires naming a tournament' }, { status: 409 });
@@ -161,7 +185,6 @@ test('inviting a tournament-admin requires selecting a tournament (7.4)', async 
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByText('Invitar usuario').click();
   await page.getByLabel('Rol de invitación').selectOption('tournament-admin');
   const submit = page.getByText('Enviar invitación');
   await expect(submit).toBeDisabled();

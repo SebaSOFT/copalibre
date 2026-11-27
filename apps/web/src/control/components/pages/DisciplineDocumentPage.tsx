@@ -1,15 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Alert } from '../ui/atoms/alert.js';
-import { FormattedMessage } from 'react-intl';
+import { useMemo } from 'react';
 import {
   createControlApiClient,
   type ControlApiClient,
   type InstalledDisciplineDocumentResponse,
 } from '../../lib/api-client.js';
 import type { DisciplineSummaryData } from '../../lib/discipline-summary.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { DisciplineDocumentTemplate } from '../screens/DisciplineDocumentTemplate.js';
-import { messages } from '../../i18n/messages.en.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 export function DisciplineDocumentPage({
   disciplineAlias,
@@ -23,50 +21,30 @@ export function DisciplineDocumentPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );
-  const [document_, setDocument] = useState<InstalledDisciplineDocumentResponse | undefined>(
-    undefined,
+  const read = useResilientRead<InstalledDisciplineDocumentResponse>(
+    `control-discipline-document:${disciplineAlias}`,
+    async () => {
+      if (!api.fetchInstalledDisciplineDocument) {
+        throw new Error('Installed discipline documents are unavailable');
+      }
+      const document = await api.fetchInstalledDisciplineDocument(disciplineAlias);
+      if (!document) throw new Error('Installed discipline document was empty');
+      return document;
+    },
+    { thing: disciplineAlias },
   );
-  const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
-    let live = true;
-    api
-      .fetchInstalledDisciplineDocument?.(disciplineAlias)
-      .then((loaded) => {
-        if (live) setDocument(loaded);
-      })
-      .catch(() => {
-        if (live) setFailed(true);
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, disciplineAlias]);
-
-  if (failed) {
-    return (
-      <Alert tone="destructive">
-        <FormattedMessage {...messages.disciplineDocumentLoadFailed} />
-      </Alert>
-    );
-  }
-  if (document_ === undefined) {
-    return (
-      <Alert tone="info">
-        <FormattedMessage {...messages.disciplineDocumentLoading} />
-      </Alert>
-    );
-  }
-
+  if (read.data === undefined) return <ReadState {...read} title={disciplineAlias} />;
   return (
-    <DisciplineDocumentTemplate
-      alias={document_.alias}
-      data={document_.document as unknown as DisciplineSummaryData}
-      version={document_.version}
-    />
+    <ReadState {...read} title={disciplineAlias}>
+      <DisciplineDocumentTemplate
+        alias={read.data.alias}
+        data={read.data.document as unknown as DisciplineSummaryData}
+        version={read.data.version}
+      />
+    </ReadState>
   );
 }

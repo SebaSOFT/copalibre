@@ -45,12 +45,13 @@ the discipline's event definition declares that behavior.
 - **THEN** the console presents a goal/missed choice before opening the confirmation form, prefilled with event type, active period, and event time
 
 ### Requirement: Clock and timer operations are authorized auditable commands
-Manual clock adjustment, explicit segment Start/Pause/End, segment selection, and timer resolution
-SHALL be explicit server-validated commands. Each SHALL require its independently granted match
-capability, record actor, timestamp, prior state, and resulting state, and accept only timer-resolution
-behavior declared for the active discipline. Start, Pause, and End SHALL be authorized by the same
-`match.control-clock` capability as manual elapsed-time adjustment. The segment selector SHALL present
-segment types and states in the operator's active language.
+
+Manual clock adjustment, segment Start/Pause/End, segment selection, and timer resolution SHALL be
+explicit server-validated commands, each requiring its independently granted match capability,
+recording actor, timestamp, prior and resulting state, and accepting only timer resolution the
+active discipline declares. Start, Pause, and End SHALL require the `match.control-clock` capability
+manual adjustment requires. The segment selector SHALL show segment types and states in the active
+language.
 
 #### Scenario: Referee adjusts the active period
 - **WHEN** an official with the clock-control capability changes the active segment or elapsed time
@@ -96,24 +97,13 @@ and remaining time, with its declared resolution action available only to an aut
 - **THEN** the action is rejected
 
 ### Requirement: Finalize is an irreversible, explicitly confirmed, idempotent action
-Finalizing a match SHALL require an explicit confirmation step warning that the result becomes part
-of an immutable ledger and cannot be undone. The client SHALL supply an idempotency key, which the
-server SHALL persist atomically with the finalization result. A retry with the same key and request
-SHALL return the recorded outcome; reuse of that key with a different request SHALL be rejected.
 
-The finalized outcome SHALL be either derived from the recorded events or chosen through a control
-whose only purpose is to choose it. A value the operator set for another purpose SHALL NOT be
-transmitted as the outcome. In particular, the console's event-attribution selection — which side a
-subsequent event is recorded against, changed by every jersey tap — SHALL NOT determine the winner.
-
-Where an explicit winner control is offered it SHALL default to unset, and finalizing with it unset
-SHALL either derive the outcome from the recorded events or refuse, rather than submitting whichever
-side was last touched.
-
-The confirmation step SHALL show the outcome being frozen — the score, and the winner where one is
-recorded — because a confirmation that names only the consequence cannot be checked against what is
-about to be committed. The confirmation's affordance SHALL carry the tone the system uses for an
-irreversible commit rather than the tone it reserves for a failure or a loss.
+Finalizing a match SHALL require an explicit confirmation that shows the outcome being frozen and
+warns it cannot be undone. The server SHALL persist the client's idempotency key atomically with the
+result: a same-key, same-request retry SHALL return the recorded outcome, and a different request
+under that key SHALL be rejected. The outcome SHALL be derived from the recorded events or chosen
+through a control whose only purpose is to choose it, and SHALL NOT be a value set for another
+purpose.
 
 #### Scenario: Finalize requires explicit confirmation
 - **WHEN** an official initiates match finalization
@@ -137,14 +127,36 @@ irreversible commit rather than the tone it reserves for a failure or a loss.
 - **THEN** it presents the score and the winner about to be committed, so the official confirms a
   visible outcome rather than an unnamed one
 
+#### Scenario: The warning names the ledger
+
+- **WHEN** the confirmation is shown
+- **THEN** it warns that the result becomes part of an immutable ledger and cannot be undone
+
+#### Scenario: What the confirmation shows
+
+- **WHEN** the confirmation is shown
+- **THEN** it shows the score, and the winner where one is recorded, because a confirmation naming
+  only the consequence cannot be checked against what is about to be committed
+
+#### Scenario: An explicit winner control starts unset
+
+- **WHEN** a console offers an explicit winner control
+- **THEN** it defaults to unset, and finalizing with it unset derives the outcome from the recorded
+  events or refuses, rather than submitting whichever side was last touched
+
+#### Scenario: The confirm action looks like a commit
+
+- **WHEN** the confirm affordance renders
+- **THEN** it carries the tone the system uses for an irreversible commit, not the tone reserved for
+  a failure or a loss
+
 ### Requirement: Displayed state reconciles with an authoritative projection
+
 Any optimistically displayed score, statistic, timer, or match-state update SHALL reconcile with the
-next authoritative versioned match projection delivered through the durable event stream. If no newer
-projection arrives within a bounded timeout, the console SHALL show stale state and refetch the
-projection rather than trusting the optimistic value indefinitely. When a durably queued set of actions
-is replayed after a reconnection, the same reconciliation SHALL apply to the resulting state: the
-console SHALL NOT continue displaying an optimistic value the authoritative projection has superseded,
-whether that projection resulted from one mutation or from an entire replayed queue.
+next authoritative versioned match projection from the durable event stream. If none arrives within
+a bounded timeout, the console SHALL show stale state and refetch the projection. After a
+reconnection replays a durable queue, the console SHALL NOT keep displaying an optimistic value the
+authoritative projection has superseded.
 
 #### Scenario: Optimistic update reconciles
 - **WHEN** the console optimistically updates state after an event is recorded
@@ -159,6 +171,11 @@ whether that projection resulted from one mutation or from an entire replayed qu
 - **WHEN** a reconnection drains a queue of several actions, some accepted and one refused
 - **THEN** the console's displayed state reflects the authoritative projection resulting from exactly
   what the server accepted, not an optimistic guess that assumed every queued action would succeed
+
+#### Scenario: A whole replayed queue reconciles like one mutation
+
+- **WHEN** a queued set of actions is replayed after a reconnection
+- **THEN** the resulting state reconciles exactly as a single mutation's would
 
 ### Requirement: Match-scoped capability-based authorization
 Only an active organization `admin` or `referee` identity SHALL reach match control, and every event
@@ -249,11 +266,11 @@ to step through segment clocks or record events in real time.
 
 ### Requirement: The load-match-data screen accepts a CSV import as an alternative to manual entry
 
-The load-match-data screen SHALL accept a CSV file describing one match's roster, ordered events, and
-result, parsing it into the same structured submission manual entry produces. Imported content SHALL load
-into the screen's event-list builder for review before submission, and SHALL be submitted through the same
-batch endpoint under the same validation and the same all-or-nothing transaction. Parse and validation
-problems SHALL be reported for every offending row at once, before anything is submitted.
+The load-match-data screen SHALL accept a CSV file describing one match's roster, ordered events,
+and result, parsed into the structured submission manual entry produces. Imported content SHALL load
+into the event-list builder for review, and SHALL be submitted through the same batch endpoint,
+validation and all-or-nothing transaction. Problems SHALL be reported for every offending row at
+once, before anything is submitted.
 
 #### Scenario: Importing a well-formed file
 - **WHEN** an operator imports a CSV describing a match's roster, events and result
@@ -276,10 +293,10 @@ problems SHALL be reported for every offending row at once, before anything is s
 ### Requirement: Every mutating console command carries a durable idempotency key
 
 The console SHALL generate a client-side idempotency key for every mutating command it sends — event
-recording, clock adjustment, timer resolution, roster selection, and finalization — and the server
-SHALL persist that key atomically with the command's recorded outcome. A retry carrying the same key
-and the same request SHALL return the previously recorded outcome without re-applying the command.
-Reuse of that key with a different request SHALL be rejected.
+recording, clock commands and clock adjustment, segment reopen, timer resolution, roster selection,
+and finalization — and the server SHALL persist that key atomically with the command's recorded
+outcome. A retry carrying the same key and the same request SHALL return the previously recorded
+outcome without re-applying the command. Reuse of that key with a different request SHALL be rejected.
 
 #### Scenario: A retried event recording is not double-recorded
 - **WHEN** a client retries the same event-recording request with the same idempotency key, because the
@@ -294,6 +311,21 @@ Reuse of that key with a different request SHALL be rejected.
 - **WHEN** a client reuses an idempotency key already recorded against a different request for any
   mutating console command
 - **THEN** the system rejects the new request without applying it
+
+#### Scenario: A command that applied is not refused on retry
+- **WHEN** a command commits but its response never reaches the stored key, and the client retries the
+  same request with the same idempotency key
+- **THEN** the command is not applied a second time, and the retry is answered with the match's current
+  console state instead of a refusal
+
+#### Scenario: Two requests with one key apply once
+- **WHEN** two requests with the same idempotency key and the same body arrive at the same time
+- **THEN** the command is applied exactly once, and both requests are answered with a success that
+  identifies that one outcome
+
+#### Scenario: A failed command leaves its key unused
+- **WHEN** a command is refused or fails before it commits
+- **THEN** its idempotency key is not recorded, and a later request with that key runs the command
 
 ### Requirement: The console durably queues an action it cannot send
 
@@ -329,16 +361,11 @@ open workflow choice awaiting confirmation — is not required to survive a refr
 
 ### Requirement: A reconnection replays the queue through the same validation a live action already goes through
 
-On regaining connectivity, the console SHALL replay every durably queued action, in the order it was
-originally attempted, against its normal authorized command endpoint — the same endpoint and validation
-a live console action already goes through. No separate merge or conflict-resolution logic SHALL apply.
-An action the server would accept from a live console SHALL be accepted from the queue. An action the
-server would refuse from a live console — including a finalize whose target match is no longer eligible,
-or is already finalized with a different result, or whose target match was anulled by a series decision
-taken while the operator was offline — SHALL be refused from the queue, surfaced against that specific
-queued item, and SHALL NOT prevent the remaining queued actions from being attempted. A refusal caused
-by a series decision SHALL name that series result, so the operator is told why the match they recorded
-against will never be played.
+On regaining connectivity, the console SHALL replay every durably queued action, in original order,
+through the same authorized command endpoint and validation a live action uses, with no separate
+merge or conflict-resolution logic. An action accepted live SHALL be accepted from the queue; an
+action refused live SHALL be refused from the queue, surfaced against that queued item, and SHALL
+NOT block the rest. A refusal caused by a series decision SHALL name that series result.
 
 #### Scenario: Queued events from one operator replay alongside events recorded by others
 - **WHEN** a reconnection replays queued event-recording actions for a match that also received other
@@ -371,6 +398,17 @@ against will never be played.
 - **WHEN** a queued action is refused because its match was anulled
 - **THEN** the queued item and its contents remain visible to the operator, so they can decide whether
   it belongs elsewhere — for example as a correction to an earlier match of the same series
+
+#### Scenario: Refusals a live console would also give
+
+- **WHEN** a queued finalize targets a match that is no longer eligible, is already finalized with a
+  different result, or was anulled by a series decision taken while the operator was offline
+- **THEN** it is refused from the queue
+
+#### Scenario: Why a series refusal names the series
+
+- **WHEN** a queued action targets a match a series decision anulled
+- **THEN** the operator is told why the match they recorded against will never be played
 
 ### Requirement: Sync status is always visible while the console is open
 
@@ -429,17 +467,11 @@ localized according to the operator's active locale.
 
 ### Requirement: Person-payload-field prompts render a localized label
 
-A person-payload-field prompt in the event-recording controls (a secondary actor field such as an
-assist provider or a substitution's outgoing player) SHALL render a localized label resolved for the
-console's active language, whichever way the active discipline declared that field — as a
-`personPayloadFields` entry, as a statistic effect's payload-field target, or as a tag effect's
-payload-field target. The label SHALL be declared by the discipline descriptor alongside the event
-definition, so a discipline can name its own fields without a frontend release.
-
-The underlying JSON Schema field key SHALL NOT be rendered as a substitute for a label a discipline
-declared. Where a discipline declares no label for a prompted field, the console SHALL render the
-field's key rather than a label derived from it — a generated label is indistinguishable from a
-translated one, and no language would have approved it.
+A person-payload-field prompt in the event-recording controls SHALL render the localized label the
+discipline descriptor declares beside the event definition, for the console's active language,
+however the discipline declared that field. The underlying JSON Schema key SHALL NOT be rendered in
+place of a declared label. Where no label is declared, the console SHALL render the field's key
+rather than a label derived from it.
 
 #### Scenario: A secondary field renders its localized label
 
@@ -464,3 +496,245 @@ translated one, and no language would have approved it.
 
 - **WHEN** the active discipline declares a prompted secondary field but no label for it
 - **THEN** the chip shows the field's key, and no label is derived from that key
+
+#### Scenario: Which prompts these are
+
+- **WHEN** an event asks for a secondary actor
+- **THEN** such as an assist provider or a substitution's outgoing player, it is a
+  person-payload-field prompt
+
+#### Scenario: Every way a field can be declared
+
+- **WHEN** a discipline declares a prompted field as a `personPayloadFields` entry, a statistic
+  effect's payload-field target, or a tag effect's payload-field target
+- **THEN** its declared label is rendered all the same
+
+#### Scenario: Labels ship with the discipline
+
+- **WHEN** a discipline names its own fields
+- **THEN** no frontend release is needed
+
+#### Scenario: Why a key beats a derived label
+
+- **WHEN** no label is declared
+- **THEN** the key is shown, because a generated label is indistinguishable from a translated one
+  that no language approved
+
+### Requirement: The match-control API refuses to operate a match with an undecided side
+
+The match-control API SHALL refuse to start a match, record an event in it, or record its result while
+any of its sides is undecided, naming the undecided side's source. This is a record-integrity refusal:
+an event or result would name an entrant that is not playing.
+
+#### Scenario: Starting an undecided final is refused
+
+- **WHEN** an operator attempts to start a final whose sides are "winner of semi-final 1" and "winner of
+  semi-final 2", and semi-final 2 is undecided
+- **THEN** the request is refused, naming "winner of semi-final 2" as undecided, and nothing changes
+
+#### Scenario: Recording a result for an undecided match is refused
+
+- **WHEN** a result is submitted for a match with an undecided side, through the console or bulk load
+- **THEN** it is refused, naming the undecided side, and no result is recorded
+
+Any future outcome endpoint, including a dedicated forfeit endpoint or CSV result importer, SHALL
+apply this same guard before writing. The current CSV participant importer is outside this scope.
+
+### Requirement: The console shows a match awaiting its entrants
+
+When the console opens a match with an undecided side, it SHALL state, in text, which source the match
+is awaiting, and SHALL offer no start, event or result control until every side is decided.
+
+#### Scenario: The console states what the match is waiting for
+
+- **WHEN** an operator opens the console of a final whose second semi-final is undecided
+- **THEN** the console reads that the final is awaiting the winner of semi-final 2, and shows no start,
+  event or result control
+
+#### Scenario: Controls appear once the sides are decided
+
+- **WHEN** the awaited semi-final is decided while the console is open
+- **THEN** after the console's projection refreshes, the final shows both entrants and its normal
+  controls
+
+### Requirement: The console shows connection state and per-event sync state
+
+The live match console SHALL show a sticky header status: online or offline, the number of queued
+actions, and the last successful sync time. The status SHALL be amber while actions are queued, and red
+only when an action is refused. Every recorded event SHALL show Queued, Sent, Confirmed or Refused,
+derived from the offline queue and server acknowledgement. Confirmed SHALL NOT be shown without that
+acknowledgement.
+
+#### Scenario: Goal recorded while offline
+
+- **WHEN** an operator records a goal with no connection
+- **THEN** the event shows "Queued", the header reads offline with "1 queued" in amber, and nothing
+  shows "Confirmed"
+
+#### Scenario: Connection returns and the server refuses one action
+
+- **WHEN** the queue drains and the server refuses a substitution
+- **THEN** that event shows "Refused" with the server's reason in an alert, the header turns red, and
+  the other drained events show "Confirmed" once acknowledged
+
+### Requirement: The console reflects the running match
+
+The live console SHALL show the segment the match is in and SHALL offer only the clock commands the match state allows, with one primary action for that state.
+
+#### Scenario: In progress
+
+- **WHEN** an operator opens a running match
+- **THEN** Segment shows the current segment and Start is not offered
+- **AND** Pause is the one primary action
+
+#### Scenario: Stopped clock
+
+- **WHEN** an operator opens a match under way whose segment is stopped
+- **THEN** Start is the one primary action and Pause is not offered
+
+#### Scenario: Every segment ended
+
+- **WHEN** an operator opens a match under way whose segments have all ended
+- **THEN** no clock command is offered and Finalize is the one primary action
+
+#### Scenario: Next segment
+
+- **WHEN** a segment ends and another is still to be played
+- **THEN** Segment shows the next segment until the operator picks another
+
+### Requirement: The console states when a match has no segments
+
+The live console SHALL say when an in-progress match has no segments, SHALL offer no clock command for it, and SHALL offer Add segment beside Finalize so the operator can continue the match.
+
+#### Scenario: No segments
+
+- **WHEN** an operator opens a match in progress that has no segments
+- **THEN** the console says it has no segments, offers no clock command, offers Add segment and offers Finalize as the primary action
+
+### Requirement: The event ledger states when it is empty
+
+The live console SHALL show a line saying there are no events to show in place of an empty list.
+
+#### Scenario: Nothing recorded
+
+- **WHEN** an operator opens a match with no recorded events
+- **THEN** the event ledger shows that there are no events to show and draws no empty box above the log note
+
+### Requirement: The console starts a scheduled match that has no segments
+
+For a scheduled match with no segments whose discipline declares a segment type, the live console SHALL offer Start as the primary clock action and SHALL say how many segments of which type Start creates. Starting SHALL show the created segments with the first one running.
+
+#### Scenario: Starting a football match from the console
+
+- **WHEN** an operator opens a scheduled football match with no segments and decided sides
+- **THEN** the console says Start creates 2 halves and offers Start, and after Start the segment list shows half 1 running and half 2 pending
+
+#### Scenario: A discipline without segment types
+
+- **WHEN** an operator opens a scheduled match with no segments whose discipline declares no segment type
+- **THEN** the console says the match has no segments and offers no Start
+
+### Requirement: The console adds a segment while a match is in progress
+
+While a match is in progress, the live console SHALL offer Add segment with every segment type the discipline declares, by its declared label. An option that would add a regulation segment beyond the plan SHALL be labelled as outside the plan and stay selectable. An addition made offline SHALL be queued and sent once.
+
+#### Scenario: Adding extra time
+
+- **WHEN** an operator chooses Extra time in Add segment on an in-progress football match
+- **THEN** the segment list shows a pending extra-time segment, and the operator can resume it
+
+#### Scenario: Outside the plan is labelled
+
+- **WHEN** an in-progress best-of-three match already has three sets
+- **THEN** the Set option in Add segment is labelled as outside the plan and can still be chosen
+
+#### Scenario: Adding offline
+
+- **WHEN** an operator adds a segment while the console is offline
+- **THEN** the addition is queued, the queue count rises, and on reconnection one segment is created
+
+### Requirement: The clock card offers one set of actions per state
+
+The live console SHALL offer, for the selected segment, only the actions of its state: Start match for a scheduled match, Start segment for a segment not started, Pause and End segment for a running segment, Resume and End segment for a paused one, and Reopen segment for an ended one. A closed match (finalized, forfeited or not-required) SHALL show no clock action. The segment selector SHALL show a stopped segment with time above zero as paused.
+
+#### Scenario: A scheduled match
+
+- **WHEN** an operator opens a scheduled match
+- **THEN** the clock card offers Start match and no other clock action
+
+#### Scenario: A paused half
+
+- **WHEN** the selected half is stopped at 12:30
+- **THEN** the selector shows it as paused, and the clock card offers Resume and End segment, not Start segment
+
+#### Scenario: A half not started
+
+- **WHEN** the selected half has never run and no other segment is running
+- **THEN** the clock card offers Start segment and no Resume
+
+#### Scenario: An ended half
+
+- **WHEN** the selected half has ended in an in-progress match
+- **THEN** the clock card offers Reopen segment and no Start, Resume, Pause or End segment
+
+#### Scenario: A closed match
+
+- **WHEN** an operator opens a finalized, forfeited or not-required match
+- **THEN** the clock card offers no clock action and no time correction
+
+### Requirement: A segment starts or resumes only while no other runs
+
+The live console SHALL NOT offer Start segment or Resume for a segment while another segment of the match is running. It SHALL say which segment is running instead.
+
+#### Scenario: The first half is still running
+
+- **WHEN** the operator selects the second half while the first half is running
+- **THEN** the clock card offers neither Start segment nor Resume, and says the first half is running
+
+### Requirement: Correct time sends only a time the operator typed
+
+The console's Correct time SHALL send only a time the operator typed for the selected segment, as minutes:seconds or as whole minutes, and SHALL NOT ask to start the segment. The time field SHALL show the selected segment's current time as minutes:seconds until the operator types, and SHALL follow the selected segment. Correct SHALL be unavailable while the field is untouched, empty, or not a valid time, and on a closed match (finalized, forfeited or not-required).
+
+#### Scenario: Untouched field
+
+- **WHEN** an operator opens a match whose selected segment reads 20:00 and does not edit the time field
+- **THEN** the field shows 20:00, Correct is unavailable, and no request is sent
+
+#### Scenario: A typed time
+
+- **WHEN** the operator types 20:50 and presses Correct
+- **THEN** the console sends that segment's time as 1250 seconds without asking to start it, and the segment keeps its state
+
+#### Scenario: Whole minutes
+
+- **WHEN** the operator types 45 and presses Correct
+- **THEN** the console sends that segment's time as 2700 seconds
+
+#### Scenario: Invalid input
+
+- **WHEN** the operator clears the field, or types a negative value, seconds of 60 or more, or text that is not a time
+- **THEN** Correct is unavailable and no request is sent
+
+#### Scenario: The field follows the selected segment
+
+- **WHEN** the operator types a time and then picks another segment
+- **THEN** the typed time is discarded and the field shows the newly selected segment's current time
+
+### Requirement: Reopen segment asks for a reason
+
+The console's Reopen segment SHALL ask the operator for a reason before sending, SHALL send nothing while the reason is empty, and SHALL go through the offline queue with its idempotency key like the other clock commands.
+
+#### Scenario: Reopening with a reason
+
+- **WHEN** the operator presses Reopen segment on an ended half, types "Ended by mistake" and confirms
+- **THEN** the console sends the reopen with that reason, and the half shows as paused with Resume and End segment offered
+
+#### Scenario: Cancelling
+
+- **WHEN** the operator presses Reopen segment and cancels, or leaves the reason empty
+- **THEN** nothing is sent and the half stays ended
+
+#### Scenario: Reopening offline
+
+- **WHEN** the operator reopens a half while the console is offline
+- **THEN** the reopen is queued, the queue count rises, and on reconnection one reopen is recorded

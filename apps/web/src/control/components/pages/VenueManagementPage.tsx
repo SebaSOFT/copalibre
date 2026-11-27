@@ -1,18 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from '../ui/atoms/alert.js';
+import { useMemo } from 'react';
 import { useIntl } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
 import {
   createControlApiClient,
   type ControlApiClient,
-  type OfficialResponse,
   type OfficialRole,
-  type ScheduleDetailResponse,
-  type VenueResponse,
+  type ScheduleDeletionResponse,
 } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
-import { messages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
 import { VenueManagementTemplate } from '../screens/VenueManagementTemplate.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 /**
  * Fetches and mutates: every call into the API
@@ -33,63 +31,28 @@ export function VenueManagementPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );
 
-  const [venues, setVenues] = useState<readonly VenueResponse[]>([]);
-  const [officials, setOfficials] = useState<readonly OfficialResponse[]>([]);
-  const [schedules, setSchedules] = useState<readonly ScheduleDetailResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const reload = useCallback(async (): Promise<void> => {
-    try {
-      const [loadedVenues, loadedOfficials, loadedSchedules] = await Promise.all([
+  const read = useResilientRead(
+    `control-resources:${organizationAlias}`,
+    async () => {
+      const [venues, officials, schedules] = await Promise.all([
         api.listVenues?.(organizationAlias) ?? Promise.resolve([]),
         api.listOfficials?.(organizationAlias) ?? Promise.resolve([]),
         api.listSchedules?.(organizationAlias) ?? Promise.resolve([]),
       ]);
-      setVenues(loadedVenues);
-      setOfficials(loadedOfficials);
-      setSchedules(loadedSchedules);
-    } catch {
-      push({
-        severity: 'error',
-        message: intl.formatMessage(messages.resourceManagementLoadFailed),
-      });
-    }
-  }, [api, intl, organizationAlias, push]);
-
-  useEffect(() => {
-    let live = true;
-    Promise.all([
-      api.listVenues?.(organizationAlias) ?? Promise.resolve([]),
-      api.listOfficials?.(organizationAlias) ?? Promise.resolve([]),
-      api.listSchedules?.(organizationAlias) ?? Promise.resolve([]),
-    ])
-      .then(([loadedVenues, loadedOfficials, loadedSchedules]) => {
-        if (live) {
-          setVenues(loadedVenues);
-          setOfficials(loadedOfficials);
-          setSchedules(loadedSchedules);
-        }
-      })
-      .catch(() => {
-        if (live) {
-          push({
-            severity: 'error',
-            message: intl.formatMessage(messages.resourceManagementLoadFailed),
-          });
-        }
-      })
-      .finally(() => {
-        if (live) setLoading(false);
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, intl, organizationAlias, push]);
+      return { venues, officials, schedules };
+    },
+    {
+      thing: intl.formatMessage(messages.resourceManagementTitle),
+      isEmpty: (data) =>
+        data.venues.length === 0 && data.officials.length === 0 && data.schedules.length === 0,
+    },
+  );
+  const { venues = [], officials = [], schedules = [] } = read.data ?? {};
+  const reload = read.retry;
 
   async function createVenue(name: string, alias: string, capacityText: string): Promise<boolean> {
     if (!api.createVenue || name.trim() === '' || alias.trim() === '') return false;
@@ -141,6 +104,42 @@ export function VenueManagementPage({
       void reload();
     } catch (error) {
       pushError(error);
+    }
+  }
+
+  async function restoreVenue(venueId: string): Promise<void> {
+    if (!api.restoreVenue) return;
+    try {
+      await api.restoreVenue(organizationAlias, venueId);
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.resourceManagementVenueRestored),
+      });
+      void reload();
+    } catch (error) {
+      pushError(error);
+    }
+  }
+
+  async function deleteVenue(venueId: string): Promise<boolean> {
+    if (!api.deleteVenue) return false;
+    try {
+      const result = await api.deleteVenue(organizationAlias, venueId);
+      if (!result.success) return false;
+      push({
+        severity: 'success',
+        message: intl.formatMessage(messages.resourceManagementVenueDeleted),
+        durationMs: 10_000,
+        action: {
+          label: intl.formatMessage(messages.seedingUndo),
+          onAction: () => void restoreVenue(venueId),
+        },
+      });
+      void reload();
+      return true;
+    } catch (error) {
+      pushError(error);
+      return false;
     }
   }
 
@@ -234,10 +233,16 @@ export function VenueManagementPage({
     }
   }
 
-  async function deleteSchedule(scheduleId: string): Promise<boolean> {
+  async function deleteSchedule(scheduleId: string, confirmationName: string): Promise<boolean> {
     if (!api.deleteSchedule) return false;
     try {
-      await api.deleteSchedule(organizationAlias, scheduleId);
+      const result = await api.deleteSchedule(
+        organizationAlias,
+        scheduleId,
+        false,
+        confirmationName,
+      );
+      if (!result.success) return false;
       push({
         severity: 'success',
         message: intl.formatMessage(messages.resourceManagementScheduleDeleted),
@@ -250,24 +255,38 @@ export function VenueManagementPage({
     }
   }
 
-  if (loading) {
-    return <Alert tone="info">{intl.formatMessage(messages.resourceManagementLoading)}</Alert>;
+  async function previewDeleteSchedule(
+    scheduleId: string,
+  ): Promise<ScheduleDeletionResponse | undefined> {
+    if (!api.deleteSchedule) return undefined;
+    try {
+      return await api.deleteSchedule(organizationAlias, scheduleId, true);
+    } catch (error) {
+      pushError(error);
+      return undefined;
+    }
   }
 
+  if (read.data === undefined)
+    return <ReadState {...read} title={intl.formatMessage(messages.resourceManagementTitle)} />;
+
   return (
-    <VenueManagementTemplate
-      api={api}
-      officials={officials}
-      onCreateOfficial={createOfficial}
-      onCreateSchedule={createSchedule}
-      onCreateVenue={createVenue}
-      onDeleteSchedule={deleteSchedule}
-      onSaveOfficial={saveOfficial}
-      onSaveSchedule={saveSchedule}
-      onSaveVenue={saveVenue}
-      organizationAlias={organizationAlias}
-      schedules={schedules}
-      venues={venues}
-    />
+    <ReadState {...read} title={intl.formatMessage(messages.resourceManagementTitle)}>
+      <VenueManagementTemplate
+        api={api}
+        officials={officials}
+        onCreateOfficial={createOfficial}
+        onCreateSchedule={createSchedule}
+        onCreateVenue={createVenue}
+        onDeleteSchedule={deleteSchedule}
+        onDeleteVenue={deleteVenue}
+        onPreviewDeleteSchedule={previewDeleteSchedule}
+        onSaveOfficial={saveOfficial}
+        onSaveSchedule={saveSchedule}
+        onSaveVenue={saveVenue}
+        schedules={schedules}
+        venues={venues}
+      />
+    </ReadState>
   );
 }

@@ -45,3 +45,29 @@ export function segmentSummariesOf(
       };
     });
 }
+
+/**
+ * The score each scoring event leaves behind, keyed by event id. The fold is a sum over events, so each
+ * event's score effects are applied once to running totals, in sequence order: the last entry is the
+ * score the events add up to. An event that leaves the score unchanged has no entry; a match with no
+ * scoring events has none at all. Needs both sides, because a score is per side.
+ */
+export function scoreAfterOf(
+  descriptor: DisciplineDescriptor,
+  events: readonly RecordedEvent[],
+  entrantIds: readonly [string, string],
+): ReadonlyMap<string, readonly [number, number]> {
+  const ordered = [...events].sort((a, b) => a.sequence - b.sequence);
+  const scores = new Map<string, readonly [number, number]>();
+  let totals: readonly [number, number] = [0, 0];
+  for (const event of ordered) {
+    const delta = foldLiveScores(descriptor, [event], entrantIds);
+    const next: readonly [number, number] = [
+      totals[0] + (delta[0]?.score ?? 0),
+      totals[1] + (delta[1]?.score ?? 0),
+    ];
+    if (next[0] !== totals[0] || next[1] !== totals[1]) scores.set(event.eventId, next);
+    totals = next;
+  }
+  return scores;
+}

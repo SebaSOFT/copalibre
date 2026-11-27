@@ -18,7 +18,7 @@ installation.
 
 ## Organizations
 
-A new organization is created here — its alias, display name, primary language, and timezone — and its
+A new organization is created here — its alias, display name, primary language, and timezone (an IANA name, such as `America/Argentina/Buenos_Aires`; an unknown one is refused) — and its
 first administrator is invited by email in the same step. An organization created without an invited
 administrator has nobody who can sign in and manage it, so the two are done together.
 

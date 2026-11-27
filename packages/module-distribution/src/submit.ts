@@ -50,12 +50,32 @@ export interface SubmitResult {
  * the local package stays usable for a further `module add --source` install
  * afterward.
  */
+const GITHUB_REPOSITORY = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9._-]{1,100}$/;
+const BRANCH_NAME = /^(?!-)(?!.*\.\.)(?!.*\/\/)(?!.*@\{)[A-Za-z0-9._/-]{1,200}(?<![./])$/;
+
+/**
+ * The upstream repository and base branch can come from a request body. They
+ * become `gh` and `git` arguments, so each must be what it claims to be: an
+ * `owner/name` GitHub repository and a branch name that cannot be read as an
+ * option or a revision expression.
+ */
+export function submitTargetProblems(upstream: string, base: string): readonly string[] {
+  const problems: string[] = [];
+  if (!GITHUB_REPOSITORY.test(upstream) || upstream.includes('..')) {
+    problems.push(`"${upstream.slice(0, 80)}" is not an owner/name GitHub repository`);
+  }
+  if (!BRANCH_NAME.test(base)) problems.push(`"${base.slice(0, 80)}" is not a branch name`);
+  return problems;
+}
+
 export async function submitModule(
   options: SubmitOptions,
   git: GitCommandRunner = systemGitCommandRunner,
 ): Promise<SubmitResult> {
   const upstream = options.upstreamRepository ?? DEFAULT_UPSTREAM_REPOSITORY;
   const base = options.baseBranch ?? DEFAULT_BASE_BRANCH;
+  const problems = submitTargetProblems(upstream, base);
+  if (problems.length > 0) throw new Error(problems.join('; '));
   const manifest = JSON.parse(
     await readFile(join(options.modulePath, 'manifest.json'), 'utf8'),
   ) as ModuleManifest;

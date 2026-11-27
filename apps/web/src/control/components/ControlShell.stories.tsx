@@ -6,12 +6,14 @@ import { isSupportedLanguage } from '@copalibre/domain';
 import { useIntl } from 'react-intl';
 import type { ControlApiClient } from '../lib/api-client.js';
 import { ORG, ids, storyClient } from './screen-story-fixtures.js';
+import { SESSION_RENEWING_STATUS_EVENT } from '../session/renewal-status.js';
 const client = storyClient<ControlApiClient>({
   listMyOrganizations: async () => [
     {
       organizationId: ids.organization,
       organizationAlias: ORG,
       organizationName: 'Liga San Juan',
+      timezone: 'America/Argentina/Buenos_Aires',
       role: 'admin',
     },
   ],
@@ -29,6 +31,15 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};
+export const LightL3: Story = { globals: { theme: 'light' } };
+export const Reconnecting: Story = {
+  play: async ({ canvasElement }) => {
+    window.dispatchEvent(
+      new CustomEvent(SESSION_RENEWING_STATUS_EVENT, { detail: { reconnecting: true } }),
+    );
+    await within(canvasElement).findByRole('status');
+  },
+};
 export const DrawerOpen: Story = {
   globals: { viewport: { value: 'narrowPhone', isRotated: false } },
   play: async ({ canvasElement }) => {

@@ -8,10 +8,48 @@ import type { ReviewRegistrationRow } from './screens/RegistrationReviewTemplate
 import { createIntl } from 'react-intl';
 import { isSupportedLanguage } from '@copalibre/domain';
 import { CATALOGS } from '../i18n/ControlIntl.js';
+import {
+  Fragment,
+  createElement,
+  useEffect,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
+import { clearResilientReadCache } from './pages/use-resilient-read.js';
+
+/** A selected story starts a session; its own remounts still share read data. */
+export function ReadStoryScope({ children }: { readonly children: ReactNode }): ReactElement {
+  useState(() => {
+    clearResilientReadCache();
+    return true;
+  });
+  return createElement(Fragment, null, children);
+}
+
+/** Load the real page, then reopen it with its own failing narrow client. */
+export function StaleReadStory({
+  loaded,
+  failed,
+}: {
+  readonly loaded: ReactNode;
+  readonly failed: ReactNode;
+}): ReactElement {
+  const [offline, setOffline] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setOffline(true), 350);
+    return () => clearTimeout(timer);
+  }, []);
+  return createElement(Fragment, { key: offline ? 'failed' : 'loaded' }, offline ? failed : loaded);
+}
 import type { CanvasMatch } from '../lib/bracket-canvas.js';
 import type { DisciplineOption } from '../lib/wizard.js';
 import type { MatchCardData } from '../../lib/matches-view.js';
-import type { TournamentResponse } from '../lib/api-client.js';
+import type {
+  QualificationPreviewResponse,
+  QualifierSeedResponse,
+  TournamentResponse,
+} from '../lib/api-client.js';
 
 /** Shared identities/data, never a shared API response registry. */
 export function storyIntl(value: unknown) {
@@ -240,6 +278,7 @@ export const reviewRows: readonly ReviewRegistrationRow[] = registrations.map((r
 
 /** A paused, in-progress match: time never drifts while comparing viewports. */
 export const consoleProjection: MatchConsoleResponse = {
+  segmentPlan: { addable: [] },
   matchId: ids.match,
   stageNumber: 1,
   status: 'in-progress',
@@ -328,3 +367,79 @@ export function storyClient<T extends object>(methods: Partial<T>): T {
 }
 
 export const pending = <T>(): Promise<T> => new Promise<T>(() => undefined);
+
+const PLAN = '019927d0-0000-7000-8000-0000000000c1';
+
+/** Two groups feeding a four-team cup: positions 1–4 are 1st A, 2nd A, 1st B, 2nd B. */
+export const qualifierSeeds: readonly QualifierSeedResponse[] = [
+  [1, 1, 'Grupo A'],
+  [2, 2, 'Grupo A'],
+  [3, 1, 'Grupo B'],
+  [4, 2, 'Grupo B'],
+].map(([position, rank, groupName]) => ({
+  promotionPlanId: PLAN,
+  position: position as number,
+  qualifierLabel: {
+    kind: 'group-rank' as const,
+    rank: rank as number,
+    groupNumber: groupName === 'Grupo A' ? 1 : 2,
+    groupName: groupName as string,
+  },
+}));
+
+const qualificationNames = {
+  [ids.first]: 'Club Atlético San Martín',
+  [ids.second]: 'Deportivo Cuyo',
+  [ids.third]: 'Sportivo Desamparados',
+  [ids.fourth]: 'Unión Rawson',
+};
+
+/** A qualification preview in each state the confirmation screen distinguishes. */
+export function qualificationPreview(
+  state: QualificationPreviewResponse['state'],
+): QualificationPreviewResponse {
+  const entrants = [ids.first, ids.second, ids.third, ids.fourth];
+  const settled = state !== 'incomplete';
+  return {
+    state,
+    positions: qualifierSeeds.map((seed, index) => ({
+      ...seed,
+      ...(settled && !(state === 'tied' && index === 3)
+        ? { entrantId: state === 'stale' && index < 2 ? entrants[1 - index] : entrants[index] }
+        : {}),
+      ...(state === 'confirmed' || state === 'stale'
+        ? { confirmedEntrantId: entrants[index] }
+        : {}),
+    })),
+    incomplete:
+      state === 'incomplete'
+        ? [
+            {
+              matchId: ids.match,
+              round: 3,
+              status: 'live',
+              homeEntrantId: ids.first,
+              awayEntrantId: ids.second,
+            },
+            {
+              matchId: ids.matchTwo,
+              round: 3,
+              status: 'scheduled',
+              homeEntrantId: ids.third,
+              awayEntrantId: ids.fourth,
+            },
+          ]
+        : [],
+    ...(state === 'tied'
+      ? {
+          tie: {
+            promotionPlanId: PLAN,
+            entrantIds: [ids.fourth, ids.second],
+            positions: [4],
+            groupName: 'Grupo B',
+          },
+        }
+      : {}),
+    names: qualificationNames,
+  };
+}

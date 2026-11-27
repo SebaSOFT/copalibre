@@ -11,7 +11,7 @@ describe('apiGet/apiPost', () => {
       async () => new Response(JSON.stringify({ alias: 'liga' }), { status: 200 }),
     );
 
-    const result = await apiGet(fakeConfig(fetchImplementation), '/organizations/liga');
+    const result = await apiGet(fakeConfig(fetchImplementation), '/api/organizations/liga');
 
     expect(result).toEqual({ alias: 'liga' });
     const [, init] = fetchImplementation.mock.calls[0] as [URL, RequestInit];
@@ -23,7 +23,7 @@ describe('apiGet/apiPost', () => {
       async () => new Response(JSON.stringify({ ok: true }), { status: 201 }),
     );
 
-    await apiPost(fakeConfig(fetchImplementation), '/organizations/liga/tournaments', {
+    await apiPost(fakeConfig(fetchImplementation), '/api/organizations/liga/tournaments', {
       alias: 'copa',
     });
 
@@ -39,9 +39,9 @@ describe('apiGet/apiPost', () => {
         new Response(JSON.stringify({ statusCode: 403, message: 'forbidden' }), { status: 403 }),
     );
 
-    await expect(apiGet(fakeConfig(fetchImplementation), '/organizations/liga')).rejects.toThrow(
-      new ApiRequestError(403, 'forbidden'),
-    );
+    await expect(
+      apiGet(fakeConfig(fetchImplementation), '/api/organizations/liga'),
+    ).rejects.toThrow(new ApiRequestError(403, 'forbidden'));
   });
 
   it('handles an empty response body', async () => {

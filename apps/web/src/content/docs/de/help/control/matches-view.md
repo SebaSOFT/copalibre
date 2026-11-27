@@ -49,19 +49,12 @@ Es gibt zwei Versionen dieses Bildschirms, die sich dieselbe Karte teilen:
   - Eine durch eine Serie entschiedene Paarung zeigt ihren Fortschritt und, sobald entschieden, ihren
     Gesamtstand — dieselbe Serien-Darstellung, die der [öffentliche Turnierbaum](/help/control/series)
     bereits verwendet.
-- **Entscheidender Faktor**: bei einem beendeten Spiel, dessen Ergebnis einen Stichentscheid-Vergleich
-  benötigte, um zwei gleichstehende Tabellenzeilen zu trennen, eine Zeile, die benennt, was entschied
-  (zum Beispiel „entschieden durch das direkte Torverhältnis").
+- **Entscheidender Faktor**: wird auf der Karte nicht angezeigt. Die Tabelle nennt das Stichentscheid-Kriterium unter den Zeilen, die sie trennte.
+- **Spielbericht**: Eine Karte führt zur Spielberichtsseite mit Offiziellen, Aufstellungen und Ereignis-Zeitleiste. Die Zeitleiste zeigt die Spielzeit jedes Ereignisses und den Stand nach jedem Tor; jeder gespielte Abschnitt öffnet und schließt sich mit seinem Stand. Die Aufstellungen zeigen vor dem Anstoß, wer gemeldet ist. Jedes Spiel einer Serie hat eine eigene Seite, `?game=N`, erreichbar über den Turnierbaum.
 
-## Die Zeile zum entscheidenden Faktor gegenüber der vollständigen Spur
+## Die vollständige Spur auf der Kontrollkarte
 
-Die Zeile zum entscheidenden Faktor auf der öffentlichen Karte ist absichtlich eine Zusammenfassung,
-nicht die vollständige Begründung — sie trägt nie die übrigen Schritte oder Zwischenwerte des internen
-Vergleichs. Ein Organisator mit Berechtigung über die internen Tabellen dieses Turniers (ein Admin,
-oder ein Tournament-Admin mit Berechtigung dafür) sieht stattdessen die vollständige Vergleichsspur, in
-der Version derselben Karte im Kontrollpanel, genau wie sie der Spur-Ausklapper des Bildschirms für
-interne Tabellen bereits zeigt. Niemand sieht eine Zwischenversion: Ein Betrachter sieht entweder die
-einzeilige Zusammenfassung oder die vollständige Spur, nie eine teilweise geschwärzte Version.
+Die öffentliche Karte trägt keine Stichentscheid-Zeile. Ein Organisator mit Berechtigung über die internen Tabellen dieses Turniers (ein Admin oder ein Tournament-Admin mit Berechtigung dafür) sieht die vollständige Vergleichsspur in der Version derselben Karte im Kontrollpanel, wie sie der Spur-Ausklapper der internen Tabelle zeigt. Ein Betrachter sieht nie eine Teilspur.
 
 ## Was dieser Bildschirm NICHT tut
 

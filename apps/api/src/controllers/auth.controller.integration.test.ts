@@ -10,6 +10,7 @@ import { Test } from '@nestjs/testing';
 import * as argon2 from 'argon2';
 import {
   AuthVerificationTokenRepository,
+  PersonalAccessTokenRepository,
   withTransaction,
   newId,
   type Database,
@@ -22,7 +23,11 @@ import { SUPER_ADMIN_SCOPE } from '../auth/access-requirement.js';
 import { AUTH_THROTTLE_LIMIT, AUTH_THROTTLE_TTL_MS } from './auth.controller.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
+import { OBJECT_STORAGE } from '../object-storage.token.js';
 import { NativeAuthController, PersonalAccessTokenController } from './auth.controller.js';
+import { OrganizationsController } from './organizations.controller.js';
+import { createTokenVerifierFromEnv } from '../modules/core.module.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 const TOKENS: Readonly<Record<string, AuthenticatedSubject>> = {
   'admin-token': {
@@ -45,6 +50,20 @@ class FakeTokenVerifier {
     if (!subject) return Promise.reject(new Error('unknown token'));
     return Promise.resolve(subject);
   }
+}
+
+function setCookieFor(response: { headers: Record<string, unknown> }, name: string): string {
+  const header = response.headers['set-cookie'];
+  const values = Array.isArray(header) ? header : [header];
+  const raw = values.find((value) => typeof value === 'string' && value.startsWith(`${name}=`));
+  if (typeof raw !== 'string') throw new Error(`Response carried no ${name} cookie`);
+  return raw;
+}
+
+function cookiePairFrom(response: { headers: Record<string, unknown> }, name: string): string {
+  const pair = setCookieFor(response, name).split(';')[0];
+  if (!pair) throw new Error(`${name} Set-Cookie header was empty`);
+  return pair;
 }
 
 describe('Auth Controllers', () => {
@@ -82,6 +101,7 @@ describe('Auth Controllers', () => {
       // per-IP rate-limit bucket — follows X-Forwarded-For in these tests.
       new FastifyAdapter({ trustProxy: true }),
     );
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -132,20 +152,33 @@ describe('Auth Controllers', () => {
         .execute();
     });
 
-    it('POST /auth/login returns 200 with an access token for valid credentials', async () => {
+    it('serves the key set only under /api', async () => {
+      const served = await request({ method: 'GET', url: '/api/auth/jwks.json' });
+      expect(served.statusCode).toBe(200);
+      expect((served.json() as { keys: unknown[] }).keys.length).toBeGreaterThan(0);
+
+      for (const url of ['/auth/jwks.json', '/.well-known/jwks.json']) {
+        expect((await request({ method: 'GET', url })).statusCode).toBe(404);
+      }
+    });
+
+    it('POST /auth/login returns 200 with session metadata, never the token', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email, password },
       });
       expect(response.statusCode).toBe(200);
-      expect(JSON.parse(response.payload).accessToken).toBeDefined();
+      const body = JSON.parse(response.payload);
+      expect(body.accessToken).toBeUndefined();
+      expect(body).toMatchObject({ subject: principalId, method: 'native' });
+      expect(body.scopes).toContain('copalibre.control');
     });
 
     it('POST /auth/login returns 401 for invalid credentials', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email, password: 'wrong-password' },
       });
       expect(response.statusCode).toBe(401);
@@ -156,7 +189,7 @@ describe('Auth Controllers', () => {
     it('POST /auth/login without a password returns 400 from validation', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email },
       });
       expect(response.statusCode).toBe(400);
@@ -165,7 +198,7 @@ describe('Auth Controllers', () => {
     it('POST /auth/login rejects an undocumented extra property with 400', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email, password: 'wrong-password', isAdmin: true },
       });
       expect(response.statusCode).toBe(400);
@@ -173,10 +206,74 @@ describe('Auth Controllers', () => {
       expect(body.message).toContain('property isAdmin should not exist');
     });
 
+    it('POST /auth/login answers an unknown email exactly like a wrong password', async () => {
+      const unknown = await request({
+        method: 'POST',
+        url: '/api/auth/login',
+        ip: '198.51.100.61',
+        payload: { email: 'nobody-here@example.com', password },
+      });
+      const wrong = await request({
+        method: 'POST',
+        url: '/api/auth/login',
+        ip: '198.51.100.62',
+        payload: { email, password: 'wrong-password' },
+      });
+      expect(unknown.statusCode).toBe(401);
+      expect(JSON.parse(unknown.payload)).toEqual(JSON.parse(wrong.payload));
+    });
+
+    it('POST /auth/login refuses a password longer than the limit before hashing it', async () => {
+      const response = await request({
+        method: 'POST',
+        url: '/api/auth/login',
+        ip: '198.51.100.63',
+        payload: { email, password: 'x'.repeat(1025) },
+      });
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('POST /auth/login rehashes a password stored with older parameters', async () => {
+      const olderEmail = 'older-hash@example.com';
+      const olderId = newId();
+      await (scratch.db as Kysely<Database>)
+        .insertInto('identity_principals')
+        .values({
+          principal_id: olderId,
+          email: olderEmail,
+          password_hash: await argon2.hash(password, {
+            type: argon2.argon2id,
+            memoryCost: 19 * 1024,
+            timeCost: 2,
+            parallelism: 1,
+          }),
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .execute();
+
+      const response = await request({
+        method: 'POST',
+        url: '/api/auth/login',
+        ip: '198.51.100.64',
+        payload: { email: olderEmail, password },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const stored = await (scratch.db as Kysely<Database>)
+        .selectFrom('identity_principals')
+        .select('password_hash')
+        .where('principal_id', '=', olderId)
+        .executeTakeFirstOrThrow();
+      const parameters = /^\$argon2id\$v=19\$([^$]+)\$/.exec(stored.password_hash ?? '')?.[1];
+      expect(new Set(parameters?.split(','))).toEqual(new Set(['m=65536', 't=3', 'p=4']));
+      await expect(argon2.verify(stored.password_hash ?? '', password)).resolves.toBe(true);
+    });
+
     it('POST /auth/forgot-password returns 200', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/forgot-password',
+        url: '/api/auth/forgot-password',
         payload: { email },
       });
       expect(response.statusCode).toBe(200);
@@ -185,7 +282,7 @@ describe('Auth Controllers', () => {
     it('POST /auth/forgot-password enqueues a password-reset-requested outbox event carrying the reset token', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/forgot-password',
+        url: '/api/auth/forgot-password',
         payload: { email },
       });
       expect(response.statusCode).toBe(200);
@@ -217,7 +314,7 @@ describe('Auth Controllers', () => {
 
       const response = await request({
         method: 'POST',
-        url: '/auth/forgot-password',
+        url: '/api/auth/forgot-password',
         payload: { email: 'nobody-registered@example.com' },
       });
       expect(response.statusCode).toBe(200);
@@ -242,7 +339,7 @@ describe('Auth Controllers', () => {
 
       const response = await request({
         method: 'POST',
-        url: '/auth/reset-password',
+        url: '/api/auth/reset-password',
         payload: { token: rawToken, newPassword: 'new-secret-password' },
       });
       expect(response.statusCode).toBe(200);
@@ -256,6 +353,51 @@ describe('Auth Controllers', () => {
       expect(principal?.password_hash).toBeDefined();
       const valid = await argon2.verify(principal?.password_hash ?? '', 'new-secret-password');
       expect(valid).toBe(true);
+    });
+
+    it('POST /auth/reset-password ends the refresh sessions opened before it', async () => {
+      const repository = new AuthVerificationTokenRepository(scratch.db);
+      const refresh = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        repository.create(uow, { principalId, kind: 'session-refresh', ttlMs: 60_000 }),
+      );
+      const reset = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        repository.create(uow, { principalId, kind: 'password-reset', ttlMs: 60_000 }),
+      );
+
+      const response = await request({
+        method: 'POST',
+        url: '/api/auth/reset-password',
+        payload: { token: reset.rawToken, newPassword: 'another-secret-password' },
+      });
+      expect(response.statusCode).toBe(200);
+
+      const renewed = await request({
+        method: 'POST',
+        url: '/api/auth/refresh',
+        cookie: `copalibre_refresh_token=${refresh.rawToken}`,
+      });
+      expect(renewed.statusCode).toBe(401);
+    });
+
+    it('POST /auth/reset-password refuses a refresh credential and leaves it usable', async () => {
+      const repository = new AuthVerificationTokenRepository(scratch.db);
+      const refresh = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+        repository.create(uow, { principalId, kind: 'session-refresh', ttlMs: 60_000 }),
+      );
+
+      const response = await request({
+        method: 'POST',
+        url: '/api/auth/reset-password',
+        payload: { token: refresh.rawToken, newPassword: 'hijacked-password' },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(JSON.parse(response.payload)).toMatchObject({ errorCode: 'auth-bad-request' });
+
+      await expect(
+        withTransaction(scratch.db as Kysely<Database>, (uow) =>
+          repository.consume(uow, refresh.rawToken, 'session-refresh'),
+        ),
+      ).resolves.toMatchObject({ principalId });
     });
   });
 
@@ -277,51 +419,139 @@ describe('Auth Controllers', () => {
         .execute();
     });
 
+    it('logs in and reads the organization endpoint with no remote JWKS configured', async () => {
+      const previousJwksUri = process.env.COPALIBRE_JWKS_URI;
+      const previousNativeIssuer = process.env.COPALIBRE_NATIVE_JWT_ISSUER;
+      delete process.env.COPALIBRE_JWKS_URI;
+      process.env.COPALIBRE_NATIVE_JWT_ISSUER = 'http://localhost:8080';
+      let nativeApp: NestFastifyApplication | undefined;
+      try {
+        const verifier = await createTokenVerifierFromEnv();
+        @Module({
+          controllers: [NativeAuthController, OrganizationsController],
+          imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 1_000 }])],
+          providers: [
+            { provide: DATABASE, useValue: scratch.db },
+            { provide: OBJECT_STORAGE, useValue: {} },
+            { provide: TokenVerifier, useValue: verifier },
+            { provide: APP_FILTER, useClass: ApiExceptionFilter },
+            { provide: APP_GUARD, useClass: JwtAuthGuard },
+            { provide: APP_GUARD, useClass: PrincipalThrottlerGuard },
+            Reflector,
+          ],
+        })
+        class NativeOnlyModule {}
+
+        const moduleRef = await Test.createTestingModule({ imports: [NativeOnlyModule] }).compile();
+        nativeApp = moduleRef.createNestApplication<NestFastifyApplication>(
+          new FastifyAdapter({ trustProxy: true }),
+        );
+        applyApiPathPrefix(nativeApp);
+        nativeApp.useGlobalPipes(createApiValidationPipe());
+        await nativeApp.init();
+        await nativeApp.getHttpAdapter().getInstance().ready();
+
+        const login = await nativeApp.inject({
+          method: 'POST',
+          url: '/api/auth/login',
+          headers: { 'x-forwarded-for': '10.9.4.1' },
+          payload: { email, password },
+        });
+        expect(login.statusCode).toBe(200);
+        const organizations = await nativeApp.inject({
+          method: 'GET',
+          url: '/api/organizations?mine=true',
+          headers: { cookie: cookiePairFrom(login, '__Host-copalibre_session') },
+        });
+        expect(organizations.statusCode).toBe(200);
+        expect(JSON.parse(organizations.payload)).toEqual([]);
+      } finally {
+        await nativeApp?.close();
+        if (previousJwksUri === undefined) delete process.env.COPALIBRE_JWKS_URI;
+        else process.env.COPALIBRE_JWKS_URI = previousJwksUri;
+        if (previousNativeIssuer === undefined) delete process.env.COPALIBRE_NATIVE_JWT_ISSUER;
+        else process.env.COPALIBRE_NATIVE_JWT_ISSUER = previousNativeIssuer;
+      }
+    });
+
     function refreshCookieFrom(response: { headers: Record<string, unknown> }): string {
-      const setCookie = response.headers['set-cookie'];
-      const raw = Array.isArray(setCookie) ? setCookie[0] : setCookie;
-      if (typeof raw !== 'string') throw new Error('Response carried no Set-Cookie header');
-      const cookiePair = raw.split(';')[0];
-      if (!cookiePair) throw new Error('Set-Cookie header was empty');
-      return cookiePair;
+      return cookiePairFrom(response, 'copalibre_refresh_token');
     }
 
-    it('POST /auth/login sets an HttpOnly, SameSite=Strict refresh cookie alongside the access token', async () => {
+    it('POST /auth/login sets an HttpOnly, SameSite=Strict refresh cookie alongside the session cookie', async () => {
       const ip = '10.9.1.1';
       const response = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email, password },
         ip,
       });
       expect(response.statusCode).toBe(200);
-      const setCookie = response.headers['set-cookie'];
-      const raw = Array.isArray(setCookie) ? setCookie[0] : setCookie;
+      const raw = setCookieFor(response, 'copalibre_refresh_token');
       expect(raw).toContain('copalibre_refresh_token=');
       expect(raw).toContain('HttpOnly');
       expect(raw).toContain('SameSite=Strict');
-      expect(raw).toContain('Path=/auth');
+      expect(raw).toContain('Path=/api/auth');
     });
 
-    it('POST /auth/refresh with a valid cookie returns a fresh access token and rotates the cookie', async () => {
+    it('POST /auth/refresh with a valid cookie issues a fresh session cookie and rotates the refresh cookie', async () => {
       const ip = '10.9.1.2';
       const login = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email, password },
         ip,
       });
       const cookie = refreshCookieFrom(login);
 
-      const refreshed = await request({ method: 'POST', url: '/auth/refresh', cookie, ip });
+      const refreshed = await request({ method: 'POST', url: '/api/auth/refresh', cookie, ip });
       expect(refreshed.statusCode).toBe(200);
-      expect(JSON.parse(refreshed.payload).accessToken).toBeDefined();
+      expect(JSON.parse(refreshed.payload).accessToken).toBeUndefined();
+      expect(setCookieFor(refreshed, '__Host-copalibre_session')).toContain('HttpOnly');
       const rotatedCookie = refreshCookieFrom(refreshed);
       expect(rotatedCookie).not.toBe(cookie);
     });
 
+    it('allows 30 refreshes per principal across cookie rotation and client IP changes, then returns 429', async () => {
+      const rateLimitEmail = 'refresh-rate-limit@example.com';
+      const rateLimitPassword = 'rate-limit-secret-password';
+      await (scratch.db as Kysely<Database>)
+        .insertInto('identity_principals')
+        .values({
+          principal_id: newId(),
+          email: rateLimitEmail,
+          password_hash: await argon2.hash(rateLimitPassword),
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .execute();
+      const login = await request({
+        method: 'POST',
+        url: '/api/auth/login',
+        payload: { email: rateLimitEmail, password: rateLimitPassword },
+        ip: '10.9.1.8',
+      });
+      let cookie = refreshCookieFrom(login);
+
+      for (let attempt = 0; attempt < 30; attempt++) {
+        const refreshed = await request({
+          method: 'POST',
+          url: '/api/auth/refresh',
+          cookie,
+          ip: `10.9.2.${attempt + 1}`,
+        });
+        expect(refreshed.statusCode).toBe(200);
+        cookie = refreshCookieFrom(refreshed);
+      }
+
+      expect(
+        (await request({ method: 'POST', url: '/api/auth/refresh', cookie, ip: '10.9.3.1' }))
+          .statusCode,
+      ).toBe(429);
+    });
+
     it('POST /auth/refresh with no cookie returns 401', async () => {
-      const response = await request({ method: 'POST', url: '/auth/refresh', ip: '10.9.1.3' });
+      const response = await request({ method: 'POST', url: '/api/auth/refresh', ip: '10.9.1.3' });
       expect(response.statusCode).toBe(401);
     });
 
@@ -329,16 +559,16 @@ describe('Auth Controllers', () => {
       const ip = '10.9.1.4';
       const login = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email, password },
         ip,
       });
       const cookie = refreshCookieFrom(login);
 
-      const first = await request({ method: 'POST', url: '/auth/refresh', cookie, ip });
+      const first = await request({ method: 'POST', url: '/api/auth/refresh', cookie, ip });
       expect(first.statusCode).toBe(200);
 
-      const replay = await request({ method: 'POST', url: '/auth/refresh', cookie, ip });
+      const replay = await request({ method: 'POST', url: '/api/auth/refresh', cookie, ip });
       expect(replay.statusCode).toBe(401);
     });
 
@@ -346,21 +576,25 @@ describe('Auth Controllers', () => {
       const ip = '10.9.1.5';
       const login = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: { email, password },
         ip,
       });
       const cookie = refreshCookieFrom(login);
 
-      const logout = await request({ method: 'POST', url: '/auth/logout', cookie, ip });
+      const logout = await request({ method: 'POST', url: '/api/auth/logout', cookie, ip });
       expect(logout.statusCode).toBe(200);
-      const clearedCookie = logout.headers['set-cookie'];
-      const raw = Array.isArray(clearedCookie) ? clearedCookie[0] : clearedCookie;
-      expect(raw).toContain('Max-Age=0');
+      for (const name of [
+        '__Host-copalibre_session',
+        'copalibre_csrf',
+        'copalibre_refresh_token',
+      ]) {
+        expect(setCookieFor(logout, name)).toContain('Max-Age=0');
+      }
 
       const refreshAfterLogout = await request({
         method: 'POST',
-        url: '/auth/refresh',
+        url: '/api/auth/refresh',
         cookie,
         ip,
       });
@@ -368,7 +602,7 @@ describe('Auth Controllers', () => {
     });
 
     it('POST /auth/logout with no cookie still returns 200', async () => {
-      const response = await request({ method: 'POST', url: '/auth/logout', ip: '10.9.1.6' });
+      const response = await request({ method: 'POST', url: '/api/auth/logout', ip: '10.9.1.6' });
       expect(response.statusCode).toBe(200);
     });
   });
@@ -399,10 +633,11 @@ describe('Auth Controllers', () => {
     it('POST /auth/pat creates a token', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
         payload: {
           label: 'Test Token',
+          scopes: ['copalibre.control'],
           expiresInDays: 30,
         },
       });
@@ -416,7 +651,7 @@ describe('Auth Controllers', () => {
     it('GET /auth/pat lists it', async () => {
       const response = await request({
         method: 'GET',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
       });
       expect(response.statusCode).toBe(200);
@@ -425,22 +660,106 @@ describe('Auth Controllers', () => {
       expect(data[0].tokenId).toBe(tokenId);
     });
 
-    it('DELETE /auth/pat/:id revokes it', async () => {
+    it('dry-runs, revokes, and restores an unused PAT without preview writes', async () => {
+      const preview = await request({
+        method: 'DELETE',
+        url: `/api/auth/pat/${tokenId}?dryRun=true`,
+        token: 'admin-token',
+      });
+      expect(preview.statusCode).toBe(200);
+      expect(JSON.parse(preview.payload)).toMatchObject({
+        dryRun: true,
+        reversible: true,
+        tokens: 1,
+      });
+      const beforeRevoke = await (scratch.db as Kysely<Database>)
+        .selectFrom('personal_access_tokens')
+        .select(['revoked_at', 'deleted_at'])
+        .where('token_id', '=', tokenId)
+        .executeTakeFirstOrThrow();
+      expect(beforeRevoke).toEqual({ revoked_at: null, deleted_at: null });
+
       const response = await request({
         method: 'DELETE',
-        url: `/auth/pat/${tokenId}`,
+        url: `/api/auth/pat/${tokenId}`,
         token: 'admin-token',
       });
       expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.payload)).toMatchObject({
+        dryRun: false,
+        reversible: true,
+        tokens: 1,
+      });
 
       const getResponse = await request({
         method: 'GET',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
       });
-      const data = JSON.parse(getResponse.payload);
-      expect(data).toHaveLength(1);
-      expect(data[0].revoked).toBe(true);
+      expect(JSON.parse(getResponse.payload)).toHaveLength(0);
+
+      const restored = await request({
+        method: 'POST',
+        url: `/api/auth/pat/${tokenId}/restore`,
+        token: 'admin-token',
+      });
+      expect(restored.statusCode).toBe(200);
+      expect(JSON.parse(restored.payload)).toMatchObject({ tokenId, revoked: false });
+    });
+
+    it('dry-runs and confirms an in-use PAT revoke as irreversible', async () => {
+      const created = await request({
+        method: 'POST',
+        url: '/api/auth/pat',
+        token: 'admin-token',
+        payload: { label: 'Used Token', scopes: ['copalibre.control'], expiresInDays: 30 },
+      });
+      const usedTokenId = JSON.parse(created.payload).tokenId as string;
+      await new PersonalAccessTokenRepository(scratch.db as Kysely<Database>).touchLastUsed(
+        usedTokenId,
+      );
+
+      const preview = await request({
+        method: 'DELETE',
+        url: `/api/auth/pat/${usedTokenId}?dryRun=true`,
+        token: 'admin-token',
+      });
+      expect(preview.statusCode).toBe(200);
+      expect(JSON.parse(preview.payload)).toMatchObject({
+        dryRun: true,
+        reversible: false,
+        tokens: 1,
+      });
+      const stillActive = await (scratch.db as Kysely<Database>)
+        .selectFrom('personal_access_tokens')
+        .select(['revoked_at', 'deleted_at'])
+        .where('token_id', '=', usedTokenId)
+        .executeTakeFirstOrThrow();
+      expect(stillActive).toEqual({ revoked_at: null, deleted_at: null });
+
+      const revoked = await request({
+        method: 'DELETE',
+        url: `/api/auth/pat/${usedTokenId}`,
+        token: 'admin-token',
+      });
+      expect(revoked.statusCode).toBe(200);
+      expect(JSON.parse(revoked.payload)).toMatchObject({
+        dryRun: false,
+        reversible: false,
+        tokens: 1,
+      });
+
+      const audit = await (scratch.db as Kysely<Database>)
+        .selectFrom('audit_log')
+        .select(['actor', 'resulting_state'])
+        .where('entity_type', '=', 'personal-access-token')
+        .where('entity_id', '=', usedTokenId)
+        .where('action', '=', 'pat.revoked')
+        .executeTakeFirstOrThrow();
+      expect(audit).toMatchObject({
+        actor: 'user:550e8400-e29b-41d4-a716-446655440000',
+        resulting_state: { revoked: true, reversible: false, tokens: 1 },
+      });
     });
 
     // Scope policy regression cases. Each rejection case asserts the
@@ -458,7 +777,7 @@ describe('Auth Controllers', () => {
     it('POST /auth/pat with a subset of the caller scopes creates exactly those scopes', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'superadmin-token',
         payload: { label: 'Subset Token', scopes: ['copalibre.control'], expiresInDays: 30 },
       });
@@ -466,22 +785,33 @@ describe('Auth Controllers', () => {
       expect(JSON.parse(response.payload).scopes).toEqual(['copalibre.control']);
     });
 
-    it('POST /auth/pat without scopes still defaults to the caller own scopes', async () => {
+    it('GET /auth/pat/scopes returns only grantable caller scopes', async () => {
+      const response = await request({
+        method: 'GET',
+        url: '/api/auth/pat/scopes',
+        token: 'superadmin-token',
+      });
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.payload)).toEqual({ scopes: ['copalibre.control'] });
+    });
+
+    it('POST /auth/pat requires explicitly selected scopes', async () => {
+      const before = await patCount('550e8400-e29b-41d4-a716-446655440000');
       const response = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
         payload: { label: 'Default Scopes Token', expiresInDays: 30 },
       });
-      expect(response.statusCode).toBe(201);
-      expect(JSON.parse(response.payload).scopes).toEqual(['copalibre.control']);
+      expect(response.statusCode).toBe(400);
+      expect(await patCount('550e8400-e29b-41d4-a716-446655440000')).toBe(before);
     });
 
     it('POST /auth/pat requesting a scope the caller does not hold returns 403 and persists nothing', async () => {
       const before = await patCount('550e8400-e29b-41d4-a716-446655440000');
       const response = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
         payload: {
           label: 'Escalation Attempt',
@@ -497,7 +827,7 @@ describe('Auth Controllers', () => {
       const before = await patCount('550e8400-e29b-41d4-a716-446655440001');
       const response = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'superadmin-token',
         payload: {
           label: 'Privileged Escalation Attempt',
@@ -509,31 +839,31 @@ describe('Auth Controllers', () => {
       expect(await patCount('550e8400-e29b-41d4-a716-446655440001')).toBe(before);
     });
 
-    it('POST /auth/pat still accepts scopes null and an empty scopes array, as before this change', async () => {
+    it('POST /auth/pat rejects null or an empty scopes array', async () => {
+      const before = await patCount('550e8400-e29b-41d4-a716-446655440000');
       const nullResponse = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
         payload: { label: 'Null Scopes Token', scopes: null, expiresInDays: 30 },
       });
-      expect(nullResponse.statusCode).toBe(201);
-      expect(JSON.parse(nullResponse.payload).scopes).toEqual(['copalibre.control']);
+      expect(nullResponse.statusCode).toBe(400);
 
       const emptyResponse = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
         payload: { label: 'Empty Scopes Token', scopes: [], expiresInDays: 30 },
       });
-      expect(emptyResponse.statusCode).toBe(201);
-      expect(JSON.parse(emptyResponse.payload).scopes).toEqual([]);
+      expect(emptyResponse.statusCode).toBe(400);
+      expect(await patCount('550e8400-e29b-41d4-a716-446655440000')).toBe(before);
     });
 
     it('POST /auth/pat rejects non-string scope entries with 400', async () => {
       const before = await patCount('550e8400-e29b-41d4-a716-446655440000');
       const response = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
         payload: { label: 'Bad Shape', scopes: [42], expiresInDays: 30 },
       });
@@ -550,7 +880,7 @@ describe('Auth Controllers', () => {
       return (payload) =>
         (app as NestFastifyApplication).inject({
           method: 'POST',
-          url: '/auth/login',
+          url: '/api/auth/login',
           headers: { 'x-forwarded-for': ip },
           payload: payload as never,
         }) as unknown as Promise<{ statusCode: number }>;
@@ -611,24 +941,24 @@ describe('Auth Controllers', () => {
           payload: payload as never,
         });
       for (let i = 0; i < AUTH_THROTTLE_LIMIT; i++) {
-        const response = await injectIp('/auth/forgot-password', { email: 'test@example.com' });
+        const response = await injectIp('/api/auth/forgot-password', { email: 'test@example.com' });
         expect(response.statusCode).toBe(200);
       }
       expect(
-        (await injectIp('/auth/forgot-password', { email: 'test@example.com' })).statusCode,
+        (await injectIp('/api/auth/forgot-password', { email: 'test@example.com' })).statusCode,
       ).toBe(429);
 
       // Separate route, separate bucket — but the same per-IP window applies.
       // A too-short password keeps the response deterministic (400) while the
       // request is still being evaluated.
       for (let i = 0; i < AUTH_THROTTLE_LIMIT; i++) {
-        const response = await injectIp('/auth/reset-password', {
+        const response = await injectIp('/api/auth/reset-password', {
           token: 'irrelevant',
           newPassword: 'short',
         });
         expect(response.statusCode).toBe(400);
       }
-      const overLimit = await injectIp('/auth/reset-password', {
+      const overLimit = await injectIp('/api/auth/reset-password', {
         token: 'irrelevant',
         newPassword: 'short',
       });
@@ -638,7 +968,7 @@ describe('Auth Controllers', () => {
     it('rejects undeclared body properties with 400 before handler execution on unauthenticated endpoints', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/login',
+        url: '/api/auth/login',
         payload: {
           email: 'test@example.com',
           password: 'password123',
@@ -654,7 +984,7 @@ describe('Auth Controllers', () => {
     it('rejects undeclared body properties on protected token creation endpoint', async () => {
       const response = await request({
         method: 'POST',
-        url: '/auth/pat',
+        url: '/api/auth/pat',
         token: 'admin-token',
         payload: {
           label: 'Test PAT',

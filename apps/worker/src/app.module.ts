@@ -1,11 +1,11 @@
 import { Logger, Module, type Provider } from '@nestjs/common';
 import { createObjectStorageAdapter, objectStorageConfigFromEnv } from '@copalibre/object-storage';
 import {
-  createDatabase,
-  databaseConfigFromEnv,
+  createRuntimeDatabase,
   EVIDENCE_VALIDATION_REQUESTED_EVENT,
   OBJECT_PROCESSING_REQUESTED_EVENT,
   OutboxRelay,
+  ReversibleRemovalRepository,
   type Database,
 } from '@copalibre/persistence';
 import { createRefold } from '@copalibre/statistics-refold';
@@ -30,9 +30,18 @@ import {
   LIFECYCLE_EMAIL_EVENTS,
   lifecycleEmailHandlers,
 } from './notifications/lifecycle-handlers.js';
+import {
+  RESCHEDULE_EMAIL_EVENT,
+  rescheduleEmailHandler,
+} from './notifications/reschedule-handler.js';
 import { objectProcessingHandler } from './jobs/object-processing-handler.js';
 import { reportEvidenceValidationHandler } from './jobs/report-evidence-handler.js';
 import { RelayService } from './relay.service.js';
+import {
+  SECURITY_REFUSAL_CHECK_EVENT,
+  securityAlertConfigFromEnv,
+  securityAlertHandler,
+} from './notifications/security-alert-handler.js';
 
 /**
  * The worker process.
@@ -48,7 +57,8 @@ import { RelayService } from './relay.service.js';
 const providers: Provider[] = [
   {
     provide: DATABASE,
-    useFactory: (): Kysely<Database> => createDatabase(databaseConfigFromEnv()),
+    useFactory: (): Kysely<Database> =>
+      createRuntimeDatabase((message) => new Logger('Database').warn(message)),
   },
   DeliveryOutcomeCounters,
   {
@@ -71,6 +81,11 @@ const providers: Provider[] = [
       const invitation = invitationEmailHandler(emailConfig, email);
       const passwordReset = passwordResetEmailHandler(emailConfig, email);
       const lifecycle = lifecycleEmailHandlers(emailConfig, email);
+      const reschedule = rescheduleEmailHandler(emailConfig, email);
+      const securityAlert = securityAlertHandler(emailConfig, securityAlertConfigFromEnv(), {
+        ...email,
+        log: (line: string) => logger.warn(line),
+      });
       const evidence = reportEvidenceValidationHandler({ db });
       const objectProcessing = objectProcessingHandler({
         db,
@@ -84,7 +99,12 @@ const providers: Provider[] = [
         .register('organization.invite.requested', invitation)
         .register('password-reset-requested', passwordReset)
         .register(EVIDENCE_VALIDATION_REQUESTED_EVENT, evidence)
-        .register(OBJECT_PROCESSING_REQUESTED_EVENT, objectProcessing);
+        .register(OBJECT_PROCESSING_REQUESTED_EVENT, objectProcessing)
+        .register('privacy.soft-deletes.purge', async () => {
+          await new ReversibleRemovalRepository(db).purgeExpired();
+        })
+        .register(RESCHEDULE_EMAIL_EVENT, reschedule)
+        .register(SECURITY_REFUSAL_CHECK_EVENT, securityAlert);
       for (const eventType of LIFECYCLE_EMAIL_EVENTS) {
         dispatcher.register(eventType, lifecycle[eventType]);
       }

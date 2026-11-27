@@ -16,9 +16,9 @@ const DISCIPLINES: readonly DisciplineOption[] = [
 function goToStagesStep(): void {
   fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'test-cup' } });
   fireEvent.change(screen.getByLabelText('Name *'), { target: { value: 'Test Cup' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue profile setup' }));
   fireEvent.change(screen.getByLabelText('Author'), { target: { value: 'Test Author' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue profile setup' }));
 }
 
 describe('the tournament profile builder wizard', () => {
@@ -73,7 +73,7 @@ describe('the tournament profile builder wizard', () => {
     fireEvent.change(screen.getByLabelText('Description'), {
       target: { value: 'A multi-stage cup' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue profile setup' }));
 
     // Authorship step.
     fireEvent.change(screen.getByLabelText('Author'), { target: { value: 'E2E Author' } });
@@ -81,7 +81,7 @@ describe('the tournament profile builder wizard', () => {
     fireEvent.change(screen.getByLabelText('Source URL (optional)'), {
       target: { value: 'https://example.test/cup' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue profile setup' }));
 
     // Stages step: two stages added, one removed, one kept.
     fireEvent.change(screen.getByLabelText('Check stage formats against'), {
@@ -109,7 +109,7 @@ describe('the tournament profile builder wizard', () => {
     expect(screen.queryByDisplayValue('Playoffs')).toBeNull();
     expect(screen.getByDisplayValue('Groups')).toBeDefined();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue profile setup' }));
 
     // Points step.
     fireEvent.change(screen.getByLabelText('Points for a win'), { target: { value: '2' } });
@@ -141,9 +141,9 @@ describe('the tournament profile builder wizard', () => {
     );
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'seeded-cup' } });
     fireEvent.change(screen.getByLabelText('Name *'), { target: { value: 'Seeded Cup' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue profile setup' }));
     fireEvent.change(screen.getByLabelText('Author'), { target: { value: 'Author' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue profile setup' }));
 
     fireEvent.change(screen.getByLabelText('Check stage formats against'), {
       target: { value: 'football' },
@@ -153,7 +153,7 @@ describe('the tournament profile builder wizard', () => {
     fireEvent.change(screen.getByLabelText('Stage format'), { target: { value: 'round-robin' } });
     fireEvent.change(screen.getByLabelText('Seeding'), { target: { value: 'automatic' } });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue profile setup' }));
     fireEvent.click(screen.getByRole('button', { name: 'Author and install' }));
 
     expect(submitted).toHaveLength(1);

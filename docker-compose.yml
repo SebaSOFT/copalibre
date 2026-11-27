@@ -3,7 +3,9 @@
 name: copalibre
 
 x-application-environment: &application-environment
-  DATABASE_URL: postgres://${POSTGRES_USER:-copalibre}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-copalibre}
+  # Every role but database-setup and migrate connects as copalibre_app, which reads and
+  # writes rows and nothing else; see deploy/postgres/roles.sql.
+  DATABASE_URL: postgres://copalibre_app:${COPALIBRE_DATABASE_APP_PASSWORD:?Set COPALIBRE_DATABASE_APP_PASSWORD in .env (copalibre upgrade writes it)}@postgres:5432/${POSTGRES_DB:-copalibre}
   COPALIBRE_APP_URL: ${COPALIBRE_APP_URL:?Set COPALIBRE_APP_URL in .env}
   COPALIBRE_API_URL: ${COPALIBRE_API_URL:-http://localhost:3001}
   COPALIBRE_BOOTSTRAP_TOKEN: ${COPALIBRE_BOOTSTRAP_TOKEN:?Set COPALIBRE_BOOTSTRAP_TOKEN in .env}
@@ -27,37 +29,61 @@ x-application-environment: &application-environment
   COPALIBRE_DATA_DIR: /var/lib/copalibre
   COPALIBRE_MODULE_SOURCE_ALLOWLIST: ${COPALIBRE_MODULE_SOURCE_ALLOWLIST:-file:///var/lib/copalibre/modules}
   COPALIBRE_IN_CONTAINER: 'true'
+  # Secure and the __Host- prefix on session cookies; copalibre init and upgrade write it.
+  COPALIBRE_SESSION_COOKIE_SECURE: ${COPALIBRE_SESSION_COOKIE_SECURE:-true}
+  # Peers whose X-Forwarded-For the API and events believe; empty means loopback and private networks.
+  COPALIBRE_TRUSTED_PROXIES: ${COPALIBRE_TRUSTED_PROXIES:-}
+  # Security alerts: bursts of refused requests are emailed here; empty logs them only.
+  COPALIBRE_SECURITY_ALERT_EMAIL: ${COPALIBRE_SECURITY_ALERT_EMAIL:-}
+  COPALIBRE_SECURITY_ALERT_THRESHOLD: ${COPALIBRE_SECURITY_ALERT_THRESHOLD:-}
   HOST: '0.0.0.0'
 
 x-application-service: &application-service
-  image: ${COPALIBRE_IMAGE:-ghcr.io/sebasoft/copalibre:1.2.6}
+  image: ${COPALIBRE_IMAGE:-ghcr.io/sebasoft/copalibre:2.0.0}
   build:
     context: .
     target: runtime
 
 services:
   postgres:
-    image: postgres:17
+    image: postgres:18
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-copalibre}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-copalibre}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgresql-data:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
       interval: 5s
       timeout: 3s
       retries: 20
 
+  # Creates the schema owner and the runtime role and hands the schema to the owner, as
+  # the bootstrap superuser, before every migrate. The superuser credential goes here,
+  # to database-tools and to no other service.
+  database-setup:
+    <<: *application-service
+    environment:
+      PRODUCT_ROLE: database-setup
+      DATABASE_SETUP_URL: postgres://${POSTGRES_USER:-copalibre}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-copalibre}
+      COPALIBRE_DATABASE_OWNER_PASSWORD: ${COPALIBRE_DATABASE_OWNER_PASSWORD:?Set COPALIBRE_DATABASE_OWNER_PASSWORD in .env (copalibre upgrade writes it)}
+      COPALIBRE_DATABASE_APP_PASSWORD: ${COPALIBRE_DATABASE_APP_PASSWORD:?Set COPALIBRE_DATABASE_APP_PASSWORD in .env (copalibre upgrade writes it)}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
   migrate:
     <<: *application-service
     environment:
       <<: *application-environment
       PRODUCT_ROLE: migrate
+      # The schema owner: migrations create and alter tables, then grant copalibre_app its rows.
+      DATABASE_MIGRATION_URL: postgres://copalibre_owner:${COPALIBRE_DATABASE_OWNER_PASSWORD:?Set COPALIBRE_DATABASE_OWNER_PASSWORD in .env (copalibre upgrade writes it)}@postgres:5432/${POSTGRES_DB:-copalibre}
     depends_on:
-      postgres:
-        condition: service_healthy
+      database-setup:
+        condition: service_completed_successfully
     volumes:
       - ./modules:/var/lib/copalibre/modules:ro
     restart: 'no'
@@ -72,7 +98,7 @@ services:
       migrate:
         condition: service_completed_successfully
     ports:
-      - '3001:3001'
+      - '127.0.0.1:3001:3001'
     volumes:
       - copalibre-data:/var/lib/copalibre
       - ./modules:/var/lib/copalibre/modules:ro
@@ -80,7 +106,7 @@ services:
       test:
         [
           'CMD-SHELL',
-          'node -e "fetch(\"http://127.0.0.1:3001/health\").then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
+          'node -e "fetch(\"http://127.0.0.1:3001/api/health\").then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"',
         ]
       interval: 5s
       timeout: 3s
@@ -92,11 +118,14 @@ services:
       <<: *application-environment
       PRODUCT_ROLE: events
       PORT: 3002
+      # Where events fetches the API's key set to verify native sessions; with an
+      # external identity provider, COPALIBRE_JWKS_URI holds only that provider's keys.
+      COPALIBRE_API_INTERNAL_URL: http://api:3001
     depends_on:
       migrate:
         condition: service_completed_successfully
     ports:
-      - '3002:3002'
+      - '127.0.0.1:3002:3002'
     volumes:
       - copalibre-data:/var/lib/copalibre
     healthcheck:
@@ -163,7 +192,7 @@ services:
       migrate:
         condition: service_completed_successfully
     ports:
-      - '3005:3005'
+      - '127.0.0.1:3005:3005'
     volumes:
       - copalibre-data:/var/lib/copalibre
       - ./modules:/var/lib/copalibre/modules:ro
@@ -181,14 +210,19 @@ services:
     build:
       context: .
       target: web
-    image: ${COPALIBRE_WEB_IMAGE:-ghcr.io/sebasoft/copalibre-web:1.2.6}
+    image: ${COPALIBRE_WEB_IMAGE:-ghcr.io/sebasoft/copalibre-web:2.0.0}
     environment:
       COPALIBRE_JWT_ISSUER: ${COPALIBRE_JWT_ISSUER:?Set COPALIBRE_JWT_ISSUER in .env}
       COPALIBRE_OIDC_CLIENT_ID: ${COPALIBRE_OIDC_CLIENT_ID:?Set COPALIBRE_OIDC_CLIENT_ID in .env}
+      # Origin of an external OIDC provider, which the Content Security Policy
+      # must allow for sign-in. Empty with the built-in identity provider.
+      COPALIBRE_CSP_IDENTITY_ORIGIN: ${COPALIBRE_CSP_IDENTITY_ORIGIN:-}
     ports:
-      - '4321:4321'
+      - '127.0.0.1:4321:4321'
     volumes:
       - ./modules:/var/lib/copalibre/modules:ro
+      # Everything in ./well-known is public under /.well-known/ (security.txt and similar).
+      - ./well-known:/srv/.well-known:ro
     healthcheck:
       test: ['CMD-SHELL', 'wget -q --spider http://127.0.0.1:4321/']
       interval: 5s
@@ -196,8 +230,12 @@ services:
       retries: 20
 
   gateway:
-    image: caddy:2.10-alpine
+    image: caddy:2.11-alpine
     restart: unless-stopped
+    # The only port published on every interface. Every other service below is
+    # published on 127.0.0.1 only, for host-local checks: reaching a role
+    # directly would skip the gateway's routing and headers, and let a client
+    # forge the forwarded address the rate limits key on.
     ports:
       - '${COPALIBRE_PORT:-8080}:80'
     depends_on:
@@ -220,10 +258,14 @@ services:
     environment:
       <<: *application-environment
       PRODUCT_ROLE: doctor
+      # doctor checks that web's Content Security Policy allows the identity provider.
+      COPALIBRE_CSP_IDENTITY_ORIGIN: ${COPALIBRE_CSP_IDENTITY_ORIGIN:-}
     profiles: ['operations']
+    # doctor connects as copalibre_app, which database-setup creates: on a fresh install
+    # (`copalibre init`, then `doctor` or `start`) the role exists only once it has run.
     depends_on:
-      postgres:
-        condition: service_healthy
+      database-setup:
+        condition: service_completed_successfully
 
   upgrade-check:
     <<: *application-service
@@ -236,7 +278,7 @@ services:
         condition: service_healthy
 
   database-tools:
-    image: postgres:17
+    image: postgres:18
     entrypoint: []
     environment:
       PGHOST: postgres
@@ -259,7 +301,7 @@ services:
       - redis-data:/data
 
   object-storage:
-    image: dxflrs/garage:v1.1.0
+    image: dxflrs/garage:v1.3.1
     profiles: ['optional-adapters']
     environment:
       GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?Set GARAGE_RPC_SECRET in .env (openssl rand -hex 32) when object-storage is enabled}
@@ -268,7 +310,7 @@ services:
       - object-storage-meta:/var/lib/garage/meta
       - object-storage-data:/var/lib/garage/data
     ports:
-      - '9000:3900'
+      - '127.0.0.1:9000:3900'
     healthcheck:
       test: ['CMD', '/garage', 'status']
       interval: 5s
@@ -285,11 +327,11 @@ services:
     volumes:
       - clamav-data:/var/lib/clamav
     ports:
-      - '3310:3310'
+      - '127.0.0.1:3310:3310'
 
 volumes:
   copalibre-data:
-  postgres-data:
+  postgresql-data:
   redis-data:
   object-storage-meta:
   object-storage-data:

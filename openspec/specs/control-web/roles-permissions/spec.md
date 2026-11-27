@@ -9,13 +9,13 @@ never broader than their own records.
 ## Requirements
 
 ### Requirement: Organization-scoped role taxonomy
+
 The system SHALL support assigning each user one of `admin`, `club-admin`, `tournament-admin`,
 `referee`, `broadcaster`, or `viewer` within a given organization, and a user's role in one
-organization SHALL NOT grant access in another organization. `admin` (organization-admin) SHALL hold
-that role in exactly one organization at a time — accepting an `admin` assignment in a second
-organization does not extend authority from the first, and each organization's admin authority is
-independently scoped. A `tournament-admin` assignment SHALL name exactly one tournament within the
-organization; the role SHALL NOT be assignable without one.
+organization SHALL NOT grant access in another. `admin` SHALL hold that role in exactly one
+organization at a time, each organization's admin authority scoped independently. A
+`tournament-admin` assignment SHALL name exactly one tournament of the organization, and the role
+SHALL NOT be assignable without one.
 
 #### Scenario: Role does not cross organizations
 - **WHEN** a user holds the `admin` role in organization A
@@ -82,12 +82,12 @@ recipient's authenticated OIDC identity to present a verified email matching the
 - **THEN** the system rejects acceptance and leaves the invitation usable by its intended recipient
 
 ### Requirement: Resource-ownership policy for participant scope
+
 A participant-scoped identity's authorized scope SHALL be limited to its own registration, team
 memberships, and reported results, and SHALL NOT extend to another participant's records or to any
-operator/admin tool. A roster is match-scoped and does not grant participant ownership by itself.
-This scope SHALL include submitting a result report or dispute for a match the participant is
-entered in, bounded by the same ownership rule as every other participant self-service action — no
-new authorization concept, only a new scoped write action.
+operator or admin tool. This scope SHALL include submitting a result report or dispute for a match
+the participant is entered in, under the same ownership rule as every other participant self-service
+action.
 
 #### Scenario: Participant cannot read another participant's private data
 - **WHEN** a participant-scoped token requests another participant's registration details
@@ -108,6 +108,17 @@ new authorization concept, only a new scoped write action.
   is not entered in
 - **THEN** the request is rejected with an authorization error
 
+#### Scenario: A roster alone grants nothing
+
+- **WHEN** a participant appears on a match roster
+- **THEN** that roster is match-scoped and grants no ownership by itself
+
+#### Scenario: Reporting adds no new concept
+
+- **WHEN** a participant submits a report or dispute
+- **THEN** it is a new scoped write action under the existing ownership rule, not a new
+  authorization concept
+
 ### Requirement: Role changes are audited
 Every role assignment, change, or revocation SHALL be recorded as an auditable event with actor,
 timestamp, prior role, and resulting role.
@@ -125,12 +136,12 @@ action scoped to that organization.
 - **THEN** subsequent requests using that user's identity for that organization are rejected
 
 ### Requirement: Role-granting hierarchy
+
 Granting, changing, or revoking a role SHALL be limited by the acting identity's own role, forming a
-strict hierarchy: an installation `super-admin` MAY grant `super-admin`, organization `admin`,
-`club-admin`, or `referee`; an organization `admin` MAY grant organization `admin`, `club-admin`, or
-`referee`, scoped to their own organization only; `club-admin` and `referee` MAY NOT grant, change, or
-revoke any role. No identity may grant a role its own authority does not cover, and no identity may
-grant a role that exceeds its own authority level.
+strict hierarchy: a `super-admin` MAY grant `super-admin`, `admin`, `club-admin`, or `referee`; an
+organization `admin` MAY grant `admin`, `club-admin`, or `referee` within their own organization;
+`club-admin` and `referee` MAY NOT grant, change, or revoke any role. No identity may grant a role
+its own authority does not cover or that exceeds its authority level.
 
 #### Scenario: super-admin grants an organization-admin role
 - **WHEN** an installation super-admin invites a user into an organization with the `admin` role
@@ -220,12 +231,10 @@ omitting them from a list.
   no per-route list to remember to write correctly
 
 ### Requirement: User administration is reachable from the acting identity's own admin console
+
 User administration (inviting, changing, and removing role assignments) SHALL be presented as one
-section among the other administrative sections the acting identity already has access to, rather than
-a standalone route disconnected from those sections: an installation `super-admin` reaches it from the
-installation-wide administration console, alongside organization and module management; an
-organization `admin` reaches it from their organization's own console, alongside the other
-organization-management sections already available to them.
+section among the other administrative sections the acting identity already has access to, rather
+than a standalone route disconnected from them.
 
 #### Scenario: super-admin reaches user administration from the installation console
 - **WHEN** an installation super-admin opens the platform-administration console
@@ -236,6 +245,13 @@ organization-management sections already available to them.
 - **WHEN** an organization `admin` opens their organization's Control-web console
 - **THEN** a user-administration section is listed alongside the other administrative sections already
   visible to that admin
+
+#### Scenario: Where each identity finds it
+
+- **WHEN** a `super-admin` or an organization `admin` opens user administration
+- **THEN** a super-admin reaches it from the installation-wide console, beside organization and
+  module management; an organization admin reaches it from their organization's console, beside its
+  other management sections
 
 ### Requirement: Capabilities and their role mapping are declared in one enumerable place
 The system SHALL declare its authorization capabilities as a named, enumerable set, and SHALL declare
@@ -295,14 +311,12 @@ narrows what it may act upon.
   name the role
 
 ### Requirement: tournament-admin holds a defined subset of admin's capabilities, scoped to one tournament
-`tournament-admin` SHALL hold every tournament-operational capability — stage, zone and group
-management, scheduling, registrations, series declaration and match assignment — and SHALL NOT hold any
-organization-wide capability, including user administration, organization settings, club management, or
-authority over any tournament other than the one its assignment names.
 
-A `tournament-admin`'s actions SHALL be scoped to the tournament their assignment names, on the same
-resource-ownership basis club scope uses. An action against a different tournament in the same
-organization SHALL be refused on ownership grounds.
+`tournament-admin` SHALL hold every tournament-operational capability and SHALL NOT hold any
+organization-wide capability or authority over any tournament other than the one its assignment
+names. Its actions SHALL be scoped to that tournament on the same resource-ownership basis club
+scope uses, and an action against a different tournament in the same organization SHALL be refused
+on ownership grounds.
 
 #### Scenario: tournament-admin acts within its own tournament
 - **WHEN** a `tournament-admin` creates a stage or manages registrations within the tournament their
@@ -318,6 +332,17 @@ organization SHALL be refused on ownership grounds.
 - **WHEN** a `tournament-admin` attempts to invite a user, change organization settings, or manage a
   club
 - **THEN** the action is refused, because none of those capabilities are in the role's declared set
+
+#### Scenario: What is tournament-operational
+
+- **WHEN** a tournament-admin works within its tournament
+- **THEN** it holds stage, zone and group management, scheduling, registrations, series declaration
+  and match assignment
+
+#### Scenario: What is organization-wide
+
+- **WHEN** a tournament-admin opens organization tools
+- **THEN** it holds no user administration, organization settings or club management
 
 ### Requirement: The audit trail is readable by an authorized operator
 The audit trail SHALL be readable through a surface scoped by the reader's own authority, answering what
@@ -382,13 +407,9 @@ was rescinded rather than returning the generic not-found response an unrecogniz
 
 ### Requirement: Role selection explains what the selected role can do, with a path to the full manual
 
-Wherever an operator chooses an organization role for a person — assigning a role to an existing
-member or setting the role on a pending invitation — the control SHALL show a short description of
-what the currently-selected role can do, alongside the role picker, the same way every other
-multi-option decision in control-web (discipline authoring, tournament setup, stage authoring) pairs
-its choice with a description of the selected option. The short description SHALL be accompanied by
-a link to that role's own help page, for an operator who wants the full explanation rather than the
-condensed one.
+Wherever an operator chooses an organization role for a person, the control SHALL show, beside the
+role picker, a short description of what the currently-selected role can do, accompanied by a link
+to that role's own help page.
 
 #### Scenario: Changing a member's role shows what that role can do
 - **WHEN** an operator selects a different role for an existing organization member
@@ -410,6 +431,17 @@ condensed one.
 #### Scenario: The link follows the selected role, not the one shown a moment ago
 - **WHEN** an operator changes the selected role after the link has already rendered once
 - **THEN** the link now points to the newly-selected role's own help page
+
+#### Scenario: Where roles are chosen
+
+- **WHEN** an operator assigns a role to an existing member or sets the role on a pending invitation
+- **THEN** the description and link are shown
+
+#### Scenario: The same pattern as other choices
+
+- **WHEN** an operator reads the description
+- **THEN** it pairs the choice with what it does, as discipline authoring, tournament setup and
+  stage authoring already do
 
 ### Requirement: Accepting an invitation stores the session token the same secure way every login does
 Accepting an invitation through the native `/auth/accept-invitation` flow SHALL establish the new
@@ -439,7 +471,12 @@ The audit trail screen SHALL resolve actor identifiers into human-readable user 
 - **THEN** the action name and field transitions render in human-readable plain language matching the active locale
 
 ### Requirement: Roles and permissions UI ownership and scope selection
-The roles and permissions screen SHALL compose owned design-system primitives without raw unstyled form tags. All user-facing terminology across the screen SHALL refer to platform participants as users ("usuarios") rather than recipients ("destinatarios"). In the member listing table, the role selection control SHALL be constrained in width (`max-width: 220px`) with its concise capability description positioned directly to its right within the cell. Scope selectors for club-admin and tournament-admin roles SHALL render localized placeholders rather than blank options.
+
+The roles and permissions screen SHALL compose owned design-system primitives without raw unstyled
+form tags, and SHALL refer to platform participants as users ("usuarios") rather than recipients
+("destinatarios"). In the member table, the role selection control SHALL be constrained in width
+(`max-width: 220px`) with its capability description directly to its right. Scope selectors for
+club-admin and tournament-admin roles SHALL render localized placeholders rather than blank options.
 
 #### Scenario: Scope selectors present localized prompt
 - **WHEN** an operator selects club-admin or tournament-admin in the invite dialog

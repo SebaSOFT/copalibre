@@ -173,6 +173,9 @@ export {
   traceForEntrant,
   hasTraceFor,
   decidingFactorLabel,
+  decidingFactorBetween,
+  decidingFactorNodeBetween,
+  type DecidingFactor,
   type TraceRenderOptions,
 } from './trace/render.js';
 

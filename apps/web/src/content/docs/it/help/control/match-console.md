@@ -31,19 +31,21 @@ trasmesso dal vivo sulla schermata pubblica del torneo.
 
 ## Gestire l'orologio
 
-Ogni segmento ha il proprio orologio, guidato da tre pulsanti sotto il segmento selezionato:
+Ogni segmento ha il proprio orologio. I pulsanti sotto il segmento selezionato dipendono dal suo stato:
 
-- **Avvia** fa partire l'orologio di quel segmento e ferma quello che stava andando — ne va uno
-  soltanto per volta.
-- **Pausa** lo ferma dov'è. Una partita in pausa è ancora in corso: la pausa ferma un orologio, non
-  la competizione.
-- **Termina periodo** chiude quel segmento. Dopo non accetta più né Avvia né Pausa, e non termina la
-  partita — caricare il risultato è un'azione a sé.
+- **Avvia partita** avvia una partita programmata e fa partire il suo primo segmento.
+- **Avvia segmento** fa partire un segmento che non è ancora stato giocato.
+- **Pausa** e **Termina segmento** compaiono mentre un segmento è in corso. Pausa ferma l'orologio dove si trova; una partita in pausa resta in corso.
+- **Riprendi** e **Termina segmento** compaiono quando il segmento è fermo con del tempo accumulato.
+- **Riapri segmento…** compare su un segmento terminato. Chiede un motivo, riporta il segmento in pausa con il tempo conservato e non fa ripartire l'orologio: per farlo ripartire usa Riprendi.
 
-Registrano il momento in cui hai davvero fischiato. Il campo dei secondi trascorsi accanto resta
-quello che è sempre stato: il modo di correggere a posteriori un valore registrato male. Entrambe le
-strade finiscono nello stesso registro di audit, con chi, quando, e cosa segnava l'orologio prima e
-dopo.
+Gira un solo segmento alla volta. Avvia segmento e Riprendi non vengono proposti mentre un altro segmento è in corso, e la console lo indica: mettilo in pausa o terminalo prima.
+
+Il selettore del segmento mostra «in pausa» un segmento fermo con del tempo. Una partita chiusa (finalizzata, per forfait o non richiesta) non offre azioni sull'orologio.
+
+**Correggi** imposta il tempo del segmento selezionato, da scrivere nel campo **Tempo (mm:ss)**, in minuti e secondi (`20:50`) o in minuti interi (`45`). Lo stato resta invariato: un segmento in corso continua, uno in pausa resta in pausa. Non è disponibile su una partita chiusa (finalizzata, per forfait o non richiesta).
+
+Questi pulsanti registrano il momento in cui hai davvero fischiato. Per correggere un valore registrato male usa **Correggi**. Ogni modifica finisce nello stesso registro di audit, con chi, quando, e stato e orologio prima e dopo. La riapertura registra anche il motivo.
 
 ## Leggere il registro eventi
 

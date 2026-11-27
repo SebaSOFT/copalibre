@@ -33,15 +33,20 @@ check(
   'control entry has a root-relative login fallback',
   /http-equiv="refresh" content="0;url=\/control\/login"/i.test(controlEntry),
 );
+const controlEntryScript = read('scripts/control-entry.js');
+check(
+  'control entry loads its redirect from a same-origin script',
+  controlEntry.includes('<script src="/scripts/control-entry.js"></script>'),
+);
 check(
   'control entry preserves the request-time returnTo parameter',
-  controlEntry.includes('new URLSearchParams(window.location.search)') &&
-    controlEntry.includes("get('returnTo')") &&
-    controlEntry.includes("target.searchParams.set('returnTo', returnTo)"),
+  controlEntryScript.includes('new URLSearchParams(window.location.search)') &&
+    controlEntryScript.includes("get('returnTo')") &&
+    controlEntryScript.includes("target.searchParams.set('returnTo', returnTo)"),
 );
 check(
   'control entry does not embed an absolute login origin',
-  !/https?:\/\/[^"'<>\s]+\/control\/login/.test(controlEntry),
+  !/https?:\/\/[^"'<>\s]+\/control\/login/.test(controlEntry + controlEntryScript),
 );
 
 const serverEntry = readFileSync(new URL('entry.mjs', SERVER_DIST), 'utf8');

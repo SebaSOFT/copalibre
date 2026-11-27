@@ -7,16 +7,6 @@ Object.defineProperty(globalThis, 'TextEncoder', { value: TextEncoder, configura
 Object.defineProperty(globalThis, 'TextDecoder', { value: TextDecoder, configurable: true });
 import { createPkcePair, authorizationUrl, verifyCallbackState } from './session/pkce.js';
 import {
-  FORBIDDEN_STORAGE_KEYS,
-  accessTokenExpiresAtMs,
-  accessTokenHasScope,
-  clearAuthMethod,
-  createTokenStore,
-  readAuthMethod,
-  recordAuthMethod,
-  reloadBehaviour,
-} from './session/token-store.js';
-import {
   buildDashboard,
   classifyTournamentLifecycle,
   isMember,
@@ -49,127 +39,12 @@ function entry(overrides: Partial<ActivityEntry> = {}): ActivityEntry {
   return {
     auditId: 'a-1',
     organizationId: 'org-1',
-    action: 'registration.approved',
+    action: 'entrant.accepted',
     actor: 'user:organizer-1',
     occurredAt: '2026-08-01T20:00:00.000Z',
     ...overrides,
   };
 }
-
-describe('the access token is never written down', () => {
-  it('reads RFC 9068 scopes without treating malformed tokens as authorized', () => {
-    const payload = btoa(JSON.stringify({ scp: 'copalibre.control copalibre.super-admin' }))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-    expect(accessTokenHasScope(`header.${payload}.signature`, 'copalibre.super-admin')).toBe(true);
-    expect(accessTokenHasScope('opaque-test-token', 'copalibre.super-admin')).toBe(false);
-  });
-
-  it('keeps the token in memory and forgets it on clear', () => {
-    const store = createTokenStore(() => 1000);
-    store.write('secret', 5000);
-
-    expect(store.read()).toBe('secret');
-    store.clear();
-    expect(store.read()).toBeUndefined();
-  });
-
-  it('treats an expired token as absent', () => {
-    let now = 1000;
-    const store = createTokenStore(() => now);
-    store.write('secret', 2000);
-
-    now = 3000;
-    expect(store.read()).toBeUndefined();
-    expect(store.isExpired()).toBe(true);
-  });
-
-  it('touches no persistent storage at all', () => {
-    const store = createTokenStore();
-    store.write('secret', Date.now() + 60_000);
-
-    // Storage is readable by any script that reaches the page; a module
-    // variable dies with the tab.
-    for (const key of FORBIDDEN_STORAGE_KEYS) {
-      expect(globalThis.localStorage.getItem(key)).toBeNull();
-      expect(globalThis.sessionStorage.getItem(key)).toBeNull();
-    }
-    expect(globalThis.localStorage.length).toBe(0);
-    expect(globalThis.sessionStorage.length).toBe(0);
-    expect(globalThis.document.cookie).toBe('');
-  });
-
-  it('reloads differently per mode, decided in one place', () => {
-    expect(reloadBehaviour('strict-stateless')).toBe('reauthenticate');
-    expect(reloadBehaviour('pragmatic-persistent')).toBe('silent-renew');
-  });
-
-  it('reads the exp claim in milliseconds, for scheduling silent renewal', () => {
-    const payload = btoa(JSON.stringify({ exp: 1_800_000_000 }))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-    expect(accessTokenExpiresAtMs(`header.${payload}.signature`)).toBe(1_800_000_000_000);
-    expect(accessTokenExpiresAtMs('opaque-test-token')).toBeUndefined();
-    expect(accessTokenExpiresAtMs(undefined)).toBeUndefined();
-    // Malformed base64 in the payload segment: atob/JSON.parse throw, not treated as a valid expiry.
-    expect(accessTokenExpiresAtMs('header.not-valid-base64!!!.signature')).toBeUndefined();
-  });
-
-  it('remembers which login mechanism established the session, and forgets it on clear', () => {
-    expect(readAuthMethod(undefined)).toBeUndefined();
-    recordAuthMethod('native', undefined);
-    expect(readAuthMethod(undefined)).toBe('native');
-    clearAuthMethod(undefined);
-    expect(readAuthMethod(undefined)).toBeUndefined();
-  });
-
-  it('treats a storage that throws on read the same as no stored auth method', () => {
-    const throwingStorage: Storage = {
-      getItem: () => {
-        throw new Error('storage unavailable');
-      },
-      setItem: () => {},
-      removeItem: () => {},
-      clear: () => {},
-      key: () => null,
-      length: 0,
-    };
-    expect(readAuthMethod(throwingStorage)).toBeUndefined();
-  });
-
-  it('restores unexpired session from sessionStorage across reloads when storage is configured', () => {
-    const fakeStorage = new Map<string, string>();
-    const storage: Storage = {
-      getItem: (k) => fakeStorage.get(k) ?? null,
-      setItem: (k, v) => fakeStorage.set(k, v),
-      removeItem: (k) => {
-        fakeStorage.delete(k);
-      },
-      clear: () => fakeStorage.clear(),
-      key: (i) => Array.from(fakeStorage.keys())[i] ?? null,
-      get length() {
-        return fakeStorage.size;
-      },
-    };
-
-    let now = 1000;
-    const store1 = createTokenStore(() => now, { storage });
-    store1.write('jwt-token-123', 5000);
-    expect(store1.read()).toBe('jwt-token-123');
-
-    // Simulate page reload by creating a new store instance connected to the same storage
-    const store2 = createTokenStore(() => now, { storage });
-    expect(store2.read()).toBe('jwt-token-123');
-    expect(store2.isExpired()).toBe(false);
-
-    // After expiration:
-    now = 6000;
-    expect(store2.read()).toBeUndefined();
-    expect(store2.isExpired()).toBe(true);
-  });
-});
 
 describe('PKCE', () => {
   it('derives a challenge from a fresh verifier', async () => {
@@ -263,14 +138,20 @@ describe('classifyTournamentLifecycle', () => {
     ).toBe('finished');
   });
 
-  it('classifies a tournament with in-progress matches as live, not finished or upcoming', () => {
+  it('uses the live state only when a match is in progress', () => {
     expect(
       classifyTournamentLifecycle({
         status: 'published',
         matches: [{ status: 'finalized' }, { status: 'in-progress' }],
       }),
     ).toBe('live');
-    expect(classifyTournamentLifecycle({ status: 'started' })).toBe('live');
+    expect(classifyTournamentLifecycle({ status: 'started' })).toBe('in-progress');
+    expect(
+      classifyTournamentLifecycle({
+        status: 'started',
+        matches: [{ status: 'finalized' }, { status: 'scheduled' }],
+      }),
+    ).toBe('in-progress');
   });
 
   it('classifies a tournament with no played matches as upcoming', () => {
@@ -295,11 +176,12 @@ describe('classifyTournamentLifecycle', () => {
       tournaments: [
         card({ tournamentId: 't-finished', lifecycle: 'finished' }),
         card({ tournamentId: 't-live', lifecycle: 'live' }),
+        card({ tournamentId: 't-in-progress', lifecycle: 'in-progress' }),
         card({ tournamentId: 't-upcoming', lifecycle: 'upcoming' }),
       ],
       activity: [],
     });
-    expect(dashboard.stats.activeTournaments).toBe(1);
+    expect(dashboard.stats.activeTournaments).toBe(2);
   });
 });
 
@@ -349,6 +231,18 @@ describe('what the dashboard renders', () => {
     expect(grid?.querySelectorAll('.cl-stat-tile')).toHaveLength(3);
   });
 
+  it('omits unmeasured tiles and names the API field behind each visible tile', () => {
+    const { container } = render(
+      withIntl(<QuickStats stats={{ activeTournaments: 4, pendingRegistrations: undefined }} />),
+    );
+
+    const tiles = container.querySelectorAll('.cl-stat-tile');
+    expect(tiles).toHaveLength(1);
+    expect(tiles[0]?.getAttribute('data-source-field')).toBe('activeTournaments');
+    expect(screen.queryByTestId('pendingRegistrations')).toBeNull();
+    expect(screen.queryByTestId('matchesToday')).toBeNull();
+  });
+
   it('renders the activity feed through the DataTable organism', () => {
     render(
       withIntl(
@@ -364,8 +258,8 @@ describe('what the dashboard renders', () => {
     expect(screen.getByRole('columnheader', { name: 'Who' })).toBeDefined();
     expect(screen.getByRole('columnheader', { name: 'When' })).toBeDefined();
     expect(table.querySelectorAll('tbody tr')).toHaveLength(2);
-    expect(screen.getByText('registration.approved')).toBeDefined();
-    expect(screen.getByText('user:organizer-1')).toBeDefined();
+    expect(screen.getByText('Registration approved')).toBeDefined();
+    expect(screen.getByText('User')).toBeDefined();
     // A reason is a per-row detail, shown only for the rows that carry one.
     expect(screen.getByText('Documentación completa')).toBeDefined();
   });
@@ -379,18 +273,21 @@ describe('what the dashboard renders', () => {
 
   it.each([
     ['live', 'LIVE'],
-    ['upcoming', 'UPCOMING'],
-    ['draft', 'DRAFT'],
-    ['finished', 'FINISHED'],
+    ['in-progress', 'In progress'],
+    ['upcoming', 'Upcoming'],
+    ['draft', 'Draft'],
+    ['finished', 'Finished'],
   ] as const)('labels a %s tournament as %s, not only by colour', (lifecycle, label) => {
     render(
       withIntl(
         <Card
           canManageDisplayTokens
+          canManageTournamentLifecycle={false}
           card={card({ lifecycle })}
           onArchive={() => {}}
           onExport={() => {}}
           onExportConfiguration={() => {}}
+          onPublish={() => {}}
           organizationAlias="liga-mendocina"
         />,
       ),
@@ -406,10 +303,12 @@ describe('what the dashboard renders', () => {
       withIntl(
         <Card
           canManageDisplayTokens
+          canManageTournamentLifecycle={false}
           card={card({ lifecycle: 'live' })}
           onArchive={() => {}}
           onExport={() => {}}
           onExportConfiguration={() => {}}
+          onPublish={() => {}}
           organizationAlias="liga-mendocina"
         />,
       ),
@@ -417,7 +316,7 @@ describe('what the dashboard renders', () => {
 
     const href = '/control/liga-mendocina/tournaments/apertura-2026/matches-view';
     expect(screen.getByRole('link', { name: 'Torneo Apertura' }).getAttribute('href')).toBe(href);
-    expect(screen.getByRole('link', { name: 'Open' }).getAttribute('href')).toBe(href);
+    expect(screen.getByRole('link', { name: 'Open tournament' }).getAttribute('href')).toBe(href);
   });
 
   it('offers a second entry point to the tournament’s stage list, alongside its title', () => {
@@ -425,10 +324,12 @@ describe('what the dashboard renders', () => {
       withIntl(
         <Card
           canManageDisplayTokens
+          canManageTournamentLifecycle={false}
           card={card({ lifecycle: 'live' })}
           onArchive={() => {}}
           onExport={() => {}}
           onExportConfiguration={() => {}}
+          onPublish={() => {}}
           organizationAlias="liga-mendocina"
         />,
       ),
@@ -448,10 +349,12 @@ describe('what the dashboard renders', () => {
       withIntl(
         <Card
           canManageDisplayTokens
+          canManageTournamentLifecycle={false}
           card={card({ lifecycle: 'draft' })}
           onArchive={() => {}}
           onExport={() => {}}
           onExportConfiguration={() => {}}
+          onPublish={() => {}}
           organizationAlias="liga-mendocina"
         />,
       ),
@@ -465,9 +368,11 @@ describe('what the dashboard renders', () => {
   it('offers archiving only on a finished tournament', () => {
     const props = {
       canManageDisplayTokens: true,
+      canManageTournamentLifecycle: false,
       onArchive: () => {},
       onExport: () => {},
       onExportConfiguration: () => {},
+      onPublish: () => {},
       organizationAlias: 'liga-mendocina',
     };
     const { unmount } = render(withIntl(<Card card={card({ lifecycle: 'live' })} {...props} />));
@@ -478,22 +383,23 @@ describe('what the dashboard renders', () => {
     expect(screen.getByRole('button', { name: 'Archive' })).toBeDefined();
   });
 
-  it('keeps every export inside the menu, so the footer is never a button row', () => {
+  it('keeps secondary actions inside the menu, so the footer stays compact', () => {
     render(
       withIntl(
         <Card
           canManageDisplayTokens
+          canManageTournamentLifecycle={false}
           card={card({ lifecycle: 'live' })}
           onArchive={() => {}}
           onExport={() => {}}
           onExportConfiguration={() => {}}
+          onPublish={() => {}}
           organizationAlias="liga-mendocina"
         />,
       ),
     );
 
-    // This is the defect the change exists to fix: four equal-weight export
-    // buttons per card, which at 375px wrapped into four ragged rows.
+    // Secondary exports stay out of the card footer, which wraps at narrow widths.
     for (const name of [
       'Participants CSV',
       'Results CSV',
@@ -502,25 +408,27 @@ describe('what the dashboard renders', () => {
     ]) {
       expect(screen.queryByRole('button', { name })).toBeNull();
     }
-    expect(screen.getByRole('button', { name: 'Export' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'More actions' })).toBeDefined();
   });
 
-  it('offers Broadcaster Studio inside the same export menu when the operator can manage display tokens, never as its own button', async () => {
+  it('offers Broadcaster Studio inside the action menu when the operator can manage display tokens, never as its own button', async () => {
     render(
       withIntl(
         <Card
           canManageDisplayTokens
+          canManageTournamentLifecycle={false}
           card={card({ lifecycle: 'live' })}
           onArchive={() => {}}
           onExport={() => {}}
           onExportConfiguration={() => {}}
+          onPublish={() => {}}
           organizationAlias="liga-mendocina"
         />,
       ),
     );
 
     expect(screen.queryByRole('link', { name: 'Broadcaster Studio' })).toBeNull();
-    const trigger = screen.getByRole('button', { name: 'Export' });
+    const trigger = screen.getByRole('button', { name: 'More actions' });
     trigger.focus();
     fireEvent.keyDown(trigger, { code: 'Enter', key: 'Enter' });
     expect(await screen.findByRole('menuitem', { name: 'Broadcaster Studio' })).toBeDefined();
@@ -531,17 +439,45 @@ describe('what the dashboard renders', () => {
       withIntl(
         <Card
           canManageDisplayTokens={false}
+          canManageTournamentLifecycle={false}
           card={card({ lifecycle: 'live' })}
           onArchive={() => {}}
           onExport={() => {}}
           onExportConfiguration={() => {}}
+          onPublish={() => {}}
           organizationAlias="liga-mendocina"
         />,
       ),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    const trigger = screen.getByRole('button', { name: 'More actions' });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { code: 'Enter', key: 'Enter' });
     expect(screen.queryByRole('menuitem', { name: 'Broadcaster Studio' })).toBeNull();
+  });
+
+  it('puts draft publication inside the action menu', async () => {
+    const onPublish = jest.fn();
+    render(
+      withIntl(
+        <Card
+          canManageDisplayTokens={false}
+          canManageTournamentLifecycle
+          card={card({ lifecycle: 'draft' })}
+          onArchive={() => {}}
+          onExport={() => {}}
+          onExportConfiguration={() => {}}
+          onPublish={onPublish}
+          organizationAlias="liga-mendocina"
+        />,
+      ),
+    );
+
+    const trigger = screen.getByRole('button', { name: 'More actions' });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { code: 'Enter', key: 'Enter' });
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Publish tournament' }));
+    expect(onPublish).toHaveBeenCalledWith('apertura-2026', 'Torneo Apertura');
   });
 
   it('renders the sidenav, the cards and the activity log', () => {
@@ -554,16 +490,17 @@ describe('what the dashboard renders', () => {
       <Dashboard
         canCreateTournament
         canManageDisplayTokens
+        canManageTournamentLifecycle={false}
         model={model}
         organizationAlias="liga-mendocina"
       />,
     );
 
-    expect(screen.getByRole('link', { name: 'Torneos' })).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Panel' })).toBeDefined();
     expect(screen.getByText('Torneo Apertura')).toBeDefined();
-    expect(screen.getByText(/registration.approved/)).toBeDefined();
+    expect(screen.getByText(/Inscripción aprobada/)).toBeDefined();
     // The two questions an audit trail is asked.
-    expect(screen.getByText(/user:organizer-1/)).toBeDefined();
+    expect(screen.getByText(/Usuario/)).toBeDefined();
     expect(screen.getByText(/Documentación completa/)).toBeDefined();
   });
 
@@ -572,6 +509,7 @@ describe('what the dashboard renders', () => {
       <Dashboard
         canCreateTournament
         canManageDisplayTokens
+        canManageTournamentLifecycle={false}
         model={buildDashboard({ organizationId: 'org-1', tournaments: [], activity: [] })}
         organizationAlias="liga-mendocina"
       />,
@@ -594,7 +532,7 @@ describe('what the dashboard renders', () => {
         // The device-heartbeat panel and the nav's own role lookup also
         // fetch on mount; only exports are this test's concern, so their
         // requests are answered but not counted.
-        if (url.includes('/display-tokens') || url === '/organizations?mine=true') {
+        if (url.includes('/display-tokens') || url === '/api/organizations?mine=true') {
           return new Response('[]', { headers: { 'content-type': 'application/json' } });
         }
         requests.push(url);
@@ -618,34 +556,87 @@ describe('what the dashboard renders', () => {
         <Dashboard
           canCreateTournament
           canManageDisplayTokens
+          canManageTournamentLifecycle={false}
           model={buildDashboard({ organizationId: 'org-1', tournaments: [card()], activity: [] })}
           organizationAlias="liga-mendocina"
         />,
       );
-      // The exports live behind the card's own menu now, so each is chosen the
-      // way an operator chooses it: open the menu, pick the item. Radix closes
-      // the menu on select, hence the reopen before each one.
+      // Individual exports preview their personal-data columns first. The
+      // remaining exports live behind the same menu and download directly.
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Más acciones' }), {
+        code: 'Enter',
+        key: 'Enter',
+      });
+      fireEvent.click(
+        await screen.findByRole('menuitem', { name: 'CSV de participantes individuales' }),
+      );
+      expect(screen.getByRole('dialog', { name: 'Datos personales del archivo' })).toBeDefined();
+      const participantName = screen.getByRole('checkbox', { name: 'Nombre de la persona' });
+      const identityDocument = screen.getByRole('checkbox', {
+        name: 'Documento de identidad (tipo y número)',
+      });
+      expect(participantName.getAttribute('aria-checked')).toBe('true');
+      expect(identityDocument.getAttribute('aria-checked')).toBe('false');
+      fireEvent.click(participantName);
+      fireEvent.click(identityDocument);
+      fireEvent.click(screen.getByRole('button', { name: 'Descargar CSV' }));
+      await waitFor(() => expect(requests).toHaveLength(1));
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: 'Datos personales del archivo' })).toBeNull(),
+      );
+      expect(requests[0]).toContain('?excludePersonalData=displayName');
+
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Más acciones' }), {
+        code: 'Enter',
+        key: 'Enter',
+      });
+      fireEvent.click(
+        await screen.findByRole('menuitem', { name: 'CSV de participantes individuales' }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: 'Datos personales del archivo' })).toBeNull(),
+      );
+      expect(requests).toHaveLength(1);
+
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Más acciones' }), {
+        code: 'Enter',
+        key: 'Enter',
+      });
+      fireEvent.click(
+        await screen.findByRole('menuitem', { name: 'CSV de participantes individuales' }),
+      );
+      fireEvent.keyDown(screen.getByRole('dialog', { name: 'Datos personales del archivo' }), {
+        code: 'Escape',
+        key: 'Escape',
+      });
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog', { name: 'Datos personales del archivo' })).toBeNull(),
+      );
+      expect(requests).toHaveLength(1);
+
       for (const name of [
-        'Participantes CSV',
+        'CSV de equipos',
         'Resultados CSV',
         'Posiciones CSV',
         'Exportar configuración JSON',
       ]) {
-        fireEvent.keyDown(screen.getByRole('button', { name: 'Exportar' }), {
+        fireEvent.keyDown(screen.getByRole('button', { name: 'Más acciones' }), {
           code: 'Enter',
           key: 'Enter',
         });
         fireEvent.click(await screen.findByRole('menuitem', { name }));
       }
 
-      await waitFor(() => expect(click).toHaveBeenCalledTimes(4));
+      await waitFor(() => expect(click).toHaveBeenCalledTimes(5));
       expect(requests).toEqual([
-        '/organizations/liga-mendocina/tournaments/apertura-2026/exports/participants/team',
-        '/organizations/liga-mendocina/tournaments/apertura-2026/exports/results',
-        '/organizations/liga-mendocina/tournaments/apertura-2026/exports/standings',
-        '/organizations/liga-mendocina/tournaments/apertura-2026/export',
+        '/api/organizations/liga-mendocina/tournaments/apertura-2026/exports/participants/individual?excludePersonalData=displayName',
+        '/api/organizations/liga-mendocina/tournaments/apertura-2026/exports/participants/team',
+        '/api/organizations/liga-mendocina/tournaments/apertura-2026/exports/results',
+        '/api/organizations/liga-mendocina/tournaments/apertura-2026/exports/standings',
+        '/api/organizations/liga-mendocina/tournaments/apertura-2026/export',
       ]);
-      expect(createObjectUrl).toHaveBeenCalledTimes(4);
+      expect(createObjectUrl).toHaveBeenCalledTimes(5);
       expect(createObjectUrl).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'application/json' }),
       );
@@ -682,6 +673,7 @@ describe('what the dashboard renders', () => {
       <Dashboard
         canCreateTournament
         canManageDisplayTokens
+        canManageTournamentLifecycle={false}
         model={buildDashboard({
           organizationId: 'org-1',
           tournaments: [card({ lifecycle: 'finished' })],
@@ -704,7 +696,7 @@ describe('what the dashboard renders', () => {
         <DeviceHeartbeat
           devices={[
             {
-              tournamentAlias: 'apertura-2026',
+              tournamentName: 'Apertura 2026',
               token: {
                 displayTokenId: 'token-online',
                 tournamentId: 't-1',
@@ -715,7 +707,7 @@ describe('what the dashboard renders', () => {
               },
             },
             {
-              tournamentAlias: 'apertura-2026',
+              tournamentName: 'Apertura 2026',
               token: {
                 displayTokenId: 'token-never-seen',
                 tournamentId: 't-1',
@@ -730,14 +722,16 @@ describe('what the dashboard renders', () => {
     );
 
     expect(screen.getByText('Cancha 1')).toBeDefined();
-    expect(screen.getByText('token-never-seen')).toBeDefined();
+    expect(screen.getAllByText('(Apertura 2026)')).toHaveLength(2);
+    expect(screen.getByText('Unlabelled display')).toBeDefined();
+    expect(screen.queryByText('token-never-seen')).toBeNull();
     expect(screen.getByText(/last signal/i)).toBeDefined();
   });
 
   it('elevates the no-devices state to a structured empty-state card', () => {
     const { container } = render(withIntl(<DeviceHeartbeat devices={[]} now={Date.now()} />));
 
-    const emptyState = container.querySelector('.cl-empty-state');
+    const emptyState = container.querySelector('.cl-interaction-empty-state');
     expect(emptyState).not.toBeNull();
     expect(emptyState?.textContent).toContain('No TV devices provisioned yet.');
   });
@@ -747,6 +741,7 @@ describe('what the dashboard renders', () => {
       <Dashboard
         canCreateTournament
         canManageDisplayTokens
+        canManageTournamentLifecycle={false}
         model={buildDashboard({ organizationId: 'org-1', tournaments: [card()], activity: [] })}
         organizationAlias="liga-mendocina"
       />,

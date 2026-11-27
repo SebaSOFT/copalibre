@@ -106,6 +106,8 @@ function toCanvasSlot(slot: SlotSource): CanvasSlot {
       return { kind: 'bye' };
     case 'placement-top':
       return { kind: 'winner-of', matchId: slot.matchId };
+    case 'qualifier':
+      return { kind: 'pending' };
   }
 }
 

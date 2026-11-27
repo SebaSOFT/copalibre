@@ -20,6 +20,7 @@ import { DATABASE } from '../database.token.js';
 import { SeedingController } from './seeding.controller.js';
 import { StagesController } from './stages.controller.js';
 import { TournamentsController } from './tournaments.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * Stage creation through the real HTTP stack.
@@ -120,6 +121,7 @@ describe('stage creation routes (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -203,7 +205,7 @@ describe('stage creation routes (integration)', () => {
   });
 
   function request(options: {
-    method: 'GET' | 'POST';
+    method: 'GET' | 'POST' | 'DELETE';
     url: string;
     token?: string;
     payload?: unknown;
@@ -216,7 +218,7 @@ describe('stage creation routes (integration)', () => {
     });
   }
 
-  const base = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages`;
+  const base = `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages`;
 
   it('creates stage 1 from accepted registrations with defaulted number, name and format', async () => {
     const response = await request({ method: 'POST', url: base, token: 'organizer', payload: {} });
@@ -452,7 +454,7 @@ describe('stage creation routes (integration)', () => {
       });
     });
 
-    const formatBase = `/organizations/${organizationAlias}/tournaments/${formatTournamentAlias}/stages`;
+    const formatBase = `/api/organizations/${organizationAlias}/tournaments/${formatTournamentAlias}/stages`;
     const created = await request({
       method: 'POST',
       url: formatBase,
@@ -500,7 +502,7 @@ describe('stage creation routes (integration)', () => {
         });
       });
 
-      const emptyBase = `/organizations/${organizationAlias}/tournaments/${emptyTournamentAlias}/stages`;
+      const emptyBase = `/api/organizations/${organizationAlias}/tournaments/${emptyTournamentAlias}/stages`;
       const created = await request({
         method: 'POST',
         url: emptyBase,
@@ -521,7 +523,7 @@ describe('stage creation routes (integration)', () => {
 
   describe('series declaration', () => {
     const seriesTournamentAlias = 'apertura-0066-series';
-    const seriesBase = `/organizations/${organizationAlias}/tournaments/${seriesTournamentAlias}/stages`;
+    const seriesBase = `/api/organizations/${organizationAlias}/tournaments/${seriesTournamentAlias}/stages`;
     let seriesTournamentId = '';
     let homeEntrantId = '';
     let awayEntrantId = '';
@@ -743,11 +745,142 @@ describe('stage creation routes (integration)', () => {
         expect(refusal?.resulting_state).toBeNull();
       },
     );
+
+    it('previews a seeded stage removal without writes and deletes only after exact-name confirmation', async () => {
+      const created = await request({
+        method: 'POST',
+        url: base,
+        token: 'organizer',
+        payload: { name: 'Fase para eliminar' },
+      });
+      expect(created.statusCode).toBe(201);
+      const { stageId, number } = created.json();
+      const stageUrl = `${base}/${number}`;
+      const seedingUrl = `${stageUrl}/seeding`;
+      const seedPreview = await request({ method: 'GET', url: seedingUrl, token: 'organizer' });
+      expect(seedPreview.statusCode).toBe(200);
+      const seeded = await request({
+        method: 'POST',
+        url: seedingUrl,
+        token: 'organizer',
+        payload: { seeds: seedPreview.json().seeds },
+      });
+      expect(seeded.statusCode).toBe(200);
+
+      const fixturesBefore = await scratch.db
+        .selectFrom('fixtures')
+        .select('fixture_id')
+        .where('stage_id', '=', stageId)
+        .execute();
+      const matchesBefore = await scratch.db
+        .selectFrom('matches')
+        .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+        .select('matches.match_id')
+        .where('fixtures.stage_id', '=', stageId)
+        .execute();
+      expect(fixturesBefore.length).toBeGreaterThan(0);
+      expect(matchesBefore.length).toBeGreaterThan(0);
+
+      const preview = await request({
+        method: 'DELETE',
+        url: `${stageUrl}?dryRun=true`,
+        token: 'organizer',
+        payload: {},
+      });
+      expect(preview.statusCode).toBe(200);
+      expect(preview.json()).toMatchObject({
+        stageId,
+        stageName: 'Fase para eliminar',
+        dryRun: true,
+        success: false,
+        fixtures: fixturesBefore.length,
+        matches: matchesBefore.length,
+      });
+      await expect(
+        scratch.db
+          .selectFrom('stages')
+          .select('stage_id')
+          .where('stage_id', '=', stageId)
+          .execute(),
+      ).resolves.toHaveLength(1);
+      await expect(
+        scratch.db
+          .selectFrom('fixtures')
+          .select('fixture_id')
+          .where('stage_id', '=', stageId)
+          .execute(),
+      ).resolves.toHaveLength(fixturesBefore.length);
+
+      const wrongConfirmation = await request({
+        method: 'DELETE',
+        url: stageUrl,
+        token: 'organizer',
+        payload: { confirmationName: 'Otra fase' },
+      });
+      expect(wrongConfirmation.statusCode).toBe(409);
+
+      const deleted = await request({
+        method: 'DELETE',
+        url: stageUrl,
+        token: 'organizer',
+        payload: { confirmationName: 'Fase para eliminar' },
+      });
+      expect(deleted.statusCode).toBe(200);
+      expect(deleted.json()).toMatchObject({
+        stageId,
+        stageName: 'Fase para eliminar',
+        dryRun: false,
+        success: true,
+        fixtures: fixturesBefore.length,
+        matches: matchesBefore.length,
+      });
+      await expect(
+        scratch.db
+          .selectFrom('stages')
+          .select('stage_id')
+          .where('stage_id', '=', stageId)
+          .execute(),
+      ).resolves.toHaveLength(0);
+      await expect(
+        scratch.db
+          .selectFrom('fixtures')
+          .select('fixture_id')
+          .where('stage_id', '=', stageId)
+          .execute(),
+      ).resolves.toHaveLength(0);
+      await expect(
+        scratch.db
+          .selectFrom('matches')
+          .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+          .select('matches.match_id')
+          .where('fixtures.stage_id', '=', stageId)
+          .execute(),
+      ).resolves.toHaveLength(0);
+      const audit = await scratch.db
+        .selectFrom('audit_log')
+        .select(['action', 'actor', 'resulting_state'])
+        .where('entity_type', '=', 'stage')
+        .where('entity_id', '=', stageId)
+        .where('action', '=', 'stage.deleted')
+        .executeTakeFirstOrThrow();
+      expect(audit).toMatchObject({
+        actor: 'user:organizer-1',
+        resulting_state: { consequences: { fixtures: fixturesBefore.length } },
+      });
+      await expect(
+        scratch.db
+          .selectFrom('outbox_events')
+          .select('event_type')
+          .where('entity_id', '=', stageId)
+          .where('event_type', '=', 'stage.deleted')
+          .execute(),
+      ).resolves.toHaveLength(1);
+    });
   });
 
   describe('stage allocation', () => {
     const allocationTournamentAlias = 'apertura-0235-allocation';
-    const allocationBase = `/organizations/${organizationAlias}/tournaments/${allocationTournamentAlias}/stages`;
+    const allocationBase = `/api/organizations/${organizationAlias}/tournaments/${allocationTournamentAlias}/stages`;
     let allocationTournamentId = '';
     let higherRatedEntrantId = '';
     let lowerRatedEntrantId = '';
@@ -923,7 +1056,7 @@ describe('stage creation routes (integration)', () => {
     it("lists this tournament's numeric entrant-attribute keys, sorted, isolated from other tournaments", async () => {
       const response = await request({
         method: 'GET',
-        url: `/organizations/${organizationAlias}/tournaments/${allocationTournamentAlias}/entrant-attribute-keys`,
+        url: `/api/organizations/${organizationAlias}/tournaments/${allocationTournamentAlias}/entrant-attribute-keys`,
         token: 'organizer',
       });
       expect(response.statusCode).toBe(200);
@@ -933,7 +1066,7 @@ describe('stage creation routes (integration)', () => {
       // entrant attributes with this one.
       const isolated = await request({
         method: 'GET',
-        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/entrant-attribute-keys`,
+        url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/entrant-attribute-keys`,
         token: 'organizer',
       });
       expect(isolated.statusCode).toBe(200);
@@ -1053,8 +1186,8 @@ describe('stage creation routes (integration)', () => {
     });
   });
 
-  describe('Single-elimination dynamic round progression (POST .../rounds/next)', () => {
-    it('progresses single-elimination from round 1 to round 2 through API and reports real champion', async () => {
+  describe('Legacy single-elimination dynamic round progression (POST .../rounds/next)', () => {
+    it('progresses legacy single-elimination from round 1 to round 2 through API and reports real champion', async () => {
       // 1. Create a 4-entrant single-elimination stage
       const created = await request({
         method: 'POST',
@@ -1069,13 +1202,20 @@ describe('stage creation routes (integration)', () => {
       // 2. Initial seeding
       const preview = await request({ method: 'GET', url: seedingUrl, token: 'organizer' });
       expect(preview.statusCode).toBe(200);
-      const publish = await request({
-        method: 'POST',
-        url: seedingUrl,
-        token: 'organizer',
-        payload: { seeds: preview.json().seeds },
-      });
-      expect(publish.statusCode).toBe(200);
+      // Preserve the legacy write path: new seeding publishes the complete persisted graph.
+      const seedIds = preview.json().seeds.map((seed: { entrantId: string }) => seed.entrantId);
+      await withTransaction(scratch.db, (uow) =>
+        new CompetitionRepository(scratch.db).createFixtures(uow, {
+          stageId,
+          organizationId,
+          ...AUDIT,
+          fixtures: [0, 2].map((index) => ({
+            round: 1,
+            homeEntrantId: seedIds[index],
+            awayEntrantId: seedIds[index + 1],
+          })),
+        }),
+      );
 
       // 3. Trying to advance before completing round 1 returns 409
       const nextBeforeComplete = await request({

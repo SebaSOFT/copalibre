@@ -127,15 +127,46 @@ describe('restoreBackupPacket', () => {
         },
       );
 
-      expect(restoreRun).toHaveBeenCalledWith(
-        'docker',
-        expect.arrayContaining(['compose', 'run', '--rm', 'database-tools', 'pg_restore']),
-      );
+      // The roles exist before pg_restore creates objects as their owner.
+      expect(
+        restoreRun.mock.calls.map(([, arguments_]) => (arguments_ as string[]).slice(3, 5)),
+      ).toEqual([['database-setup'], ['database-tools', 'pg_restore']]);
       expect(result.backupVersion).toBe('1.2.3');
       expect(result.backupCreatedAt).toEqual(expect.any(String));
 
       const remaining = await readdir('backups');
       expect(remaining).toEqual(['copalibre-test.tar.gz']);
+    });
+  });
+
+  it('stops before pg_restore when the database roles cannot be set up', async () => {
+    await withTemporaryWorkingDirectory(async () => {
+      const setupRun = jest.fn<ProcessRunner['run']>(async (_command, arguments_) => {
+        const dumpArgumentIndex = (arguments_ as readonly string[]).indexOf('--file');
+        const containerPath = (arguments_ as readonly string[])[dumpArgumentIndex + 1] as string;
+        const hostPath = containerPath.replace(/^\/backups\//, 'backups/');
+        await mkdir(join(hostPath, '..'), { recursive: true });
+        await writeFile(hostPath, 'fake dump bytes');
+        return 0;
+      });
+      await createBackupPacket(
+        { run: setupRun },
+        { file: 'backups/copalibre-test.tar.gz', retain: 5 },
+        '1.2.3',
+      );
+
+      const restoreRun = jest.fn<ProcessRunner['run']>(async () => 1);
+      await expect(
+        restoreBackupPacket(
+          { run: restoreRun },
+          {
+            file: 'backups/copalibre-test.tar.gz',
+            database: 'copalibre',
+            runningCopalibreVersion: '1.2.3',
+          },
+        ),
+      ).rejects.toThrow('database setup failed with exit code 1');
+      expect(restoreRun).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -155,7 +186,10 @@ describe('restoreBackupPacket', () => {
         '1.2.3',
       );
 
-      const restoreRun = jest.fn<ProcessRunner['run']>(async () => 1);
+      // database-setup succeeds; pg_restore fails.
+      const restoreRun = jest.fn<ProcessRunner['run']>(async (_command, arguments_) =>
+        (arguments_ as readonly string[]).includes('pg_restore') ? 1 : 0,
+      );
       await expect(
         restoreBackupPacket(
           { run: restoreRun },

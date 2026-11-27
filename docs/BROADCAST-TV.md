@@ -1,7 +1,7 @@
 # Broadcast and venue TV surfaces
 
 `/tv/**` renders published tournament data for unattended venue screens (kiosk mode) and
-transparent streaming-software overlays (`?mode=overlay`, for OBS/chroma-key capture). It has no
+transparent streaming-software overlays (`?mode=overlay-scorebug`, `?mode=overlay-lower` and `?mode=overlay-full`, for OBS/chroma-key capture; the bare `?mode=overlay` is the corner bug). It has no
 session in the person-JWT sense: nobody is present to log in, dismiss an error, or click retry.
 
 ## Device-scoped display tokens

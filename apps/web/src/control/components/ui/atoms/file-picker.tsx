@@ -14,7 +14,7 @@ export interface FilePickerProps {
   readonly hint?: string;
   readonly className?: string;
   readonly ariaLabel?: string;
-  readonly clearLabel?: string;
+  readonly clearLabel: string;
   readonly value?: File | FileList | readonly File[] | null;
   readonly onChange?: (files: FileList | null) => void;
   readonly onClear?: () => void;
@@ -23,15 +23,14 @@ export interface FilePickerProps {
    * in an atom/molecule) — every caller builds this via `filePickerLabels(intl)`
    * and passes it down, the same way `matchCardLabels`/`seriesStateBarLabels`
    * pre-resolve a shared component's copy for its consumer.
-   * English defaults keep every existing call site working unchanged.
    */
-  readonly promptText?: string;
-  readonly promptDraggingText?: string;
+  readonly promptText: string;
+  readonly promptDraggingText: string;
   readonly acceptedFormatsLabel?: string;
   readonly maxSizeLabel?: string;
-  readonly clearButtonText?: string;
+  readonly clearButtonText: string;
   /** Formats the visible "N files selected" text for the current count — a function, not a pre-resolved string, since the count is only known once files are chosen. */
-  readonly formatFilesSelected?: (count: number) => string;
+  readonly formatFilesSelected: (count: number) => string;
 }
 
 /** Exported so `filePickerLabels(intl)` can embed a locale-agnostic size figure into its localized "Max size" template. */
@@ -54,12 +53,8 @@ function resolveConstraintsText(options: {
   readonly maxSizeLabel?: string;
 }): string {
   return [
-    options.accept
-      ? (options.acceptedFormatsLabel ?? `Accepted formats: ${options.accept}`)
-      : undefined,
-    options.maxSizeBytes
-      ? (options.maxSizeLabel ?? `Max size: ${formatFileSize(options.maxSizeBytes)}`)
-      : undefined,
+    options.accept ? options.acceptedFormatsLabel : undefined,
+    options.maxSizeBytes ? options.maxSizeLabel : undefined,
   ]
     .filter(Boolean)
     .join(' • ');
@@ -70,7 +65,7 @@ export function FilePicker({
   name,
   label,
   'aria-label': ariaLabel,
-  clearLabel = 'Clear selected file',
+  clearLabel,
   accept,
   maxSizeBytes,
   multiple = false,
@@ -82,12 +77,12 @@ export function FilePicker({
   value,
   onChange,
   onClear,
-  promptText = 'Choose a file or drag here',
-  promptDraggingText = 'Drop file here',
+  promptText,
+  promptDraggingText,
   acceptedFormatsLabel,
   maxSizeLabel,
-  clearButtonText = 'Clear',
-  formatFilesSelected = (count) => `${count} files selected`,
+  clearButtonText,
+  formatFilesSelected,
 }: FilePickerProps): React.JSX.Element {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = React.useState(false);
@@ -230,6 +225,7 @@ export function FilePicker({
             </span>
             {constraintsText && (
               <span className="cl-file-picker__constraints" id={hintId}>
+                {' '}
                 {constraintsText}
               </span>
             )}

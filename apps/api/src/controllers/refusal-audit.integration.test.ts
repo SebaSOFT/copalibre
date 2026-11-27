@@ -20,7 +20,7 @@ describe('refusal audit recording (integration)', () => {
     try {
       const response = await request({
         method: 'POST',
-        url: `/organizations/liga-orbital/clubs`,
+        url: `/api/organizations/liga-orbital/clubs`,
         token: 'organizer-org1',
         payload: { name: 'A New Club' },
       });
@@ -49,7 +49,7 @@ describe('refusal audit recording (integration)', () => {
     try {
       const response = await request({
         method: 'POST',
-        url: `/organizations/liga-orbital/clubs`,
+        url: `/api/organizations/liga-orbital/clubs`,
         payload: { name: 'A New Club' },
       });
       expect(response.statusCode).toBe(401);

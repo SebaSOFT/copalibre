@@ -18,6 +18,8 @@ export type SlotSource =
   | { readonly kind: 'entrant'; readonly entrantId: string; readonly seed: number }
   /** A structural bye: the opposing slot advances unopposed. */
   | { readonly kind: 'bye' }
+  /** A future entrant routed from a position in a promotion plan. */
+  | { readonly kind: 'qualifier'; readonly promotionPlanId: string; readonly position: number }
   | { readonly kind: 'winner-of'; readonly matchId: string }
   | { readonly kind: 'loser-of'; readonly matchId: string }
   | { readonly kind: 'placement-top'; readonly matchId: string; readonly rank: number };
@@ -151,6 +153,11 @@ export interface GenerateFixturesInput {
   readonly homeAndAway?: boolean;
   /** Placement formats only: rounds, lobby size, and the draw that fills them. */
   readonly placement?: PlacementOptions;
+  /**
+   * Single elimination only: how eliminated entrants are classified. `all-places` adds a
+   * recursive classification bracket for every elimination round; node count grows linearly.
+   */
+  readonly placementPlay?: 'none' | 'third-place' | 'all-places';
   /** Series configuration for multi-match fixtures. */
   readonly series?: SeriesDeclaration;
   /** Bracket groups (GSL dual tournament) configuration. */

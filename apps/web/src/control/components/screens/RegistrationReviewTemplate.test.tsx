@@ -31,6 +31,7 @@ function renderPage(overrides: Partial<Parameters<typeof RegistrationReviewTempl
         onSetNationality={onSetNationality}
         onUploadPhoto={onUploadPhoto}
         organizationAlias="liga-orbital"
+        tournamentAlias="apertura-2026"
         rows={[row({ personId: 'person-1' })]}
         tournamentName="Copa Verano"
         {...overrides}
@@ -49,6 +50,15 @@ describe('registration review screen hierarchy', () => {
     expect(
       title.compareDocumentPosition(importButton) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expect(screen.getByText(/Copa Verano/)).toBeDefined();
+    expect(screen.queryByText(/liga-orbital/)).toBeNull();
+    expect(screen.queryByText(/apertura-2026/)).toBeNull();
+    expect(screen.getByRole('link', { name: 'Tournament settings' }).getAttribute('href')).toBe(
+      '/control/liga-orbital/tournaments/apertura-2026/settings',
+    );
+    expect(screen.queryByText('entrant-1')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Elías Salomón' }));
+    expect(screen.getByRole('button', { name: 'Copy ID' })).toBeDefined();
     expect(screen.queryByLabelText('Entrants needing an abbreviation')).toBeNull();
   });
 
@@ -93,13 +103,13 @@ describe('registration review screen hierarchy', () => {
 describe('RegistrationReviewTemplate — nationality and profile', () => {
   it("shows the person's flag next to their name once a nationality is set", () => {
     renderPage({ rows: [row({ personId: 'person-1', nationality: 'AR' })] });
-    const summary = screen.getByText('Elías Salomón').closest('summary') as HTMLElement;
+    const summary = screen.getByText('Elías Salomón').closest('td') as HTMLElement;
     expect(within(summary).getByText('🇦🇷')).toBeDefined();
   });
 
   it('shows no flag next to the name when the person has no nationality', () => {
     renderPage();
-    const summary = screen.getByText('Elías Salomón').closest('summary') as HTMLElement;
+    const summary = screen.getByText('Elías Salomón').closest('td') as HTMLElement;
     expect(within(summary).queryByText('🇦🇷')).toBeNull();
   });
 
@@ -110,23 +120,24 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
 
   it('opens the expandable detail to reveal the country selector and saves the selection', () => {
     const { onSetNationality } = renderPage();
-    fireEvent.click(screen.getByText('Elías Salomón'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Elías Salomón' }));
 
     fireEvent.click(screen.getByText('Argentina'));
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save nationality' }));
 
     expect(onSetNationality).toHaveBeenCalledWith('person-1', 'AR');
   });
 
   it('links to the person profile route for a person-kind row', () => {
     renderPage();
+    fireEvent.click(screen.getByRole('button', { name: /^Show details:/ }));
     const link = screen.getByText('View profile').closest('a');
     expect(link?.getAttribute('href')).toBe('/control/liga-orbital/persons/person-1');
   });
 
   it('reads a selected photo file and uploads it as base64', async () => {
     const { onUploadPhoto } = renderPage();
-    fireEvent.click(screen.getByText('Elías Salomón'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Elías Salomón' }));
 
     const file = new File(['fake-bytes'], 'photo.png', { type: 'image/png' });
     const input = screen.getByLabelText('Upload photo') as HTMLInputElement;
@@ -140,9 +151,9 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
     });
     fireEvent.load(img);
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
-    fireEvent.click(screen.getByText('Use image'));
+    fireEvent.click(screen.getByText('Apply'));
 
     await waitFor(() => expect(onUploadPhoto).toHaveBeenCalled());
     const [personId, request] = onUploadPhoto.mock.calls[0] as [string, UploadImageRequest];
@@ -154,7 +165,7 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
 
   it('does nothing when the file input changes with no file selected', () => {
     const { onUploadPhoto } = renderPage();
-    fireEvent.click(screen.getByText('Elías Salomón'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Elías Salomón' }));
 
     const input = screen.getByLabelText('Upload photo') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [] } });
@@ -165,7 +176,7 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
   it('resets optimistic photo when photo upload fails', async () => {
     const onUploadPhoto = jest.fn(() => Promise.reject(new Error('upload failed')));
     renderPage({ onUploadPhoto });
-    fireEvent.click(screen.getByText('Elías Salomón'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Elías Salomón' }));
 
     const file = new File(['fake-bytes'], 'photo.png', { type: 'image/png' });
     const input = screen.getByLabelText('Upload photo') as HTMLInputElement;
@@ -179,9 +190,9 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
     });
     fireEvent.load(img);
     await waitFor(() =>
-      expect((screen.getByText('Use image') as HTMLButtonElement).disabled).toBe(false),
+      expect((screen.getByText('Apply') as HTMLButtonElement).disabled).toBe(false),
     );
-    fireEvent.click(screen.getByText('Use image'));
+    fireEvent.click(screen.getByText('Apply'));
 
     await waitFor(() => expect(onUploadPhoto).toHaveBeenCalled());
   });
@@ -194,12 +205,13 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
           now="2026-08-01T00:00:00.000Z"
           onLinkIdentity={onLinkIdentity}
           organizationAlias="liga-orbital"
+          tournamentAlias="apertura-2026"
           rows={[row({ personId: 'person-1' })]}
           tournamentName="Copa Verano"
         />,
       ),
     );
-    fireEvent.click(screen.getByText('Elías Salomón'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Elías Salomón' }));
 
     fireEvent.click(screen.getByText('Link identity'));
     fireEvent.change(screen.getByLabelText('Email'), {
@@ -222,12 +234,13 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
           now="2026-08-01T00:00:00.000Z"
           onLinkIdentity={onLinkIdentity}
           organizationAlias="liga-orbital"
+          tournamentAlias="apertura-2026"
           rows={[row({ personId: 'person-1' })]}
           tournamentName="Copa Verano"
         />,
       ),
     );
-    fireEvent.click(screen.getByText('Elías Salomón'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Elías Salomón' }));
     fireEvent.click(screen.getByText('Link identity'));
     fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'elias@example.test' },
@@ -247,12 +260,13 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
           now="2026-08-01T00:00:00.000Z"
           onUnlinkIdentity={onUnlinkIdentity}
           organizationAlias="liga-orbital"
+          tournamentAlias="apertura-2026"
           rows={[row({ personId: 'person-1', hasIdentityLink: true })]}
           tournamentName="Copa Verano"
         />,
       ),
     );
-    fireEvent.click(screen.getByText('Elías Salomón'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show details: Elías Salomón' }));
 
     expect(screen.queryByText('Link identity')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Unlink' }));
@@ -274,6 +288,7 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
           now="2026-08-01T00:00:00.000Z"
           onBulkReview={onBulkReview}
           organizationAlias="liga-orbital"
+          tournamentAlias="apertura-2026"
           rows={[row({ personId: 'person-1' })]}
           tournamentName="Copa Verano"
         />,
@@ -301,6 +316,7 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
       ],
     });
 
+    fireEvent.click(screen.getByRole('button', { name: /^Show details:/ }));
     expect(screen.getByText('Matías Suárez')).toBeDefined();
     expect(screen.getByText('Javier Gandolfi')).toBeDefined();
     expect(screen.getByTestId('role-badge-p-1').textContent).toBe('Player');
@@ -323,6 +339,7 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
       ],
     });
 
+    fireEvent.click(screen.getByRole('button', { name: /^Show details:/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Edit members' }));
 
     expect(screen.getByText('Edit team members')).toBeDefined();
@@ -353,6 +370,7 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
       ],
     });
 
+    fireEvent.click(screen.getByRole('button', { name: /^Show details:/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Edit members' }));
     expect(screen.getByText('Edit team members')).toBeDefined();
 
@@ -376,6 +394,7 @@ describe('RegistrationReviewTemplate — nationality and profile', () => {
       ],
     });
 
+    fireEvent.click(screen.getByRole('button', { name: /^Show details:/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Edit members' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save members' }));
 

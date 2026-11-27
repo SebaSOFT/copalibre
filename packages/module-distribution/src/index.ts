@@ -38,8 +38,10 @@ export {
 export {
   AUTHORED_MODULE_SOURCE,
   CURATED_MODULE_REPOSITORY,
+  GIT_ALLOWED_PROTOCOLS,
   ModuleFetchError,
   alternateModuleSource,
+  assertModuleAlias,
   fetchModule,
   listPublishedVersions,
   parseModuleTagVersions,

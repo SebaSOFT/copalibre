@@ -1,3 +1,4 @@
+import { ReadStoryScope, StaleReadStory } from '../screen-story-fixtures.js';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useMemo } from 'react';
 import { useIntl } from 'react-intl';
@@ -6,7 +7,11 @@ import type { ControlApiClient } from '../../lib/api-client.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ORG, TOURNAMENT, ids, pending, storyClient } from '../screen-story-fixtures.js';
 
-function Screen({ mode }: { readonly mode: 'loaded' | 'not-found' | 'loading' | 'failed' }) {
+function Screen({
+  mode,
+}: {
+  readonly mode: 'loaded' | 'empty' | 'not-found' | 'loading' | 'failed';
+}) {
   const intl = useIntl();
   const client = useMemo(() => {
     function read<T>(value: T): Promise<T> {
@@ -16,9 +21,15 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'not-found' | 'loading' | 
       return Promise.resolve(value);
     }
     return storyClient<ControlApiClient>({
+      fetchTournamentSettings: async () => ({
+        name: 'Apertura 2026',
+        featured: false,
+        includesMinors: false,
+        showYouthProfiles: false,
+      }),
       listStages: () =>
         read(
-          mode === 'not-found'
+          mode === 'not-found' || mode === 'empty'
             ? []
             : [
                 {
@@ -45,6 +56,13 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'not-found' | 'loading' | 
   );
 }
 const meta = {
+  decorators: [
+    (Story, context) => (
+      <ReadStoryScope key={`${context.id}:${String(context.args.mode)}`}>
+        <Story />
+      </ReadStoryScope>
+    ),
+  ],
   title: 'Admin/Screens/StageHubPage',
   component: Screen,
   args: { mode: 'loaded' },
@@ -56,3 +74,11 @@ export const Loaded: Story = {};
 export const NotFound: Story = { args: { mode: 'not-found' } };
 export const Loading: Story = { args: { mode: 'loading' } };
 export const Failed: Story = { args: { mode: 'failed' } };
+
+export const Stale: Story = {
+  render: () => (
+    <StaleReadStory loaded={<Screen mode="loaded" />} failed={<Screen mode="failed" />} />
+  ),
+};
+
+export const Empty: Story = { args: { mode: 'empty' } };

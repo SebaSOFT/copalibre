@@ -22,6 +22,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { ClubPortalController } from './club-portal.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * The Club Portal through the real HTTP stack: a club-admin
@@ -146,6 +147,7 @@ describe('Club Portal (integration)', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [ClubPortalTestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -159,7 +161,7 @@ describe('Club Portal (integration)', () => {
   it("lets a club-admin create and list their own club's members", async () => {
     const created = await post(
       'clubAdminA',
-      `/organizations/${organizationAlias}/clubs/${clubAId}/members`,
+      `/api/organizations/${organizationAlias}/clubs/${clubAId}/members`,
       {
         displayName: 'Elías Salomón',
       },
@@ -168,7 +170,7 @@ describe('Club Portal (integration)', () => {
 
     const listed = await get(
       'clubAdminA',
-      `/organizations/${organizationAlias}/clubs/${clubAId}/members`,
+      `/api/organizations/${organizationAlias}/clubs/${clubAId}/members`,
     );
     expect(listed.statusCode).toBe(200);
     expect(listed.json()).toEqual([expect.objectContaining({ displayName: 'Elías Salomón' })]);
@@ -177,13 +179,13 @@ describe('Club Portal (integration)', () => {
   it('refuses a club-admin reading or writing a club they do not administer', async () => {
     const listed = await get(
       'clubAdminA',
-      `/organizations/${organizationAlias}/clubs/${clubBId}/members`,
+      `/api/organizations/${organizationAlias}/clubs/${clubBId}/members`,
     );
     expect(listed.statusCode).toBe(403);
 
     const created = await post(
       'clubAdminA',
-      `/organizations/${organizationAlias}/clubs/${clubBId}/members`,
+      `/api/organizations/${organizationAlias}/clubs/${clubBId}/members`,
       {
         displayName: 'Should Not Be Created',
       },
@@ -194,7 +196,7 @@ describe('Club Portal (integration)', () => {
   it('lets admin reach every club by inheritance', async () => {
     const listed = await get(
       'admin',
-      `/organizations/${organizationAlias}/clubs/${clubBId}/members`,
+      `/api/organizations/${organizationAlias}/clubs/${clubBId}/members`,
     );
     expect(listed.statusCode).toBe(200);
   });
@@ -212,7 +214,7 @@ describe('Club Portal (integration)', () => {
 
     const team = await post(
       'clubAdminA',
-      `/organizations/${organizationAlias}/clubs/${clubAId}/teams`,
+      `/api/organizations/${organizationAlias}/clubs/${clubAId}/teams`,
       {
         name: 'Club A First Team',
       },
@@ -222,7 +224,7 @@ describe('Club Portal (integration)', () => {
 
     const submitted = await post(
       'clubAdminA',
-      `/organizations/${organizationAlias}/clubs/${clubAId}/tournaments/${tournamentAlias}/registrations`,
+      `/api/organizations/${organizationAlias}/clubs/${clubAId}/tournaments/${tournamentAlias}/registrations`,
       { teamId, members: [{ personId: player.personId, role: 'player' }] },
     );
     expect(submitted.statusCode).toBe(201);
@@ -260,7 +262,7 @@ describe('Club Portal (integration)', () => {
     );
     const team = await post(
       'clubAdminA',
-      `/organizations/${organizationAlias}/clubs/${clubAId}/teams`,
+      `/api/organizations/${organizationAlias}/clubs/${clubAId}/teams`,
       {
         name: 'Club A Second Team',
       },
@@ -269,7 +271,7 @@ describe('Club Portal (integration)', () => {
 
     const submitted = await post(
       'clubAdminA',
-      `/organizations/${organizationAlias}/clubs/${clubAId}/tournaments/${tournamentAlias}/registrations`,
+      `/api/organizations/${organizationAlias}/clubs/${clubAId}/tournaments/${tournamentAlias}/registrations`,
       { teamId, members: [{ personId: outsider.personId }] },
     );
     expect(submitted.statusCode).toBe(404);

@@ -20,6 +20,7 @@ import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { PublicProjectionsController } from './public-projections.controller.js';
 import { TournamentsController } from './tournaments.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * The public and control-web matches-view endpoints: a flat,
@@ -73,6 +74,7 @@ describe('matches view (integration)', () => {
       imports: [MatchesViewTestModule],
     }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -117,7 +119,18 @@ describe('matches view (integration)', () => {
           customScripts: [],
           ...audit,
         });
-        const norte = await enrollment.createTeam(uow, { organizationId, name: 'Norte', ...audit });
+        const clubNorte = await enrollment.createClub(uow, {
+          organizationId,
+          alias: 'club-norte',
+          name: 'Club Norte',
+          ...audit,
+        });
+        const norte = await enrollment.createTeam(uow, {
+          organizationId,
+          clubId: clubNorte.clubId,
+          name: 'Norte',
+          ...audit,
+        });
         const sur = await enrollment.createTeam(uow, { organizationId, name: 'Sur', ...audit });
         const [home, away] = await Promise.all([
           enrollment.registerEntrant(uow, {
@@ -346,7 +359,7 @@ describe('matches view (integration)', () => {
   describe('public matches-view', () => {
     it('lists every match with the expected card fields, leaking no internal field', async () => {
       const response = await get(
-        `/organizations/${organizationAlias}/tournaments/apertura-mv/matches-view`,
+        `/api/organizations/${organizationAlias}/tournaments/apertura-mv/matches-view`,
       );
       expect(response.statusCode).toBe(200);
       const body = response.json() as { matches: readonly Record<string, unknown>[] };
@@ -355,13 +368,23 @@ describe('matches view (integration)', () => {
       const final = body.matches.find((m) => m.status === 'final');
       expect(final).toMatchObject({
         homeName: 'Norte',
+        homeClubAlias: 'club-norte',
         awayName: 'Sur',
         homeScore: 2,
         awayScore: 1,
       });
       expect(final?.clockSeconds).toBeUndefined();
-      expect(final).not.toHaveProperty('homeClubId');
+      expect(final).not.toHaveProperty('awayClubId');
+      expect(final).not.toHaveProperty('awayClubAlias');
       expect(final).not.toHaveProperty('rawTrace');
+
+      const report = await get(
+        `/api/organizations/${organizationAlias}/tournaments/apertura-mv/stages/1/matches/1`,
+      );
+      expect(report.statusCode).toBe(200);
+      const reportBody = report.json() as Record<string, unknown>;
+      expect(reportBody.homeClubAlias).toBe('club-norte');
+      expect(reportBody).not.toHaveProperty('awayClubAlias');
 
       const live = body.matches.find((m) => m.status === 'live');
       expect(live?.clockSeconds).toBeGreaterThanOrEqual(0);
@@ -371,7 +394,7 @@ describe('matches view (integration)', () => {
 
     it('filters by state', async () => {
       const response = await get(
-        `/organizations/${organizationAlias}/tournaments/apertura-mv/matches-view?state=final`,
+        `/api/organizations/${organizationAlias}/tournaments/apertura-mv/matches-view?state=final`,
       );
       expect(response.statusCode).toBe(200);
       const body = response.json() as { matches: readonly Record<string, unknown>[] };
@@ -381,7 +404,7 @@ describe('matches view (integration)', () => {
 
     it('404s a nonexistent stage', async () => {
       const response = await get(
-        `/organizations/${organizationAlias}/tournaments/apertura-mv/matches-view?stageNumber=99`,
+        `/api/organizations/${organizationAlias}/tournaments/apertura-mv/matches-view?stageNumber=99`,
       );
       expect(response.statusCode).toBe(404);
     });
@@ -390,7 +413,7 @@ describe('matches view (integration)', () => {
   describe('control-web matches-view authorization', () => {
     it('admits an organization admin', async () => {
       const response = await get(
-        `/organizations/${organizationAlias}/tournaments/apertura-mv/internal-matches-view`,
+        `/api/organizations/${organizationAlias}/tournaments/apertura-mv/internal-matches-view`,
         'admin',
       );
       expect(response.statusCode).toBe(200);
@@ -400,7 +423,7 @@ describe('matches view (integration)', () => {
 
     it('admits a tournament-admin scoped to this tournament', async () => {
       const response = await get(
-        `/organizations/${organizationAlias}/tournaments/apertura-mv/internal-matches-view`,
+        `/api/organizations/${organizationAlias}/tournaments/apertura-mv/internal-matches-view`,
         'tournament-admin-in-scope',
       );
       expect(response.statusCode).toBe(200);
@@ -408,7 +431,7 @@ describe('matches view (integration)', () => {
 
     it('refuses a tournament-admin scoped to a different tournament', async () => {
       const response = await get(
-        `/organizations/${organizationAlias}/tournaments/apertura-mv/internal-matches-view`,
+        `/api/organizations/${organizationAlias}/tournaments/apertura-mv/internal-matches-view`,
         'tournament-admin-out-of-scope',
       );
       expect(response.statusCode).toBe(403);
@@ -416,7 +439,7 @@ describe('matches view (integration)', () => {
 
     it('refuses a referee', async () => {
       const response = await get(
-        `/organizations/${organizationAlias}/tournaments/apertura-mv/internal-matches-view`,
+        `/api/organizations/${organizationAlias}/tournaments/apertura-mv/internal-matches-view`,
         'referee',
       );
       expect(response.statusCode).toBe(403);
@@ -424,7 +447,7 @@ describe('matches view (integration)', () => {
 
     it('carries no trace fields for a match with no tiebreak involved', async () => {
       const response = await get(
-        `/organizations/${organizationAlias}/tournaments/apertura-mv/internal-matches-view`,
+        `/api/organizations/${organizationAlias}/tournaments/apertura-mv/internal-matches-view`,
         'admin',
       );
       const body = response.json() as { matches: readonly Record<string, unknown>[] };

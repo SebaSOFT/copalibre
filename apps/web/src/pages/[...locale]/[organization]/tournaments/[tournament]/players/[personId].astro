@@ -1,32 +1,46 @@
 ---
+import { defaultStandingsLayoutCode } from '../../../../../../lib/public-tournament-navigation.ts';
 import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
+import Container from '../../../../../../components/ui/atoms/layout/Container.astro';
 import PlayerProfileView from '../../../../../../components/ui/organisms/PlayerProfileView.astro';
 import {
+  fetchMatchesView,
   fetchOverview,
   fetchPlayerProfile,
   fetchPlayerStatistics,
   fetchPublicTableLayouts,
+  mapMatchesViewResponse,
   mapOverviewResponse,
 } from '../../../../../../lib/public-api-client.ts';
 import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
-import { publicIntl } from '../../../../../../lib/i18n/public-intl.ts';
+import {
+  currentTournamentHistoryEntry,
+  findPlayerNextMatch,
+  resolveNextMatchOpponent,
+} from '../../../../../../lib/player-profile.ts';
+import { publicIntl, sideSourceLabels } from '../../../../../../lib/i18n/public-intl.ts';
 import { messages } from '../../../../../../lib/i18n/public-messages.en.ts';
 import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../../../lib/locale.ts';
+import { isPublicLocaleSegment } from '../../../../../../lib/public-route-guards.ts';
 
 export const prerender = false;
 
 const { locale, organization, tournament, personId } = Astro.params;
+if (!isPublicLocaleSegment(locale)) {
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvePathLocale(Astro.url.pathname)));
+}
 const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
 const intl = publicIntl(resolvedLocale);
 
 const [overviewData, profile, tableLayouts] = await Promise.all([
   fetchOverview(organization!, tournament!),
   fetchPlayerProfile(organization!, tournament!, personId!),
-  fetchPublicTableLayouts(organization!, tournament!),
+  fetchPublicTableLayouts(organization!, tournament!).catch(() => undefined),
 ]);
 
 if (!overviewData || !profile) {
-  return Astro.rewrite('/404');
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
 }
 
 // Every effective layout a spectator could select the drilldown by — never
@@ -40,25 +54,63 @@ const activeStatisticsLayout =
   (requestedLayoutCode
     ? statisticsLayouts.find((one) => one.code === requestedLayoutCode)
     : undefined) ?? statisticsLayouts[0];
-const statistics = activeStatisticsLayout
-  ? await fetchPlayerStatistics(organization!, tournament!, personId!, activeStatisticsLayout.code)
-  : undefined;
+const currentHistory = currentTournamentHistoryEntry(profile.competitionHistory, tournament);
+const [statistics, matchesViewData] = await Promise.all([
+  activeStatisticsLayout
+    ? fetchPlayerStatistics(organization!, tournament!, personId!, activeStatisticsLayout.code)
+    : Promise.resolve(undefined),
+  currentHistory?.entrantId
+    ? fetchMatchesView(organization!, tournament!, { state: 'all' })
+    : Promise.resolve(undefined),
+]);
 
-const model = buildOverview(mapOverviewResponse(overviewData));
+const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const standingsLayoutCode = defaultStandingsLayoutCode(tableLayouts?.layouts ?? []);
 const title = `${profile.displayName} — ${displayName(model)}`;
 const localePrefix = locale ? `/${locale}` : '';
 const tournamentCanonicalPath = `${localePrefix}${model.canonicalPath}`;
 const canonicalPath = `${tournamentCanonicalPath}/players/${personId}`;
+const referenceDate = Date.now();
+const mappedMatches = matchesViewData
+  ? mapMatchesViewResponse(
+      matchesViewData,
+      intl.formatMessage(messages.personHiddenAtRequest),
+      resolvedLocale,
+    ).matches
+  : [];
+const nextMatchCandidate = currentHistory?.entrantId
+  ? findPlayerNextMatch(mappedMatches, currentHistory.entrantId)
+  : undefined;
+const nextMatch = nextMatchCandidate
+  ? {
+      ...(nextMatchCandidate.match.scheduledAt === undefined
+        ? {}
+        : { scheduledAt: nextMatchCandidate.match.scheduledAt }),
+      opponent: resolveNextMatchOpponent(
+        nextMatchCandidate.match,
+        nextMatchCandidate.side,
+        sideSourceLabels(intl),
+      ),
+      ...(nextMatchCandidate.match.venueName === undefined
+        ? {}
+        : { venueName: nextMatchCandidate.match.venueName }),
+      state: nextMatchCandidate.match.state,
+      href: `${tournamentCanonicalPath}/stages/${nextMatchCandidate.match.stageNumber}/matches/${nextMatchCandidate.match.matchNumber}`,
+    }
+  : undefined;
 ---
 
 <PublicLayout
+  tournamentHasClubs={(model.clubs ?? []).length > 0}
+  tournamentStages={model.stages}
+  standingsLayoutCode={standingsLayoutCode}
   title={title}
   description={intl.formatMessage(messages.playerProfileHeading)}
   canonicalPath={canonicalPath}
   intl={intl}
   disciplineImages={overviewData.disciplineImages}
 >
-  <main class="cl-player-profile-page">
+  <Container class="cl-player-profile-page" variant="public">
     <nav class="cl-player-profile-page__back">
       <a href={tournamentCanonicalPath}>
         {intl.formatMessage(messages.playerProfileBackTo, { name: displayName(model) })}
@@ -67,28 +119,30 @@ const canonicalPath = `${tournamentCanonicalPath}/players/${personId}`;
     <div class="cl-card">
       <PlayerProfileView
         organizationAlias={organization!}
+        tournamentAlias={tournament!}
         profile={profile}
         intl={intl}
         canonicalPath={tournamentCanonicalPath}
         statisticsLayouts={statisticsLayouts}
         activeStatisticsLayoutCode={activeStatisticsLayout?.code}
         statistics={statistics}
+        nextMatch={nextMatch}
+        organizationTimeZone={model.organizationTimeZone}
+        referenceDate={referenceDate}
       />
     </div>
-  </main>
+  </Container>
 </PublicLayout>
 
 <style>
   .cl-player-profile-page {
-    max-width: 800px;
-    margin: 32px auto;
-    padding: 0 16px;
+    margin-block: var(--cl-space-8);
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--cl-space-4);
   }
   .cl-player-profile-page__back a {
-    color: var(--cl-primary);
+    color: var(--cl-text-accent);
     text-decoration: none;
     font-weight: 500;
   }

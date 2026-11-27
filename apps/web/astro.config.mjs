@@ -1,10 +1,12 @@
 // @ts-check
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import starlight from '@astrojs/starlight';
 import starlightLlmsTxt from 'starlight-llms-txt';
 
 import node from '@astrojs/node';
+import cspStaticInlineHashes from './integrations/csp-static-inline-hashes.mjs';
 
 const site = process.env.COPALIBRE_SITE ?? 'http://localhost:4321';
 const siteHostname = new URL(site).hostname;
@@ -21,6 +23,29 @@ export default defineConfig({
   // public broadcast pages that must remain useful without it. ClientRouter
   // continues to handle documentation navigation after a click.
   prefetch: false,
+  // Build-time half of the Content Security Policy: Astro hashes every inline
+  // script and style it renders and writes them into a <meta> policy on each
+  // page, prerendered or on demand. The web role's Caddy sends the other half
+  // as a header (connections, frames, framing ancestors, the identity
+  // provider's origin), which only the running installation knows. A browser
+  // enforces both, so an inline script runs only when the build hashed it.
+  // No 'unsafe-inline' for scripts: Astro would then drop the hashes.
+  security: {
+    csp: {
+      algorithm: 'SHA-256',
+      scriptDirective: {
+        // Background removal (onnxruntime) and help search (Pagefind) compile WASM.
+        resources: ["'self'", "'wasm-unsafe-eval'"],
+      },
+      styleDirective: {
+        // Inline styles are allowed, elements and attributes alike: the build
+        // renders about 30,000 style attributes and Control renders <style>
+        // elements at runtime. A style cannot run code, and with images, fonts
+        // and connections limited to this origin it has no way to send data out.
+        resources: ["'self'", "'unsafe-inline'"],
+      },
+    },
+  },
   integrations: [
     {
       name: 'copalibre-local-preview',
@@ -32,11 +57,38 @@ export default defineConfig({
               entrypoint: './src/preview/AstroPreview.astro',
               prerender: false,
             });
+            const locales = ['', '/es', '/fr', '/pt', '/it', '/de', '/ru', '/zh'];
+            const helpRoutes = locales.flatMap((locale) => [
+              `${locale}/help/`,
+              `${locale}/help/api-reference/`,
+            ]);
+            for (const pattern of helpRoutes) {
+              injectRoute({
+                pattern,
+                entrypoint: './src/dev/HelpUnavailable.astro',
+                prerender: false,
+              });
+            }
           }
         },
       },
     },
+    {
+      // Islands that only enhance server-rendered content hydrate after the first paint.
+      name: 'copalibre-client-directives',
+      hooks: {
+        'astro:config:setup': ({ addClientDirective }) => {
+          addClientDirective({
+            name: 'after-paint',
+            entrypoint: fileURLToPath(
+              new URL('./src/client-directives/after-paint.ts', import.meta.url),
+            ),
+          });
+        },
+      },
+    },
     react(),
+    cspStaticInlineHashes(),
     starlight({
       title: 'CopaLibre Help',
       description: 'Operator documentation for self-hosted CopaLibre tournaments.',
@@ -202,19 +254,21 @@ export default defineConfig({
     }),
   ],
   vite: {
+    build: {
+      // Never inline a font as a data: URI: the Content Security Policy serves
+      // fonts from this origin only (font-src 'self'). Other small assets keep
+      // Vite's default inlining.
+      assetsInlineLimit: (filePath) => (/\.woff2?$/.test(filePath) ? false : undefined),
+    },
     server: {
       // Vite already allows localhost and IP addresses. Allow the one custom
       // hostname configured for this local site without accepting every host.
       allowedHosts: [siteHostname],
+      // Same-origin in development too, so the HttpOnly session cookie reaches
+      // the API and the event streams exactly as it does in production.
       proxy: {
-        '/auth': 'http://localhost:3001',
-        '/organizations': 'http://localhost:3001',
-        '/disciplines': 'http://localhost:3001',
-        '/tournament-profiles': 'http://localhost:3001',
-        '/admin': 'http://localhost:3001',
-        '/installation': 'http://localhost:3001',
-        '/objects': 'http://localhost:3001',
         '/api': 'http://localhost:3001',
+        '/events': 'http://localhost:3002',
       },
     },
   },

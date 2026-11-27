@@ -60,18 +60,62 @@ export const BreadcrumbCollapsed: Story = {
   args: { component: 'breadcrumb-collapsed', height: 120 },
 };
 
-/** The compact club filter: initials stand in without an emblem, and the selected chip carries a check and a fill. */
+export const PageHeader: Story = {
+  args: { component: 'page-header', height: 240 },
+};
+
+/** Public and reading containers rendered by Astro at their production widths. */
+export const ContainerWidths: Story = {
+  args: { component: 'container', height: 460 },
+};
+
+/** Five-letter abbreviations in the placeholder tile at 48, 32 and 24 pixels: each fits its frame. */
+export const LongAbbreviationMonograms: Story = {
+  args: { component: 'emblem-image-long-abbreviation', height: 320 },
+};
+
+/** A club's crest, name and abbreviation: plain content, then the same block as a link. */
+export const ClubIdentity: Story = {
+  args: { component: 'club-identity', height: 160 },
+};
+
+/** A section heading with and without its action link and count. */
+export const SectionHeader: Story = {
+  args: { component: 'section-header', height: 160 },
+};
+
+/** The owned form and field atoms a GET filter is built from, with the submit control beside them. */
+export const FormAndInput: Story = {
+  args: { component: 'form', height: 160 },
+};
+
+/** A search field as the owned input atom renders it. */
+export const InputField: Story = {
+  args: { component: 'input', height: 120 },
+};
+
+/** The vertical section stack at its two spacing steps. */
+export const Stack: Story = {
+  args: { component: 'stack', height: 220 },
+};
+
+/** The compact club filter: stored abbreviations stand in without an emblem, and selection carries a check and a fill. */
 export const ClubFilterChips: Story = {
   args: { component: 'club-filter-chip', height: 120 },
 };
 
 /**
  * Abbreviated headers carry their full wording (hover or focus a header; the legend below the table
- * repeats it for touch), and the club filter is a row of compact chips: emblem or initials, selected
+ * repeats it for touch), and the club filter is a row of compact chips: emblem or stored abbreviation, selected
  * state by fill, border and check.
  */
 export const StandingsTableHints: Story = {
   args: { component: 'standings-table', height: 760 },
+};
+
+/** A stored promotion plan adds the qualification column, row rails and seed legend. */
+export const StandingsTablePromotionBands: Story = {
+  args: { component: 'standings-table-promotion', height: 760 },
 };
 
 /** A podium squeezed into a quarter-width card stacks its placings instead of breaking names. */
@@ -120,7 +164,7 @@ export const ScoreTickerStale: Story = {
 };
 
 /**
- * Public spectator navigation: Home and locale selection, without operator help.
+ * Public spectator navigation with the active tournament section and locale selection.
  *
  * With the frame below 768px the menu expands into the page: the content
  * beneath it moves down instead of being covered. Reload with JavaScript
@@ -134,6 +178,11 @@ export const PublicHeader: Story = {
 /** A 4:5 transparent emblem contained within a square chamfer-safe frame. */
 export const EmblemImage: Story = {
   args: { component: 'emblem-image', height: 180 },
+};
+
+/** Missing and failed emblems show only stored abbreviations that fit, otherwise the shield. */
+export const EmblemImageFallbacks: Story = {
+  args: { component: 'emblem-image-fallbacks', height: 140 },
 };
 
 /** The schedule: group tables with round sub-headings, then a cup drawn as its bracket. */
@@ -226,4 +275,56 @@ export const BracketJourneyChampion: Story = {
 };
 export const BracketJourneyEliminated: Story = {
   args: { component: 'bracket-journey-eliminated', height: 640 },
+};
+
+export const EmptyState: Story = { args: { component: 'empty-state', height: 340 } };
+
+/** The launcher's final address, its copy control and a 16:9 preview of the transparent overlay it opens. */
+export const TvLauncherLinkPreview: Story = {
+  args: { component: 'tv-launcher-link-preview', height: 420 },
+};
+
+/** The tournament overview's breadcrumb, display title and read-model facts. */
+export const TournamentOverviewHero: Story = {
+  args: { component: 'tournament-overview-hero', height: 320 },
+};
+
+/** Live, upcoming and latest-final cards rendered as one state-led strip. */
+export const TournamentNowStrip: Story = {
+  args: { component: 'tournament-now-strip', height: 760 },
+};
+
+/** One result card per placement tier, with the champion and placing rows. */
+export const TournamentHonourBoard: Story = {
+  args: { component: 'tournament-honour-board', height: 760 },
+};
+
+/** A single-zone finish still honours the winner without presenting a multi-zone podium. */
+export const TournamentHonourBoardSingleTier: Story = {
+  args: { component: 'tournament-honour-board-single', height: 460 },
+};
+
+/** A full-width public match selected by the schedule's featured-match rule. */
+export const FeaturedMatchCard: Story = {
+  args: { component: 'featured-match-card', height: 420 },
+};
+
+/** The organization time-zone note placed near public schedule headings. */
+export const TimeZoneNote: Story = {
+  args: { component: 'time-zone-note', height: 100 },
+};
+
+/** Compact GET search form with a magnifying-glass submit button. */
+export const SearchInput: Story = {
+  args: { component: 'search-input', height: 120 },
+};
+
+/** Sort-direction indicator glyph in ascending, descending and neutral states. */
+export const SortIndicator: Story = {
+  args: { component: 'sort-indicator', height: 100 },
+};
+
+/** Server-rendered select control for public filter bars. */
+export const Select: Story = {
+  args: { component: 'select', height: 100 },
 };

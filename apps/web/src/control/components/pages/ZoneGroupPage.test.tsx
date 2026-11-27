@@ -45,7 +45,7 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('ZoneGroupPage', () => {
-  it('renders within ListScreenLayout structure and displays zones and groups', async () => {
+  it('renders within the page-header template and displays zones and groups as cards', async () => {
     const { container } = render(
       withIntl(
         <ZoneGroupPage
@@ -58,9 +58,10 @@ describe('ZoneGroupPage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /zones and groups/i }));
-    expect(container.querySelector('.cl-list-screen')).not.toBeNull();
-    expect(container.querySelector('.cl-list-screen__header')).not.toBeNull();
-    expect(container.querySelector('.cl-list-screen__listing')).not.toBeNull();
+    await screen.findAllByText('Zona Campeonato');
+    expect(container.querySelector('.cl-page-header-template')).not.toBeNull();
+    expect(container.querySelector('.cl-page-header')).not.toBeNull();
+    expect(container.querySelectorAll('.cl-zone-group__card').length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText('Zona Campeonato').length).toBeGreaterThanOrEqual(1);
   });
 
@@ -77,9 +78,109 @@ describe('ZoneGroupPage', () => {
     );
 
     await waitFor(() => screen.getByRole('heading', { level: 1, name: /zones and groups/i }));
+    await screen.findAllByText('Zona Campeonato');
     expect(screen.getByRole('link', { name: 'Stage 1' }).getAttribute('href')).toBe(
       '/control/liga-mendocina/tournaments/apertura-2026/stages/1',
     );
+  });
+
+  it("names the stage hub in its breadcrumb by the stage's own name", async () => {
+    render(
+      withIntl(
+        <ZoneGroupPage
+          client={{
+            ...stubClient(),
+            listStages: async () => [
+              {
+                stageId: 's1',
+                seasonId: 'x',
+                number: 1,
+                name: 'Fase de grupos',
+                format: 'round-robin',
+              },
+            ],
+          }}
+          organizationAlias="liga-mendocina"
+          stageNumber={1}
+          tournamentAlias="apertura-2026"
+        />,
+      ),
+    );
+
+    await waitFor(() => screen.getByRole('heading', { level: 1, name: /zones and groups/i }));
+    expect(await screen.findByRole('link', { name: 'Fase de grupos' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Stage 1' })).toBeNull();
+  });
+
+  describe('group footer', () => {
+    const matchOf = (groupName: string, venueName?: string, zoneName = 'Zona Campeonato') => ({
+      matchId: `${groupName}-${venueName ?? 'none'}-${Math.random()}`,
+      stageNumber: 1,
+      matchNumber: 1,
+      state: 'upcoming',
+      zoneName,
+      groupName,
+      ...(venueName === undefined ? {} : { venueName }),
+    });
+
+    function renderPage(overrides: Partial<ControlApiClient>): void {
+      render(
+        withIntl(
+          <ZoneGroupPage
+            client={stubClient(overrides)}
+            organizationAlias="liga-mendocina"
+            stageNumber={1}
+            tournamentAlias="apertura-2026"
+          />,
+        ),
+      );
+    }
+
+    it('counts the group matches and names the venue they share', async () => {
+      renderPage({
+        fetchMatchesView: () =>
+          Promise.resolve({
+            matches: [
+              matchOf('Grupo A', 'Aldo Cantoni'),
+              matchOf('Grupo A', 'Aldo Cantoni'),
+              matchOf('Grupo A', 'Aldo Cantoni'),
+              // Another zone's group of the same name never counts here.
+              matchOf('Grupo A', 'Estadio Norte', 'Zona Plata'),
+            ],
+          }),
+      } as unknown as Partial<ControlApiClient>);
+
+      expect(await screen.findByText('3 matches · Aldo Cantoni')).toBeDefined();
+    });
+
+    it('counts venues when the matches use several', async () => {
+      renderPage({
+        fetchMatchesView: () =>
+          Promise.resolve({
+            matches: [matchOf('Grupo A', 'Aldo Cantoni'), matchOf('Grupo A', 'Estadio Norte')],
+          }),
+      } as unknown as Partial<ControlApiClient>);
+
+      expect(await screen.findByText('2 matches · 2 venues')).toBeDefined();
+    });
+
+    it('says a group has no matches yet when the view names none for it', async () => {
+      renderPage({
+        fetchMatchesView: () => Promise.resolve({ matches: [matchOf('Grupo B', 'Aldo Cantoni')] }),
+      } as unknown as Partial<ControlApiClient>);
+
+      expect(await screen.findByText('No matches yet')).toBeDefined();
+    });
+
+    it('claims nothing about fixtures when the matches view cannot be read', async () => {
+      renderPage({
+        fetchMatchesView: () => Promise.reject(new Error('matches view unavailable')),
+      } as unknown as Partial<ControlApiClient>);
+
+      await screen.findAllByText('Grupo A');
+      await waitFor(() => expect(screen.queryByText('No matches yet')).toBeNull());
+      expect(screen.queryByText(/matches?$/)).toBeNull();
+    });
   });
 
   it('reports an error when renaming a zone fails', async () => {
@@ -100,7 +201,7 @@ describe('ZoneGroupPage', () => {
     fireEvent.change(screen.getByLabelText('Rename zone Zona Campeonato'), {
       target: { value: 'Zona Renombrada' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rename zone' }));
 
     expect(await screen.findByText('The request could not be completed. Try again.')).toBeDefined();
   });
@@ -148,7 +249,7 @@ describe('ZoneGroupPage', () => {
     await waitFor(() => screen.getAllByText('Zona Campeonato'));
     const input = screen.getByLabelText('Rename zone Zona Campeonato') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'Zona Campeonato (corregida)' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rename zone' }));
 
     await waitFor(() => expect(renameZone).toHaveBeenCalled());
     expect(renameZone).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 1, 1, {
@@ -202,7 +303,7 @@ describe('ZoneGroupPage', () => {
     await waitFor(() => screen.getAllByText('Grupo A'));
     const input = screen.getByLabelText('Rename group Grupo A') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'Grupo A (corregido)' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rename group' }));
 
     await waitFor(() => expect(renameGroup).toHaveBeenCalled());
     expect(renameGroup).toHaveBeenCalledWith('liga-mendocina', 'apertura-2026', 1, 1, 1, {

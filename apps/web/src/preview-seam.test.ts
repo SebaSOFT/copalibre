@@ -49,13 +49,8 @@ describe('the Astro preview route', () => {
     expect(route).toContain('noindex');
   });
 
-  it('proxies tournament authoring catalog reads to the API in development', () => {
-    expect(config).toMatch(/['"]\/disciplines['"]:\s*['"]http:\/\/localhost:3001['"]/);
-    expect(config).toMatch(/['"]\/tournament-profiles['"]:\s*['"]http:\/\/localhost:3001['"]/);
-  });
-
-  it('proxies emblem and discipline-image requests to the API in development', () => {
-    expect(config).toMatch(/['"]\/organizations['"]:\s*['"]http:\/\/localhost:3001['"]/);
-    expect(config).toMatch(/['"]\/objects['"]:\s*['"]http:\/\/localhost:3001['"]/);
+  it('proxies the API in development with one rule', () => {
+    expect(config).toMatch(/['"]\/api['"]:\s*['"]http:\/\/localhost:3001['"]/);
+    expect(config).not.toMatch(/['"]\/organizations['"]:/);
   });
 });

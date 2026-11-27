@@ -1,0 +1,265 @@
+/* 1. Score-bug / Top Status Bar */
+.tv-scorebug {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--tv-bg-surface);
+  border: 1px solid var(--tv-border);
+  padding: 1.2vmin 2.5vmin;
+  /* A fixed block size: a rotation or a late clock never moves the header or the panels under it. */
+  box-sizing: border-box;
+  block-size: 14vmin;
+  overflow: hidden;
+}
+
+.tv-scorebug__left {
+  display: flex;
+  align-items: center;
+  gap: 2vmin;
+}
+
+.tv-scorebug__brand-logo {
+  max-height: 5vmin;
+  max-width: 12vmin;
+  object-fit: contain;
+}
+
+.tv-scorebug__titles {
+  display: flex;
+  flex-direction: column;
+}
+
+.tv-scorebug__tournament {
+  font-family: var(--cl-font-display);
+  font-size: clamp(1.4rem, 2.8vmin, 2.5rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tv-text-primary);
+  line-height: 1.1;
+}
+
+.tv-scorebug__org {
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.75rem, 1.4vmin, 1rem);
+  color: var(--tv-text-secondary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tv-scorebug__right {
+  display: flex;
+  align-items: center;
+  gap: 2vmin;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.tv-match-indicators {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--cl-space-2);
+}
+
+.tv-match-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cl-space-2);
+  padding: var(--cl-space-2) var(--cl-space-3);
+  background-color: var(--cl-color-ink-950);
+  border: 1px solid currentColor;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-xs), 1.5vmin, var(--cl-font-size-base));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tv-match-indicator--possession {
+  color: var(--cl-state-positive);
+}
+
+.tv-match-indicator--penalty {
+  color: var(--cl-state-upcoming);
+}
+
+.tv-match-indicator__label {
+  text-transform: uppercase;
+}
+
+.tv-match-counters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cl-space-4);
+}
+
+/* One side's counters. The side label and its values sit closer together than two sides do. */
+.tv-match-counter-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cl-space-2);
+}
+
+.tv-match-counter-cluster__side {
+  color: var(--cl-text-secondary);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-xs), 1.5vmin, var(--cl-font-size-base));
+  font-weight: 700;
+  letter-spacing: var(--cl-tracking-wide);
+  text-transform: uppercase;
+}
+
+.tv-match-counter {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--cl-space-2) var(--cl-space-3);
+  background-color: var(--cl-color-ink-950);
+  border: 1px solid currentColor;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-xs), 1.5vmin, var(--cl-font-size-base));
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tv-match-counters--full .tv-match-counter {
+  font-size: clamp(var(--cl-font-size-sm), 1.8vmin, var(--cl-font-size-lg));
+}
+
+.tv-match-counter--warning {
+  color: var(--cl-state-warning);
+}
+
+.tv-match-counter__cue {
+  font-weight: 900;
+}
+
+.tv-scorebug__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8vmin;
+  padding: 0.5vmin 1.5vmin;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.8rem, 1.6vmin, 1.1rem);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--tv-bg-elevated);
+  border: 1px solid var(--tv-border);
+}
+
+.tv-scorebug__badge--live {
+  background: color-mix(in srgb, var(--cl-state-destructive) 15%, transparent);
+  border-color: var(--tv-live-red);
+  /* Red on its own tint falls below AA; the border and the tint carry the signal. */
+  color: var(--cl-text-primary);
+}
+
+.tv-scorebug__badge--final {
+  background: color-mix(in srgb, var(--cl-primary) 12%, transparent);
+  border-color: var(--tv-live-cyan);
+  color: var(--cl-primary);
+}
+
+.tv-scorebug__badge--upcoming {
+  background: color-mix(in srgb, var(--cl-state-upcoming) 15%, transparent);
+  border-color: color-mix(in srgb, var(--cl-state-upcoming) 40%, transparent);
+  color: var(--cl-state-upcoming);
+}
+
+.tv-scorebug__badge--delayed {
+  background: color-mix(in srgb, var(--cl-state-warning) 15%, transparent);
+  border-color: color-mix(in srgb, var(--cl-state-warning) 40%, transparent);
+  color: var(--cl-state-warning);
+}
+
+/* A match that has not started, in the place its score would be: kickoff, then court. */
+.tv-start-time {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8vmin;
+  font-family: var(--cl-font-mono);
+}
+
+.tv-start-time__when {
+  font-size: var(--tv-min-clock-size);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.tv-start-time__court {
+  font-size: var(--tv-min-secondary-size);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cl-text-secondary);
+}
+
+.tv-scorebug__dot {
+  width: 1vmin;
+  height: 1vmin;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.tv-scorebug__clock {
+  font-family: var(--cl-font-mono);
+  font-size: max(var(--tv-min-clock-size), 1.8vmin);
+  font-weight: 600;
+  color: var(--tv-text-secondary);
+  letter-spacing: 0.05em;
+}
+
+.tv-scorebug__game-clock {
+  color: var(--tv-live-cyan);
+  font-size: max(var(--tv-min-clock-size), 6vmin);
+}
+
+.tv-scorebug__wall-clock-group {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.8vmin;
+}
+
+.tv-scorebug__clock--wall {
+  font-size: 3vmin;
+}
+
+.tv-match-spotlight__clock {
+  color: var(--tv-live-cyan);
+  font-size: max(var(--tv-min-clock-size), 6vmin);
+}
+
+.tv-dashboard-match__clock {
+  color: var(--tv-live-cyan);
+  font-size: clamp(1rem, 2.4vmin, 1.8rem);
+}
+
+.cl-live-clock--tv .cl-live-clock__segment {
+  font-size: max(var(--tv-min-secondary-size), 0.45em);
+  color: var(--tv-text-secondary);
+}
+
+.cl-live-clock--tv .cl-live-clock__stopped {
+  font-size: 0.4em;
+  color: var(--cl-state-warning);
+}
+
+.tv-scorebug__clock-zone {
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-xs), 1.2vmin, var(--cl-font-size-sm));
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tv-scorebug__clock--finished {
+  font-size: clamp(0.9rem, 1.8vmin, 1.3rem);
+}
+
+.tv-scorebug__clock::after {
+  content: attr(data-time);
+}

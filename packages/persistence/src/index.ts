@@ -10,6 +10,7 @@ export {
   createDatabase,
   databaseConfigFromEnv,
   databasePoolMetrics,
+  migrationDatabaseConfigFromEnv,
   type DatabaseConfig,
 } from './database.js';
 export {
@@ -18,10 +19,16 @@ export {
   type RealtimeSummary,
 } from './realtime-replicas.js';
 export { newId } from './ids.js';
+export { lockRowsForMutation } from './row-lock.js';
+export {
+  ReversibleRemovalRepository,
+  type ReversibleRemovalPurgeCounts,
+} from './repositories/reversible-removal-repository.js';
 
 export {
   PersistenceError,
   InvariantViolationError,
+  ScheduleReasonRequiredError,
   SchemaVersionMismatchError,
   NotFoundError,
 } from './errors.js';
@@ -46,6 +53,24 @@ export {
   readAppliedSchemaVersion,
   isSchemaReady,
 } from './migrations/index.js';
+export {
+  applyRuntimeGrants,
+  RUNTIME_ROLE,
+  MIGRATION_BOOKKEEPING_TABLES,
+  APPEND_ONLY_TABLES,
+} from './migrations/runtime-grants.js';
+export {
+  applyDatabaseRoles,
+  databaseRolePasswordsFromEnv,
+  renderRolesScript,
+  type DatabaseRolePasswords,
+} from './database-roles.js';
+export {
+  runtimePrivilegeProblems,
+  RUNTIME_PRIVILEGE_WARNING,
+  warnWhenRuntimeCredentialIsPrivileged,
+  createRuntimeDatabase,
+} from './runtime-privileges.js';
 
 export {
   AuditReader,
@@ -73,6 +98,9 @@ export {
 export {
   InstallationRoleRepository,
   type CreateSuperAdminInput,
+  type FirstSuperAdminOutcome,
+  type FirstSuperAdminRefusal,
+  type GrantFirstSuperAdminInput,
   type ChangeInstallationRoleStatusInput,
   type DeleteInstallationRoleInput,
 } from './repositories/installation-role-repository.js';
@@ -118,18 +146,65 @@ export {
   type CreateTournamentInput,
   type CreateRulesetInput,
 } from './repositories/tournament-repository.js';
+export { DisciplineDescriptorRepository } from './repositories/tournament/discipline-descriptor-repository.js';
+export { RulesetRepository } from './repositories/tournament/ruleset-repository.js';
+export { TournamentLifecycleRepository } from './repositories/tournament/tournament-lifecycle-repository.js';
+export { TournamentQueryRepository } from './repositories/tournament/tournament-queries.js';
 export {
   EnrollmentRepository,
   type AuditContext,
   type ParticipantReportedResult,
   type ParticipantTeamMembership,
 } from './repositories/enrollment-repository.js';
+export { ClubTeamRepository } from './repositories/enrollment/club-team-repository.js';
+export { EntrantRepository } from './repositories/enrollment/entrant-repository.js';
+export { ParticipantQueryRepository } from './repositories/enrollment/participant-queries.js';
+export { EntrantNameRepository } from './repositories/enrollment/entrant-names.js';
 export { CompetitionRepository } from './repositories/competition-repository.js';
+export { SeasonRepository } from './repositories/competition/season-repository.js';
+export { ZoneGroupRepository } from './repositories/competition/zone-group-repository.js';
+export { PromotionPlanRepository } from './repositories/competition/promotion-plan-repository.js';
+export { DrawRepository } from './repositories/competition/draw-repository.js';
+export { FixtureRepository } from './repositories/competition/fixture-repository.js';
+export { FixtureSurplusRepository } from './repositories/competition/fixture-surplus-repository.js';
+export { StageRepository } from './repositories/competition/stage-repository.js';
+export { MatchRepository } from './repositories/competition/match-repository.js';
+export { SegmentTimerRepository } from './repositories/competition/segment-timer-repository.js';
+export { MatchEventRepository } from './repositories/competition/match-event-repository.js';
+export { MatchRosterRepository } from './repositories/competition/match-roster-repository.js';
+export {
+  isPersistedGraph,
+  type FixtureGraphBracket,
+  type FixtureGraphSlotSource,
+  type PersistedFixtureNode,
+  type PersistedFixtureResolution,
+  type PersistedNodeOutcome,
+  type QualifierEntrants,
+  type ResolvedFixtureSide,
+  type ZoneEntrantResolver,
+  type ZoneResolutionInput,
+  type ZoneSeriesLookup,
+} from './fixture-graph.js';
+export {
+  ZoneEntrantResolution,
+  type ZoneEntrantResolutionOutcome,
+} from './zone-entrant-resolution.js';
 export {
   ScheduleRepository,
   type SchedulePreview,
   type ScheduleAssignmentDetail,
+  type ScheduleBatch,
+  type SchedulePlacement,
+  type SchedulePlacementHistory,
+  type ScheduleReason,
+  type ScheduleWithdrawal,
+  type OrganizationScheduleEntry,
 } from './repositories/schedule-repository.js';
+export { VenueRepository } from './repositories/schedule/venue-repository.js';
+export { OfficialRepository } from './repositories/schedule/official-repository.js';
+export { ScheduleQueryRepository } from './repositories/schedule/schedule-queries.js';
+export { SchedulePublicationRepository } from './repositories/schedule/schedule-publication.js';
+export { ScheduleDefinitionRepository } from './repositories/schedule/schedule-definition-repository.js';
 export { MatchAssignmentRepository } from './repositories/match-assignment-repository.js';
 export {
   MatchCommandIdempotencyRepository,
@@ -243,3 +318,10 @@ export {
   toRecordedEvent,
   toIsoString,
 } from './mapping.js';
+export {
+  SECURITY_ALERT_ACTION,
+  recordSecurityAlert,
+  refusalBursts,
+  securityAlertRaisedSince,
+  type RefusalBurst,
+} from './security-signals.js';

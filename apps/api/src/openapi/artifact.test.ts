@@ -14,6 +14,7 @@ import { lintOpenApiContract } from './contract-lint.js';
 
 import { DiagnosticsService } from '../modules/admin/diagnostics.service.js';
 import { OutboxInspectorService } from '../modules/admin/outbox-inspector.service.js';
+import { API_PATH_PREFIX, applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 // One source for the generator, its guard and this test: three lists drifting
 // apart is how a served route goes missing from the published contract.
@@ -45,6 +46,7 @@ describe('OpenAPI artifact', () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [OpenApiTestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     generated = buildOpenApiDocument(app);
   });
@@ -61,11 +63,13 @@ describe('OpenAPI artifact', () => {
   });
 
   it('passes contract lint', () => {
-    expect(lintOpenApiContract(generated, collectRoutePlanes(CONTROLLERS))).toEqual([]);
+    expect(
+      lintOpenApiContract(generated, collectRoutePlanes(CONTROLLERS, API_PATH_PREFIX)),
+    ).toEqual([]);
   });
 
   it('declares every route with a security plane', () => {
-    const planes = collectRoutePlanes(CONTROLLERS);
+    const planes = collectRoutePlanes(CONTROLLERS, API_PATH_PREFIX);
     const routes = Object.entries(generated.paths ?? {}).flatMap(([path, item]) =>
       Object.keys(item as Record<string, unknown>)
         .filter((method) => ['get', 'post', 'put', 'patch', 'delete'].includes(method))
@@ -78,7 +82,7 @@ describe('OpenAPI artifact', () => {
   });
 
   it('advertises bearer security on authenticated routes only', () => {
-    const planes = collectRoutePlanes(CONTROLLERS);
+    const planes = collectRoutePlanes(CONTROLLERS, API_PATH_PREFIX);
     for (const [path, item] of Object.entries(generated.paths ?? {})) {
       for (const [method, operation] of Object.entries(item as Record<string, unknown>)) {
         if (!['get', 'post', 'put', 'patch', 'delete'].includes(method)) continue;

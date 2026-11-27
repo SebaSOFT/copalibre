@@ -18,8 +18,11 @@ export interface TvStatisticsLabels {
   readonly pointsShort: string;
   /** Stands in for a competitor the projection could not name; `{reference}`. */
   readonly unnamedActor: string;
+  readonly hiddenPerson: string;
   readonly scheduledMatches: string;
   readonly status: string;
+  /** The four tournament states, named the way the header badges name them. */
+  readonly statusLabels: Readonly<Record<TvTournamentState, string>>;
   readonly inProgress: string;
   readonly matchesPlayed: string;
   readonly totalScored: string;
@@ -53,6 +56,7 @@ export interface TopPerformer {
   readonly name: string;
   readonly clubName?: string;
   readonly clubAbbreviation?: string;
+  readonly clubId?: string;
   readonly clubEmblemUrl?: string;
   readonly nationalityCode?: string;
   readonly statLabel: string;
@@ -71,6 +75,24 @@ export interface ChampionInfo {
   readonly emblemUrl?: string;
   readonly title: string;
   readonly record?: string;
+}
+
+export type TvTournamentState = 'scheduled' | 'live' | 'inProgress' | 'finished';
+
+/**
+ * The one tournament status every TV piece reads: the header badge, the overlay badge and the facts
+ * tile. A forfeit is stored as a final match, so "finished" is every match final.
+ *
+ * A match whose kickoff has passed without a result is still scheduled here; the per-match delayed
+ * state is a view-level presentation layered on top by the caller.
+ */
+export function tvTournamentState(
+  matches: readonly { readonly state: string }[],
+): TvTournamentState {
+  if (matches.length > 0 && matches.every((match) => match.state === 'final')) return 'finished';
+  if (matches.some((match) => match.state === 'live')) return 'live';
+  if (matches.some((match) => match.state === 'final')) return 'inProgress';
+  return 'scheduled';
 }
 
 function extractScores(match: LiveMatch | OverviewMatch, labels: TvStatisticsLabels) {
@@ -112,7 +134,7 @@ export function deriveTopPerformers(
   language: SupportedLanguage,
   tableProjection?: TableProjectionResponse,
   standings?: readonly StandingsRowView[],
-  clubs?: readonly { name: string; emblemUrl?: string }[],
+  clubs?: readonly { clubId?: string; name: string; emblemUrl?: string }[],
 ): readonly TopPerformer[] {
   if (tableProjection && tableProjection.rows.length > 0) {
     const column = primaryColumn(tableProjection);
@@ -125,27 +147,26 @@ export function deriveTopPerformers(
     return tableProjection.rows.slice(0, 5).map((row) => {
       const cell = row.cells[primaryCol];
       // `actorName` is the row's own identity (the performer, whatever the
-      // granularity); `entrantName` is its *affiliation* — the club a
-      // person played for, or a team row's own name again. Matching the
-      // club lookup against `entrantName` rather than the performer's own
-      // name is what makes it actually resolve for a person row
-      // (previously this read `row.entrantName` for both,
-      // which is never a person's own name, so a player's name always fell
-      // through to the "unnamed actor" placeholder and its club never matched).
-      const name =
-        row.actorName || fill(labels.unnamedActor, { reference: row.actorId.substring(0, 6) });
-      const clubMatch = clubs?.find(
-        (c) =>
-          row.entrantName !== undefined && c.name.toLowerCase() === row.entrantName.toLowerCase(),
-      );
+      // granularity); `entrantName` is its *affiliation* — the club a person
+      // played for, or a team row's own name again. The display label comes
+      // from `entrantName`; the image lookup uses `clubId`, never either name.
+      const hidden = row.hiddenAtRequest === true;
+      const name = hidden
+        ? labels.hiddenPerson
+        : row.actorName || fill(labels.unnamedActor, { reference: row.actorId.substring(0, 6) });
+      const clubMatch =
+        row.clubId === undefined ? undefined : clubs?.find((club) => club.clubId === row.clubId);
       const rawVal = cell?.formatted || (cell?.raw !== undefined ? String(cell.raw) : '0');
       return {
         rank: row.rank,
         name,
-        clubName: row.entrantName,
-        clubAbbreviation: row.entrantAbbreviation,
-        clubEmblemUrl: clubMatch?.emblemUrl,
-        nationalityCode: row.nationality,
+        ...(hidden || row.entrantName === undefined ? {} : { clubName: row.entrantName }),
+        ...(hidden || row.entrantAbbreviation === undefined
+          ? {}
+          : { clubAbbreviation: row.entrantAbbreviation }),
+        ...(hidden || row.clubId === undefined ? {} : { clubId: row.clubId }),
+        ...(hidden ? {} : { clubEmblemUrl: clubMatch?.emblemUrl }),
+        ...(hidden ? {} : { nationalityCode: row.nationality }),
         statLabel: statHeader,
         statValue: rawVal,
       };
@@ -154,11 +175,14 @@ export function deriveTopPerformers(
 
   if (standings && standings.length > 0) {
     return standings.slice(0, 3).map((s) => {
-      const clubMatch = clubs?.find((c) => c.name.toLowerCase() === s.name.toLowerCase());
+      const clubMatch =
+        s.clubId === undefined ? undefined : clubs?.find((club) => club.clubId === s.clubId);
       return {
         rank: s.position,
         name: s.name,
         clubName: s.name,
+        clubAbbreviation: s.abbreviation,
+        ...(s.clubId === undefined ? {} : { clubId: s.clubId }),
         clubEmblemUrl: clubMatch?.emblemUrl,
         statLabel: labels.pointsShort,
         statValue: s.points,
@@ -176,12 +200,13 @@ export function deriveTournamentFacts(
   labels: TvStatisticsLabels,
   matches: readonly (LiveMatch | OverviewMatch)[],
 ): readonly TournamentFact[] {
+  const status: TournamentFact = {
+    label: labels.status,
+    value: labels.statusLabels[tvTournamentState(matches)],
+  };
   const finalMatches = matches.filter((m) => m.state === 'final');
   if (finalMatches.length === 0) {
-    return [
-      { label: labels.scheduledMatches, value: matches.length },
-      { label: labels.status, value: labels.inProgress },
-    ];
+    return [{ label: labels.scheduledMatches, value: matches.length }, status];
   }
 
   let totalScore = 0;
@@ -216,6 +241,7 @@ export function deriveTournamentFacts(
     });
   }
 
+  facts.push(status);
   return facts;
 }
 
@@ -227,13 +253,15 @@ export function resolveChampion(
   labels: TvStatisticsLabels,
   matches: readonly (LiveMatch | OverviewMatch)[],
   standings?: readonly StandingsRowView[],
-  clubs?: readonly { name: string; emblemUrl?: string }[],
+  clubs?: readonly { clubId?: string; name: string; emblemUrl?: string }[],
 ): ChampionInfo | undefined {
   if (matches.length === 0 && (!standings || standings.length === 0)) {
     return undefined;
   }
+  const emblemUrlFor = (clubId?: string): string | undefined =>
+    clubId === undefined ? undefined : clubs?.find((club) => club.clubId === clubId)?.emblemUrl;
 
-  const allFinal = matches.length > 0 && matches.every((m) => m.state === 'final');
+  const allFinal = tvTournamentState(matches) === 'finished';
   // A tournament that played several stages is decided by its last one, so the standings leader of
   // an earlier stage is never named its champion; the final match below or the resolved winners
   // the dashboard is given name it instead.
@@ -243,11 +271,10 @@ export function resolveChampion(
   if (allFinal && stagesPlayed <= 1 && standings && standings.length > 0) {
     const leader = standings.find((s) => s.position === 1) ?? standings[0];
     if (leader) {
-      const clubMatch = clubs?.find((c) => c.name.toLowerCase() === leader.name.toLowerCase());
       return {
         name: leader.name,
         abbreviation: leader.abbreviation,
-        emblemUrl: clubMatch?.emblemUrl,
+        emblemUrl: emblemUrlFor(leader.clubId),
         title: labels.championTitle,
         record: fill(labels.standingsRecord, { points: leader.points, played: leader.played }),
       };
@@ -265,6 +292,7 @@ export function resolveChampion(
 
     const lastMatch = sorted[0];
     if (lastMatch) {
+      const sides = 'sides' in lastMatch ? lastMatch.sides : [lastMatch.home, lastMatch.away];
       const {
         s1: homeScore,
         s2: awayScore,
@@ -275,21 +303,19 @@ export function resolveChampion(
       } = extractScores(lastMatch, labels);
 
       if (homeScore > awayScore) {
-        const clubMatch = clubs?.find((c) => c.name.toLowerCase() === homeName.toLowerCase());
         return {
           name: homeName,
           abbreviation: homeAbbr,
-          emblemUrl: clubMatch?.emblemUrl,
+          emblemUrl: emblemUrlFor(sides[0]?.clubId),
           title: labels.championTitle,
           record: fill(labels.grandFinalRecord, { winner: homeScore, loser: awayScore }),
         };
       }
       if (awayScore > homeScore) {
-        const clubMatch = clubs?.find((c) => c.name.toLowerCase() === awayName.toLowerCase());
         return {
           name: awayName,
           abbreviation: awayAbbr,
-          emblemUrl: clubMatch?.emblemUrl,
+          emblemUrl: emblemUrlFor(sides[1]?.clubId),
           title: labels.championTitle,
           record: fill(labels.grandFinalRecord, { winner: awayScore, loser: homeScore }),
         };
@@ -301,11 +327,10 @@ export function resolveChampion(
   if (standings && standings.length > 0) {
     const leader = standings.find((s) => s.position === 1) ?? standings[0];
     if (leader) {
-      const clubMatch = clubs?.find((c) => c.name.toLowerCase() === leader.name.toLowerCase());
       return {
         name: leader.name,
         abbreviation: leader.abbreviation,
-        emblemUrl: clubMatch?.emblemUrl,
+        emblemUrl: emblemUrlFor(leader.clubId),
         title: labels.tableLeaderTitle,
         record: fill(labels.standingsRecord, { points: leader.points, played: leader.played }),
       };

@@ -1,3 +1,4 @@
+import { expectReadRetry } from './resilient-read.test-support.js';
 import { jest } from '@jest/globals';
 import { render, screen, waitFor } from '@testing-library/react';
 import { fireEvent } from '@testing-library/react';
@@ -102,7 +103,7 @@ describe('ClubPortalMembersPage', () => {
     );
 
     await waitFor(() => screen.getByText('Elías Salomón'));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit members' }));
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Nombre Corregido' } });
     fireEvent.change(screen.getByLabelText('Alias'), { target: { value: 'alias-corregido' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -138,7 +139,7 @@ describe('ClubPortalMembersPage', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add member' }));
 
-    await waitFor(() => screen.getByText('Could not load members.'));
+    await expectReadRetry();
   });
 
   it('shows a load error when the initial fetch fails', async () => {
@@ -152,7 +153,7 @@ describe('ClubPortalMembersPage', () => {
       ),
     );
 
-    await waitFor(() => screen.getByText('Could not load members.'));
+    await expectReadRetry();
   });
 
   it('surfaces a toast error when creating a member is refused', async () => {
@@ -191,7 +192,7 @@ describe('ClubPortalMembersPage', () => {
     );
 
     await waitFor(() => screen.getByText('Elías Salomón'));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit members' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => screen.getByText('The request could not be completed. Try again.'));

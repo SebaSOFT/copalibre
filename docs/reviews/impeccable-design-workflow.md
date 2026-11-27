@@ -51,3 +51,21 @@ npx impeccable detect --no-advisory apps/web/src packages/design-tokens/src
 yarn workspace @copalibre/web test
 node scripts/check-help-coverage.mjs
 ```
+
+## Addendum: detector residue, 2026-11-16
+
+The baseline above was checked again. A file scan of `apps/web/src` found three `side-tab` findings with no
+recorded decision, and one of `packages/design-tokens/src` found two `design-system-font` findings in test
+files; a browser scan of the running pages found the same plus `cramped-padding` on emblem frames.
+
+| Finding                                    | Disposition                                                                                                                                                                                                   |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `side-tab`, live match-day row             | Fixed to the documented 4px rail; recorded as a rail paired with the live state badge                                                                                                                         |
+| `side-tab`, standings promotion rows       | Recorded: a 4px rail paired with each row's written promotion band                                                                                                                                            |
+| `side-tab`, featured tournament card       | Fixed: a 3px edge in the ordinary border colour signalled nothing; the badge says "featured"                                                                                                                  |
+| `design-system-font`, two token test files | Recorded: an escape sequence and a regular expression the tests feed to the code under test                                                                                                                   |
+| `cramped-padding`, emblem frame            | Left: `DESIGN.md` documents the padding that scales with the emblem, and a frame holds an image, not text. Only a browser scan reports it, and no exception narrower than the whole rule exists for that mode |
+| `broken-image`, `EntrantEmblem.tsx`        | Not reproduced by either mode                                                                                                                                                                                 |
+
+Each recorded exception is file-scoped, in `.impeccable/config.json`, and `scripts/check-detector-exceptions.mjs`
+fails one with no reason.

@@ -14,12 +14,14 @@ import { REPLAY_EXPIRED_EVENT, SseParser } from './wire.js';
  *
  * ## Fetch streaming, never EventSource
  *
- * Native `EventSource` cannot send an `Authorization` header, and CopaLibre's
- * access token is held in memory rather than in a cookie. The remaining option
+ * A Control browser session authenticates with its same-origin `HttpOnly`
+ * session cookie, which `fetch` sends without this client ever seeing it. Other
+ * callers (a kiosk display, an integration) pass a token, and native
+ * `EventSource` cannot send an `Authorization` header. The remaining option
  * would be a token in the query string, which the architecture doc rejects
  * outright: URLs leak into proxy logs, browser history, metrics, traces,
  * screenshots and error reports. So the authenticated path reads a `fetch`
- * body and parses the SSE format by hand — **the token is only ever a header**,
+ * body and parses the SSE format by hand — **a token is only ever a header**,
  * and `buildUrl` below has no access to it at all, which is the enforcement.
  */
 

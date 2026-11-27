@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
 
 const route = '/liga-mendocina/tournaments/apertura-2026/stages/1';
-const base = '/organizations/liga-mendocina/tournaments/apertura-2026';
+const base = '/api/organizations/liga-mendocina/tournaments/apertura-2026';
 const ids = ['01936f4a-0001-7000-8000-000000000001', '01936f4a-0002-7000-8000-000000000002'];
 const matches = [
   {
@@ -72,6 +72,7 @@ for (const width of [375, 1440]) {
   test(`highlights the winning continuation and clears by keyboard at ${width}px`, async ({
     page,
   }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
     await page.setViewportSize({ width, height: 900 });
     await page.goto(route);
     const button = page.getByRole('button', { name: 'Highlight path for Talleres' });

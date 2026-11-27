@@ -3,22 +3,22 @@ import { TvSeriesAndSets } from './TvSeriesAndSets.js';
 import { publicIntl, tvDashboardLabels } from '../../../../lib/i18n/public-intl.js';
 
 /**
- * Rendered inside the lower-third overlay bug (`.tv-lower-third__bug`, `TvDashboard.tsx`) — an
+ * Rendered inside the corner bug (`.tv-overlay-bug`, `TvOverlayBug.tsx`) — an
  * OBS/vMix browser-source composited over a live camera feed. See "TV/Kiosk & Full-Frame
  * Widget/TvSeriesAndSets" for the same component on a flat ground; the markup does not change, only
  * its host does.
  *
- * Wrapped in the `tv-root-container tv-lower-third` markup production renders, so the bug sits low
+ * Wrapped in the `tv-root-container tv-overlay-root tv-overlay-root--scorebug` markup production renders, so the bug sits low
  * in frame over the backdrop the toolbar picks.
  */
-function StreamWidgetLowerThird({
+function StreamWidgetCornerBug({
   children,
 }: {
   readonly children: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <div className="tv-root-container tv-lower-third">
-      <div className="tv-lower-third__bug cl-chamfer">{children}</div>
+    <div className="tv-root-container tv-overlay-root tv-overlay-root--scorebug">
+      <div className="tv-overlay-bug cl-chamfer">{children}</div>
     </div>
   );
 }
@@ -29,9 +29,9 @@ const meta = {
   args: { labels: tvDashboardLabels(publicIntl('es')) },
   decorators: [
     (Story) => (
-      <StreamWidgetLowerThird>
+      <StreamWidgetCornerBug>
         <Story />
-      </StreamWidgetLowerThird>
+      </StreamWidgetCornerBug>
     ),
   ],
   parameters: { layout: 'fullscreen' },
@@ -42,7 +42,7 @@ type Story = StoryObj<typeof meta>;
 export const Series: Story = {
   args: {
     progress: {
-      segmentLabel: '2do Tiempo',
+      segmentLabel: '2do tiempo',
       sets: [],
       series: { home: 1, away: 0, game: 2, span: 3, pips: ['won-home', 'current', 'upcoming'] },
     },
@@ -57,7 +57,7 @@ export const Sets: Story = {
         { number: 2, label: 'Set', scores: [3, 6], current: false },
         { number: 3, label: 'Set', scores: [2, 1], current: true },
       ],
-      segmentLabel: '3er Set',
+      segmentLabel: '3er set',
     },
   },
 };
@@ -68,8 +68,8 @@ export const SetsGreenChroma: Story = {
   parameters: { tvBackdrop: 'chroma' },
 };
 
-/** The segment in play, named by its place: "2do Tiempo", "2da Vuelta", "3er Set". */
-export const LapInPlay: Story = { args: { progress: { sets: [], segmentLabel: '2da Vuelta' } } };
+/** The segment in play, named by its place: "2do tiempo", "2da vuelta", "3er set". */
+export const LapInPlay: Story = { args: { progress: { sets: [], segmentLabel: '2da vuelta' } } };
 
 /** Laps scored to a target list like sets. */
 export const ScoredLaps: Story = {
@@ -79,7 +79,7 @@ export const ScoredLaps: Story = {
         { number: 1, label: 'Vuelta', scores: [3, 1], current: false },
         { number: 2, label: 'Vuelta', scores: [1, 1], current: true },
       ],
-      segmentLabel: '2da Vuelta',
+      segmentLabel: '2da vuelta',
     },
   },
 };

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import path from 'node:path';
-import { expect, test } from './fixtures.js';
+import { expect, gotoTv, test } from './support/tv-ready.js';
 
 /**
  * The venue kiosk of a stage that mixes formats: two league zones and a knockout zone. Each table
@@ -16,7 +16,7 @@ import { expect, test } from './fixtures.js';
 const ORGANIZATION = 'panamericano-demo';
 const TOURNAMENT = 'panamericano-clubes-2025';
 const tvPath = `/tv/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
-const base = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const base = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const EMBLEMS = path.resolve(
   import.meta.dirname,
   '../packages/demo-datasets/datasets/panamericano-clubes-2025/emblems',
@@ -83,6 +83,8 @@ const standing = (
   entrantId: alias,
   name: (CLUBS[alias] as Club).name,
   abbreviation: (CLUBS[alias] as Club).abbreviation,
+  clubId: `club-${alias}`,
+  emblemObjectId: `emblem-${alias}`,
   sharedRank: false,
   zoneName,
   statistics: { played, points },
@@ -262,7 +264,7 @@ const bracket = {
 let server: Server;
 test.beforeAll(async ({ workerPort }) => {
   server = createServer((req, res) => {
-    if (req.url?.startsWith('/objects/discipline-background-image')) {
+    if (req.url?.startsWith('/api/objects/discipline-background-image')) {
       res.setHeader('content-type', 'image/jpeg');
       res.end(BACKDROP);
       return;
@@ -270,11 +272,11 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     if (req.url === `${base}/overview`) res.end(JSON.stringify(overview));
     else if (
-      req.url === `/organizations/${ORGANIZATION}/tournaments/${FINISHED_TOURNAMENT}/overview`
+      req.url === `/api/organizations/${ORGANIZATION}/tournaments/${FINISHED_TOURNAMENT}/overview`
     )
       res.end(JSON.stringify(finishedOverview));
     else if (
-      req.url?.startsWith(`/organizations/${ORGANIZATION}/tournaments/${FINISHED_TOURNAMENT}/`)
+      req.url?.startsWith(`/api/organizations/${ORGANIZATION}/tournaments/${FINISHED_TOURNAMENT}/`)
     )
       res.end(JSON.stringify({ matches: [] }));
     else if (req.url === `${base}/live`) res.end(JSON.stringify({ matches: [] }));
@@ -290,7 +292,7 @@ test.beforeAll(async ({ workerPort }) => {
 });
 
 test.beforeEach(async ({ page }) => {
-  await page.route(`**/organizations/${ORGANIZATION}/clubs/club-*/emblem`, (route) => {
+  await page.route(`**/organizations/${ORGANIZATION}/clubs/club-*/emblem*`, (route) => {
     const alias = decodeURIComponent(
       route.request().url().split('/clubs/club-')[1]?.split('/')[0] ?? '',
     );
@@ -300,7 +302,7 @@ test.beforeEach(async ({ page }) => {
       body: readFileSync(path.join(EMBLEMS, 'clubs', `${alias}.png`)),
     });
   });
-  await page.route(`**${base}/emblem`, (route) =>
+  await page.route(`**${base}/emblem*`, (route) =>
     route.fulfill({
       status: 200,
       contentType: 'image/png',
@@ -314,45 +316,68 @@ test.afterAll(async () => {
 });
 
 test('ranks each table zone under its own heading instead of one merged list', async ({ page }) => {
-  await page.goto(`${tvPath}?view=standings`);
+  await gotoTv(page, `${tvPath}?view=standings`);
 
-  const zones = page.getByTestId('tv-standings-zone');
-  await expect(zones).toHaveCount(2);
-  await expect(zones.nth(0).getByRole('heading', { name: 'Zona A' })).toBeVisible();
-  await expect(zones.nth(0)).toContainText('Andes Talleres');
-  await expect(zones.nth(0)).not.toContainText('Ciudad de Buenos Aires');
-  await expect(zones.nth(1).getByRole('heading', { name: 'Zona B' })).toBeVisible();
-  await expect(zones.nth(1)).toContainText('Ciudad de Buenos Aires');
+  // The full frame pages through the zones a page at a time, whole zones only: walk the pages until
+  // each zone has been on screen with its own rows.
+  const seen = new Set<string>();
+  for (let rotation = 0; rotation < 4 && seen.size < 2; rotation += 1) {
+    const zones = page.getByTestId('tv-standings-zone');
+    const count = await zones.count();
+    for (let index = 0; index < count; index += 1) {
+      const zone = zones.nth(index);
+      const heading = (
+        (await zone
+          .locator('.tv-standings-zone__name, h2, h3')
+          .first()
+          .textContent({ timeout: 2_000 })
+          .catch(() => '')) ?? ''
+      ).trim();
+      if (heading.includes('Zona A')) {
+        seen.add('A');
+        await expect(zone).toContainText('Andes Talleres');
+        await expect(zone).not.toContainText('Ciudad de Buenos Aires');
+      }
+      if (heading.includes('Zona B')) {
+        seen.add('B');
+        await expect(zone).toContainText('Ciudad de Buenos Aires');
+      }
+    }
+    if (seen.size < 2) await page.waitForTimeout(10_500);
+  }
+  expect([...seen].sort()).toEqual(['A', 'B']);
 });
 
 test('lists the matches two to a row with their zone and round, and keeps the knockout zone in the bracket', async ({
   page,
 }) => {
-  await page.goto(`${tvPath}?view=matches`);
+  await gotoTv(page, `${tvPath}?view=matches`);
 
   const list = page.getByTestId('tv-match-list');
-  const entries = list.getByRole('listitem');
+  // Block headings are list items too; the matches are the entries.
+  const entries = list.locator('.tv-match-list__entry');
   await expect(entries).toHaveCount(6);
   await expect(entries.first()).toHaveAccessibleName(
-    /Zona A · Round 1: Andes Talleres 2 – 2 Atletico Union/,
+    /Zona A · Round 2: Andes Talleres – – – Casa de Italia \(Upcoming\)/,
   );
   await expect(list).toContainText('Zona B · Round 1');
   await expect(list).not.toContainText('BOG');
 
   // The knockout zone is the bracket, reached from the rotating dashboard's own tab.
-  await page.goto(tvPath);
+  await gotoTv(page, tvPath);
   await page.getByRole('button', { name: 'Bracket' }).click();
   const drawn = page.getByTestId('tv-bracket');
   await expect(drawn).toContainText('Copa de Oro');
-  await expect(drawn).toContainText('BOG');
+  // The bracket names each side in full; an abbreviation only stands beside a crest.
+  await expect(drawn).toContainText('Corazonistas Bogota');
   await expect(drawn).not.toContainText('Zona A');
 });
 
 test('every image the kiosk asks for loads from the web application alone', async ({ page }) => {
-  await page.goto(`${tvPath}?view=standings&bg=discipline`);
-  await expect(page.getByTestId('tv-standings-zone')).toHaveCount(2);
+  await gotoTv(page, `${tvPath}?view=standings&bg=discipline`);
+  await expect(page.getByTestId('tv-standings-zone').first()).toBeVisible();
 
-  const emblems = page.locator('img.tv-table-club-emblem');
+  const emblems = page.locator('.tv-table-club-emblem img');
   await expect(emblems.first()).toBeVisible();
   await expect
     .poll(() =>
@@ -363,16 +388,16 @@ test('every image the kiosk asks for loads from the web application alone', asyn
       ),
     )
     .toEqual([]);
-  // The discipline backdrop is requested through the web application's own `/objects` route.
+  // The discipline backdrop is requested through the web application's own `/api/objects` route.
   await expect(
-    page.locator('img[src*="/objects/discipline-background-image"]').first(),
+    page.locator('img[src*="/api/objects/discipline-background-image"]').first(),
   ).toBeAttached();
 });
 
 test('the recap of a finished tournament lists the champions of every zone of the last stage', async ({
   page,
 }) => {
-  await page.goto(`/tv/${ORGANIZATION}/tournaments/${FINISHED_TOURNAMENT}`);
+  await gotoTv(page, `/tv/${ORGANIZATION}/tournaments/${FINISHED_TOURNAMENT}`);
 
   const zones = page.getByTestId('tv-champions-zone');
   await expect(zones).toHaveCount(3);
@@ -386,11 +411,8 @@ test('the recap of a finished tournament lists the champions of every zone of th
     .poll(() =>
       page.evaluate(
         () =>
-          [...document.querySelectorAll('.tv-champions__emblem')].filter(
-            (image) =>
-              !(
-                (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0
-              ),
+          [...document.querySelectorAll<HTMLImageElement>('.tv-champions__emblem img')].filter(
+            (image) => !(image.complete && image.naturalWidth > 0),
           ).length,
       ),
     )
@@ -402,15 +424,13 @@ test('captures screenshots of the zone-aware kiosk at broadcast size', async ({ 
   // Reduced motion also stops the rail's rotation and its tab transitions, so a frame is stable.
   await page.emulateMedia({ reducedMotion: 'reduce' });
 
-  await page.goto(`${tvPath}?view=standings`);
-  await expect(page.getByTestId('tv-standings-zone')).toHaveCount(2);
-  await page.screenshot({ path: 'docs/assets/screenshots/tv-mixed-stage-standings.png' });
+  await gotoTv(page, `${tvPath}?view=standings`);
+  await expect(page.getByTestId('tv-standings-zone').first()).toBeVisible();
 
-  await page.goto(`${tvPath}?view=matches`);
+  await gotoTv(page, `${tvPath}?view=matches`);
   await expect(page.getByTestId('tv-match-list')).toBeVisible();
-  await page.screenshot({ path: 'docs/assets/screenshots/tv-mixed-stage-matches.png' });
 
-  await page.goto(tvPath);
+  await gotoTv(page, tvPath);
   await page.getByRole('button', { name: 'Bracket' }).click();
   await expect(page.getByTestId('tv-bracket')).toBeVisible();
   // The rail tab fades its fill in and out; a frame taken mid-fade shows two tabs highlighted.
@@ -419,5 +439,4 @@ test('captures screenshots of the zone-aware kiosk at broadcast size', async ({ 
     // eslint-disable-next-line no-restricted-syntax -- asserting a computed browser style value, not an app styling literal
     'rgba(0, 0, 0, 0)',
   );
-  await page.screenshot({ path: 'docs/assets/screenshots/tv-mixed-stage-bracket.png' });
 });

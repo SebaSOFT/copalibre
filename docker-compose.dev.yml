@@ -6,8 +6,9 @@ x-development-environment: &development-environment
   DATABASE_URL: postgres://copalibre:copalibre_dev_only@postgres:5432/copalibre
   COPALIBRE_APP_URL: http://localhost:4321
   COPALIBRE_BOOTSTRAP_TOKEN: copalibre_dev_bootstrap_only
-  COPALIBRE_JWKS_URI: http://oidc.invalid/jwks.json
-  COPALIBRE_JWT_ISSUER: http://oidc.invalid
+  COPALIBRE_JWKS_URI: http://api:3001/api/auth/jwks.json
+  COPALIBRE_JWT_ISSUER: http://localhost:8080
+  COPALIBRE_NATIVE_JWT_ISSUER: http://localhost:8080
   COPALIBRE_JWT_AUDIENCE: copalibre
   COPALIBRE_OIDC_CLIENT_ID: copalibre-dev
   COPALIBRE_EMAIL_PROVIDER: smtp
@@ -31,7 +32,7 @@ x-application-build: &application-build
 
 services:
   postgres:
-    image: postgres:17
+    image: postgres:18
     environment:
       POSTGRES_USER: copalibre
       POSTGRES_PASSWORD: copalibre_dev_only
@@ -39,7 +40,7 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - postgres-dev-data:/var/lib/postgresql/data
+      - postgres-dev-data:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U copalibre -d copalibre']
       interval: 5s
@@ -48,7 +49,7 @@ services:
     profiles: ['infrastructure', 'containerized']
 
   mailpit:
-    image: axllent/mailpit:v1.27
+    image: axllent/mailpit:v1.31
     ports:
       - '8025:8025'
       - '1025:1025'
@@ -62,7 +63,7 @@ services:
   # mapped to host 9000 so existing `COPALIBRE_OBJECT_STORAGE_URL=http://
   # localhost:9000` settings keep working unchanged.
   object-storage:
-    image: dxflrs/garage:v1.1.0
+    image: dxflrs/garage:v1.3.1
     environment:
       GARAGE_RPC_SECRET: c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
     ports:
@@ -105,7 +106,7 @@ services:
     build:
       context: .
       dockerfile_inline: |
-        FROM dxflrs/garage:v1.1.0 AS garage
+        FROM dxflrs/garage:v1.3.1 AS garage
         FROM alpine:3.21
         COPY --from=garage /garage /usr/local/bin/garage
     network_mode: 'service:object-storage'
@@ -252,7 +253,8 @@ services:
       context: .
       target: web
     environment:
-      COPALIBRE_JWT_ISSUER: http://oidc.invalid
+      COPALIBRE_JWT_ISSUER: http://localhost:8080
+      COPALIBRE_NATIVE_JWT_ISSUER: http://localhost:8080
       COPALIBRE_OIDC_CLIENT_ID: copalibre-dev
     ports:
       - '4321:4321'

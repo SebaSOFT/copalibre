@@ -1,51 +1,18 @@
+import { API_PATH_PREFIX } from '../../lib/api-path.js';
 import { useEffect, useState } from 'react';
-import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { beginOidcLogin } from '../session/oidc-login.js';
 import { navigateControl } from '../lib/control-navigation.js';
 import { controlApiErrorFromResponse } from '../lib/api-client.js';
-import { controlTokenStore, recordAuthMethod } from '../session/token-store.js';
+import { csrfHeaders } from '../session/csrf.js';
+import { controlSession, parseSessionMetadata } from '../session/session-store.js';
 import { Button } from './ui/atoms/button.js';
 import { Input } from './ui/atoms/input.js';
 import { Field } from './ui/molecules/field.js';
 import { useToast } from './ToastProvider.js';
+import { messages } from '../i18n/messages.en.js';
 import { AuthScreenLayout } from './ui/layouts/auth-screen-layout.js';
-
-// Every defaultMessage here was Spanish and fell back
-// incorrectly across locales. Restated in English; the return link has a
-// localized override in each control catalog, while the remaining auth copy
-// uses the source language until that namespace receives its own translations.
-const messages = defineMessages({
-  loginTitle: { id: 'auth.loginTitle', defaultMessage: 'Sign in to operate' },
-  loginContext: { id: 'auth.loginContext', defaultMessage: 'Organization console' },
-  emailLabel: { id: 'auth.emailLabel', defaultMessage: 'Email' },
-  passwordLabel: { id: 'auth.passwordLabel', defaultMessage: 'Password' },
-  loginSubmit: { id: 'auth.loginSubmit', defaultMessage: 'Sign in' },
-  oidcButton: { id: 'auth.oidcButton', defaultMessage: 'Continue with identity provider' },
-  forgotPasswordLink: {
-    id: 'auth.forgotPasswordLink',
-    defaultMessage: 'Forgot your password?',
-  },
-  forgotTitle: { id: 'auth.forgotTitle', defaultMessage: 'Recover password' },
-  forgotSubmit: { id: 'auth.forgotSubmit', defaultMessage: 'Send link' },
-  forgotBack: { id: 'auth.forgotBack', defaultMessage: 'Back to sign-in' },
-  resetTitle: { id: 'auth.resetTitle', defaultMessage: 'Create new password' },
-  resetSubmit: { id: 'auth.resetSubmit', defaultMessage: 'Reset password' },
-  invalidResetLink: { id: 'auth.invalidResetLink', defaultMessage: 'Invalid recovery link.' },
-  tagline: { id: 'auth.tagline', defaultMessage: 'Tournament operations' },
-  passwordUpdated: {
-    id: 'auth.passwordUpdated',
-    defaultMessage: 'Password updated. You can now sign in.',
-  },
-  forgotLinkSent: {
-    id: 'auth.forgotLinkSent',
-    defaultMessage: 'If the email exists, a link has been sent.',
-  },
-  sessionExpired: {
-    id: 'auth.sessionExpired',
-    defaultMessage: 'Your session expired. Please sign in again.',
-  },
-  publicHome: { id: 'auth.publicHome', defaultMessage: 'Return to public site' },
-});
+import { PageHeader } from './ui/organisms/page-header.js';
 
 export function LoginRoute(): React.JSX.Element {
   const intl = useIntl();
@@ -59,7 +26,7 @@ export function LoginRoute(): React.JSX.Element {
   // with, never re-triggered by anything the operator does on this screen.
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('reason') === 'session_expired') {
-      push({ severity: 'info', message: intl.formatMessage(messages.sessionExpired) });
+      push({ severity: 'info', message: intl.formatMessage(messages.authSessionExpired) });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -69,9 +36,12 @@ export function LoginRoute(): React.JSX.Element {
     setLoading(true);
 
     try {
-      const res = await fetch('/auth/login', {
+      // A still-valid session cookie makes this request cookie-authenticated,
+      // so it carries the CSRF header whenever one exists.
+      const res = await fetch(`${API_PATH_PREFIX}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders('POST') },
         body: JSON.stringify({ email, password }),
       });
 
@@ -79,9 +49,12 @@ export function LoginRoute(): React.JSX.Element {
         throw await controlApiErrorFromResponse(res);
       }
 
-      const data = await res.json();
-      controlTokenStore.write(data.accessToken, Date.now() + data.expiresIn * 1000);
-      recordAuthMethod('native');
+      // The token stays in the HttpOnly cookie the API just set; the body
+      // carries only who signed in, with which scopes, until when.
+      const session = parseSessionMetadata(await res.json());
+      if (session === undefined)
+        throw new Error(intl.formatMessage(messages.apiErrorInternalServer));
+      controlSession.write(session);
 
       const searchParams = new URLSearchParams(window.location.search);
       const returnTo = searchParams.get('returnTo') || '/control/';
@@ -94,18 +67,16 @@ export function LoginRoute(): React.JSX.Element {
   };
 
   return (
-    <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
+    <AuthScreenLayout tagline={intl.formatMessage(messages.authTagline)}>
       <p className="context">
-        <FormattedMessage {...messages.loginContext} />
+        <FormattedMessage {...messages.authLoginContext} />
       </p>
-      <h1>
-        <FormattedMessage {...messages.loginTitle} />
-      </h1>
+      <PageHeader title={<FormattedMessage {...messages.authLoginTitle} />} />
       <form
         onSubmit={handleLogin}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
       >
-        <Field id="login-email" label={intl.formatMessage(messages.emailLabel)}>
+        <Field id="login-email" label={intl.formatMessage(messages.authEmailLabel)}>
           <Input
             id="login-email"
             onChange={(e) => setEmail(e.target.value)}
@@ -114,7 +85,7 @@ export function LoginRoute(): React.JSX.Element {
             value={email}
           />
         </Field>
-        <Field id="login-password" label={intl.formatMessage(messages.passwordLabel)}>
+        <Field id="login-password" label={intl.formatMessage(messages.authPasswordLabel)}>
           <Input
             id="login-password"
             onChange={(e) => setPassword(e.target.value)}
@@ -124,7 +95,7 @@ export function LoginRoute(): React.JSX.Element {
           />
         </Field>
         <Button disabled={loading} type="submit">
-          <FormattedMessage {...messages.loginSubmit} />
+          <FormattedMessage {...messages.authLoginSubmit} />
         </Button>
       </form>
       <div style={{ marginTop: '1rem' }}>
@@ -136,7 +107,7 @@ export function LoginRoute(): React.JSX.Element {
             navigateControl('/control/forgot-password');
           }}
         >
-          <FormattedMessage {...messages.forgotPasswordLink} />
+          <FormattedMessage {...messages.authForgotPasswordLink} />
         </a>
       </div>
 
@@ -145,11 +116,11 @@ export function LoginRoute(): React.JSX.Element {
       />
 
       <Button onClick={() => beginOidcLogin()} type="button" variant="secondary">
-        <FormattedMessage {...messages.oidcButton} />
+        <FormattedMessage {...messages.authOidcButton} />
       </Button>
       <p>
         <a className="cl-link cl-focusable" href="/">
-          <FormattedMessage {...messages.publicHome} />
+          <FormattedMessage {...messages.authPublicHome} />
         </a>
       </p>
     </AuthScreenLayout>
@@ -167,13 +138,13 @@ export function ForgotPasswordRoute(): React.JSX.Element {
     setLoading(true);
 
     try {
-      const res = await fetch('/auth/forgot-password', {
+      const res = await fetch(`${API_PATH_PREFIX}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
       if (!res.ok) throw await controlApiErrorFromResponse(res);
-      push({ severity: 'success', message: intl.formatMessage(messages.forgotLinkSent) });
+      push({ severity: 'success', message: intl.formatMessage(messages.authForgotLinkSent) });
     } catch (error) {
       pushError(error);
     } finally {
@@ -182,15 +153,13 @@ export function ForgotPasswordRoute(): React.JSX.Element {
   };
 
   return (
-    <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
-      <h1>
-        <FormattedMessage {...messages.forgotTitle} />
-      </h1>
+    <AuthScreenLayout tagline={intl.formatMessage(messages.authTagline)}>
+      <PageHeader title={<FormattedMessage {...messages.authForgotTitle} />} />
       <form
         onSubmit={handleSubmit}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
       >
-        <Field id="forgot-email" label={intl.formatMessage(messages.emailLabel)}>
+        <Field id="forgot-email" label={intl.formatMessage(messages.authEmailLabel)}>
           <Input
             id="forgot-email"
             onChange={(e) => setEmail(e.target.value)}
@@ -200,7 +169,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
           />
         </Field>
         <Button disabled={loading} type="submit">
-          <FormattedMessage {...messages.forgotSubmit} />
+          <FormattedMessage {...messages.authForgotSubmit} />
         </Button>
       </form>
       <div style={{ marginTop: '2rem' }}>
@@ -212,7 +181,7 @@ export function ForgotPasswordRoute(): React.JSX.Element {
             navigateControl('/control/login');
           }}
         >
-          <FormattedMessage {...messages.forgotBack} />
+          <FormattedMessage {...messages.authForgotBack} />
         </a>
       </div>
     </AuthScreenLayout>
@@ -235,7 +204,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
     setLoading(true);
 
     try {
-      const res = await fetch('/auth/reset-password', {
+      const res = await fetch(`${API_PATH_PREFIX}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword: password }),
@@ -244,7 +213,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
       if (!res.ok) throw await controlApiErrorFromResponse(res);
 
       setSuccess(true);
-      push({ severity: 'success', message: intl.formatMessage(messages.passwordUpdated) });
+      push({ severity: 'success', message: intl.formatMessage(messages.authPasswordUpdated) });
     } catch (error) {
       pushError(error);
     } finally {
@@ -254,8 +223,9 @@ export function ResetPasswordRoute(): React.JSX.Element {
 
   if (!token) {
     return (
-      <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
-        <p>{intl.formatMessage(messages.invalidResetLink)}</p>
+      <AuthScreenLayout tagline={intl.formatMessage(messages.authTagline)}>
+        <PageHeader title={<FormattedMessage {...messages.authResetTitle} />} />
+        <p>{intl.formatMessage(messages.authInvalidResetLink)}</p>
         <a
           className="cl-link cl-focusable"
           href="/control/login"
@@ -264,24 +234,22 @@ export function ResetPasswordRoute(): React.JSX.Element {
             navigateControl('/control/login');
           }}
         >
-          <FormattedMessage {...messages.forgotBack} />
+          <FormattedMessage {...messages.authForgotBack} />
         </a>
       </AuthScreenLayout>
     );
   }
 
   return (
-    <AuthScreenLayout tagline={intl.formatMessage(messages.tagline)}>
-      <h1>
-        <FormattedMessage {...messages.resetTitle} />
-      </h1>
+    <AuthScreenLayout tagline={intl.formatMessage(messages.authTagline)}>
+      <PageHeader title={<FormattedMessage {...messages.authResetTitle} />} />
       <form
         onSubmit={handleSubmit}
         style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}
       >
         <Field
           id="reset-password"
-          label={`${intl.formatMessage(messages.passwordLabel)} (min 8 char)`}
+          label={intl.formatMessage(messages.authPasswordWithMinimum, { minimum: 8 })}
         >
           <Input
             disabled={success}
@@ -295,7 +263,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
         </Field>
         {!success && (
           <Button disabled={loading} type="submit">
-            <FormattedMessage {...messages.resetSubmit} />
+            <FormattedMessage {...messages.authResetSubmit} />
           </Button>
         )}
       </form>
@@ -309,7 +277,7 @@ export function ResetPasswordRoute(): React.JSX.Element {
               navigateControl('/control/login');
             }}
           >
-            <FormattedMessage {...messages.forgotBack} />
+            <FormattedMessage {...messages.authForgotBack} />
           </a>
         </div>
       )}

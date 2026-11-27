@@ -2,6 +2,8 @@ import { jest } from '@jest/globals';
 import {
   runDoctor,
   validateDatabase,
+  validateDevelopmentRoleHeartbeats,
+  isHybridDevelopmentEnvironment,
   validateHostEnvironment,
   validateJwksContent,
   validateModuleAssets,
@@ -9,9 +11,14 @@ import {
   validatePersistentPath,
   validatePublicUrls,
   validateRetirableModules,
+  validateRuntimePrivileges,
   validateReverseProxy,
   validateServicePorts,
   type DoctorDependencies,
+  validateCspIdentityOrigin,
+  validateSessionCookieSetting,
+  validateTrustedProxiesSetting,
+  validateEdgeSecurityHeaders,
 } from './doctor.js';
 
 const environment: NodeJS.ProcessEnv = {
@@ -20,6 +27,7 @@ const environment: NodeJS.ProcessEnv = {
   COPALIBRE_BOOTSTRAP_TOKEN: 'opaque-bootstrap-token',
   COPALIBRE_JWKS_URI: 'https://identity.example/jwks.json',
   COPALIBRE_JWT_ISSUER: 'https://identity.example',
+  COPALIBRE_CSP_IDENTITY_ORIGIN: 'https://identity.example',
   COPALIBRE_JWT_AUDIENCE: 'copalibre',
   COPALIBRE_OIDC_CLIENT_ID: 'copalibre-web',
   COPALIBRE_EMAIL_PROVIDER: 'smtp',
@@ -33,13 +41,18 @@ function dependencies(overrides: Partial<DoctorDependencies> = {}): DoctorDepend
     probeDatabase: jest.fn(async () => undefined),
     ensureWritable: jest.fn(async () => undefined),
     retirableModules: jest.fn(async () => []),
-    probeDataIntegrity: jest.fn(async () => ({ invalidStatusTournaments: [] })),
+    runtimePrivilegeProblems: jest.fn(async () => []),
+    probeDataIntegrity: jest.fn(async () => ({
+      invalidStatusTournaments: [],
+      reservedAliasOrganizations: [],
+      unknownTimeZoneOrganizations: [],
+    })),
     probeModuleAssets: jest.fn(async () => ({ inspected: 0, problems: [] })),
     objectStorageRoundTrip: jest.fn(async () => undefined),
     fetch: jest.fn(async (input: string | URL | Request) => {
-      // The JWKS content check and the SSE proxy-conformance check share this
-      // default mock; discriminate by URL so each gets a response shaped for
-      // what it validates.
+      // The JWKS content check, the SSE proxy-conformance check and the edge
+      // security-header check share this default mock; discriminate by URL so
+      // each gets a response shaped for what it validates.
       if (String(input).includes('/jwks')) {
         return new Response(
           JSON.stringify({
@@ -47,6 +60,14 @@ function dependencies(overrides: Partial<DoctorDependencies> = {}): DoctorDepend
           }),
           { headers: { 'content-type': 'application/json' } },
         );
+      }
+      if (String(input).endsWith('/runtime-config.json')) {
+        return new Response('{}', {
+          headers: {
+            'content-security-policy': "default-src 'self'; frame-ancestors 'self'",
+            'x-content-type-options': 'nosniff',
+          },
+        });
       }
       return new Response(': copalibre-proxy-check-1\n\n: copalibre-proxy-check-2\n\n', {
         headers: {
@@ -215,6 +236,54 @@ describe('copalibre doctor', () => {
     );
   });
 
+  it('before start, leaves a key set served by this installation’s api unchecked', async () => {
+    const healthy = dependencies();
+    const unreachable = dependencies({
+      lookupHost: jest.fn(async (host: string) => {
+        if (host === 'api') throw new Error('getaddrinfo ENOTFOUND api');
+        await healthy.lookupHost(host);
+      }),
+      fetch: jest.fn(async (input: string | URL | Request, init?: RequestInit) => {
+        if (String(input instanceof Request ? input.url : input).startsWith('http://api:')) {
+          throw new Error('fetch failed');
+        }
+        return healthy.fetch(input, init);
+      }) as unknown as typeof fetch,
+    });
+    const stackApi = { ...environment, COPALIBRE_JWKS_URI: 'http://api:3001/api/auth/jwks.json' };
+
+    const before = await runDoctor(stackApi, unreachable, { beforeStart: true });
+    expect(before.ok).toBe(true);
+    for (const name of ['dns:COPALIBRE_JWKS_URI', 'jwks-content']) {
+      expect(before.checks).toContainEqual(
+        expect.objectContaining({
+          name,
+          status: 'skip',
+          message: expect.stringContaining('starts after this check'),
+        }),
+      );
+    }
+
+    const running = await runDoctor(stackApi, unreachable);
+    expect(running.ok).toBe(false);
+    expect(running.checks).toContainEqual(
+      expect.objectContaining({ name: 'jwks-content', status: 'fail' }),
+    );
+  });
+
+  it('before start, still checks a key set served by an external identity provider', async () => {
+    const report = await runDoctor(
+      { ...environment, COPALIBRE_JWKS_URI: 'https://id.liga.example/jwks.json' },
+      dependencies({
+        fetch: jest.fn(() => Promise.reject(new Error('ECONNREFUSED'))) as unknown as typeof fetch,
+      }),
+      { beforeStart: true },
+    );
+    expect(report.checks).toContainEqual(
+      expect.objectContaining({ name: 'jwks-content', status: 'fail' }),
+    );
+  });
+
   it('skips the JWKS content check when no URI is configured', async () => {
     await expect(validateJwksContent({}, dependencies())).resolves.toEqual([]);
   });
@@ -230,6 +299,52 @@ describe('copalibre doctor', () => {
       validateServicePorts({ COPALIBRE_API_PORT: '3001', COPALIBRE_EVENTS_PORT: '3001' }),
     ).toContainEqual(
       expect.objectContaining({ status: 'fail', message: expect.stringContaining('distinct') }),
+    );
+  });
+
+  it('reports worker, scheduler, and events heartbeat status for hybrid development', async () => {
+    const requestFetch = jest.fn(async (input: string | URL | Request) => {
+      const role =
+        new URL(String(input)).port === '3002'
+          ? 'events'
+          : new URL(String(input)).port === '3003'
+            ? 'worker'
+            : 'scheduler';
+      return new Response(JSON.stringify({ role, version: '1.2.6' }), { status: 200 });
+    }) as unknown as typeof fetch;
+    await expect(validateDevelopmentRoleHeartbeats({}, requestFetch)).resolves.toEqual([
+      expect.objectContaining({ name: 'dev-heartbeat:events', status: 'pass' }),
+      expect.objectContaining({ name: 'dev-heartbeat:worker', status: 'pass' }),
+      expect.objectContaining({ name: 'dev-heartbeat:scheduler', status: 'pass' }),
+    ]);
+    expect(requestFetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('treats the dev web port as hybrid development only outside a container', () => {
+    const appUrl = 'http://localhost:4321';
+    expect(isHybridDevelopmentEnvironment({ COPALIBRE_APP_URL: appUrl })).toBe(true);
+    expect(
+      isHybridDevelopmentEnvironment({ COPALIBRE_APP_URL: appUrl, COPALIBRE_IN_CONTAINER: 'true' }),
+    ).toBe(false);
+    expect(
+      isHybridDevelopmentEnvironment({
+        COPALIBRE_APP_URL: 'https://app.example',
+        COPALIBRE_IN_CONTAINER: 'true',
+        COPALIBRE_DEV_HYBRID: 'true',
+      }),
+    ).toBe(true);
+  });
+
+  it('fails a role heartbeat when its endpoint returns an unexpected role', async () => {
+    const requestFetch = jest.fn(
+      async () => new Response(JSON.stringify({ role: 'api', version: '1.2.6' }), { status: 200 }),
+    ) as unknown as typeof fetch;
+    await expect(validateDevelopmentRoleHeartbeats({}, requestFetch)).resolves.toContainEqual(
+      expect.objectContaining({
+        name: 'dev-heartbeat:events',
+        status: 'fail',
+        message: expect.stringContaining('Unexpected heartbeat'),
+      }),
     );
   });
 
@@ -377,6 +492,59 @@ describe('copalibre doctor', () => {
     expect(check).toMatchObject({ status: 'fail', message: expect.stringContaining('timeout') });
   });
 
+  it('passes the runtime privilege check for a role with row access only', async () => {
+    const check = await validateRuntimePrivileges(environment, dependencies());
+    expect(check).toMatchObject({ name: 'database:runtime-privileges', status: 'pass' });
+  });
+
+  it('fails the runtime privilege check, naming each problem, never the connection string', async () => {
+    const check = await validateRuntimePrivileges(
+      environment,
+      dependencies({
+        runtimePrivilegeProblems: async () => [
+          'role "copalibre" is a superuser',
+          'role "copalibre" owns 3 object(s) in schema public',
+        ],
+      }),
+    );
+    expect(check).toMatchObject({ name: 'database:runtime-privileges', status: 'fail' });
+    expect(check.message).toContain('is a superuser; role "copalibre" owns 3 object(s)');
+    expect(check.message).toContain('docs/self-hosting.md#database-roles');
+    expect(check.message).not.toContain(environment.DATABASE_URL);
+  });
+
+  it('skips the runtime privilege check without a database, or when it cannot ask', async () => {
+    expect(await validateRuntimePrivileges({}, dependencies())).toMatchObject({ status: 'skip' });
+    const unreachable = await validateRuntimePrivileges(
+      environment,
+      dependencies({ runtimePrivilegeProblems: async () => Promise.reject(new Error('refused')) }),
+    );
+    expect(unreachable).toMatchObject({ status: 'skip' });
+  });
+
+  it('fails a Compose host .env without the database passwords or with their placeholders', () => {
+    const missing = validateHostEnvironment({
+      ...environment,
+      DATABASE_URL: '',
+      POSTGRES_PASSWORD: 'operator-chosen-database-secret',
+      GARAGE_RPC_SECRET: 'generated-garage-secret',
+    });
+    expect(missing.checks).toContainEqual(
+      expect.objectContaining({ name: 'host-env:COPALIBRE_DATABASE_APP_PASSWORD', status: 'fail' }),
+    );
+    const placeholder = validateHostEnvironment({
+      ...environment,
+      GARAGE_RPC_SECRET: 'generated-garage-secret',
+      COPALIBRE_DATABASE_OWNER_PASSWORD: 'copalibre_owner_password_change_me',
+    });
+    expect(placeholder.checks).toContainEqual(
+      expect.objectContaining({
+        name: 'host-env:COPALIBRE_DATABASE_OWNER_PASSWORD',
+        status: 'fail',
+      }),
+    );
+  });
+
   it('skips the retirable-modules check when no database is configured', async () => {
     const check = await validateRetirableModules({}, dependencies());
     expect(check).toMatchObject({ name: 'retirable-modules', status: 'skip' });
@@ -471,7 +639,7 @@ describe('copalibre doctor', () => {
           headers: { 'content-type': 'application/json' },
         });
       }
-      if (url.includes('/organizations')) {
+      if (url.includes('/api/organizations')) {
         return new Response(JSON.stringify({ organizations: [] }), { status: 200 });
       }
       if (url.includes('/events/')) {
@@ -504,7 +672,7 @@ describe('copalibre doctor', () => {
       if (url.includes('/jwks.json')) {
         return new Response(JSON.stringify({}), { status: 200 }); // missing keys array
       }
-      if (url.includes('/organizations')) {
+      if (url.includes('/api/organizations')) {
         return new Response('Server Error', { status: 500 });
       }
       if (url.includes('/events/')) {
@@ -612,5 +780,131 @@ describe('validateModuleAssets', () => {
     expect(check?.status).toBe('warn');
     expect(check?.message).toContain('rink-hockey@1.0.0 background.jpg');
     expect(report.ok).toBe(report.checks.every((candidate) => candidate.status !== 'fail'));
+  });
+});
+
+describe('session cookie setting', () => {
+  it.each([
+    [{ COPALIBRE_APP_URL: 'https://app.example' }, 'pass'],
+    [
+      { COPALIBRE_APP_URL: 'http://localhost:8080', COPALIBRE_SESSION_COOKIE_SECURE: 'true' },
+      'pass',
+    ],
+    [{ COPALIBRE_APP_URL: 'http://10.0.0.5', COPALIBRE_SESSION_COOKIE_SECURE: 'false' }, 'pass'],
+  ])('passes a setting that agrees with the URL: %o', (environment, status) => {
+    expect(validateSessionCookieSetting(environment)).toMatchObject({ status });
+  });
+
+  it('warns when Secure is off for an https URL, naming both values', () => {
+    expect(
+      validateSessionCookieSetting({
+        COPALIBRE_APP_URL: 'https://app.example',
+        COPALIBRE_SESSION_COOKIE_SECURE: 'false',
+      }),
+    ).toMatchObject({
+      status: 'warn',
+      message: expect.stringMatching(
+        /COPALIBRE_SESSION_COOKIE_SECURE=false.*COPALIBRE_APP_URL=https:\/\/app\.example/,
+      ),
+    });
+  });
+
+  it('warns when Secure is on for plain HTTP to another host', () => {
+    expect(
+      validateSessionCookieSetting({
+        COPALIBRE_APP_URL: 'http://10.0.0.5',
+        COPALIBRE_SESSION_COOKIE_SECURE: 'true',
+      }),
+    ).toMatchObject({ status: 'warn', message: expect.stringContaining('expected false') });
+  });
+
+  it('fails an unreadable value and skips without a usable URL', () => {
+    expect(
+      validateSessionCookieSetting({
+        COPALIBRE_APP_URL: 'https://app.example',
+        COPALIBRE_SESSION_COOKIE_SECURE: 'maybe',
+      }),
+    ).toMatchObject({ status: 'fail' });
+    expect(validateSessionCookieSetting({})).toMatchObject({ status: 'skip' });
+  });
+});
+
+describe('Content Security Policy configuration', () => {
+  const base = { COPALIBRE_APP_URL: 'https://app.example' };
+
+  it('passes the built-in provider with no extra origin', () => {
+    expect(
+      validateCspIdentityOrigin({ ...base, COPALIBRE_JWT_ISSUER: 'https://app.example' }),
+    ).toMatchObject({ status: 'pass' });
+  });
+
+  it('fails an external issuer the policy does not allow, naming the value to set', () => {
+    expect(
+      validateCspIdentityOrigin({
+        ...base,
+        COPALIBRE_JWT_ISSUER: 'https://id.example/realms/copa',
+      }),
+    ).toMatchObject({
+      status: 'fail',
+      message: expect.stringContaining('COPALIBRE_CSP_IDENTITY_ORIGIN=https://id.example'),
+    });
+  });
+
+  it('passes an external issuer whose origin is configured', () => {
+    expect(
+      validateCspIdentityOrigin({
+        ...base,
+        COPALIBRE_JWT_ISSUER: 'https://id.example/realms/copa',
+        COPALIBRE_CSP_IDENTITY_ORIGIN: 'https://id.example',
+      }),
+    ).toMatchObject({ status: 'pass' });
+  });
+
+  it('warns about an origin the built-in provider does not need', () => {
+    expect(
+      validateCspIdentityOrigin({
+        ...base,
+        COPALIBRE_JWT_ISSUER: 'https://app.example',
+        COPALIBRE_CSP_IDENTITY_ORIGIN: 'https://id.example',
+      }),
+    ).toMatchObject({ status: 'warn' });
+  });
+
+  it('requires the edge to pass the web role policy through', async () => {
+    const respond = (headers: Record<string, string>) =>
+      dependencies({ fetch: jest.fn(async () => new Response('{}', { headers })) });
+    const options = { proxyUrl: 'https://app.example/events/proxy-check' };
+
+    await expect(
+      validateEdgeSecurityHeaders(
+        options,
+        respond({
+          'content-security-policy': "default-src 'self'; frame-ancestors 'self'",
+          'x-content-type-options': 'nosniff',
+        }),
+      ),
+    ).resolves.toMatchObject({ status: 'pass' });
+    await expect(validateEdgeSecurityHeaders(options, respond({}))).resolves.toMatchObject({
+      status: 'fail',
+      message: expect.stringContaining('/runtime-config.json'),
+    });
+  });
+});
+
+describe('trusted proxies check', () => {
+  it('passes the default and names what it trusts', () => {
+    expect(validateTrustedProxiesSetting({})).toMatchObject({
+      status: 'pass',
+      message: expect.stringContaining('uniquelocal'),
+    });
+  });
+
+  it('fails a setting the API would refuse at startup', () => {
+    expect(validateTrustedProxiesSetting({ COPALIBRE_TRUSTED_PROXIES: '0.0.0.0/0' })).toMatchObject(
+      { status: 'fail' },
+    );
+    expect(validateTrustedProxiesSetting({ COPALIBRE_TRUSTED_PROXIES: 'true' })).toMatchObject({
+      status: 'fail',
+    });
   });
 });

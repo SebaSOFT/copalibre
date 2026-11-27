@@ -5,8 +5,10 @@ import sharp from 'sharp';
 import {
   MAX_ASSET_DIMENSIONS,
   MAX_BACKGROUND_IMAGE_SIZE_BYTES,
+  assetFilePath,
   validateModuleAssets,
 } from './assets.js';
+import { MODULE_MANIFEST_SCHEMA } from './manifest.js';
 import { ASSETS_DIRECTORY_NAME } from './package-format.js';
 
 /** The smallest possible valid PNG: a real, parseable 1x1 transparent pixel. */
@@ -147,3 +149,31 @@ async function jpeg(width: number, height: number): Promise<Buffer> {
     .jpeg({ quality: 80 })
     .toBuffer();
 }
+
+describe('asset paths', () => {
+  it.each(['../../../etc/passwd', 'images/../../manifest.json', '..', '/etc/passwd'])(
+    'refuses %s, which leaves the assets directory',
+    (path) => {
+      expect(() => assetFilePath('/tmp/module', path)).toThrow(
+        /leaves the module's assets directory/,
+      );
+    },
+  );
+
+  it('resolves a path inside the assets directory', () => {
+    expect(assetFilePath('/tmp/module', 'images/logo.png')).toBe(
+      '/tmp/module/assets/images/logo.png',
+    );
+  });
+
+  it('keeps the manifest schema from naming a parent directory', () => {
+    const pattern = new RegExp(
+      (MODULE_MANIFEST_SCHEMA.properties.assets.items.properties.path as { pattern: string })
+        .pattern,
+    );
+    expect(pattern.test('images/logo.png')).toBe(true);
+    for (const path of ['x/../../../etc/passwd', '..', 'a/..', 'a//b']) {
+      expect(pattern.test(path)).toBe(false);
+    }
+  });
+});

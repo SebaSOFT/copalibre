@@ -19,6 +19,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * End-to-end coverage of a per-side `resultReason`, set through the real
@@ -34,7 +35,7 @@ describe('result reason per competitor (integration)', () => {
   let matchId = '';
   let segmentId = '';
   const entrantIds: string[] = [];
-  const base = () => `/organizations/liga-prueba-rr/tournaments/apertura-rr/matches/${matchId}`;
+  const base = () => `/api/organizations/liga-prueba-rr/tournaments/apertura-rr/matches/${matchId}`;
 
   beforeAll(async () => {
     scratch = await createMigratedDatabase('result-reason');
@@ -59,6 +60,7 @@ describe('result reason per competitor (integration)', () => {
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 

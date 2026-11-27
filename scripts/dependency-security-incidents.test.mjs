@@ -17,6 +17,18 @@ function cloneRegister() {
   return JSON.parse(JSON.stringify(source));
 }
 
+/**
+ * The first recorded js-yaml event on its own, with the coverage it shipped
+ * with: the grouping and report assertions below are about how one event is
+ * counted, and must not move each time a new incident is recorded.
+ */
+function singleEventRegister() {
+  const register = cloneRegister();
+  register.events = register.events.filter((event) => event.advisoryId === 'GHSA-2883-xcg3-v3hh');
+  register.coverage = { ...register.coverage, through: '2026-10-07' };
+  return register;
+}
+
 test('the historical register preserves partial coverage and unknown detection dates', () => {
   const register = validateRegister(cloneRegister());
   assert.equal(register.coverage.historicalBaseline, 'partial');
@@ -52,7 +64,7 @@ test('grouping counts each advisory remediation once per direct root and dedupli
 });
 
 test('distinct roots receive separate counts for the same advisory event', () => {
-  const grouped = groupIncidents(source);
+  const grouped = groupIncidents(singleEventRegister());
   const starlight = grouped.find((group) => group.package === '@astrojs/starlight');
   const astro = grouped.find((group) => group.package === 'astro');
   assert.equal(starlight.eventCount, 1);
@@ -74,7 +86,7 @@ test('workspace evidence cannot escape repository workspace paths', () => {
 });
 
 test('markdown report is deterministic, coverage-labeled and informational', () => {
-  const register = cloneRegister();
+  const register = singleEventRegister();
   const first = renderMarkdown(register);
   const second = renderMarkdown(register);
   assert.equal(first, second);
@@ -108,4 +120,16 @@ test('the CI entry point appends the summary and rejects malformed register data
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+test('the recorded remediations of the Dependabot set behind main each cite their commit and advisory', () => {
+  const register = validateRegister(cloneRegister());
+  const recorded = register.events.filter((event) => event.remediatedAt >= '2026-10-22');
+  assert.ok(recorded.length > 0);
+  for (const event of recorded) {
+    assert.equal(event.detectedAt, null, `${event.id}: detection date is not evidenced`);
+    assert.ok(event.evidence.some((entry) => entry.kind === 'remediation'));
+    assert.ok(event.evidence.some((entry) => entry.url.endsWith(event.advisoryId)));
+  }
+  assert.ok(register.coverage.through >= '2026-10-29');
 });

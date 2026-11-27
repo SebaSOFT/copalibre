@@ -8,10 +8,12 @@ const meta = {
   args: {
     organizationAlias: ORG,
     personId: ids.person,
+    onSetPublicVisibility: async () => undefined,
     person: {
       personId: ids.person,
       displayName: 'V. Kael',
       nationality: 'AR',
+      hiddenFromPublic: false,
       naturalKey: { kind: 'member', value: 'MS-014' },
     },
   },
@@ -21,6 +23,6 @@ type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};
 export const Empty: Story = {
   args: {
-    person: { personId: ids.person, displayName: 'V. Kael' },
+    person: { personId: ids.person, displayName: 'V. Kael', hiddenFromPublic: false },
   },
 };

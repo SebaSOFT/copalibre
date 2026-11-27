@@ -43,3 +43,11 @@ linéaire : brouillon → publié → démarré → terminé → archivé. Chaqu
 sur un autre écran, jamais quelque chose que cet écran fait pour vous. Une fois **démarré**, la
 discipline et le profil de tournoi se figent à la version qu'ils avaient à ce moment — un tournoi en
 cours ne change jamais ses règles en cours de route.
+
+## Repos minimum entre les matchs
+
+L’écran **Paramètres** d’un tournoi créé fixe le repos minimum, en minutes, entre la fin d’un match
+d’un participant et le début du suivant. Il est vérifié à chaque aperçu ou publication des matchs de
+ce tournoi dans le [planificateur](/help/control/schedule) ; un placement laissant moins de repos est
+un conflit nommant les deux matchs. Laissez vide pour n’appliquer aucune règle. Le modifier ne déplace
+aucun match : il s’applique à partir du prochain aperçu.

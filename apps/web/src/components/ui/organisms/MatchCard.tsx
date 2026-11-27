@@ -1,11 +1,33 @@
+import { useState } from 'react';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import { isImplicitGroupZoneName } from '../../../lib/competition-context.js';
+import { formatPlacement, formatSideSource, sourceMatchLabel } from '../../../lib/side-source.js';
+import { rescheduledStatement } from '../../../lib/reschedule.js';
+import { useHydrated } from '../../../lib/island-browser-state.js';
+import { useLiveScoreboardPatch } from '../../../lib/live-scoreboard-hooks.js';
+import { activeSegmentLabel } from '../../../lib/segment-label.js';
+import { eventLabel } from '../../../lib/event-label.js';
 import { Badge } from '../atoms/Badge.js';
+import { Icon } from '../atoms/icon.js';
 import { Card } from '../atoms/Card.js';
 import { EntrantName } from '../atoms/EntrantName.js';
+import { EntrantEmblem } from '../molecules/EntrantEmblem.js';
+import { LiveMatchScoreboard } from '../molecules/LiveMatchScoreboard.js';
 import { ResponsiveTimestamp } from '../atoms/ResponsiveTimestamp.js';
-import { presentState } from '../../../lib/result-state.js';
+import { isDelayed } from '../../../lib/match-state.js';
+import { presentDelayedState, presentState } from '../../../lib/result-state.js';
 import { seriesScore, seriesSegments, seriesPending, toSeriesInput } from '../../../lib/series.js';
-import { applyTemplate, formatClock, type MatchCardData } from '../../../lib/matches-view.js';
+import {
+  applyTemplate,
+  displayedScore,
+  formatClock,
+  matchCardTitle,
+  type MatchCardData,
+} from '../../../lib/matches-view.js';
 import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
+import { ValueFlash } from '../atoms/ValueFlash.js';
+import { clubEmblemUrl } from '../../../lib/public-image-paths.js';
+import { optionalClubPageUrl } from '../../../lib/club-url.js';
 
 /**
  * The matches-view card: one shared React component for both the public
@@ -15,113 +37,416 @@ import type { MatchCardLabels } from '../../../lib/i18n/public-intl.js';
  * already documents: this file must never import `react-intl`'s formatting
  * machinery itself, only accept already-resolved strings.
  */
+/**
+ * The viewer's side in a finished match, as a labelled badge. The caller supplies the words in the
+ * page's language; the card supplies the icon and tone for each kind.
+ */
+export interface MatchCardOutcome {
+  readonly kind: 'won' | 'drawn' | 'lost';
+  readonly label: string;
+}
+
+const OUTCOME_BADGE: Record<
+  MatchCardOutcome['kind'],
+  { readonly className: string; readonly icon: 'check' | 'minus' | 'close' }
+> = {
+  won: { className: 'cl-badge--positive', icon: 'check' },
+  drawn: { className: 'cl-badge--muted', icon: 'minus' },
+  lost: { className: 'cl-badge--negative', icon: 'close' },
+};
+
 export interface MatchCardProps {
   readonly match: MatchCardData;
+  /** The viewer's result in this finished match, shown as a labelled badge; absent on other surfaces. */
+  readonly outcome?: MatchCardOutcome;
   readonly labels: MatchCardLabels;
   /** Required: threaded straight into `ResponsiveTimestamp`, which no longer guesses one. */
   readonly locale: string;
+  /** Public schedules use the organization's zone; other callers may keep viewer-local time. */
+  readonly timeZone?: string;
+  /** Request instant for deterministic SSR/client relative-day and delayed rendering. */
+  readonly referenceDate?: number;
   /** Wraps the card in a link when present — the public site's report page. */
   readonly reportUrl?: string;
+  /** Builds same-origin emblem routes for persisted team entrants. */
+  readonly organizationAlias?: string;
+  /** Builds club page links for teams in regular cards when `clubAlias` is present. */
+  readonly tournamentAlias?: string;
+  /** Optional locale prefix (`'/es'`, etc.) for club page links. */
+  readonly localePrefix?: string;
   /** Opaque band assigned by a public list; other surfaces retain their default card surface. */
   readonly band?: 'panel' | 'base';
   /** Single-line ticker presentation — a dense listing's own row shape, not a smaller version of the full card. */
   readonly compact?: boolean;
+  /** Abbreviated names suit a ticker; overview summaries can request readable names. */
+  readonly compactNames?: 'abbreviated' | 'full';
+  /** Heading depth in the page outline. */
+  readonly headingLevel?: number;
+  /** True when this card sits inside its zone's own heading section so placement titles omit the zone prefix. */
+  readonly inZoneSection?: boolean;
 }
 
 /**
- * The compact ticker's entrant text: a persisted abbreviation
- * always wins — this never overrides an organizer's own choice, the same
- * rule `EntrantName` follows for its overflow fallback. Absent one, it
- * derives dotted initials from a multi-word name ("San Juan" -> "S.J.") or
- * the first 5 characters of a single word ("River" -> "RIVER"), and falls
- * back to "TBD" with no name at all — deterministic, so the same match
- * always tickers the same way regardless of viewport.
+ * The compact ticker's entrant text uses the stored abbreviation when one
+ * exists, then the full display name. It never creates initials or clips a
+ * persisted abbreviation; CSS may ellipsize only the surrounding ticker text.
  */
-export function resolveCompactEntrant(abbreviation?: string, fullName?: string): string {
-  if (abbreviation !== undefined && abbreviation.trim() !== '') return abbreviation.trim();
-  if (fullName === undefined || fullName.trim() === '') return 'TBD';
-  const words = fullName.trim().split(/\s+/);
-  if (words.length > 1) {
-    return `${words.map((word) => word[0]?.toUpperCase()).join('.')}.`;
-  }
-  return (words[0] ?? '').slice(0, 5).toUpperCase();
+export function resolveCompactEntrant(
+  undecided: string,
+  abbreviation?: string,
+  fullName?: string,
+): string {
+  return abbreviation?.trim() || fullName || undecided;
+}
+
+function resolveLanguageTag(locale: string): SupportedLanguage {
+  const base = locale.split('-')[0] ?? 'en';
+  return isSupportedLanguage(base) ? base : 'en';
 }
 
 export function MatchCard({
   match,
   labels,
   locale,
+  timeZone,
+  referenceDate,
   reportUrl,
+  organizationAlias,
+  tournamentAlias,
+  localePrefix,
   band,
   compact = false,
+  compactNames = 'abbreviated',
+  headingLevel = 3,
+  inZoneSection = false,
+  outcome,
 }: MatchCardProps): React.JSX.Element {
-  const badge = presentState(match.state, labels.state);
-  const scopeLine = [match.zoneName, match.groupName]
+  const bothUndecided = match.homeName === undefined && match.awayName === undefined;
+  const [homeOverflow, setHomeOverflow] = useState(false);
+  const [awayOverflow, setAwayOverflow] = useState(false);
+  const syncCompactUndecided = bothUndecided && (homeOverflow || awayOverflow);
+  const hydrated = useHydrated();
+  const livePatch = useLiveScoreboardPatch(match.matchId);
+  const usePatch = hydrated && livePatch !== undefined;
+  const effectiveState = usePatch && livePatch.state !== undefined ? livePatch.state : match.state;
+  const effectiveClock = usePatch ? livePatch.clock : match.clock;
+  const effectiveSegments = (usePatch ? livePatch.segments : undefined) ?? match.segments;
+  const language = resolveLanguageTag(locale);
+  const effectiveSegmentLabel = activeSegmentLabel(effectiveSegments, effectiveClock, language);
+  const MatchHeading = `h${Math.min(Math.max(headingLevel, 2), 6)}` as
+    'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  const homeSource = formatSideSource(
+    match.homeSource,
+    labels.sideSource,
+    match.homeSource === undefined
+      ? undefined
+      : sourceMatchLabel(
+          match.homeSource,
+          labels.sideSource,
+          match.sourceFinalRound,
+          match.zoneNodeKeys,
+        ),
+  );
+  const awaySource = formatSideSource(
+    match.awaySource,
+    labels.sideSource,
+    match.awaySource === undefined
+      ? undefined
+      : sourceMatchLabel(
+          match.awaySource,
+          labels.sideSource,
+          match.sourceFinalRound,
+          match.zoneNodeKeys,
+        ),
+  );
+  const rescheduled =
+    effectiveState === 'upcoming'
+      ? rescheduledStatement(match.rescheduledFrom, match.venueName, locale, labels.rescheduled)
+      : '';
+  const delayed =
+    effectiveState === 'upcoming' &&
+    isDelayed({ state: effectiveState, scheduledAt: match.scheduledAt }, referenceDate);
+  const badge =
+    delayed && labels.delayed
+      ? presentDelayedState(labels.delayed)
+      : presentState(effectiveState, labels.state);
+  const linkedClass = reportUrl === undefined ? '' : ' cl-match-card--linked';
+  const title = matchCardTitle(match, labels, { inZoneSection });
+  const placementIncludesZone =
+    title.names === 'placement' &&
+    !inZoneSection &&
+    match.multiZoneStage === true &&
+    match.zoneName !== undefined;
+  const visibleZoneName =
+    placementIncludesZone ||
+    (match.groupName !== undefined && isImplicitGroupZoneName(match.zoneName))
+      ? undefined
+      : match.zoneName;
+  // The title already names the group or the placement; the scope line keeps what it does not.
+  const scopeLine = [
+    visibleZoneName,
+    title.names === 'group' ? undefined : match.groupName,
+    match.placement === undefined || title.names === 'placement'
+      ? undefined
+      : formatPlacement(match.placement, labels.sideSource),
+  ]
     .filter((part) => part !== undefined)
     .join(' · ');
   const hasFullTrace =
     (match.homeTrace !== undefined && match.homeTrace.length > 0) ||
     (match.awayTrace !== undefined && match.awayTrace.length > 0);
+  const rawHomeScore =
+    usePatch && livePatch.homeScore !== undefined ? livePatch.homeScore : match.homeScore;
+  const rawAwayScore =
+    usePatch && livePatch.awayScore !== undefined ? livePatch.awayScore : match.awayScore;
+  const homeScore = displayedScore(effectiveState, rawHomeScore);
+  const awayScore = displayedScore(effectiveState, rawAwayScore);
+  const showScores =
+    effectiveState !== 'upcoming' || (homeScore !== undefined && awayScore !== undefined);
+  const homeName = match.homeName ?? homeSource.long;
+  const awayName = match.awayName ?? awaySource.long;
+  const versus = labels.versus ?? 'vs';
+  const matchTitle = title.number === undefined ? title.title : `${title.title} · ${title.number}`;
+  const homeEmblemSrc =
+    organizationAlias && match.homeClubId && match.homeEmblemObjectId
+      ? clubEmblemUrl(organizationAlias, match.homeClubId)
+      : undefined;
+  const awayEmblemSrc =
+    organizationAlias && match.awayClubId && match.awayEmblemObjectId
+      ? clubEmblemUrl(organizationAlias, match.awayClubId)
+      : undefined;
+  const homeClubUrl =
+    match.homeName !== undefined
+      ? optionalClubPageUrl({
+          organizationAlias,
+          tournamentAlias,
+          clubAlias: match.homeClubAlias,
+          localePrefix,
+        })
+      : undefined;
+  const awayClubUrl =
+    match.awayName !== undefined
+      ? optionalClubPageUrl({
+          organizationAlias,
+          tournamentAlias,
+          clubAlias: match.awayClubAlias,
+          localePrefix,
+        })
+      : undefined;
 
   if (compact) {
-    const versus = labels.versus ?? 'vs';
-    const homeAbbr = resolveCompactEntrant(match.homeAbbreviation, match.homeName);
-    const awayAbbr = resolveCompactEntrant(match.awayAbbreviation, match.awayName);
-    const hasScores = match.homeScore !== undefined && match.awayScore !== undefined;
-    const timeStr =
-      !hasScores && match.scheduledAt !== undefined
-        ? ` ${new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(new Date(match.scheduledAt))}`
-        : '';
-    const content = hasScores
-      ? `${homeAbbr} ${match.homeScore} ${versus} ${match.awayScore} ${awayAbbr}`
-      : `${homeAbbr} ${versus} ${awayAbbr}${timeStr}`;
-
+    const homeCompactName =
+      compactNames === 'full'
+        ? homeName
+        : match.homeName === undefined
+          ? homeSource.short
+          : resolveCompactEntrant(homeSource.short, match.homeAbbreviation, match.homeName);
+    const awayCompactName =
+      compactNames === 'full'
+        ? awayName
+        : match.awayName === undefined
+          ? awaySource.short
+          : resolveCompactEntrant(awaySource.short, match.awayAbbreviation, match.awayName);
+    const hasScores = homeScore !== undefined && awayScore !== undefined;
+    const showCompactTime = !hasScores && match.scheduledAt !== undefined;
     const compactBody = (
       <Card
         as="article"
-        className="cl-match-card cl-match-card--compact"
+        className={`cl-match-card cl-match-card--compact${compactNames === 'full' ? ' cl-match-card--compact-full-names' : ''}${linkedClass}`}
         data-match={match.matchId}
+        data-schedule-version={match.scheduleVersion ?? 0}
       >
+        {reportUrl !== undefined && (
+          <a
+            aria-label={`${homeName} ${versus} ${awayName}`}
+            className="cl-match-card__hit-area"
+            href={reportUrl}
+          />
+        )}
         <span
           aria-label={badge.label}
-          className={`cl-match-card__compact-dot ${badge.className}`.trim()}
+          className={`cl-match-card__compact-dot${badge.state === 'live' ? ' cl-live-dot' : ''} ${badge.className}`.trim()}
           role="img"
           title={badge.label}
         >
           <span className="cl-visually-hidden">{badge.label}</span>
         </span>
-        <span className="cl-match-card__compact-content">{content}</span>
+        <span className="cl-match-card__compact-content">
+          <span
+            className="cl-match-card__compact-side cl-match-card__compact-side--home"
+            title={homeName}
+          >
+            <EntrantEmblem
+              abbreviation={match.homeAbbreviation}
+              alt={homeName}
+              decorative
+              size={24}
+              src={homeEmblemSrc}
+            />
+            <span>
+              {homeCompactName}
+              {hasScores ? ` ${homeScore}` : ''}
+            </span>
+          </span>{' '}
+          <span className="cl-match-card__compact-versus">{versus}</span>{' '}
+          <span
+            className="cl-match-card__compact-side cl-match-card__compact-side--away"
+            title={awayName}
+          >
+            <EntrantEmblem
+              abbreviation={match.awayAbbreviation}
+              alt={awayName}
+              decorative
+              size={24}
+              src={awayEmblemSrc}
+            />
+            <span>
+              {hasScores ? `${awayScore} ` : ''}
+              {awayCompactName}
+            </span>
+          </span>
+          {showCompactTime && match.scheduledAt !== undefined && (
+            <span className="cl-match-card__compact-time">
+              {' '}
+              <ResponsiveTimestamp
+                locale={locale}
+                referenceDate={referenceDate}
+                timeZone={timeZone}
+                timestamp={match.scheduledAt}
+              />
+            </span>
+          )}
+          {delayed && labels.delayed && (
+            <Badge className={`cl-match-card__compact-state ${badge.className}`}>
+              <Icon name={badge.icon} size={16} />
+              <span>{badge.label}</span>
+            </Badge>
+          )}
+          {rescheduled && (
+            <span className="cl-match-card__venue cl-match-card__compact-rescheduled">
+              {rescheduled}
+            </span>
+          )}
+        </span>
       </Card>
     );
 
-    return reportUrl === undefined ? compactBody : <a href={reportUrl}>{compactBody}</a>;
+    return compactBody;
   }
 
   const body = (
     <Card
       as="article"
-      className={`cl-match-card${band === undefined ? '' : band === 'base' ? ' cl-band--base' : ' cl-band'}`}
+      className={`cl-match-card${band === undefined ? '' : band === 'base' ? ' cl-band--base' : ' cl-band'}${linkedClass}`}
       data-match={match.matchId}
+      data-schedule-version={match.scheduleVersion ?? 0}
     >
       <div className="cl-match-card__header">
+        <MatchHeading className="cl-match-card__heading">
+          {reportUrl === undefined ? (
+            <span className="cl-match-card__title" title={title.title}>
+              {title.title}
+            </span>
+          ) : (
+            <a
+              aria-label={`${matchTitle}: ${homeName} ${versus} ${awayName}`}
+              className="cl-match-card__report-link cl-focusable"
+              href={reportUrl}
+            >
+              <span className="cl-match-card__title" title={title.title}>
+                {title.title}
+              </span>
+            </a>
+          )}
+          {title.number !== undefined && (
+            // A linked title's label already says the number; a reader hears it once.
+            <span
+              aria-hidden={reportUrl === undefined ? undefined : true}
+              className="cl-match-card__number"
+            >
+              {title.number}
+            </span>
+          )}
+        </MatchHeading>
         <Badge className={badge.className}>
-          <span aria-hidden="true">{badge.icon}</span>
+          {badge.state !== 'live' && <Icon name={badge.icon} size={16} />}
           <span>{badge.label}</span>
         </Badge>
-        {match.clockSeconds !== undefined && (
-          <span
-            className="cl-match-card__clock"
-            title={applyTemplate(labels.clockAriaLabel, { time: formatClock(match.clockSeconds) })}
-          >
-            {formatClock(match.clockSeconds)}
-          </span>
+        {outcome !== undefined && (
+          <Badge className={`cl-match-card__outcome ${OUTCOME_BADGE[outcome.kind].className}`}>
+            <Icon name={OUTCOME_BADGE[outcome.kind].icon} size={16} />
+            <span>{outcome.label}</span>
+          </Badge>
+        )}
+        {effectiveState === 'live' &&
+        (effectiveClock !== undefined || effectiveSegmentLabel !== undefined) ? (
+          <LiveMatchScoreboard
+            clock={effectiveClock}
+            labels={{
+              clockStopped: labels.clockStopped ?? '',
+              clockAriaLabel: labels.liveClockAriaLabel ?? labels.clockAriaLabel,
+              lastUpdated: labels.lastUpdated ?? '{time}',
+            }}
+            locale={locale}
+            matchId={match.matchId}
+            segmentLabel={effectiveSegmentLabel}
+            segments={effectiveSegments}
+            showLastUpdated={Boolean(labels.lastUpdated)}
+            timeZone={timeZone}
+          />
+        ) : (
+          effectiveState === 'live' &&
+          match.clockSeconds !== undefined && (
+            <span
+              className="cl-match-card__clock"
+              title={applyTemplate(labels.clockAriaLabel, {
+                time: formatClock(match.clockSeconds),
+              })}
+            >
+              {formatClock(match.clockSeconds)}
+            </span>
+          )
         )}
       </div>
 
+      {rescheduled && (
+        <p className="cl-match-card__venue" role="status">
+          {rescheduled}
+        </p>
+      )}
       <ol className="cl-match-card__sides">
         <li className="cl-match-card__side">
-          <EntrantName fullName={match.homeName ?? 'TBD'} abbreviation={match.homeAbbreviation} />
-          {match.homePosition !== undefined && (
+          <EntrantEmblem
+            abbreviation={match.homeAbbreviation}
+            alt={homeName}
+            decorative
+            size={32}
+            src={homeEmblemSrc}
+          />
+          {homeClubUrl ? (
+            <a className="cl-match-card__team-link cl-focusable" href={homeClubUrl}>
+              <EntrantName
+                pending={match.homeName === undefined}
+                compact={syncCompactUndecided}
+                onOverflowChange={bothUndecided ? setHomeOverflow : undefined}
+                fullName={homeName}
+                abbreviation={
+                  match.homeName === undefined ? homeSource.short : match.homeAbbreviation
+                }
+              />
+            </a>
+          ) : (
+            <EntrantName
+              pending={match.homeName === undefined}
+              compact={syncCompactUndecided}
+              onOverflowChange={bothUndecided ? setHomeOverflow : undefined}
+              fullName={homeName}
+              abbreviation={
+                match.homeName === undefined ? homeSource.short : match.homeAbbreviation
+              }
+            />
+          )}
+          {match.state !== 'upcoming' && match.homePosition !== undefined && (
             <Badge
               className="cl-badge--rank"
               title={applyTemplate(labels.position, { position: match.homePosition })}
@@ -129,11 +454,42 @@ export function MatchCard({
               #{match.homePosition}
             </Badge>
           )}
-          <span className="cl-stat-tile__value cl-tabular-nums">{match.homeScore ?? '—'}</span>
+          {showScores && (
+            <ValueFlash className="cl-stat-tile__value cl-tabular-nums" value={homeScore} />
+          )}
         </li>
         <li className="cl-match-card__side">
-          <EntrantName fullName={match.awayName ?? 'TBD'} abbreviation={match.awayAbbreviation} />
-          {match.awayPosition !== undefined && (
+          <EntrantEmblem
+            abbreviation={match.awayAbbreviation}
+            alt={awayName}
+            decorative
+            size={32}
+            src={awayEmblemSrc}
+          />
+          {awayClubUrl ? (
+            <a className="cl-match-card__team-link cl-focusable" href={awayClubUrl}>
+              <EntrantName
+                pending={match.awayName === undefined}
+                compact={syncCompactUndecided}
+                onOverflowChange={bothUndecided ? setAwayOverflow : undefined}
+                fullName={awayName}
+                abbreviation={
+                  match.awayName === undefined ? awaySource.short : match.awayAbbreviation
+                }
+              />
+            </a>
+          ) : (
+            <EntrantName
+              pending={match.awayName === undefined}
+              compact={syncCompactUndecided}
+              onOverflowChange={bothUndecided ? setAwayOverflow : undefined}
+              fullName={awayName}
+              abbreviation={
+                match.awayName === undefined ? awaySource.short : match.awayAbbreviation
+              }
+            />
+          )}
+          {match.state !== 'upcoming' && match.awayPosition !== undefined && (
             <Badge
               className="cl-badge--rank"
               title={applyTemplate(labels.position, { position: match.awayPosition })}
@@ -141,7 +497,9 @@ export function MatchCard({
               #{match.awayPosition}
             </Badge>
           )}
-          <span className="cl-stat-tile__value cl-tabular-nums">{match.awayScore ?? '—'}</span>
+          {showScores && (
+            <ValueFlash className="cl-stat-tile__value cl-tabular-nums" value={awayScore} />
+          )}
         </li>
       </ol>
 
@@ -164,7 +522,13 @@ export function MatchCard({
                   : undefined
               }
             >
-              <ResponsiveTimestamp timestamp={match.scheduledAt} locale={locale} />
+              <Icon name="clock" size={16} />
+              <ResponsiveTimestamp
+                timestamp={match.scheduledAt}
+                locale={locale}
+                referenceDate={referenceDate}
+                timeZone={timeZone}
+              />
             </span>
           )}
           {match.venueName !== undefined && match.scheduledAt !== undefined && ' · '}
@@ -179,9 +543,11 @@ export function MatchCard({
       {match.latestEvent !== undefined && (
         <p
           className="cl-match-card__event"
-          title={applyTemplate(labels.latestEventAriaLabel, { event: match.latestEvent.label })}
+          title={applyTemplate(labels.latestEventAriaLabel, {
+            event: eventLabel(match.latestEvent, language),
+          })}
         >
-          {match.latestEvent.label}
+          {eventLabel(match.latestEvent, language)}
         </p>
       )}
 
@@ -194,19 +560,13 @@ export function MatchCard({
         />
       )}
 
-      {match.decidingFactor !== undefined && (
-        <p className="cl-match-card__deciding-factor" title={labels.decidedByAriaLabel}>
-          {applyTemplate(labels.decidedBy, { factor: match.decidingFactor })}
-        </p>
-      )}
-
       {hasFullTrace && (
         <TracePanel homeTrace={match.homeTrace} awayTrace={match.awayTrace} labels={labels} />
       )}
     </Card>
   );
 
-  return reportUrl === undefined ? body : <a href={reportUrl}>{body}</a>;
+  return body;
 }
 
 /**
@@ -357,24 +717,7 @@ export function ChampionshipMatchCard({
       <div className="cl-championship-card__header">
         <div className="cl-championship-card__title-group">
           {/* Trophy Icon */}
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="var(--cl-state-live)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-            <path d="M4 22h16" />
-            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-          </svg>
+          <Icon name="trophy" size={20} />
 
           <span className="cl-championship-card__title">{title}</span>
         </div>
@@ -473,14 +816,14 @@ export function LiveMatchScorecard({
       {/* Tactical live status header */}
       <div className="cl-scorecard__header">
         <div className="cl-scorecard__location-group">
-          <span className="cl-scorecard__dot">●</span>
+          <Icon className="cl-scorecard__dot" name="live" size={16} />
           <span className="cl-scorecard__location">{location}</span>
           <span className="cl-scorecard__separator">•</span>
           <span className="cl-scorecard__operations">{operationsLabel}</span>
         </div>
 
         <div className="cl-scorecard__clock-group">
-          <span className="cl-scorecard__dot">●</span>
+          <Icon className="cl-scorecard__dot" name="live" size={16} />
           <span className="cl-scorecard__clock">{clock}</span>
         </div>
       </div>

@@ -7,6 +7,7 @@ import { Input } from '../ui/atoms/input.js';
 import { Field } from '../ui/molecules/field.js';
 import { messages } from '../../i18n/messages.en.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { formatDateInputHint } from '../../lib/presentation-formatting.js';
 
 /**
  * Composes the screen from the data `ClubPortalMembersPage` supplies: which
@@ -109,12 +110,15 @@ export function ClubPortalMembersTemplate({
               />
             </Field>
             <Field
+              helpText={formatDateInputHint(intl)}
               id="new-member-birth-date"
               label={intl.formatMessage(messages.clubPortalMembersNewMemberBirthDate)}
             >
               <Input
                 aria-label={intl.formatMessage(messages.clubPortalMembersNewMemberBirthDate)}
+                aria-describedby="new-member-birth-date-help"
                 id="new-member-birth-date"
+                lang={intl.locale}
                 onChange={(event) => setNewBirthDate(event.target.value)}
                 type="date"
                 value={newBirthDate}

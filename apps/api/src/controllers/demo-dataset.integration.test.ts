@@ -58,7 +58,7 @@ describePostgres(
     let request: Awaited<ReturnType<typeof buildTestApp>>['request'];
     let dataset: DemoDataset;
 
-    const base = `/organizations/panamericano-demo/tournaments/${ALIAS}`;
+    const base = `/api/organizations/panamericano-demo/tournaments/${ALIAS}`;
     const get = async <T>(url: string): Promise<T> => {
       const response = await request({ method: 'GET', url });
       expect(response.statusCode).toBe(200);
@@ -97,7 +97,7 @@ describePostgres(
 
     it('lists the tournament as published', async () => {
       const listing = await get<{ tournaments: { alias: string; name: string }[] }>(
-        '/organizations/panamericano-demo/public/tournaments',
+        '/api/organizations/panamericano-demo/public/tournaments',
       );
       expect(listing.tournaments).toEqual([
         expect.objectContaining({ alias: ALIAS, name: dataset.tournament.name }),
@@ -112,6 +112,35 @@ describePostgres(
         tournamentAlias: ALIAS,
         organizationAlias: 'panamericano-demo',
       });
+    });
+
+    it('names each overview match by the same zone and group the matches view does', async () => {
+      type Named = {
+        matchId: string;
+        stageNumber: number;
+        zoneName?: string;
+        groupName?: string;
+      };
+      const overview = await get<{ matches: Named[] }>(`${base}/overview`);
+      const view = await get<{ matches: Named[] }>(`${base}/matches-view`);
+      const viewById = new Map(view.matches.map((match) => [match.matchId, match]));
+
+      expect(overview.matches).toHaveLength(72);
+      for (const match of overview.matches) {
+        const named = viewById.get(match.matchId);
+        expect({ zoneName: match.zoneName, groupName: match.groupName }).toEqual({
+          zoneName: named?.zoneName,
+          groupName: named?.groupName,
+        });
+      }
+      const groupStage = overview.matches.filter((match) => match.stageNumber === 1);
+      expect(groupStage.every((match) => match.groupName?.startsWith('Grupo '))).toBe(true);
+      // A cup bracket names its zone; its implicit group names nothing.
+      expect(
+        overview.matches
+          .filter((match) => match.stageNumber === 2)
+          .every((match) => match.zoneName !== undefined && match.groupName === undefined),
+      ).toBe(true);
     });
 
     it('serves all 72 games, final, with venue, time, zone and group', async () => {
@@ -190,6 +219,71 @@ describePostgres(
           expect(Number(row.statistics['goals-for'] ?? 0)).toBeGreaterThan(0);
         }
       }
+    });
+  },
+);
+
+describePostgres(
+  'the Panamericano demo played only up to a cutoff, read through the public API (integration)',
+  () => {
+    let app: INestApplication;
+    let scratch: Awaited<ReturnType<typeof buildTestApp>>['scratch'];
+    let request: Awaited<ReturnType<typeof buildTestApp>>['request'];
+    const base = `/api/organizations/panamericano-demo/tournaments/${ALIAS}`;
+
+    beforeAll(async () => {
+      ({ app, scratch, request } = await buildTestApp([PublicProjectionsController]));
+      const document = JSON.parse(await readFile(FIXTURE, 'utf8'));
+      await withTransaction(scratch.db, (uow) =>
+        new TournamentRepository(scratch.db).saveDescriptor(
+          uow,
+          { ...document, descriptorId: newId() },
+          { organizationId: SYSTEM_ORGANIZATION, actor: 'test', authorizationContext: 'test' },
+        ),
+      );
+      // After the first Copa Bronce quarter-final, before the others: one semi-final side is known.
+      await loadDemoDatasetByAlias(scratch.db, new MemoryStorage(), ALIAS, undefined, undefined, {
+        playedUntil: { kind: 'instant', at: Date.parse('2025-11-05T10:00:00-03:00') },
+      });
+    }, 120_000);
+
+    afterAll(async () => {
+      await app?.close();
+      await scratch?.drop();
+    });
+
+    it('lists played and unplayed games, and names every undecided side by its source', async () => {
+      const response = await request({ method: 'GET', url: `${base}/matches-view` });
+      expect(response.statusCode).toBe(200);
+      const view = JSON.parse(response.payload as string) as {
+        matches: {
+          status: string;
+          nodeKey?: string;
+          zoneName?: string;
+          homeName?: string;
+          awayName?: string;
+          homeSource?: { kind: string; nodeKey?: string };
+          awaySource?: { kind: string; nodeKey?: string };
+        }[];
+      };
+      expect(view.matches).toHaveLength(72);
+      expect(view.matches.some((match) => match.status === 'final')).toBe(true);
+      expect(view.matches.some((match) => match.status === 'upcoming')).toBe(true);
+      const semi = view.matches.find(
+        (match) => match.zoneName === 'Copa Bronce' && match.nodeKey === 'SE-R2-M1',
+      );
+      expect(semi?.homeName).toBe('Olimpia Patin Club');
+      expect(semi?.awayName).toBeUndefined();
+      expect(semi?.awaySource).toMatchObject({ kind: 'winner-of', nodeKey: 'SE-R1-M2' });
+      const quarter = view.matches.find(
+        (match) => match.zoneName === 'Copa Oro' && match.nodeKey === 'SE-R1-M1',
+      );
+      expect(quarter?.homeSource).toMatchObject({ kind: 'qualifier' });
+    });
+
+    it('serves each cup bracket with its undecided sides', async () => {
+      const response = await request({ method: 'GET', url: `${base}/stages/2/bracket` });
+      expect(response.statusCode).toBe(200);
     });
   },
 );

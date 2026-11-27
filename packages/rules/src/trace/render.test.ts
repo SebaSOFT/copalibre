@@ -1,6 +1,14 @@
 import { describe, expect, it } from '@jest/globals';
 import { resolveTiebreak, type TiebreakPipeline } from '../tiebreak/pipeline.js';
-import { decidingFactorLabel, hasTraceFor, lineOf, traceForEntrant, traceLines } from './render.js';
+import {
+  decidingFactorBetween,
+  decidingFactorLabel,
+  decidingFactorNodeBetween,
+  hasTraceFor,
+  lineOf,
+  traceForEntrant,
+  traceLines,
+} from './render.js';
 import type { TraceNode } from './explanation-trace.js';
 
 const pipeline: TiebreakPipeline = {
@@ -158,5 +166,153 @@ describe('decidingFactorLabel', () => {
 
     expect(fullyResolved).toBe(false);
     expect(decidingFactorLabel(trace, 'a')).toBeUndefined();
+  });
+});
+
+describe('decidingFactorBetween', () => {
+  const goalAveragePipeline: TiebreakPipeline = {
+    id: 'liga-goal-average',
+    version: 1,
+    parameters: [
+      {
+        id: 'points',
+        label: 'Points',
+        valueType: 'number',
+        direction: 'higher_wins',
+        missingValue: 'treat-as-zero',
+        source: 'calculated',
+      },
+      {
+        id: 'head-to-head',
+        label: 'Head to head',
+        valueType: 'number',
+        direction: 'higher_wins',
+        missingValue: 'treat-as-zero',
+        source: 'match-derived',
+        scope: 'head-to-head',
+      },
+      {
+        id: 'goal-average',
+        label: 'Goal average',
+        valueType: 'number',
+        direction: 'higher_wins',
+        missingValue: 'treat-as-zero',
+        source: 'calculated',
+      },
+    ],
+  };
+
+  it('returns { code, rule } for a two-way tie split by goal-average', () => {
+    const { trace } = resolveTiebreak(goalAveragePipeline, ['a', 'b'], {
+      a: { points: 6, 'head-to-head': 0, 'goal-average': 2.5 },
+      b: { points: 6, 'head-to-head': 0, 'goal-average': 1.2 },
+    });
+
+    expect(decidingFactorBetween(trace, 'a', 'b')).toEqual({
+      code: 'goal-average',
+      rule: 3,
+    });
+    expect(decidingFactorNodeBetween(trace, 'a', 'b')).toMatchObject({
+      rule: 3,
+      node: { id: 'goal-average', label: 'Rule 3 (Goal average)' },
+    });
+  });
+
+  it('splits a three-way tie 1+2 by goal-average and returns undefined for the remaining tied pair', () => {
+    const { trace } = resolveTiebreak(goalAveragePipeline, ['a', 'b', 'c'], {
+      a: { points: 6, 'head-to-head': 0, 'goal-average': 2.5 },
+      b: { points: 6, 'head-to-head': 0, 'goal-average': 1.2 },
+      c: { points: 6, 'head-to-head': 0, 'goal-average': 1.2 },
+    });
+
+    expect(decidingFactorBetween(trace, 'a', 'b')).toEqual({ code: 'goal-average', rule: 3 });
+    expect(decidingFactorBetween(trace, 'a', 'c')).toEqual({ code: 'goal-average', rule: 3 });
+    expect(decidingFactorBetween(trace, 'b', 'c')).toBeUndefined();
+  });
+
+  it('walks recursive children to report head-to-head for a sub-tied pair after goal-average splits 1+2', () => {
+    const trace: TraceNode[] = [
+      {
+        kind: 'comparator',
+        id: 'points',
+        label: 'Rule 1 (Points)',
+        outcome: 'tied-proceed',
+        values: { a: 6, b: 6, c: 6 },
+      },
+      {
+        kind: 'comparator',
+        id: 'goal-average',
+        label: 'Rule 2 (Goal average)',
+        outcome: 'resolved',
+        values: { a: 2.5, b: 1.2, c: 1.2 },
+        children: [
+          {
+            kind: 'comparator',
+            id: 'points',
+            label: 'Rule 1 (Points)',
+            outcome: 'tied-proceed',
+            values: { b: 6, c: 6 },
+          },
+          {
+            kind: 'comparator',
+            id: 'head-to-head',
+            label: 'Rule 3 (Head to head)',
+            outcome: 'resolved',
+            values: { b: 1, c: 0 },
+          },
+        ],
+      },
+    ];
+
+    expect(decidingFactorBetween(trace, 'a', 'b')).toEqual({ code: 'goal-average', rule: 2 });
+    expect(decidingFactorBetween(trace, 'b', 'c')).toEqual({ code: 'head-to-head', rule: 3 });
+  });
+
+  it('returns undefined when points alone separated the pair, whether points is Rule 1 or omitted', () => {
+    const { trace } = resolveTiebreak(goalAveragePipeline, ['a', 'b', 'c'], {
+      a: { points: 6, 'head-to-head': 0, 'goal-average': 2.5 },
+      b: { points: 6, 'head-to-head': 0, 'goal-average': 1.2 },
+      c: { points: 3, 'head-to-head': 0, 'goal-average': 0.5 },
+    });
+
+    expect(decidingFactorBetween(trace, 'a', 'c')).toBeUndefined();
+    expect(decidingFactorBetween(trace, 'b', 'c')).toBeUndefined();
+
+    const traceWithoutPoints = trace.filter((node) => node.id !== 'points');
+    expect(decidingFactorBetween(traceWithoutPoints, 'a', 'c')).toBeUndefined();
+    expect(decidingFactorBetween(traceWithoutPoints, 'a', 'b')).toEqual({
+      code: 'goal-average',
+      rule: 3,
+    });
+  });
+
+  it('returns undefined for identical entrants, ignores aggregation nodes, and falls back to comparator sibling index', () => {
+    expect(decidingFactorBetween([], 'a', 'a')).toBeUndefined();
+
+    const trace: TraceNode[] = [
+      {
+        kind: 'aggregation',
+        id: 'series-points',
+        label: 'Series points',
+        outcome: 'resolved',
+        values: { a: 3, b: 1 },
+      },
+      {
+        kind: 'comparator',
+        id: 'points',
+        label: 'Points',
+        outcome: 'tied-proceed',
+        values: { a: 6, b: 6 },
+      },
+      {
+        kind: 'comparator',
+        id: 'goal-average',
+        label: 'Goal average',
+        outcome: 'resolved',
+        values: { a: 2, b: 1 },
+      },
+    ];
+
+    expect(decidingFactorBetween(trace, 'a', 'b')).toEqual({ code: 'goal-average', rule: 2 });
   });
 });

@@ -18,12 +18,12 @@ automatically; `--namespace`/`--release` default to `default`/`copalibre` when o
 Bootstrapping the first administrator runs as a one-shot Job instead of `kubectl exec` into a
 running pod. Run the example from the checkout root after configuring `values.yaml` with the
 required database, identity, email and public URL settings. These image tags are available only
-after the 1.2.6 release is published; for an earlier installation, use its released version:
+after the 2.0.0 release is published; for an earlier installation, use its released version:
 
 ```bash
 helm install my-copalibre deploy/helm/copalibre -f values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6 \
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=2.0.0 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=2.0.0 \
   --set createAdmin.enabled=true \
   --set createAdmin.organizationAlias=my-league \
   --set createAdmin.organizationName="My League" \
@@ -51,6 +51,31 @@ and require measured margin below the limit. Keep ingress on the old release dur
 rolling cutover only after verifying the migration works with both old and new application versions.
 If that compatibility or timing is not proven for the target release, this procedure does not meet
 the downtime limit. Do not scale everything to zero and expect the limit to hold.
+
+### From 1.x to 2.0
+
+2.0.0 changes how the roles reach the database and where the API answers. Prepare these before
+step 1; the Compose upgrade does them for you, the chart does not.
+
+- **PostgreSQL stays yours.** The 17 to 18 move in `copalibre upgrade` is Compose only; the chart
+  never touches your database. CI and the release validation run 2.0.0 against PostgreSQL 18 only.
+- **Database roles.** Create `copalibre_owner` and `copalibre_app` once with
+  `deploy/postgres/roles.sql` as a superuser (see [Database Roles](../self-hosting.md#database-roles)).
+  Point `env.DATABASE_URL` at `copalibre_app` and `migrationEnv.DATABASE_MIGRATION_URL` at
+  `copalibre_owner`. Left empty, migrations run with `DATABASE_URL` and `copalibre doctor` fails
+  `database:runtime-privileges`.
+- **Routes under `/api`.** Every API route, health check included, moved under `/api`;
+  `/.well-known/jwks.json` is gone. An `env.COPALIBRE_JWKS_URI` that names the installation's own
+  API becomes `http://<api-service>:3001/api/auth/jwks.json`; an external provider's URL stays. The
+  web role routes `/api` and `/events`, so the ingress keeps one host for Control and the public
+  site. Probes and monitors that called `/health` on the API call `/api/health`.
+- **Session cookies.** Control's access token moves to an `HttpOnly` cookie. Set
+  `env.COPALIBRE_SESSION_COOKIE_SECURE` to match how operators reach the installation (see
+  [Session cookies](../self-hosting.md#session-cookies)); operators sign in once more after the
+  upgrade.
+- **Content Security Policy.** With an external OIDC provider, check the derived identity origin
+  (see [Content Security Policy](#content-security-policy)).
+- **Both image pins** move to `2.0.0` together.
 
 ### 1. Capture configuration and recovery evidence
 
@@ -102,9 +127,9 @@ spec:
       restartPolicy: Never
       containers:
         - name: upgrade-check
-          image: ghcr.io/sebasoft/copalibre:1.2.6
+          image: ghcr.io/sebasoft/copalibre:2.0.0
           command: [node, apps/copalibre/dist/main.js]
-          args: [upgrade-check, --target-version, 1.2.6]
+          args: [upgrade-check, --target-version, 2.0.0]
           envFrom:
             - configMapRef:
                 name: my-copalibre-env
@@ -142,8 +167,8 @@ replicas and configuration in `upgrade-values.yaml`:
 ```bash
 helm upgrade my-copalibre deploy/helm/copalibre -n default \
   -f upgrade-values.yaml \
-  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=1.2.6 \
-  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=1.2.6 \
+  --set image.repository=ghcr.io/sebasoft/copalibre --set-string image.tag=2.0.0 \
+  --set web.image.repository=ghcr.io/sebasoft/copalibre-web --set-string web.image.tag=2.0.0 \
   --set createAdmin.enabled=false --set doctor.enabled=true \
   --wait --wait-for-jobs --timeout 10m
 ```
@@ -167,7 +192,7 @@ Inspect the revision-suffixed `my-copalibre-migrate-<revision>` and `my-copalibr
 Job logs and confirm worker/events/scheduler rollout too. Check API readiness, native/OIDC login,
 public tournament pages, uploads and live SSE through ingress. Keep TLS secrets, DNS names and
 unbuffered SSE settings intact. **The Helm ingress sends its web hostname directly to the web
-Service, unlike the Compose gateway.** Verify app-origin `/auth/*`, `/api/*` and `/events/*` routing
+Service, unlike the Compose gateway.** Verify app-origin `/api/*` and `/events/*` routing
 in your ingress configuration; the default separate-host rules do not supply those paths on the web
 hostname. Treat a failed login or SSE check as a failed upgrade, even if all pods are Ready.
 
@@ -279,6 +304,44 @@ nothing in this chart installs them.
   `ingress.annotations` for a different controller.
 - **External Secrets Operator**, required by `externalSecrets.enabled`.
 
+## Content Security Policy
+
+The web role enforces a Content Security Policy on every page: hashed inline scripts only,
+and connections, frames and form posts to the application origin only. With an external
+OIDC provider, the policy must also allow the provider's origin. The chart derives it from
+`web.env.COPALIBRE_JWT_ISSUER` when that issuer's origin differs from
+`env.COPALIBRE_APP_URL`; set `web.env.COPALIBRE_CSP_IDENTITY_ORIGIN` to override it. The
+built-in identity provider needs nothing.
+
+Ingress controllers must pass the `Content-Security-Policy` header through unchanged:
+server-rendered pages carry two policies and need both. Do not add a policy in ingress
+annotations.
+
+## Well-known files
+
+The web role serves `/srv/.well-known` as `/.well-known/` on the application
+origin, static and read-only; a name with no file answers 404. The chart ships
+nothing there. To publish files such as `security.txt` (RFC 9116), create a
+ConfigMap whose keys are the file names and name it in
+`web.wellKnown.configMap`. **Everything in that ConfigMap is public**: never
+put credentials in it. A Secret is not supported for that reason.
+
+```bash
+cat > security.txt <<'TXT'
+Contact: mailto:security@example.org
+Expires: 2027-11-08T00:00:00.000Z
+TXT
+kubectl create configmap copalibre-well-known --from-file=security.txt
+helm upgrade copalibre deploy/helm/copalibre --reuse-values \
+  --set web.wellKnown.configMap=copalibre-well-known
+```
+
+`Contact` and `Expires` are required; renew `Expires` before it passes, within
+a year. Kubernetes refreshes a mounted ConfigMap's files in place after an
+update, so editing it needs no restart once the delay of the kubelet sync has
+passed. Empty `web.wellKnown.configMap` (the default) mounts nothing. ACME
+challenges stay with the ingress or its certificate manager.
+
 ## Managed external dependencies
 
 `packages/persistence` already targets PostgreSQL and S3-compatible object
@@ -294,6 +357,12 @@ Set `env.DATABASE_URL` to the managed instance's connection string (any
 `DATABASE_URL` directly and never falls back to a default host). Works
 identically for RDS, Cloud SQL, Azure Database for PostgreSQL, or a
 self-hosted PostgreSQL — the chart has no provider-specific logic.
+
+That URL should name the runtime role, `copalibre_app`, and
+`migrationEnv.DATABASE_MIGRATION_URL` the schema owner, `copalibre_owner`,
+which only the migrate Job receives. Create both roles once with
+`deploy/postgres/roles.sql`; see
+[Database Roles](../self-hosting.md#database-roles).
 
 ### Managed Redis
 

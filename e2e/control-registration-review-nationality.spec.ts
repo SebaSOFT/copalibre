@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -48,6 +48,9 @@ async function mockRegistrationApi(page: import('@playwright/test').Page): Promi
             window as unknown as { __registrations: () => Promise<unknown> }
           ).__registrations();
           return Response.json(registrations);
+        }
+        if (url.endsWith('/entrants/needing-abbreviation') && (init?.method ?? 'GET') === 'GET') {
+          return Response.json([]);
         }
         if (url.endsWith(`/persons/${personId}/nationality`) && init?.method === 'PATCH') {
           const body = JSON.parse(String(init.body)) as { nationality: string | null };
@@ -99,7 +102,7 @@ test('sets a nationality and sees the flag, then sees a placeholder photo on the
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByText('Elías Salomón').click();
+  await page.getByRole('button', { name: 'Mostrar detalles: Elías Salomón' }).click();
   await page.getByLabel('País').fill('Argent');
   await page.getByRole('option', { name: /Argentina/ }).click();
   await page.getByRole('button', { name: 'Guardar' }).click();
@@ -128,7 +131,7 @@ test('uploads a person photo through the crop modal from the registration review
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${target}`);
 
-  await page.getByText('Elías Salomón').click();
+  await page.getByRole('button', { name: 'Mostrar detalles: Elías Salomón' }).click();
   await expect(page.getByRole('img', { name: 'Subir foto' })).toBeVisible();
 
   await page.getByLabel('Subir foto').setInputFiles({
@@ -146,7 +149,7 @@ test('uploads a person photo through the crop modal from the registration review
   } catch {
     // removal succeeded or already in cropping state
   }
-  const useImage = dialog.getByRole('button', { name: 'Usar imagen' });
+  const useImage = dialog.getByRole('button', { name: 'Aplicar' });
   await expect(useImage).toBeEnabled({ timeout: 15000 });
   await useImage.click();
   await expect(dialog).toBeHidden();

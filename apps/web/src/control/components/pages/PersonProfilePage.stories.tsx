@@ -1,3 +1,4 @@
+import { ReadStoryScope, StaleReadStory } from '../screen-story-fixtures.js';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useMemo } from 'react';
 import { useIntl } from 'react-intl';
@@ -21,6 +22,7 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
         read({
           personId: ids.person,
           displayName: 'V. Kael',
+          hiddenFromPublic: false,
           ...(empty ? {} : { nationality: 'AR', naturalKey: { kind: 'member', value: 'MS-014' } }),
         }),
     });
@@ -28,6 +30,13 @@ function Screen({ mode }: { readonly mode: 'loaded' | 'empty' | 'loading' | 'fai
   return <PersonProfilePage organizationAlias={ORG} personId={ids.person} client={client} />;
 }
 const meta = {
+  decorators: [
+    (Story, context) => (
+      <ReadStoryScope key={`${context.id}:${String(context.args.mode)}`}>
+        <Story />
+      </ReadStoryScope>
+    ),
+  ],
   title: 'Admin/Screens/PersonProfilePage',
   component: Screen,
   args: { mode: 'loaded' },
@@ -39,3 +48,9 @@ export const Loaded: Story = {};
 export const Empty: Story = { args: { mode: 'empty' } };
 export const Loading: Story = { args: { mode: 'loading' } };
 export const Failed: Story = { args: { mode: 'failed' } };
+
+export const Stale: Story = {
+  render: () => (
+    <StaleReadStory loaded={<Screen mode="loaded" />} failed={<Screen mode="failed" />} />
+  ),
+};

@@ -21,6 +21,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { MatchControlController } from './match-control.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 const REFEREE_CAPABILITIES = CAPABILITY_TEMPLATES.referee as readonly MatchCapability[];
 
@@ -63,6 +64,7 @@ describe('retroactive match data entry (integration)', () => {
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -228,7 +230,7 @@ describe('retroactive match data entry (integration)', () => {
   }
 
   function base(matchId: string): string {
-    return `/organizations/liga-bulk-load/tournaments/apertura-bulk-load/matches/${matchId}`;
+    return `/api/organizations/liga-bulk-load/tournaments/apertura-bulk-load/matches/${matchId}`;
   }
 
   function request(url: string, token: string | undefined, payload: unknown) {

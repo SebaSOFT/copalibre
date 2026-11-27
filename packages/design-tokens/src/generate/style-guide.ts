@@ -8,7 +8,7 @@ import {
   SELECT_TOKENS,
   TEXTAREA_TOKENS,
 } from '../components.js';
-import { CONTROL_DENSITY_SPACING, FONT_SIZE } from '../primitives.js';
+import { CONTROL_DENSITY_SPACING, FIGURE_SIZE, FONT_SIZE } from '../primitives.js';
 import { SEMANTIC_COLORS } from '../semantic.js';
 
 /**
@@ -63,7 +63,10 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
     )
     .join('\n      ');
 
-  const fontSizes = Object.keys(FONT_SIZE)
+  const fontSizes = [
+    ...Object.keys(FONT_SIZE),
+    ...Object.keys(FIGURE_SIZE).map((name) => `figure-${name}`),
+  ]
     .map(
       (name) =>
         `<div class="font-size-sample" data-font-size="${escape(name)}"><code>${escape(name)}</code><span style="font-size: var(--cl-font-size-${escape(name)})">CopaLibre Aa 0123</span></div>`,
@@ -155,16 +158,16 @@ export function generateStyleGuide(cssHref = './copalibre.css'): string {
     <h2>Niveles de superficie y alternancia</h2>
     <div class="cl-band cl-chamfer" style="padding: var(--cl-space-4); margin-bottom: var(--cl-space-4); width: 100%;">
       <p>Banda nivel panel (base: <code>--cl-surface-panel</code>)</p>
-      <div class="cl-card" style="padding: var(--cl-space-3);">
-        <header class="cl-card__header" style="padding: var(--cl-space-2);">Cabecera chrome (<code>--cl-surface-chrome</code>)</header>
-        <div class="cl-card__body" style="padding: var(--cl-space-2);">Cuerpo alternado (<code>--cl-surface-base</code>)</div>
+      <div class="cl-card">
+        <header class="cl-card__header">Cabecera chrome (<code>--cl-surface-chrome</code>)</header>
+        <div class="cl-card__body">Cuerpo alternado (<code>--cl-surface-base</code>)</div>
       </div>
     </div>
     <div class="cl-band cl-band--base cl-chamfer" style="padding: var(--cl-space-4); width: 100%;">
       <p>Banda nivel base (base: <code>--cl-surface-base</code>)</p>
-      <div class="cl-card" style="padding: var(--cl-space-3);">
-        <header class="cl-card__header" style="padding: var(--cl-space-2);">Cabecera chrome (<code>--cl-surface-chrome</code>)</header>
-        <div class="cl-card__body" style="padding: var(--cl-space-2);">Cuerpo alternado (<code>--cl-surface-panel</code>)</div>
+      <div class="cl-card">
+        <header class="cl-card__header">Cabecera chrome (<code>--cl-surface-chrome</code>)</header>
+        <div class="cl-card__body">Cuerpo alternado (<code>--cl-surface-panel</code>)</div>
       </div>
     </div>
   </section>

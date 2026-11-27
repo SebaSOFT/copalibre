@@ -141,6 +141,9 @@ export function pgRestoreCommand(database: string, containerDumpPath: string): r
     '--clean',
     '--if-exists',
     '--no-owner',
+    // database-tools connects as the superuser; every restored object belongs to the
+    // schema owner instead, and the migrate run after the restore grants the runtime role.
+    '--role=copalibre_owner',
     '--dbname',
     database,
     containerDumpPath,

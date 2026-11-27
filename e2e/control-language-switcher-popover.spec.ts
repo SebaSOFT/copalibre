@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -19,7 +19,7 @@ async function setupMockApi(page: Page): Promise<void> {
         if (url === tokenEndpoint) {
           return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
         }
-        if (url === '/organizations?mine=true' && method === 'GET') {
+        if (url === '/api/organizations?mine=true' && method === 'GET') {
           return Response.json([
             {
               organizationId: 'org-1',
@@ -29,10 +29,10 @@ async function setupMockApi(page: Page): Promise<void> {
             },
           ]);
         }
-        if (url === `/organizations/${orgAlias}/tournaments` && method === 'GET') {
+        if (url === `/api/organizations/${orgAlias}/tournaments` && method === 'GET') {
           return Response.json([]);
         }
-        if (url.includes(`/organizations/${orgAlias}/audit-trail`) && method === 'GET') {
+        if (url.includes(`/api/organizations/${orgAlias}/audit-trail`) && method === 'GET') {
           return Response.json({ records: [], total: 0, limit: 10, offset: 0 });
         }
         if (url === `/events/control/${orgAlias}`) {
@@ -45,7 +45,7 @@ async function setupMockApi(page: Page): Promise<void> {
   );
 }
 
-test('3.1: clicking the trigger opens the styled popover and switches the shell language', async ({
+test('clicking the trigger opens the styled popover and switches the shell language', async ({
   page,
 }) => {
   await setupMockApi(page);

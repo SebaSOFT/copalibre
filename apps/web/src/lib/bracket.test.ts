@@ -16,6 +16,7 @@ import {
   type SlotSource,
 } from './bracket.js';
 import type { ResultStateLabels } from './result-state.js';
+import { publicIntl, sideSourceLabels } from './i18n/public-intl.js';
 
 const labels: ResultStateLabels = {
   final: 'Final',
@@ -27,55 +28,44 @@ const labels: ResultStateLabels = {
   loser: 'Perdedor',
   cancelled: 'Cancelado',
 };
+const sources = sideSourceLabels(publicIntl('es'));
 
 describe('describeSlot', () => {
   it('describes entrant slot by name', () => {
     const slot: SlotSource = { kind: 'entrant', name: 'Talleres', abbreviation: 'TAL' };
-    expect(describeSlot(slot)).toBe('Talleres');
+    expect(describeSlot(slot, sources)).toBe('Talleres');
   });
 
-  it('describes winner-of slot with positive matchNumber', () => {
-    const slot: SlotSource = { kind: 'winner-of', matchNumber: 4 };
-    expect(describeSlot(slot)).toBe('Ganador del 4');
-  });
-
-  it('describes winner-of slot with matchId and strips branch prefixes', () => {
-    expect(describeSlot({ kind: 'winner-of', matchId: 'SE-3' })).toBe('Ganador de 3');
-    expect(describeSlot({ kind: 'winner-of', matchId: 'WB-10' })).toBe('Ganador de 10');
-    expect(describeSlot({ kind: 'winner-of', matchId: 'LB-5' })).toBe('Ganador de 5');
-    expect(describeSlot({ kind: 'winner-of', matchId: 'final-match' })).toBe(
-      'Ganador de final-match',
+  it('names the referenced match by its number when no graph position is known', () => {
+    expect(describeSlot({ kind: 'winner-of', matchNumber: 4 }, sources)).toBe(
+      'Ganador de Partido 4',
+    );
+    expect(describeSlot({ kind: 'loser-of', matchNumber: 2 }, sources)).toBe(
+      'Perdedor de Partido 2',
     );
   });
 
-  it('describes winner-of fallback as Por definir when no matchNumber or matchId is valid', () => {
-    expect(describeSlot({ kind: 'winner-of', matchId: '—' })).toBe('Por definir');
-    expect(describeSlot({ kind: 'winner-of', matchNumber: 0 })).toBe('Por definir');
-    expect(describeSlot({ kind: 'winner-of', matchNumber: Number.NaN })).toBe('Por definir');
-    expect(describeSlot({ kind: 'winner-of' })).toBe('Por definir');
+  it('names elimination rounds from the stage depth', () => {
+    const semi: SlotSource = { kind: 'winner-of', nodeKey: 'SE-R2-M1' };
+    expect(describeSlot(semi, sources, 3)).toBe('Ganador de Semifinal 1');
+    expect(describeSlot({ ...semi, kind: 'loser-of' }, sources, 3)).toBe('Perdedor de Semifinal 1');
+    expect(describeSlot(semi, sources)).toBe('Ganador de Ronda 2, partido 1');
   });
 
-  it('describes loser-of slot with positive matchNumber', () => {
-    const slot: SlotSource = { kind: 'loser-of', matchNumber: 2 };
-    expect(describeSlot(slot)).toBe('Perdedor del 2');
-  });
-
-  it('describes loser-of slot with matchId and strips branch prefixes', () => {
-    expect(describeSlot({ kind: 'loser-of', matchId: 'WB-1' })).toBe('Perdedor de 1');
-    expect(describeSlot({ kind: 'loser-of', matchId: 'LB-2' })).toBe('Perdedor de 2');
-    expect(describeSlot({ kind: 'loser-of', matchId: 'SE-8' })).toBe('Perdedor de 8');
-    expect(describeSlot({ kind: 'loser-of', matchId: 'semi' })).toBe('Perdedor de semi');
-  });
-
-  it('describes loser-of fallback as Por definir when no matchNumber or matchId is valid', () => {
-    expect(describeSlot({ kind: 'loser-of', matchId: '—' })).toBe('Por definir');
-    expect(describeSlot({ kind: 'loser-of', matchNumber: 0 })).toBe('Por definir');
-    expect(describeSlot({ kind: 'loser-of', matchNumber: Number.NaN })).toBe('Por definir');
-    expect(describeSlot({ kind: 'loser-of' })).toBe('Por definir');
+  it('falls back to the undecided label when the source names no match', () => {
+    for (const slot of [
+      { kind: 'winner-of', matchId: '—' },
+      { kind: 'winner-of', matchId: 'SE-3' },
+      { kind: 'winner-of', matchNumber: 0 },
+      { kind: 'loser-of', matchNumber: Number.NaN },
+      { kind: 'loser-of' },
+    ] satisfies SlotSource[]) {
+      expect(describeSlot(slot, sources)).toBe('Participante por definir');
+    }
   });
 
   it('describes seed slot', () => {
-    expect(describeSlot({ kind: 'seed', seed: 1 })).toBe('Sembrado 1');
+    expect(describeSlot({ kind: 'seed', seed: 1 }, sources)).toBe('Cabeza de serie 1');
   });
 });
 
@@ -152,6 +142,71 @@ describe('toRounds', () => {
     expect(rounds[2]?.branch).toBe('winners');
     expect(rounds[2]?.roundNumber).toBe(2);
   });
+
+  it('orders placement games deterministically: 3º, 5º–8º (1), 5º–8º (2), 5º, 7º', () => {
+    const placementMatches: readonly BracketMatch[] = [
+      {
+        matchNumber: 14,
+        roundNumber: 2,
+        position: 2,
+        branch: 'placement',
+        role: 'place-7',
+        nodeKey: 'placement-7',
+        state: 'upcoming',
+        slots: [],
+      },
+      {
+        matchNumber: 13,
+        roundNumber: 2,
+        position: 1,
+        branch: 'placement',
+        role: 'place-5',
+        nodeKey: 'placement-5',
+        state: 'upcoming',
+        slots: [],
+      },
+      {
+        matchNumber: 6,
+        roundNumber: 1,
+        position: 2,
+        branch: 'placement',
+        role: 'places-5-8',
+        nodeKey: 'PL5-R1-M2',
+        state: 'upcoming',
+        slots: [],
+      },
+      {
+        matchNumber: 5,
+        roundNumber: 1,
+        position: 1,
+        branch: 'placement',
+        role: 'places-5-8',
+        nodeKey: 'PL5-R1-M1',
+        state: 'upcoming',
+        slots: [],
+      },
+      {
+        matchNumber: 12,
+        roundNumber: 3,
+        position: 1,
+        branch: 'placement',
+        role: 'place-3',
+        nodeKey: 'placement-3',
+        state: 'upcoming',
+        slots: [],
+      },
+    ];
+
+    const rounds = toRounds(placementMatches);
+    const orderedKeys = rounds.flatMap((round) => round.matches.map((m) => m.nodeKey));
+    expect(orderedKeys).toEqual([
+      'placement-3',
+      'PL5-R1-M1',
+      'PL5-R1-M2',
+      'placement-5',
+      'placement-7',
+    ]);
+  });
 });
 
 describe('toNode', () => {
@@ -169,7 +224,7 @@ describe('toNode', () => {
       ],
     };
 
-    const node = toNode(match, labels);
+    const node = toNode(match, labels, sources);
     expect(node.matchNumber).toBe(1);
     expect(node.state).toBe('final');
     expect(node.slots).toHaveLength(2);
@@ -199,7 +254,7 @@ describe('toNode', () => {
     ];
     const base = { matchNumber: 3, roundNumber: 1, branch: 'winners', slots: entrants };
     const winnersOf = (match: BracketMatch): readonly (boolean | undefined)[] =>
-      toNode(match, labels).slots.map((slot) => slot.winner);
+      toNode(match, labels, sources).slots.map((slot) => slot.winner);
 
     expect(winnersOf({ ...base, state: 'final', scores: [2, 2] })).toEqual([undefined, undefined]);
     expect(winnersOf({ ...base, state: 'live', scores: [2, 1] })).toEqual([undefined, undefined]);
@@ -214,16 +269,72 @@ describe('toNode', () => {
       state: 'upcoming',
       slots: [
         { kind: 'winner-of', matchNumber: 1 },
-        { kind: 'winner-of', matchId: 'SE-2' },
+        { kind: 'winner-of', nodeKey: 'SE-R1-M2' },
       ],
     };
 
-    const node = toNode(match, labels);
+    const node = toNode(match, labels, sources);
     expect(node.matchNumber).toBe(2);
     expect(node.slots[0]?.pending).toBe(true);
     expect(node.slots[0]?.state).toBe('tbd');
-    expect(node.slots[0]?.label).toBe('Ganador del 1');
-    expect(node.slots[1]?.label).toBe('Ganador de 2');
+    expect(node.slots[0]?.label).toBe('Ganador de Partido 1');
+    expect(node.slots[0]?.abbreviation).toBe('G P1');
+    expect(node.slots[1]?.label).toBe('Ganador de Ronda 1, partido 2');
+  });
+
+  it('marks the advancing side on a finalized level-score knockout match and never on a win by score', () => {
+    const drawn: BracketMatch = {
+      matchNumber: 1,
+      roundNumber: 1,
+      branch: 'winners',
+      state: 'final',
+      scores: [3, 3],
+      winnerEntrantId: 'e-huracan',
+      slots: [
+        { kind: 'entrant', entrantId: 'e-uvt', name: 'UVT' },
+        { kind: 'entrant', entrantId: 'e-huracan', name: 'Huracán' },
+      ],
+    };
+    const drawnNode = toNode(drawn, labels, sources);
+    expect(drawnNode.slots[0]?.advancing).toBeUndefined();
+    expect(drawnNode.slots[0]?.eliminated).toBe(true);
+    expect(drawnNode.slots[1]?.advancing).toBe(true);
+    expect(drawnNode.slots[1]?.winner).toBe(true);
+    expect(nodeOutcomes(drawn)).toEqual(['eliminated', 'advancing']);
+
+    const wonOnScore: BracketMatch = {
+      ...drawn,
+      scores: [4, 2],
+      winnerEntrantId: 'e-uvt',
+    };
+    const scoreNode = toNode(wonOnScore, labels, sources);
+    expect(scoreNode.slots[0]?.advancing).toBeUndefined();
+    expect(scoreNode.slots[0]?.winner).toBe(true);
+    expect(scoreNode.slots[1]?.advancing).toBeUndefined();
+  });
+
+  it('retains the qualifier origin label on decided qualifier slots', () => {
+    const match: BracketMatch = {
+      matchNumber: 1,
+      roundNumber: 1,
+      branch: 'winners',
+      state: 'upcoming',
+      slots: [
+        {
+          kind: 'entrant',
+          entrantId: 'e-1',
+          name: 'Centro Valenciano',
+          qualifierOrigin: {
+            position: 1,
+            qualifierLabel: { kind: 'group-rank', rank: 1, groupNumber: 3, groupName: 'Grupo C' },
+          },
+        },
+        { kind: 'entrant', entrantId: 'e-2', name: 'Andes Talleres' },
+      ],
+    };
+    const node = toNode(match, labels, sources);
+    expect(node.slots[0]?.originLabel).toBe('1.° Grupo C');
+    expect(node.slots[1]?.originLabel).toBeUndefined();
   });
 });
 
@@ -489,5 +600,29 @@ describe('the outcome each side of a cross reads as', () => {
   it('keys the stage’s legend to the outcomes it actually contains', () => {
     expect(stageOutcomes([played([2, 0])])).toEqual(['advancing', 'eliminated']);
     expect(stageOutcomes([played([1, 1], 'live')])).toEqual([]);
+  });
+});
+
+describe('matchReportUrl and a series game', () => {
+  const base = {
+    organizationAlias: 'liga-mendocina',
+    tournamentAlias: 'apertura-2026',
+    stageNumber: 1,
+    matchNumber: 4,
+  };
+
+  it('keeps the fixture’s own page without a game parameter', () => {
+    expect(matchReportUrl(base)).toBe(
+      '/liga-mendocina/tournaments/apertura-2026/stages/1/matches/4',
+    );
+  });
+
+  it('appends ?game=N for a series game, and ignores a game that is not a positive whole number', () => {
+    expect(matchReportUrl({ ...base, game: 2, localePrefix: '/es' })).toBe(
+      '/es/liga-mendocina/tournaments/apertura-2026/stages/1/matches/4?game=2',
+    );
+    expect(matchReportUrl({ ...base, game: 0 })).not.toContain('?game');
+    expect(matchReportUrl({ ...base, game: 1.5 })).not.toContain('?game');
+    expect(matchReportUrl({ ...base, game: Number.NaN })).not.toContain('?game');
   });
 });

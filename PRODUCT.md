@@ -59,6 +59,9 @@ Claims a neighboring product could not truthfully copy:
 
 - **Live venue operation.** Matches are operated pitch-side under time pressure. Dropped connectivity
   is an expected condition, not an error case.
+- **Judging devices.** Review the live match console tablet-first and touch-first at 768–1024px, with
+  finger input, thumb reach and one-tap event actions. Review public pages at 375px and 960px or wider
+  with equal weight. Review TV at 1280px and 1920px.
 - **Three distinct web surfaces.** The operator control panel (React); the public coverage site
   (server-rendered Astro, which must remain complete with JavaScript unavailable); and the `/tv/`
   broadcast kiosk and overlay surface, paired by device token and reviewed against neutral, green
@@ -69,8 +72,10 @@ Claims a neighboring product could not truthfully copy:
 - **Remote day-two operations.** From a machine without database access, a personal access token
   generated in the panel's preferences screen authorizes `statistics-rebuild` and
   `module add/list/remove/verify` over HTTP. `copalibre mcp` exposes the same operations to an AI agent.
-- **Self-contained documentation.** Operator help and a fully static OpenAPI reference are served from
-  the running instance at `/help/` and `/help/api-reference/`, with no live-API or internet dependency.
+- **Self-contained documentation.** Operator help and a fully static, interactive OpenAPI reference are
+  served from the running instance at `/help/` and `/help/api-reference/`, with no live-API or internet
+  dependency. The reference's Try It runs against the same instance with a personal access token, so
+  what the platform holds is open to its operators' own integrations.
 - **Eight interface languages**, complete: English, Spanish, Portuguese, French, Italian, German,
   Russian, Chinese.
 
@@ -103,6 +108,10 @@ JSON is installed through `apps/seed`. Do not describe a descriptor as a shipped
 - Public and broadcast surfaces must be durable and complete without JavaScript.
 - Identifiers are UUIDs; public aliases are lowercase kebab-case. Personal data is not exposed
   unnecessarily.
+- The organizer explicitly declares whether a tournament includes minors; birth dates never infer
+  age-based publication rules. Youth participant names are public only when youth profiles are
+  enabled, and protected profiles omit links, photos, nationality and career statistics. Adults may
+  opt out of public identity. Privacy changes never alter match results or standings.
 - Domain packages stay framework-free.
 
 **Domain language.** `roster` means the selected players of one entrant in one match, and nothing
@@ -166,3 +175,4 @@ Support keyboard operation, visible focus, non-color state cues, reduced motion,
 200% zoom — the token generator names 188px as its narrowest reference width, and German at that width
 is the worst case for nearly every component. Interactive targets must meet the platform's tokenized
 minimum size, and translated interface copy must remain complete across all eight supported languages.
+The accessibility conformance target is WCAG 2.2 AA; the house 44px target rule also applies.

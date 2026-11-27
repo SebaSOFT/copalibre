@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 
 const REFERENCE_WIDTHS = [375, 768, 1024, 1440] as const;
 const EFFECTIVE_200_PERCENT_ZOOM_WIDTH = 188;
@@ -49,7 +50,7 @@ async function installResponsiveControlFixture(page: Page): Promise<void> {
             .replaceAll('=', '');
           return Response.json({ access_token: `e2e.${payload}.scope`, expires_in: 3600 });
         }
-        if (url === '/organizations/liga-mendocina/tournaments' && method === 'GET') {
+        if (url === '/api/organizations/liga-mendocina/tournaments' && method === 'GET') {
           return Response.json([
             {
               tournamentId: '019cf000-0000-7000-8000-000000000001',
@@ -61,7 +62,7 @@ async function installResponsiveControlFixture(page: Page): Promise<void> {
             },
           ]);
         }
-        if (url === '/disciplines') {
+        if (url === '/api/disciplines') {
           return Response.json([
             {
               descriptorId: 'football.default',
@@ -119,6 +120,7 @@ async function installResponsiveControlFixture(page: Page): Promise<void> {
             rosters: [],
             rosterRoles: [],
             eligibleStaffIds: [],
+            segmentPlan: { addable: [] },
             entrants: [
               { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
               { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },
@@ -167,6 +169,72 @@ test('Control routes remain visible without page overflow at every reference wid
   }
 });
 
+test('Control forms use the declared input font size and keep the control height', async ({
+  page,
+}) => {
+  await installResponsiveControlFixture(page);
+  await seedLoginTransaction(page, '/control/liga-mendocina/tournaments/new');
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL('**/control/liga-mendocina/tournaments/new');
+
+  const controls = page.locator('main').locator('input.cl-input, button.cl-select');
+  await expect(controls.first()).toBeVisible();
+  for (const control of await controls.all()) {
+    await expect(control).toHaveCSS('font-size', '16px');
+    await expect(control).toHaveCSS('min-height', '44px');
+    expect((await control.boundingBox())?.height).toBe(44);
+  }
+});
+
+test('Control dashboard, settings and venues remain readable at 200% text size', async ({
+  page,
+}) => {
+  await installResponsiveControlFixture(page);
+  await seedLoginTransaction(page, '/control/liga-mendocina');
+  await page.goto(loginCallbackUrl());
+  await page.waitForURL('**/control/liga-mendocina');
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+
+  for (const path of [
+    '/control/liga-mendocina',
+    '/control/liga-mendocina/preferences',
+    '/control/liga-mendocina/resources',
+  ]) {
+    await test.step(path, async () => {
+      const currentPath = await page.evaluate(() => window.location.pathname);
+      if (currentPath !== path) {
+        const previousTitle = await page.title();
+        await page.evaluate((nextPath) => {
+          history.pushState({}, '', nextPath);
+          window.dispatchEvent(new PopStateEvent('popstate'));
+        }, path);
+        await expect.poll(() => page.title()).not.toBe(previousTitle);
+      }
+      await expect(page.locator('.cl-control')).toBeVisible();
+      await expectNoPageOverflow(page);
+
+      const clippedLabels = await page
+        .locator('main h1, main h2, main h3, main label, main button, main [role="button"]')
+        .evaluateAll((elements) =>
+          elements.flatMap((element) => {
+            const style = getComputedStyle(element);
+            const clipsWidth = ['hidden', 'clip'].includes(style.overflowX);
+            const clipsHeight = ['hidden', 'clip'].includes(style.overflowY);
+            const clipped =
+              (clipsWidth && element.scrollWidth > element.clientWidth + 1) ||
+              (clipsHeight && element.scrollHeight > element.clientHeight + 1);
+            return clipped ? [element.textContent?.trim() ?? element.tagName] : [];
+          }),
+        );
+      expect(clippedLabels).toEqual([]);
+    });
+  }
+});
+
 test('/control/callback shows a readable progress state at every reference width', async ({
   page,
 }) => {
@@ -190,6 +258,83 @@ test('/control/callback shows a readable progress state at every reference width
   }
 });
 
+test('public headings and body text follow the responsive type scale', async ({ page }) => {
+  await page.goto('/404');
+  await expect(page.locator('h1').first()).toBeVisible();
+  await page.evaluate(() => {
+    const probe = document.createElement('h1');
+    probe.dataset.typeScaleProbe = 'display';
+    probe.textContent = 'Display scale';
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    document.body.append(probe);
+  });
+
+  for (const [width, expectedHeading] of [
+    [375, 16 * 1.125 ** 3],
+    [1440, 16 * 1.2 ** 3],
+  ] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    const actual = await page.evaluate(() => {
+      const heading = document.querySelector('h1');
+      const display = document.querySelector('[data-type-scale-probe="display"]');
+      if (heading === null || display === null) {
+        throw new Error('The responsive type-scale probes were not rendered.');
+      }
+      return {
+        heading: Number.parseFloat(getComputedStyle(heading).fontSize),
+        display: Number.parseFloat(getComputedStyle(display).fontSize),
+        body: Number.parseFloat(getComputedStyle(document.body).fontSize),
+      };
+    });
+
+    expect(Math.abs(actual.heading - expectedHeading)).toBeLessThanOrEqual(0.5);
+    expect(
+      Math.abs(actual.display - (width === 375 ? 16 * 1.125 ** 4 : 16 * 1.2 ** 4)),
+    ).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(actual.body - 16)).toBeLessThanOrEqual(0.5);
+    await expectNoPageOverflow(page);
+  }
+});
+
+test('public overview and matches remain readable at 200% text size', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  for (const path of [
+    '/es/panamericano-demo/tournaments/panamericano-clubes-2025',
+    '/es/panamericano-demo/tournaments/panamericano-clubes-2025/matches',
+  ]) {
+    await test.step(path, async () => {
+      await page.goto(path);
+      await expect(page.locator('main h1').first()).toBeVisible();
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '200%';
+      });
+      await expectNoPageOverflow(page);
+
+      const clippedLabels = await page
+        .locator('main h1, main h2, main h3, main label, main button, main [role="button"]')
+        .evaluateAll((elements) =>
+          elements.flatMap((element) => {
+            const style = getComputedStyle(element);
+            const clipsWidth = ['hidden', 'clip'].includes(style.overflowX);
+            const clipsHeight = ['hidden', 'clip'].includes(style.overflowY);
+            const clipped =
+              (clipsWidth && element.scrollWidth > element.clientWidth + 1) ||
+              (clipsHeight && element.scrollHeight > element.clientHeight + 1);
+            return clipped ? [element.textContent?.trim() ?? element.tagName] : [];
+          }),
+        );
+      expect(clippedLabels).toEqual([]);
+    });
+  }
+});
+
+test('public root and not-found page keep centred tokenized containers', async ({ page }) => {
+  await expectCenteredPageContainer(page, '/', 'public');
+  await expectCenteredPageContainer(page, '/404', 'reading');
+});
+
 for (const path of [
   '/control/login',
   '/control/forgot-password',
@@ -204,6 +349,16 @@ for (const path of [
     }
   });
 }
+
+test('the sign-in email field stays at 16px on a phone, so iOS does not zoom on focus', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto('/control/login');
+  const email = page.locator('input[type="email"]');
+  await email.focus();
+  await expect(email).toHaveCSS('font-size', '16px');
+});
 
 for (const path of [
   '/',

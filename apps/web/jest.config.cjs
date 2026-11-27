@@ -9,6 +9,7 @@ module.exports = {
   // jsdom for the control app's components; the public surfaces are strings.
   testEnvironment: 'jsdom',
   setupFiles: ['<rootDir>/jest.setup.cjs'],
+  setupFilesAfterEnv: ['<rootDir>/jest.after-env.ts'],
   // The base preset lists only `.ts`; without `.tsx` here jest treats the
   // control app as CommonJS and tries to `require()` an ES module.
   extensionsToTreatAsEsm: ['.ts', '.tsx'],

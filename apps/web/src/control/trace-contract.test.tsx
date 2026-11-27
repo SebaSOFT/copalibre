@@ -172,15 +172,7 @@ describe('tiebreak trace contract', () => {
       ),
     );
 
-    // jsdom does not run the native summary activation behaviour, so the
-    // disclosure is opened the way the browser would leave it.
-    const tr = screen.getAllByText(tied.entrantId)[0]?.closest('tr');
-    const detailTr = tr?.nextElementSibling;
-    const row = (detailTr?.querySelector('details') ??
-      tr?.querySelector('details') ??
-      document.querySelector('details')) as HTMLDetailsElement;
-    row.open = true;
-    fireEvent(row, new Event('toggle'));
+    fireEvent.click(screen.getByRole('button', { name: `Tiebreak — ${tied.entrantId}` }));
 
     const panel = await screen.findByLabelText('Tiebreak trace');
     await waitFor(() =>

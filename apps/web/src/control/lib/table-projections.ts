@@ -167,7 +167,7 @@ function numericValue(cell: TableCellResponse | undefined): number {
 
 function labelOf(row: TableRowResponseData, nameColumnCode: string | undefined): string {
   const cell = nameColumnCode === undefined ? undefined : row.cells[nameColumnCode];
-  return cell?.formatted ?? row.actorId;
+  return row.entrantName ?? cell?.formatted ?? row.actorId;
 }
 
 export interface TiebreakIndicator {

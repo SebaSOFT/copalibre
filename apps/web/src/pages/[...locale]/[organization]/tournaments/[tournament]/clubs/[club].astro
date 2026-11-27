@@ -1,0 +1,613 @@
+---
+import { defaultStandingsLayoutCode } from '../../../../../../lib/public-tournament-navigation.ts';
+import { isSupportedLanguage, type SupportedLanguage } from '@copalibre/domain';
+import PublicLayout from '../../../../../../layouts/PublicLayout.astro';
+import Container from '../../../../../../components/ui/atoms/layout/Container.astro';
+import { Badge } from '../../../../../../components/ui/atoms/Badge.tsx';
+import TimeZoneNote from '../../../../../../components/ui/molecules/TimeZoneNote.astro';
+import Breadcrumb from '../../../../../../components/ui/organisms/Breadcrumb.astro';
+import PageHeader from '../../../../../../components/ui/organisms/PageHeader.astro';
+import DataTable, {
+  type DataTableColumn,
+} from '../../../../../../components/ui/organisms/DataTable.astro';
+import { MatchCard } from '../../../../../../components/ui/organisms/MatchCard.tsx';
+import Stack from '../../../../../../components/ui/atoms/layout/Stack.astro';
+import ClubIdentity from '../../../../../../components/ui/molecules/ClubIdentity.astro';
+import SectionHeader from '../../../../../../components/ui/molecules/SectionHeader.astro';
+import StandingsTable from '../../../../../../components/ui/organisms/StandingsTable.astro';
+import { publicTrail, trailBaseOf } from '../../../../../../lib/breadcrumb.ts';
+import { matchReportUrl } from '../../../../../../lib/bracket.ts';
+import {
+  deriveClubKnockoutPath,
+  deriveClubNextMatch,
+  deriveClubResults,
+  deriveClubSquad,
+  deriveClubStatus,
+  findClubByFormerAlias,
+  type ClubSquadMember,
+} from '../../../../../../lib/club-page.ts';
+import { clubIndexUrl, clubPageUrl, isValidClubAlias } from '../../../../../../lib/club-url.ts';
+import { columnHint } from '../../../../../../lib/column-hints.ts';
+import { buildOverview, displayName } from '../../../../../../lib/overview.ts';
+import type { MatchCardData } from '../../../../../../lib/matches-view.ts';
+import {
+  clubEmblemUrl,
+  fetchLive,
+  fetchMatchesView,
+  fetchOverview,
+  fetchPublicTableLayouts,
+  fetchPublicTableProjection,
+  mapLiveResponse,
+  mapMatchesViewResponse,
+  mapOverviewResponse,
+} from '../../../../../../lib/public-api-client.ts';
+import {
+  formatClubStatus,
+  matchCardLabels,
+  publicIntl,
+  timeZoneNoteLabels,
+} from '../../../../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../../../../lib/i18n/public-messages.en.ts';
+import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../../../lib/locale.ts';
+import { isPublicLocaleSegment } from '../../../../../../lib/public-route-guards.ts';
+
+export const prerender = false;
+
+const { locale, organization, tournament, club } = Astro.params;
+if (!isPublicLocaleSegment(locale)) {
+  Astro.response.status = 404;
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvePathLocale(Astro.url.pathname)));
+}
+
+const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
+const intl = publicIntl(resolvedLocale);
+const localePrefix = locale ? `/${locale}` : '';
+
+if (!isValidClubAlias(club)) {
+  Astro.response.status = 404;
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
+}
+
+let overviewData: Awaited<ReturnType<typeof fetchOverview>>;
+try {
+  overviewData = await fetchOverview(organization!, tournament!);
+} catch {
+  overviewData = undefined;
+}
+if (!overviewData) {
+  Astro.response.status = 404;
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
+}
+
+const model = buildOverview(mapOverviewResponse(overviewData, resolvedLocale));
+const clubInfo = model.clubs?.find((entry) => entry.alias === club);
+if (!clubInfo) {
+  // A link shared before the club changed its alias keeps working: it moves permanently to the
+  // current alias, in the same organization, tournament and language.
+  const renamed = findClubByFormerAlias(model.clubs, club);
+  if (renamed) {
+    const location = `${clubPageUrl({
+      organizationAlias: organization!,
+      tournamentAlias: tournament!,
+      clubAlias: renamed.alias,
+      localePrefix,
+    })}${Astro.url.search}`;
+    return new Response(null, { status: 301, headers: { Location: location } });
+  }
+  Astro.response.status = 404;
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
+}
+
+let matchesViewRaw: Awaited<ReturnType<typeof fetchMatchesView>>;
+try {
+  matchesViewRaw = await fetchMatchesView(organization!, tournament!, { state: 'all' });
+} catch {
+  matchesViewRaw = undefined;
+}
+
+let layoutsRaw: Awaited<ReturnType<typeof fetchPublicTableLayouts>>;
+try {
+  layoutsRaw = await fetchPublicTableLayouts(organization!, tournament!);
+} catch {
+  layoutsRaw = undefined;
+}
+
+let liveRaw: Awaited<ReturnType<typeof fetchLive>>;
+if (model.liveCount > 0 || model.status === 'live') {
+  try {
+    liveRaw = await fetchLive(organization!, tournament!);
+  } catch {
+    liveRaw = undefined;
+  }
+}
+
+const liveDashboard = liveRaw ? mapLiveResponse(liveRaw) : undefined;
+const liveByMatchId = new Map(
+  (liveDashboard?.matches ?? []).map((entry) => [entry.matchId, entry]),
+);
+
+const mappedMatches: readonly MatchCardData[] = matchesViewRaw
+  ? mapMatchesViewResponse(
+      matchesViewRaw,
+      intl.formatMessage(messages.personHiddenAtRequest),
+      resolvedLocale,
+    ).matches
+  : [];
+
+const overlayedMatches: readonly MatchCardData[] = mappedMatches.map((match) => {
+  const live = liveByMatchId.get(match.matchId);
+  if (!live) return match;
+  return {
+    ...match,
+    state: live.state,
+    ...(live.clock === undefined
+      ? {}
+      : { clock: live.clock, clockSeconds: live.clock.elapsedSeconds }),
+    ...(live.segments === undefined ? {} : { segments: live.segments }),
+    ...(live.projectionVersion === undefined ? {} : { projectionVersion: live.projectionVersion }),
+    ...(live.sides[0]?.score === undefined ? {} : { homeScore: live.sides[0].score }),
+    ...(live.sides[1]?.score === undefined ? {} : { awayScore: live.sides[1].score }),
+  };
+});
+
+const declaredLayouts = layoutsRaw?.layouts ?? [];
+const standingsLayoutCode = defaultStandingsLayoutCode(layoutsRaw?.layouts ?? []);
+const groupPhaseLayout = declaredLayouts.find((one) => one.target === 'group-phase');
+const playerLayout = declaredLayouts.find(
+  (one) =>
+    one.entityGranularity === 'person' ||
+    one.entityGranularity === 'player' ||
+    one.target === 'player-ranking',
+);
+
+const earliestStageNumber = overviewData.matches.reduce(
+  (earliest, match) => Math.min(earliest, match.stageNumber),
+  Infinity,
+);
+const standingsStageNumber =
+  model.standingsStageNumber ??
+  (Number.isFinite(earliestStageNumber) ? earliestStageNumber : undefined);
+
+let standingsProjection: Awaited<ReturnType<typeof fetchPublicTableProjection>>;
+if (groupPhaseLayout) {
+  try {
+    standingsProjection = await fetchPublicTableProjection(
+      organization!,
+      tournament!,
+      groupPhaseLayout.code,
+      standingsStageNumber,
+    );
+  } catch {
+    standingsProjection = undefined;
+  }
+}
+
+let squadProjection: Awaited<ReturnType<typeof fetchPublicTableProjection>>;
+if (playerLayout) {
+  try {
+    squadProjection = await fetchPublicTableProjection(
+      organization!,
+      tournament!,
+      playerLayout.code,
+      undefined,
+      { club },
+    );
+  } catch {
+    squadProjection = undefined;
+  }
+}
+
+const clubRef = { alias: club, clubId: clubInfo.clubId };
+const status = deriveClubStatus(overlayedMatches, clubRef, model.stages);
+const nextMatch = deriveClubNextMatch(overlayedMatches, clubRef);
+const results = deriveClubResults(overlayedMatches, clubRef, model.stages);
+const squad = deriveClubSquad(squadProjection, clubRef, {
+  hiddenPlayerLabel: intl.formatMessage(messages.personHiddenAtRequest),
+});
+const knockoutPath = deriveClubKnockoutPath(overlayedMatches, clubRef, model.stages);
+
+const matchesRowFilter = (row: { readonly clubAlias?: string; readonly clubId?: string }) =>
+  row.clubAlias === club || row.clubId === clubInfo.clubId;
+const clubStandingRow = standingsProjection?.rows.find(matchesRowFilter);
+// A band badge names the competition beside the status, so the status then keeps the round alone.
+const statusText = formatClubStatus(intl, status, {
+  withBand: clubStandingRow?.promotionBandLabel !== undefined,
+});
+const clubGroupSegment = (standingsProjection?.segments ?? []).find(
+  (segment) => segment.groupName !== undefined && segment.rows.some(matchesRowFilter),
+);
+const standingTableProjection = standingsProjection
+  ? clubGroupSegment
+    ? { ...standingsProjection, rows: clubGroupSegment.rows }
+    : { ...standingsProjection, rows: standingsProjection.rows.filter(matchesRowFilter) }
+  : undefined;
+
+const tournamentCanonicalPath = `${localePrefix}${model.canonicalPath}`;
+const stageStandingsHref =
+  standingsStageNumber !== undefined
+    ? `${tournamentCanonicalPath}/stages/${standingsStageNumber}`
+    : `${tournamentCanonicalPath}#standings`;
+
+const referenceDate = Date.now();
+const labels = matchCardLabels(intl);
+const clubEmblemSrc = clubInfo.emblemObjectId
+  ? clubEmblemUrl(organization!, clubInfo.clubId)
+  : undefined;
+
+const liveSeeds = (liveDashboard?.matches ?? [])
+  .filter((live) => live.sides.some((side) => side.clubId === clubInfo.clubId))
+  .map((live) => ({
+    matchId: live.matchId,
+    projectionVersion: live.projectionVersion,
+    state: live.state,
+    ...(live.clock === undefined ? {} : { clock: live.clock }),
+    ...(live.segments === undefined ? {} : { segments: live.segments }),
+    homeScore: live.sides[0]?.score,
+    awayScore: live.sides[1]?.score,
+    homeEntrantId: live.sides[0]?.entrantId,
+    awayEntrantId: live.sides[1]?.entrantId,
+  }));
+
+const outcomeLabelOf = (outcome: 'won' | 'drawn' | 'lost'): string =>
+  outcome === 'won'
+    ? intl.formatMessage(messages.clubPageOutcomeWon)
+    : outcome === 'lost'
+      ? intl.formatMessage(messages.clubPageOutcomeLost)
+      : intl.formatMessage(messages.clubPageOutcomeDrawn);
+
+const hasSquadNumbers = squad.members.some((member) => member.shirtNumber !== undefined);
+const squadColumns: readonly DataTableColumn[] = [
+  ...(hasSquadNumbers
+    ? [
+        {
+          key: 'number',
+          header: intl.formatMessage(messages.standingsTableColumnNumber),
+          render: (row: unknown) => {
+            const member = row as ClubSquadMember;
+            return member.shirtNumber !== undefined ? String(member.shirtNumber) : '';
+          },
+        } satisfies DataTableColumn,
+      ]
+    : []),
+  {
+    key: 'player',
+    header: intl.formatMessage(messages.matchRostersColumnPlayer),
+    name: true,
+    render: (row) => (row as ClubSquadMember).displayName,
+    href: (row) => {
+      const member = row as ClubSquadMember;
+      if (!member.profileAvailable || !member.actorId) return undefined;
+      return `${tournamentCanonicalPath}/players/${encodeURIComponent(member.actorId)}${
+        playerLayout ? `?layout=${encodeURIComponent(playerLayout.code)}` : ''
+      }`;
+    },
+  },
+  ...(squad.appearancesColumn
+    ? (() => {
+        const hint = columnHint(squad.appearancesColumn, resolvedLocale);
+        return [
+          {
+            key: squad.appearancesColumn.code,
+            header: hint.label,
+            ...(hint.hint === undefined ? {} : { headerHint: hint.hint }),
+            render: (row: unknown) => (row as ClubSquadMember).appearances ?? '—',
+          } satisfies DataTableColumn,
+        ];
+      })()
+    : []),
+  ...(squad.primaryStatColumn
+    ? (() => {
+        const hint = columnHint(squad.primaryStatColumn, resolvedLocale);
+        return [
+          {
+            key: squad.primaryStatColumn.code,
+            header: hint.label,
+            ...(hint.hint === undefined ? {} : { headerHint: hint.hint }),
+            render: (row: unknown) => (row as ClubSquadMember).primaryStat ?? '—',
+          } satisfies DataTableColumn,
+        ];
+      })()
+    : []),
+];
+
+const canonicalPath = clubPageUrl({
+  organizationAlias: organization!,
+  tournamentAlias: tournament!,
+  clubAlias: club,
+  localePrefix,
+});
+const tournamentName = displayName(model);
+const pageTitle = `${clubInfo.name} — ${tournamentName}`;
+const description = intl.formatMessage(messages.clubPageDescription, {
+  club: clubInfo.name,
+  tournament: tournamentName,
+});
+
+const trailBase = trailBaseOf({
+  organizationAlias: organization!,
+  organizationName: model.organizationName,
+  tournamentName,
+  canonicalPath: model.canonicalPath,
+  localePrefix,
+});
+const trail = publicTrail(trailBase, [
+  {
+    label: intl.formatMessage(messages.clubIndexTitle),
+    href: clubIndexUrl({
+      organizationAlias: organization!,
+      tournamentAlias: tournament!,
+      localePrefix,
+    }),
+  },
+  { label: clubInfo.name },
+]);
+
+const bracketPathHref = knockoutPath
+  ? `${tournamentCanonicalPath}/stages/${knockoutPath.stageNumber}?club=${encodeURIComponent(club)}${
+      knockoutPath.zoneAnchor ? `#${knockoutPath.zoneAnchor}` : ''
+    }`
+  : undefined;
+
+const structuredData = {
+  '@type': 'SportsOrganization' as const,
+  name: clubInfo.name,
+  url: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${canonicalPath}`,
+  ...(clubEmblemSrc
+    ? { logo: `${Astro.site?.toString().replace(/\/$/, '') ?? ''}${clubEmblemSrc}` }
+    : {}),
+};
+---
+
+<PublicLayout
+  title={pageTitle}
+  description={description}
+  canonicalPath={canonicalPath}
+  intl={intl}
+  disciplineImages={overviewData.disciplineImages}
+  structuredData={structuredData}
+  tournamentHasClubs={(model.clubs ?? []).length > 0}
+  tournamentStages={model.stages}
+  standingsLayoutCode={standingsLayoutCode}
+>
+  <Container variant="public">
+    <PageHeader loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}>
+      <Breadcrumb
+        slot="breadcrumb"
+        items={trail}
+        ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+        collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+      />
+      <ClubIdentity
+        slot="identity"
+        name={clubInfo.name}
+        abbreviation={clubInfo.abbreviation}
+        emblemSrc={clubEmblemSrc}
+        headingLevel={1}
+        size="lg"
+        placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+      >
+        <span slot="badges">
+          {clubStandingRow?.promotionBandLabel && (
+            <Badge data-promotion-band-index={clubStandingRow.promotionBandIndex}>
+              {clubStandingRow.promotionBandLabel}
+            </Badge>
+          )}
+          {clubStandingRow?.promotionSeed !== undefined && (
+            <Badge className="cl-badge--muted">
+              {intl.formatMessage(messages.standingsSeedTag, {
+                seed: clubStandingRow.promotionSeed,
+              })}
+            </Badge>
+          )}
+        </span>
+        <span slot="status">{statusText}</span>
+      </ClubIdentity>
+    </PageHeader>
+
+    <TimeZoneNote
+      locale={resolvedLocale}
+      referenceDate={referenceDate}
+      timeZone={model.organizationTimeZone}
+      {...timeZoneNoteLabels(intl)}
+    />
+
+    {liveSeeds.length > 0 && (
+      <div data-live-stream={model.streamPath} hidden>
+        {liveSeeds.map((seed) => (
+          <span data-live-match-seed={JSON.stringify(seed)} />
+        ))}
+      </div>
+    )}
+
+    <Stack>
+      {nextMatch && (
+        <section aria-labelledby="club-next-match-heading">
+          <SectionHeader
+            headingId="club-next-match-heading"
+            heading={intl.formatMessage(messages.clubPageNextMatchHeading)}
+          />
+          <ul class="cl-match-card-grid">
+            <li>
+              {nextMatch.isLive ? (
+                <MatchCard
+                  client:load
+                  headingLevel={3}
+                  labels={labels}
+                  locale={resolvedLocale}
+                  localePrefix={localePrefix}
+                  match={nextMatch.match}
+                  organizationAlias={organization!}
+                  referenceDate={referenceDate}
+                  reportUrl={matchReportUrl({
+                    organizationAlias: organization!,
+                    tournamentAlias: tournament!,
+                    stageNumber: nextMatch.match.stageNumber,
+                    matchNumber: nextMatch.match.matchNumber,
+                    localePrefix,
+                  })}
+                  timeZone={model.organizationTimeZone}
+                  tournamentAlias={tournament!}
+                />
+              ) : (
+                <MatchCard
+                  headingLevel={3}
+                  labels={labels}
+                  locale={resolvedLocale}
+                  localePrefix={localePrefix}
+                  match={nextMatch.match}
+                  organizationAlias={organization!}
+                  referenceDate={referenceDate}
+                  reportUrl={matchReportUrl({
+                    organizationAlias: organization!,
+                    tournamentAlias: tournament!,
+                    stageNumber: nextMatch.match.stageNumber,
+                    matchNumber: nextMatch.match.matchNumber,
+                    localePrefix,
+                  })}
+                  timeZone={model.organizationTimeZone}
+                  tournamentAlias={tournament!}
+                />
+              )}
+            </li>
+          </ul>
+        </section>
+      )}
+
+      {standingTableProjection && standingTableProjection.rows.length > 0 && (
+        <section aria-labelledby="club-standing-heading">
+          <SectionHeader
+            headingId="club-standing-heading"
+            heading={intl.formatMessage(messages.clubPageStandingHeading)}
+            actionHref={stageStandingsHref}
+            actionLabel={intl.formatMessage(messages.clubPageStandingLink)}
+          />
+          <StandingsTable
+            canonicalPath={tournamentCanonicalPath}
+            chrome="full"
+            clubs={model.clubs}
+            heading={clubGroupSegment?.groupName}
+            highlightClubAlias={club}
+            omitHeading
+            intl={intl}
+            layout={groupPhaseLayout}
+            organizationAlias={organization!}
+            projection={standingTableProjection}
+            showControls={false}
+            tournamentAlias={tournament!}
+          />
+        </section>
+      )}
+
+      <section aria-labelledby="club-results-heading">
+        <SectionHeader
+          headingId="club-results-heading"
+          heading={intl.formatMessage(messages.clubPageResultsHeading)}
+        />
+        {results.length === 0 ? (
+          <p>{intl.formatMessage(messages.clubPageResultsEmpty)}</p>
+        ) : (
+          <ul class="cl-match-card-grid">
+            {results.map((result) => (
+              <li>
+                <MatchCard
+                  headingLevel={3}
+                  labels={labels}
+                  locale={resolvedLocale}
+                  localePrefix={localePrefix}
+                  match={result.match}
+                  organizationAlias={organization!}
+                  outcome={
+                    result.outcome === undefined
+                      ? undefined
+                      : { kind: result.outcome, label: outcomeLabelOf(result.outcome) }
+                  }
+                  referenceDate={referenceDate}
+                  reportUrl={matchReportUrl({
+                    organizationAlias: organization!,
+                    tournamentAlias: tournament!,
+                    stageNumber: result.stageNumber,
+                    matchNumber: result.matchNumber,
+                    localePrefix,
+                  })}
+                  timeZone={model.organizationTimeZone}
+                  tournamentAlias={tournament!}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section aria-labelledby="club-squad-heading">
+        <SectionHeader
+          headingId="club-squad-heading"
+          heading={intl.formatMessage(messages.clubPageSquadHeading)}
+        />
+        {squad.members.length === 0 ? (
+          <p>{intl.formatMessage(messages.clubPageSquadEmpty)}</p>
+        ) : (
+          <DataTable
+            ariaLabel={intl.formatMessage(messages.clubPageSquadHeading)}
+            columns={squadColumns}
+            mobileMode="priority"
+            moreColumnsLabel={intl.formatMessage(messages.standingsMoreColumns)}
+            rows={squad.members}
+          />
+        )}
+      </section>
+
+      {knockoutPath && (
+        <section aria-labelledby="club-path-heading">
+          <SectionHeader
+            headingId="club-path-heading"
+            heading={intl.formatMessage(messages.clubPagePathHeading)}
+            actionHref={bracketPathHref}
+            actionLabel={intl.formatMessage(messages.clubPagePathLink)}
+          />
+          <ul class="cl-match-card-grid">
+            {knockoutPath.matches.map((entry) => (
+              <li>
+                <MatchCard
+                  headingLevel={3}
+                  labels={labels}
+                  locale={resolvedLocale}
+                  localePrefix={localePrefix}
+                  match={entry.match}
+                  organizationAlias={organization!}
+                  outcome={
+                    entry.outcome === undefined
+                      ? undefined
+                      : { kind: entry.outcome, label: outcomeLabelOf(entry.outcome) }
+                  }
+                  referenceDate={referenceDate}
+                  reportUrl={matchReportUrl({
+                    organizationAlias: organization!,
+                    tournamentAlias: tournament!,
+                    stageNumber: entry.match.stageNumber,
+                    matchNumber: entry.match.matchNumber,
+                    localePrefix,
+                  })}
+                  timeZone={model.organizationTimeZone}
+                  tournamentAlias={tournament!}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </Stack>
+  </Container>
+</PublicLayout>
+
+<script>
+  import { mountPublicSchedule } from '../../../../../../lib/public-schedule-live.ts';
+
+  mountPublicSchedule();
+  if (document.querySelector('[data-live-stream]')) {
+    void import('../../../../../../lib/public-live-scoreboards.ts').then(
+      ({ mountPublicLiveScoreboards }) => {
+        mountPublicLiveScoreboards();
+      },
+    );
+  }
+</script>

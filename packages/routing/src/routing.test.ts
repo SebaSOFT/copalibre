@@ -32,8 +32,31 @@ describe('canonical public paths', () => {
       { ...BASE, participantAlias: 'casa-de-italia' },
       '/liga-mendocina/tournaments/apertura-2026/participants/casa-de-italia',
     ],
+    [{ ...BASE, clubIndex: true }, '/liga-mendocina/tournaments/apertura-2026/clubs'],
+    [
+      { ...BASE, clubAlias: 'club-hispano' },
+      '/liga-mendocina/tournaments/apertura-2026/clubs/club-hispano',
+    ],
+    [
+      { ...BASE, clubAlias: 'club-hispano', locale: 'es' },
+      '/es/liga-mendocina/tournaments/apertura-2026/clubs/club-hispano',
+    ],
+    [
+      { organizationAlias: 'liga-mendocina', clubAlias: 'club-hispano' },
+      '/liga-mendocina/clubs/club-hispano',
+    ],
+    [
+      { organizationAlias: 'liga-mendocina', clubAlias: 'club-hispano', locale: 'es' },
+      '/es/liga-mendocina/clubs/club-hispano',
+    ],
   ])('builds %j', (input, expected) => {
     expect(publicPath(input)).toBe(expected);
+  });
+
+  it('refuses a club index that names no tournament', () => {
+    expect(() => publicPath({ organizationAlias: 'liga-mendocina', clubIndex: true })).toThrow(
+      RouteError,
+    );
   });
 
   it('has a home', () => {
@@ -181,6 +204,10 @@ describe('parseControlPath', () => {
     ['/control', { screen: 'root' }],
     ['/control/', { screen: 'root' }],
     ['/control/callback', { screen: 'callback' }],
+    // The file that mounts Control: where an accepted invitation lands.
+    ['/control/app', { screen: 'root' }],
+    ['/control/app/', { screen: 'root' }],
+    ['/control/app-fc', { screen: 'dashboard', organizationAlias: 'app-fc' }],
     ['/control/silent-renew-callback', { screen: 'silent-renew-callback' }],
     // A real organization alias that merely starts with the reserved word
     // stays an ordinary dashboard, not the callback screen.
@@ -357,6 +384,15 @@ describe('parseControlPath', () => {
         organizationAlias: 'liga-mendocina',
         tournamentAlias: 'apertura-2026',
         stageNumber: 1,
+      },
+    ],
+    [
+      '/control/liga-mendocina/tournaments/apertura-2026/stages/2/qualification',
+      {
+        screen: 'qualification',
+        organizationAlias: 'liga-mendocina',
+        tournamentAlias: 'apertura-2026',
+        stageNumber: 2,
       },
     ],
     [

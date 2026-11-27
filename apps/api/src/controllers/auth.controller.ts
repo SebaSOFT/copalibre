@@ -1,8 +1,6 @@
-import * as argon2 from 'argon2';
-import { createHash, createPublicKey, generateKeyPairSync } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { importPKCS8, SignJWT } from 'jose';
+import { hashPassword, passwordNeedsRehash, verifyPassword } from '../auth/password-hashing.js';
+import { createHash, randomUUID } from 'node:crypto';
+import { decodeJwt, importPKCS8, SignJWT } from 'jose';
 import {
   Body,
   Controller,
@@ -10,8 +8,10 @@ import {
   Get,
   HttpCode,
   Inject,
+  Optional,
   Param,
   Post,
+  Query,
   Req,
   Res,
 } from '@nestjs/common';
@@ -32,6 +32,20 @@ import {
 } from '@nestjs/swagger';
 import type { Kysely } from 'kysely';
 import {
+  clearingCookies,
+  extractBearerToken,
+  MAX_COOKIE_BYTES,
+  maxAgeUntil,
+  PERSONAL_ACCESS_TOKEN_PREFIX,
+  serializeCsrfCookie,
+  serializeRefreshCookie,
+  serializeSessionCookie,
+  sessionCookieConfigFromEnv,
+  sessionCookieTooLarge,
+  TokenVerifier,
+  type SessionCookieConfig,
+} from '@copalibre/auth';
+import {
   IdentityPrincipalRepository,
   InstallationRoleRepository,
   OrganizationAccessRepository,
@@ -45,16 +59,23 @@ import { PRIVILEGED_SCOPES, RequireSelf, SUPER_ADMIN_SCOPE } from '../auth/acces
 import type { RequestWithSubject } from '../auth/request-context.js';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { SharedThrottle } from '../auth/shared-throttle.decorator.js';
+import { readRefreshCookie } from '../auth/refresh-cookie.js';
+export { REFRESH_COOKIE_NAME } from '../auth/refresh-cookie.js';
+import { SESSION_COOKIE_CONFIG } from '../auth/session-cookie-config.js';
+import { mintCsrfToken } from '../auth/csrf.js';
+import { getLocalKeys } from '../auth/local-signing-keys.js';
 import { Throttle } from '@nestjs/throttler';
 import { DATABASE } from '../database.token.js';
 import {
   LoginRequest,
-  LoginResponse,
+  SessionResponse,
   ForgotPasswordRequest,
   ResetPasswordRequest,
   CreatePatRequest,
   PatCreatedResponse,
   PatResponse,
+  PatScopeOptionsResponse,
+  PatRevocationResponse,
   AuthSuccessResponse,
   NativeAcceptInvitationRequest,
   JwksResponse,
@@ -70,39 +91,42 @@ import {
  */
 export const AUTH_THROTTLE_LIMIT = 5;
 export const AUTH_THROTTLE_TTL_MS = 60_000;
+export const REFRESH_THROTTLE_LIMIT = 30;
 
 /**
- * Native-login session refresh. Only native (email/password)
- * sessions get this cookie — an OIDC session's token is issued and refreshed
- * by the external identity provider, never by this API, so it never carries
- * this cookie. `HttpOnly` keeps it out of every browser-storage surface
- * `token-store.ts`'s `FORBIDDEN_STORAGE_KEYS` already forbids; hand-rolled
- * rather than a `@fastify/cookie` dependency, since one cookie with fixed
- * attributes is a few lines, not a plugin's worth of surface.
+ * Native-login session refresh. Only native (email/password) sessions get the
+ * refresh cookie — an OIDC session's token is issued and refreshed by the
+ * external identity provider, never by this API. Every cookie this controller
+ * writes comes from `@copalibre/auth`, so the attributes cannot drift between
+ * the cookies a session carries.
  */
-export const REFRESH_COOKIE_NAME = 'copalibre_refresh_token';
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-function serializeRefreshCookie(value: string, maxAgeSeconds: number): string {
-  const attributes = [
-    `${REFRESH_COOKIE_NAME}=${value}`,
-    'Path=/auth',
-    'HttpOnly',
-    'SameSite=Strict',
-    `Max-Age=${maxAgeSeconds}`,
-  ];
-  if (process.env.NODE_ENV === 'production') attributes.push('Secure');
-  return attributes.join('; ');
+function nativeIssuer(): string {
+  return process.env.COPALIBRE_NATIVE_JWT_ISSUER ?? 'http://localhost:8080';
 }
 
-function readRefreshCookie(req: FastifyRequest): string | undefined {
-  const header = req.headers.cookie;
-  if (!header) return undefined;
-  for (const part of header.split(';')) {
-    const [rawName, ...rawValue] = part.trim().split('=');
-    if (rawName === REFRESH_COOKIE_NAME) return rawValue.join('=');
-  }
-  return undefined;
+type SessionMethod = SessionResponse['method'];
+
+/** Session metadata read from an already-verified access token. */
+function sessionMetadata(accessToken: string, method: SessionMethod): SessionResponse {
+  const claims = decodeJwt(accessToken);
+  const scopes =
+    typeof claims.scp === 'string'
+      ? claims.scp.split(' ').filter((scope) => scope.length > 0)
+      : Array.isArray(claims.scp)
+        ? claims.scp.filter((scope): scope is string => typeof scope === 'string')
+        : [];
+  return {
+    subject: claims.sub ?? '',
+    scopes,
+    expiresAt: new Date((claims.exp ?? 0) * 1000).toISOString(),
+    method,
+  };
+}
+
+function methodOf(accessToken: string): SessionMethod {
+  return decodeJwt(accessToken).iss === nativeIssuer() ? 'native' : 'oidc';
 }
 
 /**
@@ -113,7 +137,13 @@ function readRefreshCookie(req: FastifyRequest): string | undefined {
 @ApiTags('auth')
 @Controller('auth')
 export class NativeAuthController {
-  constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
+  constructor(
+    @Inject(DATABASE) private readonly db: Kysely<Database>,
+    @Inject(TokenVerifier) private readonly verifier: TokenVerifier,
+    @Optional()
+    @Inject(SESSION_COOKIE_CONFIG)
+    private readonly cookieConfig: SessionCookieConfig = sessionCookieConfigFromEnv(),
+  ) {}
 
   @Post('login')
   @HttpCode(200)
@@ -121,11 +151,11 @@ export class NativeAuthController {
   @SharedThrottle()
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'Authenticate with email and password' })
-  @ApiOkResponse({ type: LoginResponse })
+  @ApiOkResponse({ type: SessionResponse })
   async login(
     @Body() body: LoginRequest,
     @Res({ passthrough: true }) res: FastifyReply,
-  ): Promise<LoginResponse> {
+  ): Promise<SessionResponse> {
     // Check if principal exists
     const principal = await this.db
       .selectFrom('identity_principals')
@@ -133,26 +163,38 @@ export class NativeAuthController {
       .where('email', '=', body.email.toLowerCase().trim())
       .executeTakeFirst();
 
-    if (!principal?.password_hash) {
+    // An unknown email still pays for one hash verification, so the response
+    // time does not reveal which accounts exist.
+    const valid = await verifyPassword(principal?.password_hash, body.password);
+    if (!principal?.password_hash || !valid) {
       throw new UnauthorizedException('Invalid email or password', {
         errorCode: 'auth-unauthorized',
       });
     }
 
-    const valid = await argon2.verify(principal.password_hash, body.password);
-    if (!valid) {
-      throw new UnauthorizedException('Invalid email or password', {
-        errorCode: 'auth-unauthorized',
-      });
+    if (passwordNeedsRehash(principal.password_hash)) {
+      // Made with older parameters: replace it now that the password is known.
+      await this.db
+        .updateTable('identity_principals')
+        .set({ password_hash: await hashPassword(body.password), updated_at: new Date() })
+        .where('principal_id', '=', principal.principal_id)
+        .execute();
     }
 
     const accessToken = await issueLocalJwt(this.db, principal.principal_id, principal.email);
-    await this.issueRefreshCookie(res, principal.principal_id);
-    return { accessToken, expiresIn: 3600 };
+    return this.issueNativeSession(res, accessToken, principal.principal_id);
   }
 
-  /** Shared by `login`, `acceptInvitation` and `refresh` — every point a native session begins or renews. */
-  private async issueRefreshCookie(res: FastifyReply, principalId: string): Promise<void> {
+  /**
+   * Shared by `login`, `acceptInvitation` and `refresh` — every point a native
+   * session begins or renews: session and CSRF cookies plus a fresh refresh
+   * cookie, and a body that carries metadata, never the token.
+   */
+  private async issueNativeSession(
+    res: FastifyReply,
+    accessToken: string,
+    principalId: string,
+  ): Promise<SessionResponse> {
     const { rawToken } = await withTransaction(this.db, (uow) =>
       new AuthVerificationTokenRepository(this.db).create(uow, {
         principalId,
@@ -160,10 +202,85 @@ export class NativeAuthController {
         ttlMs: REFRESH_TOKEN_TTL_MS,
       }),
     );
-    res.header(
-      'Set-Cookie',
-      serializeRefreshCookie(rawToken, Math.floor(REFRESH_TOKEN_TTL_MS / 1000)),
-    );
+    res.header('Set-Cookie', [
+      ...this.sessionCookies(accessToken),
+      serializeRefreshCookie(this.cookieConfig, rawToken, Math.floor(REFRESH_TOKEN_TTL_MS / 1000)),
+    ]);
+    return sessionMetadata(accessToken, 'native');
+  }
+
+  /** The session cookie holding the token and the CSRF cookie bound to it, both expiring with it. */
+  private sessionCookies(accessToken: string): string[] {
+    const exp = decodeJwt(accessToken).exp ?? 0;
+    const maxAge = maxAgeUntil(exp);
+    return [
+      serializeSessionCookie(this.cookieConfig, accessToken, maxAge),
+      serializeCsrfCookie(this.cookieConfig, mintCsrfToken(accessToken), maxAge),
+    ];
+  }
+
+  @Post('session')
+  @HttpCode(200)
+  @Throttle({ default: { limit: REFRESH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL_MS } })
+  @SharedThrottle()
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({
+    summary: 'Hand an external identity provider token over to an HttpOnly session cookie',
+    description:
+      'The provider access token is sent once as `Authorization: Bearer`. It is verified like any ' +
+      'Bearer token; personal access tokens and native tokens are refused.',
+  })
+  @ApiOkResponse({ type: SessionResponse })
+  async handOverSession(
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ): Promise<SessionResponse> {
+    const token = extractBearerToken({ headers: req.headers });
+    if (!token || token.startsWith(PERSONAL_ACCESS_TOKEN_PREFIX)) {
+      throw new UnauthorizedException('A provider access token is required', {
+        errorCode: 'auth-unauthorized',
+      });
+    }
+    let issuer: string | undefined;
+    try {
+      issuer = decodeJwt(token).iss;
+    } catch {
+      issuer = undefined;
+    }
+    if (issuer === undefined || issuer === nativeIssuer()) {
+      // A native token already arrives as a cookie from login; accepting it
+      // here would let any script holding one mint a cookie session from it.
+      throw new UnauthorizedException(
+        'Only an external identity provider token can be handed over',
+        {
+          errorCode: 'auth-unauthorized',
+        },
+      );
+    }
+    try {
+      await this.verifier.verify(token);
+    } catch {
+      throw new UnauthorizedException('Invalid bearer token', { errorCode: 'auth-unauthorized' });
+    }
+    if (sessionCookieTooLarge(this.cookieConfig, token)) {
+      throw new BadRequestException(
+        `The identity provider's access token exceeds the ${MAX_COOKIE_BYTES}-byte cookie limit`,
+        { errorCode: 'auth-token-too-large' },
+      );
+    }
+    res.header('Set-Cookie', this.sessionCookies(token));
+    return sessionMetadata(token, 'oidc');
+  }
+
+  @Get('session')
+  @SecurityPlaneTag('public-read')
+  @ApiOperation({ summary: "The current browser session's metadata, without its token" })
+  @ApiOkResponse({ type: SessionResponse })
+  session(@Req() request: RequestWithSubject): SessionResponse {
+    if (request.subject === undefined || request.accessToken === undefined) {
+      throw new UnauthorizedException('No session present', { errorCode: 'auth-unauthorized' });
+    }
+    return sessionMetadata(request.accessToken, methodOf(request.accessToken));
   }
 
   @Get('jwks.json')
@@ -180,11 +297,11 @@ export class NativeAuthController {
   @SharedThrottle()
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'Accept invitation and set password for administrator' })
-  @ApiOkResponse({ type: LoginResponse })
+  @ApiOkResponse({ type: SessionResponse })
   async acceptInvitation(
     @Body() body: NativeAcceptInvitationRequest,
     @Res({ passthrough: true }) res: FastifyReply,
-  ): Promise<LoginResponse> {
+  ): Promise<SessionResponse> {
     if (!body.password || body.password.length < 8) {
       throw new BadRequestException('Password must be at least 8 characters', {
         errorCode: 'auth-bad-request',
@@ -217,7 +334,7 @@ export class NativeAuthController {
       });
     }
 
-    const passwordHash = await argon2.hash(body.password);
+    const passwordHash = await hashPassword(body.password);
     const email = invitation.recipient_email.toLowerCase().trim();
 
     const principal = await withTransaction(this.db, async (uow) => {
@@ -254,22 +371,21 @@ export class NativeAuthController {
       email,
       invitation.organization_id,
     );
-    await this.issueRefreshCookie(res, principal.principalId);
-    return { accessToken, expiresIn: 3600 };
+    return this.issueNativeSession(res, accessToken, principal.principalId);
   }
 
   @Post('refresh')
   @HttpCode(200)
-  @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL_MS } })
-  @SharedThrottle()
+  @Throttle({ default: { limit: REFRESH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL_MS } })
+  @SharedThrottle('refresh-cookie')
   @SecurityPlaneTag('public-read')
   @ApiOperation({ summary: 'Silently renew a native session from its refresh cookie' })
-  @ApiOkResponse({ type: LoginResponse })
+  @ApiOkResponse({ type: SessionResponse })
   async refresh(
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
-  ): Promise<LoginResponse> {
-    const rawToken = readRefreshCookie(req);
+  ): Promise<SessionResponse> {
+    const rawToken = readRefreshCookie(req.headers.cookie);
     if (!rawToken) {
       throw new UnauthorizedException('No refresh session present', {
         errorCode: 'auth-unauthorized',
@@ -279,13 +395,8 @@ export class NativeAuthController {
     let principalId: string;
     try {
       const consumed = await withTransaction(this.db, (uow) =>
-        new AuthVerificationTokenRepository(this.db).consume(uow, rawToken),
+        new AuthVerificationTokenRepository(this.db).consume(uow, rawToken, 'session-refresh'),
       );
-      if (consumed.kind !== 'session-refresh') {
-        throw new UnauthorizedException('Invalid refresh session', {
-          errorCode: 'auth-unauthorized',
-        });
-      }
       principalId = consumed.principalId;
     } catch (error) {
       if (error instanceof NotFoundError) {
@@ -308,8 +419,7 @@ export class NativeAuthController {
     const accessToken = await issueLocalJwt(this.db, principal.principalId, principal.email);
     // Rotates: the just-consumed token can never be presented again, and this
     // fresh one is the only one now valid — replaying an old one always 401s.
-    await this.issueRefreshCookie(res, principal.principalId);
-    return { accessToken, expiresIn: 3600 };
+    return this.issueNativeSession(res, accessToken, principal.principalId);
   }
 
   @Post('logout')
@@ -317,17 +427,19 @@ export class NativeAuthController {
   @Throttle({ default: { limit: AUTH_THROTTLE_LIMIT, ttl: AUTH_THROTTLE_TTL_MS } })
   @SharedThrottle()
   @SecurityPlaneTag('public-read')
-  @ApiOperation({ summary: 'End a native session, revoking its refresh cookie' })
+  @ApiOperation({
+    summary: 'End a browser session, revoking its refresh cookie and clearing its cookies',
+  })
   @ApiOkResponse({ type: AuthSuccessResponse })
   async logout(
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) res: FastifyReply,
   ): Promise<AuthSuccessResponse> {
-    const rawToken = readRefreshCookie(req);
+    const rawToken = readRefreshCookie(req.headers.cookie);
     if (rawToken) {
       try {
         await withTransaction(this.db, (uow) =>
-          new AuthVerificationTokenRepository(this.db).consume(uow, rawToken),
+          new AuthVerificationTokenRepository(this.db).consume(uow, rawToken, 'session-refresh'),
         );
       } catch (error) {
         // Already consumed, expired, or unknown — logout still clears the
@@ -335,7 +447,7 @@ export class NativeAuthController {
         if (!(error instanceof NotFoundError)) throw error;
       }
     }
-    res.header('Set-Cookie', serializeRefreshCookie('', 0));
+    res.header('Set-Cookie', [...clearingCookies(this.cookieConfig)]);
     return { message: 'Logged out.' };
   }
 
@@ -395,16 +507,28 @@ export class NativeAuthController {
       });
     }
 
-    const passwordHash = await argon2.hash(body.newPassword);
+    const passwordHash = await hashPassword(body.newPassword);
 
-    await withTransaction(this.db, async (uow) => {
-      const verification = await new AuthVerificationTokenRepository(this.db).consume(
-        uow,
-        body.token,
-      );
-      if (verification.kind !== 'password-reset') {
-        throw new BadRequestException('Invalid reset token', { errorCode: 'auth-bad-request' });
+    try {
+      await this.applyPasswordReset(body.token, passwordHash);
+    } catch (error) {
+      // Unknown, expired, already used or another kind of token: the caller's
+      // fault, not a server error, and one answer for all of them.
+      if (error instanceof NotFoundError) {
+        throw new BadRequestException('Reset token is invalid or expired', {
+          errorCode: 'auth-bad-request',
+        });
       }
+      throw error;
+    }
+
+    return { message: 'Password has been reset successfully.' };
+  }
+
+  private async applyPasswordReset(rawToken: string, passwordHash: string): Promise<void> {
+    await withTransaction(this.db, async (uow) => {
+      const tokens = new AuthVerificationTokenRepository(this.db);
+      const verification = await tokens.consume(uow, rawToken, 'password-reset');
 
       await uow.tx
         .updateTable('identity_principals')
@@ -420,9 +544,9 @@ export class NativeAuthController {
         actor: `principal:${verification.principalId}`,
         authorizationContext: 'self-service:password-reset',
       });
+      // Whoever knew the old password may hold a refresh cookie; a reset ends it.
+      await tokens.revokeSessionRefreshTokens(uow, verification.principalId);
     });
-
-    return { message: 'Password has been reset successfully.' };
   }
 }
 
@@ -465,6 +589,18 @@ export function assertPatScopesAllowed(
 export class PersonalAccessTokenController {
   constructor(@Inject(DATABASE) private readonly db: Kysely<Database>) {}
 
+  @Get('scopes')
+  @SecurityPlaneTag('admin-control')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Scopes the current user may grant to a personal access token' })
+  @ApiOkResponse({ type: PatScopeOptionsResponse })
+  scopes(@Req() request: RequestWithSubject): PatScopeOptionsResponse {
+    const availableScopes = request.subject?.scopes ?? [];
+    return {
+      scopes: [...new Set(availableScopes.filter((scope) => !PRIVILEGED_SCOPES.includes(scope)))],
+    };
+  }
+
   @Get()
   @SecurityPlaneTag('admin-control')
   @ApiBearerAuth()
@@ -496,8 +632,8 @@ export class PersonalAccessTokenController {
     }
 
     const expiresAt = new Date(Date.now() + body.expiresInDays * 24 * 60 * 60 * 1000);
-    assertPatScopesAllowed(body.scopes ?? [], request.subject?.scopes ?? []);
-    const scopes = body.scopes ?? [...(request.subject?.scopes ?? [])];
+    assertPatScopesAllowed(body.scopes, request.subject?.scopes ?? []);
+    const scopes = body.scopes;
 
     const result = await withTransaction(this.db, (uow) =>
       new PersonalAccessTokenRepository(this.db).create(uow, {
@@ -525,21 +661,58 @@ export class PersonalAccessTokenController {
   @SecurityPlaneTag('admin-control')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Revoke a personal access token' })
-  @ApiOkResponse({ type: PatResponse })
+  @ApiOkResponse({ type: PatRevocationResponse })
   async revoke(
     @Param('tokenId') tokenId: string,
+    @Query('dryRun') dryRun: string | undefined,
     @Req() request: RequestWithSubject,
-  ): Promise<PatResponse> {
+  ): Promise<PatRevocationResponse> {
     const principalId = requirePrincipalId(request);
+    const repository = new PersonalAccessTokenRepository(this.db);
+    if (dryRun === 'true') {
+      const preview = await repository.previewRevoke(tokenId, principalId);
+      if (!preview) throw new NotFoundException('Personal access token was not found');
+      return { dryRun: true, ...preview };
+    }
+    if (dryRun !== undefined && dryRun !== 'false') {
+      throw new BadRequestException('dryRun must be a boolean', { errorCode: 'auth-bad-request' });
+    }
     const revoked = await withTransaction(this.db, (uow) =>
-      new PersonalAccessTokenRepository(this.db).revoke(uow, {
+      repository.revoke(uow, {
         tokenId,
         principalId,
         actor: `user:${principalId}`,
         authorizationContext: (request.subject?.scopes ?? []).join(' '),
       }),
     );
-    return toPatResponse(revoked);
+    return {
+      ...toPatResponse(revoked),
+      dryRun: false,
+      reversible: revoked.lastUsedAt === undefined,
+      tokens: 1,
+    };
+  }
+
+  @Post(':tokenId/restore')
+  @HttpCode(200)
+  @SecurityPlaneTag('admin-control')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Restore a recently revoked personal access token' })
+  @ApiOkResponse({ type: PatResponse })
+  async restore(
+    @Param('tokenId') tokenId: string,
+    @Req() request: RequestWithSubject,
+  ): Promise<PatResponse> {
+    const principalId = requirePrincipalId(request);
+    const restored = await withTransaction(this.db, (uow) =>
+      new PersonalAccessTokenRepository(this.db).restore(uow, {
+        tokenId,
+        principalId,
+        actor: `user:${principalId}`,
+        authorizationContext: (request.subject?.scopes ?? []).join(' '),
+      }),
+    );
+    return toPatResponse(restored);
   }
 }
 
@@ -570,81 +743,6 @@ function toPatResponse(pat: {
     createdAt: pat.createdAt,
     ...(pat.lastUsedAt === undefined ? {} : { lastUsedAt: pat.lastUsedAt }),
   };
-}
-
-let cachedPrivateKey: string | undefined;
-let cachedJwks: { readonly keys: readonly Record<string, unknown>[] } | undefined;
-
-export function getLocalKeys(): {
-  readonly privateKey: string;
-  readonly jwks: { readonly keys: readonly Record<string, unknown>[] };
-} {
-  if (cachedPrivateKey && cachedJwks) {
-    return { privateKey: cachedPrivateKey, jwks: cachedJwks };
-  }
-
-  const cwd = process.cwd();
-  const privateKeyFile =
-    process.env.COPALIBRE_JWT_PRIVATE_KEY_FILE ??
-    (existsSync(join(cwd, 'jwt-private.pem')) ? join(cwd, 'jwt-private.pem') : undefined) ??
-    (existsSync('/var/lib/copalibre/jwt-private.pem')
-      ? '/var/lib/copalibre/jwt-private.pem'
-      : undefined);
-
-  const jwksFile =
-    process.env.COPALIBRE_JWKS_FILE ??
-    (existsSync(join(cwd, 'jwks.json')) ? join(cwd, 'jwks.json') : undefined) ??
-    (existsSync('/var/lib/copalibre/jwks.json') ? '/var/lib/copalibre/jwks.json' : undefined);
-
-  if (privateKeyFile && existsSync(privateKeyFile)) {
-    try {
-      cachedPrivateKey = readFileSync(privateKeyFile, 'utf8');
-    } catch {
-      // ignore
-    }
-  }
-
-  if (jwksFile && existsSync(jwksFile)) {
-    try {
-      cachedJwks = JSON.parse(readFileSync(jwksFile, 'utf8'));
-    } catch {
-      // ignore
-    }
-  }
-
-  if (!cachedPrivateKey || !cachedJwks) {
-    const { privateKey, publicKey } = generateKeyPairSync('rsa', {
-      modulusLength: 2048,
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-    });
-    cachedPrivateKey = cachedPrivateKey ?? privateKey;
-    const jwk = createPublicKey(publicKey).export({ format: 'jwk' });
-    cachedJwks = cachedJwks ?? {
-      keys: [
-        {
-          ...jwk,
-          kid: 'copalibre-local-key-1',
-          use: 'sig',
-          alg: 'RS256',
-        },
-      ],
-    };
-  }
-
-  return { privateKey: cachedPrivateKey, jwks: cachedJwks };
-}
-
-@ApiTags('auth')
-@Controller('.well-known')
-export class WellKnownController {
-  @Get('jwks.json')
-  @SecurityPlaneTag('public-read')
-  @ApiOperation({ summary: 'JSON Web Key Set for local token verification' })
-  @ApiOkResponse({ type: JwksResponse })
-  jwks(): { readonly keys: readonly Record<string, unknown>[] } {
-    return getLocalKeys().jwks;
-  }
 }
 
 /**
@@ -686,11 +784,15 @@ export async function issueLocalJwt(
     }
   }
 
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: 'RS256', kid })
-    .setIssuedAt()
-    .setExpirationTime('1h')
-    .setIssuer(process.env.COPALIBRE_JWT_ISSUER ?? 'http://localhost:8080')
-    .setAudience(process.env.COPALIBRE_JWT_AUDIENCE ?? 'copalibre')
-    .sign(privateKeyObj);
+  return (
+    new SignJWT(payload)
+      .setProtectedHeader({ alg: 'RS256', kid })
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      // A unique id binds the CSRF cookie to this one token and correlates audit records.
+      .setJti(randomUUID())
+      .setIssuer(nativeIssuer())
+      .setAudience(process.env.COPALIBRE_JWT_AUDIENCE ?? 'copalibre')
+      .sign(privateKeyObj)
+  );
 }

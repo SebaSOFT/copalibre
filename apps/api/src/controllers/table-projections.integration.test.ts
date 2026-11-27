@@ -23,6 +23,7 @@ import { MatchControlController } from './match-control.controller.js';
 import { PublicProjectionsController } from './public-projections.controller.js';
 import { StandingsController } from './standings.controller.js';
 import { TableProjectionsController } from './table-projections.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 /**
  * Table projections through the real HTTP stack, against real
@@ -38,6 +39,7 @@ describe('table projections (integration)', () => {
   let scratch: Awaited<ReturnType<typeof createMigratedDatabase>>;
   let organizationId: string;
   let tournamentId: string;
+  let stageId: string;
   let matchId: string;
   let segmentId: string;
   let entrantTalleres: string;
@@ -148,6 +150,7 @@ describe('table projections (integration)', () => {
     class IntegrationModule {}
     const module = await Test.createTestingModule({ imports: [IntegrationModule] }).compile();
     app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
 
@@ -220,6 +223,7 @@ describe('table projections (integration)', () => {
       const clubTalleres = await enrollment.createClub(uow, {
         organizationId,
         name: 'Club Atlético Talleres',
+        abbreviation: 'TAL',
         ...AUDIT,
       });
       clubTalleresId = clubTalleres.clubId;
@@ -276,6 +280,7 @@ describe('table projections (integration)', () => {
         organizationId,
         ...AUDIT,
       });
+      stageId = stage.stageId;
       const [fixture] = await competition.createFixtures(uow, {
         stageId: stage.stageId,
         fixtures: [
@@ -358,7 +363,7 @@ describe('table projections (integration)', () => {
     // finalize/refold step.
     const eventResponse = await (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: `/organizations/liga-tablas/tournaments/apertura-tablas/matches/${matchId}/events`,
+      url: `/api/organizations/liga-tablas/tournaments/apertura-tablas/matches/${matchId}/events`,
       headers: {
         authorization: 'Bearer referee',
         'idempotency-key': '01890000-0000-7000-8000-0000000000d1',
@@ -392,6 +397,47 @@ describe('table projections (integration)', () => {
         ...AUDIT,
       }),
     );
+
+    const [sourceZone] = await competition.listZonesOfStage(stageId);
+    if (!sourceZone) throw new Error('Expected the stage fixture to create its source zone');
+    await withTransaction(scratch.db, async (uow) => {
+      const destinationStage = await competition.createStageInTournament(uow, {
+        tournamentId,
+        number: 2,
+        name: 'Etapa de promoción',
+        format: 'round-robin',
+        organizationId,
+        ...AUDIT,
+      });
+      await competition.createZone(uow, {
+        stageId: destinationStage.stageId,
+        number: 1,
+        name: 'Copa oro',
+        organizationId,
+        ...AUDIT,
+      });
+      await competition.createZone(uow, {
+        stageId: destinationStage.stageId,
+        number: 2,
+        name: 'Copa plata',
+        organizationId,
+        ...AUDIT,
+      });
+      await competition.createPromotionPlan(uow, {
+        zoneId: sourceZone.zoneId,
+        nextStageId: destinationStage.stageId,
+        plan: {
+          perGroupAdvance: 2,
+          combination: { mode: 'group-order' },
+          bands: [
+            { zoneRef: 'Copa oro', count: 1 },
+            { zoneRef: 'Copa plata', count: 1 },
+          ],
+        },
+        organizationId,
+        ...AUDIT,
+      });
+    });
   });
 
   afterAll(async () => {
@@ -408,7 +454,7 @@ describe('table projections (integration)', () => {
   }
 
   it('lists every table layout in effect for a tab bar to render', async () => {
-    const response = await get('/organizations/liga-tablas/tournaments/apertura-tablas/tables');
+    const response = await get('/api/organizations/liga-tablas/tournaments/apertura-tablas/tables');
 
     expect(response.statusCode).toBe(200);
     expect(response.json().layouts).toEqual([
@@ -429,7 +475,7 @@ describe('table projections (integration)', () => {
 
   it('projects a stage-scoped, statistics-sourced group-standings table', async () => {
     const response = await get(
-      '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/tables/group-standings-default',
+      '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/tables/group-standings-default',
     );
 
     expect(response.statusCode).toBe(200);
@@ -451,7 +497,7 @@ describe('table projections (integration)', () => {
 
   it('projects a tournament-wide, collector-sourced top-scorers table', async () => {
     const response = await get(
-      '/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers',
+      '/api/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers',
     );
 
     expect(response.statusCode).toBe(200);
@@ -480,7 +526,7 @@ describe('table projections (integration)', () => {
 
   it('serves the same tournament-wide table as CSV', async () => {
     const response = await get(
-      '/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers/csv',
+      '/api/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers/csv',
     );
 
     expect(response.statusCode).toBe(200);
@@ -491,7 +537,7 @@ describe('table projections (integration)', () => {
 
   it('404s an unknown layout code', async () => {
     const response = await get(
-      '/organizations/liga-tablas/tournaments/apertura-tablas/tables/nonexistent-layout',
+      '/api/organizations/liga-tablas/tournaments/apertura-tablas/tables/nonexistent-layout',
     );
 
     expect(response.statusCode).toBe(404);
@@ -524,7 +570,7 @@ describe('table projections (integration)', () => {
     });
 
     const overridden = await get(
-      '/organizations/liga-tablas/tournaments/apertura-override/tables/top-scorers-override',
+      '/api/organizations/liga-tablas/tournaments/apertura-override/tables/top-scorers-override',
     );
     expect(overridden.statusCode).toBe(200);
     expect(overridden.json().layoutCode).toBe('top-scorers-override');
@@ -532,7 +578,7 @@ describe('table projections (integration)', () => {
     // The discipline's own default is no longer reachable — a `replaced`
     // override replaces the whole array, it does not merge into it.
     const replaced = await get(
-      '/organizations/liga-tablas/tournaments/apertura-override/tables/top-scorers',
+      '/api/organizations/liga-tablas/tournaments/apertura-override/tables/top-scorers',
     );
     expect(replaced.statusCode).toBe(404);
   });
@@ -540,7 +586,7 @@ describe('table projections (integration)', () => {
   it('401s without a token', async () => {
     const response = await (app as NestFastifyApplication).inject({
       method: 'GET',
-      url: '/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers',
+      url: '/api/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers',
     });
     expect(response.statusCode).toBe(401);
   });
@@ -550,9 +596,9 @@ describe('table projections (integration)', () => {
       return (app as NestFastifyApplication).inject({ method: 'GET', url });
     }
 
-    it('prefers a tournament entrant abbreviation over the team abbreviation in overview data', async () => {
+    it('serves persisted entrant abbreviations and club identity in public standings and matches', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/overview',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/overview',
       );
 
       expect(response.statusCode).toBe(200);
@@ -561,12 +607,41 @@ describe('table projections (integration)', () => {
         .matches.find(
           (match: { homeEntrantId: string }) => match.homeEntrantId === entrantTalleres,
         );
-      expect(home).toMatchObject({ homeName: 'Talleres', homeAbbreviation: 'TALR' });
+      expect(home).toMatchObject({
+        homeName: 'Talleres',
+        homeAbbreviation: 'TALR',
+        homeClubId: clubTalleresId,
+      });
+      expect(response.json().clubs).toContainEqual(
+        expect.objectContaining({ clubId: clubTalleresId, abbreviation: 'TAL' }),
+      );
+
+      const matchesView = await getAnonymous(
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/matches-view?stageNumber=1',
+      );
+      expect(matchesView.statusCode).toBe(200);
+      expect(matchesView.json().matches[0]).toMatchObject({
+        homeEntrantId: entrantTalleres,
+        homeAbbreviation: 'TALR',
+        homeClubId: clubTalleresId,
+      });
+
+      const standings = await getAnonymous(
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
+      );
+      expect(standings.statusCode).toBe(200);
+      expect(standings.json().rows).toContainEqual(
+        expect.objectContaining({
+          entrantId: entrantTalleres,
+          entrantAbbreviation: 'TALR',
+          clubId: clubTalleresId,
+        }),
+      );
     });
 
     it('lists table layouts with no token at all', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables',
       );
 
       expect(response.statusCode).toBe(200);
@@ -578,23 +653,90 @@ describe('table projections (integration)', () => {
 
     it('projects a tournament-wide table with no token at all', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
       );
 
       expect(response.statusCode).toBe(200);
       expect(response.json().rows[0]).toMatchObject({ actorId: personScorer });
     });
 
+    it('protects player table identities while retaining their recorded statistics', async () => {
+      const people = new PersonRepository(scratch.db);
+      const tournaments = new TournamentRepository(scratch.db);
+
+      await withTransaction(scratch.db, (uow) =>
+        people.setHiddenFromPublic(uow, {
+          personId: personScorer,
+          organizationId,
+          hiddenFromPublic: true,
+          ...AUDIT,
+        }),
+      );
+
+      const hiddenResponse = await getAnonymous(
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+      );
+      expect(hiddenResponse.statusCode).toBe(200);
+      expect(hiddenResponse.json().rows[0]).toMatchObject({
+        actorId: personScorer,
+        actorName: '',
+        hiddenAtRequest: true,
+        publicProfileAvailable: false,
+        rank: 1,
+        cells: { goals: { raw: 1, formatted: '1' } },
+      });
+      expect(hiddenResponse.json().rows[0].nationality).toBeUndefined();
+      expect(hiddenResponse.json().rows[0].entrantName).toBeUndefined();
+      expect(hiddenResponse.json().rows[0].cells.player.formatted).toBe('');
+
+      const hiddenCsv = await getAnonymous(
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers/csv',
+      );
+      expect(hiddenCsv.statusCode).toBe(200);
+      expect(hiddenCsv.body).toContain('player,goals');
+      expect(hiddenCsv.body).not.toContain('Goleador');
+
+      await withTransaction(scratch.db, async (uow) => {
+        await people.setHiddenFromPublic(uow, {
+          personId: personScorer,
+          organizationId,
+          hiddenFromPublic: false,
+          ...AUDIT,
+        });
+        await tournaments.setPublicationPrivacy(uow, {
+          tournamentId,
+          organizationId,
+          includesMinors: true,
+          showYouthProfiles: false,
+          ...AUDIT,
+        });
+      });
+
+      const youthResponse = await getAnonymous(
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+      );
+      expect(youthResponse.statusCode).toBe(200);
+      expect(youthResponse.json().rows[0]).toMatchObject({
+        actorId: personScorer,
+        actorName: 'Goleador',
+        publicProfileAvailable: false,
+        rank: 1,
+        cells: { player: { formatted: 'Goleador' }, goals: { raw: 1, formatted: '1' } },
+      });
+      expect(youthResponse.json().rows[0].nationality).toBeUndefined();
+      expect(youthResponse.json().rows[0].entrantName).toBeUndefined();
+    });
+
     it('filters a tournament-wide table by clubId without changing computed ranking', async () => {
       const matching = await getAnonymous(
-        `/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?clubId=${clubTalleresId}`,
+        `/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?clubId=${clubTalleresId}`,
       );
       expect(matching.statusCode).toBe(200);
       expect(matching.json().rows).toHaveLength(1);
       expect(matching.json().rows[0]).toMatchObject({ actorId: personScorer, rank: 1 });
 
       const nonMatching = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?clubId=00000000-0000-0000-0000-000000000000',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?clubId=00000000-0000-0000-0000-000000000000',
       );
       expect(nonMatching.statusCode).toBe(200);
       expect(nonMatching.json().rows).toHaveLength(0);
@@ -602,11 +744,74 @@ describe('table projections (integration)', () => {
 
     it('projects a stage-scoped table with no token at all', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
       );
 
       expect(response.statusCode).toBe(200);
       expect(response.json().rows).toHaveLength(2);
+    });
+
+    it('serves a public stage table as CSV without requiring a token', async () => {
+      const response = await getAnonymous(
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default/csv',
+      );
+
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-type']).toContain('text/csv');
+      expect(response.headers['content-disposition']).toContain('attachment');
+      expect(response.body).toContain('rank,name,points,promotion_band,promotion_seed');
+      expect(response.body).toContain('1,Talleres,3,Copa oro,1');
+    });
+
+    it('serves a public tournament table as CSV without requiring a token', async () => {
+      const response = await getAnonymous(
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers/csv',
+      );
+
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-type']).toContain('text/csv');
+      expect(response.body).toContain('player,goals');
+      expect(response.body).toContain('Goleador,1');
+    });
+
+    it('projects saved promotion bands and seed tags from the public stage table', async () => {
+      const response = await getAnonymous(
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
+      );
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().promotionBands).toEqual([
+        { label: 'Copa oro', index: 0, firstSeed: 1, lastSeed: 1 },
+        { label: 'Copa plata', index: 1, firstSeed: 2, lastSeed: 2 },
+      ]);
+      expect(response.json().rows).toContainEqual(
+        expect.objectContaining({
+          entrantId: entrantTalleres,
+          promotionBandLabel: 'Copa oro',
+          promotionSeed: 1,
+        }),
+      );
+      expect(response.json().rows).toContainEqual(
+        expect.objectContaining({
+          entrantId: entrantIndependiente,
+          promotionBandLabel: 'Copa plata',
+          promotionSeed: 2,
+        }),
+      );
+    });
+
+    it('omits promotion bands when a public stage has no saved promotion plan', async () => {
+      const response = await getAnonymous(
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/2/public/tables/group-standings-default',
+      );
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().promotionBands).toBeUndefined();
+      expect(response.json().rows).toEqual(
+        expect.not.arrayContaining([
+          expect.objectContaining({ promotionBandLabel: expect.any(String) }),
+        ]),
+      );
     });
 
     it('reports an undrawn stage as one unnamed segment, not as its implicit group', async () => {
@@ -621,7 +826,7 @@ describe('table projections (integration)', () => {
       // has a scope. Reporting that group's identity would put its fixed
       // internal name in front of a reader as though it were a real group.
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
       );
 
       expect(response.statusCode).toBe(200);
@@ -635,7 +840,7 @@ describe('table projections (integration)', () => {
 
     it('leaves a tournament-wide table unsegmented, having no stage to group by', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
       );
 
       expect(response.statusCode).toBe(200);
@@ -644,17 +849,141 @@ describe('table projections (integration)', () => {
 
     it('filters a stage-scoped table by clubId without throwing', async () => {
       const matching = await getAnonymous(
-        `/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?clubId=${clubTalleresId}`,
+        `/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?clubId=${clubTalleresId}`,
       );
       expect(matching.statusCode).toBe(200);
       expect(matching.json().rows).toHaveLength(1);
       expect(matching.json().rows[0]).toMatchObject({ actorId: entrantTalleres });
 
       const nonMatching = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?clubId=00000000-0000-0000-0000-000000000000',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?clubId=00000000-0000-0000-0000-000000000000',
       );
       expect(nonMatching.statusCode).toBe(200);
       expect(nonMatching.json().rows).toHaveLength(0);
+    });
+
+    it('filters table projections by club alias in JSON and CSV, scoped to one organization', async () => {
+      const otherOrgClubAlias = 'club-otra-liga';
+      await withTransaction(scratch.db, async (uow) => {
+        const otherOrg = await new OrganizationRepository(scratch.db).create(uow, {
+          alias: 'otra-liga-tablas',
+          name: 'Otra Liga Tablas',
+          ...AUDIT,
+        });
+        await new EnrollmentRepository(scratch.db).createClub(uow, {
+          organizationId: otherOrg.organizationId,
+          alias: otherOrgClubAlias,
+          name: 'Club Otra Liga',
+          ...AUDIT,
+        });
+      });
+
+      const stageUnfiltered = await getAnonymous(
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default',
+      );
+      expect(stageUnfiltered.statusCode).toBe(200);
+      const stageRows = stageUnfiltered.json().rows as {
+        entrantId: string;
+        rank: number;
+        clubAlias?: string;
+      }[];
+      const talleresRow = stageRows.find((row) => row.entrantId === entrantTalleres);
+      const independienteRow = stageRows.find((row) => row.entrantId === entrantIndependiente);
+      expect(talleresRow?.clubAlias).toBe('club-atletico-talleres');
+      expect(independienteRow).not.toHaveProperty('clubAlias');
+
+      const [stageByClub, stageByClubId, stagePrecedence] = await Promise.all([
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?club=club-atletico-talleres',
+        ),
+        getAnonymous(
+          `/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?clubId=${clubTalleresId}`,
+        ),
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?club=club-atletico-talleres&clubId=00000000-0000-0000-0000-000000000000',
+        ),
+      ]);
+      expect(stageByClub.statusCode).toBe(200);
+      expect(stageByClub.json().rows).toEqual(stageByClubId.json().rows);
+      expect(stagePrecedence.json().rows).toEqual(stageByClub.json().rows);
+      expect(stageByClub.json().rows[0]?.rank).toBe(talleresRow?.rank);
+
+      const [stageCsvByClub, stageCsvByClubId] = await Promise.all([
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default/csv?club=club-atletico-talleres',
+        ),
+        getAnonymous(
+          `/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default/csv?clubId=${clubTalleresId}`,
+        ),
+      ]);
+      expect(stageCsvByClub.statusCode).toBe(200);
+      expect(stageCsvByClub.body).toBe(stageCsvByClubId.body);
+      expect(stageCsvByClub.body).toContain('1,Talleres,3,Copa oro,1');
+      expect(stageCsvByClub.body).not.toContain('Independiente');
+
+      const [tourByClub, tourByClubId, tourCsvByClub, tourCsvByClubId] = await Promise.all([
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?club=club-atletico-talleres',
+        ),
+        getAnonymous(
+          `/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?clubId=${clubTalleresId}`,
+        ),
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers/csv?club=club-atletico-talleres',
+        ),
+        getAnonymous(
+          `/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers/csv?clubId=${clubTalleresId}`,
+        ),
+      ]);
+      expect(tourByClub.statusCode).toBe(200);
+      expect(tourByClub.json().rows).toEqual(tourByClubId.json().rows);
+      expect(tourCsvByClub.statusCode).toBe(200);
+      expect(tourCsvByClub.body).toBe(tourCsvByClubId.body);
+
+      const [otherOrgStage, otherOrgTour, otherOrgStageCsv] = await Promise.all([
+        getAnonymous(
+          `/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?club=${otherOrgClubAlias}`,
+        ),
+        getAnonymous(
+          `/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?club=${otherOrgClubAlias}`,
+        ),
+        getAnonymous(
+          `/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default/csv?club=${otherOrgClubAlias}`,
+        ),
+      ]);
+      expect(otherOrgStage.statusCode).toBe(200);
+      expect(otherOrgStage.json().columns.length).toBeGreaterThan(0);
+      expect(otherOrgStage.json().rows).toEqual([]);
+      expect(otherOrgTour.statusCode).toBe(200);
+      expect(otherOrgTour.json().columns.length).toBeGreaterThan(0);
+      expect(otherOrgTour.json().rows).toEqual([]);
+      expect(otherOrgStageCsv.statusCode).toBe(200);
+      expect(otherOrgStageCsv.body.trim()).toBe('rank,name,points,promotion_band,promotion_seed');
+
+      // A repeated ?club= parameter arrives as a list. The first alias decides, on JSON and CSV alike,
+      // and nothing answers 500.
+      const [repeatedStage, repeatedStageCsv, repeatedTour, repeatedTourCsv] = await Promise.all([
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default?club=club-atletico-talleres&club=club-independiente',
+        ),
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/stages/1/public/tables/group-standings-default/csv?club=club-atletico-talleres&club=club-independiente',
+        ),
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers?club=club-atletico-talleres&club=club-independiente',
+        ),
+        getAnonymous(
+          '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers/csv?club=club-atletico-talleres&club=club-independiente',
+        ),
+      ]);
+      expect(repeatedStage.statusCode).toBe(200);
+      expect(repeatedStage.json().rows).toEqual(stageByClub.json().rows);
+      expect(repeatedStageCsv.statusCode).toBe(200);
+      expect(repeatedStageCsv.body).toBe(stageCsvByClub.body);
+      expect(repeatedTour.statusCode).toBe(200);
+      expect(repeatedTour.json().rows).toEqual(tourByClub.json().rows);
+      expect(repeatedTourCsv.statusCode).toBe(200);
+      expect(repeatedTourCsv.body).toBe(tourCsvByClub.body);
     });
 
     it('is a genuinely different route from the admin one, not a shared shadowed path', async () => {
@@ -662,22 +991,72 @@ describe('table projections (integration)', () => {
       // controllers first hit registering `tables` at the same path: the
       // admin route still refuses an anonymous caller...
       const adminSide = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/tables/top-scorers',
       );
       expect(adminSide.statusCode).toBe(401);
 
       // ...while the public route serves it, both reachable on the same app.
       const publicSide = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
       );
       expect(publicSide.statusCode).toBe(200);
     });
 
     it('404s an unpublished (draft) tournament rather than exposing its tables', async () => {
       const response = await getAnonymous(
-        '/organizations/liga-tablas/tournaments/apertura-override/public/tables',
+        '/api/organizations/liga-tablas/tournaments/apertura-override/public/tables',
       );
       expect(response.statusCode).toBe(404);
+    });
+
+    it('populates shirtNumber on person-granularity table rows and strips it when hiddenAtRequest', async () => {
+      const people = new PersonRepository(scratch.db);
+      await withTransaction(scratch.db, async (uow) => {
+        await uow.tx
+          .updateTable('match_rosters')
+          .set({
+            roster_members: JSON.stringify([
+              { personId: personScorer, name: 'Goleador', number: 10, onField: true },
+            ]),
+          })
+          .where('match_id', '=', matchId)
+          .where('entrant_id', '=', entrantTalleres)
+          .execute();
+      });
+
+      const visibleResponse = await getAnonymous(
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+      );
+      expect(visibleResponse.statusCode).toBe(200);
+      expect(visibleResponse.json().rows[0]).toMatchObject({
+        actorId: personScorer,
+        shirtNumber: 10,
+      });
+
+      await withTransaction(scratch.db, (uow) =>
+        people.setHiddenFromPublic(uow, {
+          personId: personScorer,
+          organizationId,
+          hiddenFromPublic: true,
+          ...AUDIT,
+        }),
+      );
+
+      const hiddenResponse = await getAnonymous(
+        '/api/organizations/liga-tablas/tournaments/apertura-tablas/public/tables/top-scorers',
+      );
+      expect(hiddenResponse.statusCode).toBe(200);
+      expect(hiddenResponse.json().rows[0].hiddenAtRequest).toBe(true);
+      expect(hiddenResponse.json().rows[0].shirtNumber).toBeUndefined();
+
+      await withTransaction(scratch.db, (uow) =>
+        people.setHiddenFromPublic(uow, {
+          personId: personScorer,
+          organizationId,
+          hiddenFromPublic: false,
+          ...AUDIT,
+        }),
+      );
     });
   });
 });

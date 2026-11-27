@@ -11,7 +11,7 @@ describe('public discipline background selection', () => {
     expect(
       selectDisciplineBackground([{ key: 'modules/football/1.1.0/football-01.jpg' }], () => 0.9),
     ).toEqual({
-      url: '/objects/discipline-background-image?key=modules%2Ffootball%2F1.1.0%2Ffootball-01.jpg',
+      url: '/api/objects/discipline-background-image?key=modules%2Ffootball%2F1.1.0%2Ffootball-01.jpg',
       opacity: DISCIPLINE_BACKGROUND_OPACITY,
     });
     expect(DISCIPLINE_BACKGROUND_OPACITY).toBe(0.1);

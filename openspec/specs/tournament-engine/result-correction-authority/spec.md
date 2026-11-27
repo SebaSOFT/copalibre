@@ -86,3 +86,33 @@ un-anull or anull another.
   started downstream stage
 - **THEN** propagation is blocked pending an authorized resolution, exactly as it is for a single-match
   result
+
+### Requirement: A correction re-resolves unstarted downstream entrants
+
+When a correction changes which entrant a persisted side resolves to, the correction preview SHALL name
+every affected downstream match with its current and resulting entrants. On commit, each affected match
+that has not started SHALL keep its slot and report the new entrants in the same transaction. A started
+downstream match SHALL stay blocked from automatic propagation.
+
+#### Scenario: The preview names the changed semi-final
+
+- **WHEN** a correction would reverse the winner of quarter-final 1, whose semi-final is scheduled but
+  not started
+- **THEN** the preview lists the semi-final with its entrant changing from the old winner to the new one
+
+#### Scenario: Commit re-resolves and keeps the slot
+
+- **WHEN** that correction is committed
+- **THEN** the semi-final reports the new entrant, is still placed in the same slot, and an audit record
+  names the re-resolved match
+
+#### Scenario: A started downstream match is not altered
+
+- **WHEN** a correction would change an entrant of a downstream match that is already in progress
+- **THEN** the corrected fact commits, the downstream match is not altered, and the conflict is surfaced
+  for authorized resolution
+
+#### Scenario: Re-resolution cascades through unstarted nodes
+
+- **WHEN** a correction changes a quarter-final winner whose semi-final and final are both unstarted
+- **THEN** the preview and the commit cover the semi-final and, where the change reaches it, the final

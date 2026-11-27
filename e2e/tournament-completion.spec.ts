@@ -5,7 +5,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const TOURNAMENT = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const TOURNAMENT = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const PUBLIC_TOURNAMENT_PATH = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const CONTROL_MATCHES_VIEW_PATH = `/control/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/matches-view`;
 
@@ -109,23 +109,20 @@ async function mockControlCompletionApi(page: Page): Promise<void> {
 }
 
 test.describe('Tournament completion overview', () => {
-  test('public overview shows tournament completion figure and per-stage breakdown', async ({
+  test('public overview keeps the compact completion summary in its hero and renders the progress card', async ({
     page,
   }) => {
     await page.goto(PUBLIC_TOURNAMENT_PATH);
 
+    const hero = page.locator('.cl-overview-hero');
+    await expect(hero.locator('.cl-overview-hero__facts')).toContainText('18 of 32 matches played');
     const figure = page.locator('.cl-completion-figure');
     await expect(figure).toBeVisible();
-
-    await expect(figure.getByRole('heading', { name: 'Tournament Progress' })).toBeVisible();
-    await expect(figure.getByText('18 of 32 matches played')).toBeVisible();
-    await expect(figure.getByText('In progress')).toBeVisible();
-    await expect(figure.getByText('◐')).toBeVisible();
-
-    await expect(figure.getByText('Group Stage')).toBeVisible();
-    await expect(figure.getByText('18 / 24')).toBeVisible();
-    await expect(figure.getByText('Playoffs')).toBeVisible();
-    await expect(figure.getByText('0 / 8')).toBeVisible();
+    await expect(figure).toContainText('18 of 32 matches played');
+    await expect(figure).toContainText('Group Stage');
+    await expect(figure).toContainText('18 / 24');
+    await expect(figure).toContainText('Playoffs');
+    await expect(figure).toContainText('0 / 8');
   });
 
   test('control view shows matching completion figures for the organizer', async ({ page }) => {

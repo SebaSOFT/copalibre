@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import { expect, test } from './fixtures.js';
+import { expect, gotoTv, test } from './support/tv-ready.js';
 
 /**
  * The venue kiosk of a finished tournament: the header names the day it ended rather than ticking a
@@ -10,7 +10,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT = 'apertura-2026';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const TV = `/tv/${ORGANIZATION}/tournaments/${TOURNAMENT}`;
 const ZONE = 'America/Argentina/San_Juan';
 const MATCHES = 36;
@@ -111,6 +111,45 @@ const report = (ordinal: number) => ({
   timeline: [],
 });
 
+/*
+ * A tournament between matches: six finished, two still to come. Its header reads "In progress", not
+ * "Scheduled", and the featured panel shows the next match with its start time and court.
+ */
+const IN_PROGRESS = 'apertura-en-curso';
+const IN_PROGRESS_BASE = `/api/organizations/${ORGANIZATION}/tournaments/${IN_PROGRESS}`;
+const IN_PROGRESS_TV = `/tv/${ORGANIZATION}/tournaments/${IN_PROGRESS}`;
+const progressMatch = (ordinal: number, finished: boolean) => ({
+  matchId: `progress-${ordinal}`,
+  matchNumber: ordinal,
+  stageOrdinal: ordinal,
+  stageNumber: 1,
+  round: 1,
+  status: finished ? 'final' : 'upcoming',
+  homeEntrantId: `progress-home-${ordinal}`,
+  homeName: club(ordinal, 'A'),
+  homeAbbreviation: abbreviation(ordinal, 'A'),
+  awayEntrantId: `progress-away-${ordinal}`,
+  awayName: club(ordinal, 'B'),
+  awayAbbreviation: abbreviation(ordinal, 'B'),
+  ...(finished ? { homeScore: 2, awayScore: 1, scheduledAt: kickoff(ordinal) } : {}),
+  ...(finished
+    ? { venueName: 'Huarpes' }
+    : {
+        scheduledAt: new Date(Date.UTC(2099, 10, 1 + ordinal, 13, 45)).toISOString(),
+        venueName: ordinal === 7 ? 'Aldo Cantoni' : 'Huarpes',
+      }),
+});
+const progressMatches = [1, 2, 3, 4, 5, 6, 7, 8].map((ordinal) =>
+  progressMatch(ordinal, ordinal <= 6),
+);
+const inProgressOverview = {
+  ...overview,
+  tournamentAlias: IN_PROGRESS,
+  status: 'in-progress',
+  matches: progressMatches,
+};
+const inProgressMatchesView = { matches: progressMatches };
+
 const requested: string[] = [];
 let server: Server;
 test.beforeAll(async ({ workerPort }) => {
@@ -118,7 +157,26 @@ test.beforeAll(async ({ workerPort }) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
     requested.push(path ?? '');
-    if (path === `${BASE}/overview`) res.end(JSON.stringify(overview));
+    if (path?.startsWith(IN_PROGRESS_BASE)) {
+      const rest = path.slice(IN_PROGRESS_BASE.length);
+      const body =
+        rest === '/overview'
+          ? inProgressOverview
+          : rest === '/matches-view'
+            ? inProgressMatchesView
+            : rest === '/live'
+              ? { matches: [] }
+              : rest === '/stages/1/bracket'
+                ? { format: 'round-robin', zones: [] }
+                : undefined;
+      if (body) res.end(JSON.stringify(body));
+      else {
+        res.statusCode = 404;
+        res.end('{}');
+      }
+    } else if (path === '/api/organizations') {
+      res.end(JSON.stringify([{ alias: ORGANIZATION, primaryLanguage: 'es' }]));
+    } else if (path === `${BASE}/overview`) res.end(JSON.stringify(overview));
     else if (path === `${BASE}/live`) res.end(JSON.stringify({ matches: [] }));
     else if (path === `${BASE}/matches-view`) res.end(JSON.stringify(matchesView));
     else if (path === `${BASE}/stages/1/bracket`)
@@ -144,7 +202,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('the pinned route finds match 34 of stage 1 by its ordinal', async ({ page }) => {
-  await page.goto(`${TV}/stages/1/matches/34?lang=es`);
+  await gotoTv(page, `${TV}/stages/1/matches/34?lang=es`);
 
   const spotlight = page.getByTestId('tv-match-spotlight');
   await expect(spotlight).toContainText(club(34, 'A'));
@@ -157,17 +215,36 @@ test('the pinned route finds match 34 of stage 1 by its ordinal', async ({ page 
 test('a match beyond the stage is reported as missing instead of showing another view', async ({
   page,
 }) => {
-  await page.goto(`${TV}/stages/1/matches/99?lang=es`);
+  await gotoTv(page, `${TV}/stages/1/matches/99?lang=es`);
 
   await expect(page.getByTestId('tv-match-not-found')).toContainText('Este partido no existe');
   await expect(page.getByTestId('tv-match-spotlight')).toHaveCount(0);
   await expect(page.getByTestId('tv-champion-panel')).toHaveCount(0);
 });
 
+test('a kiosk with no lang speaks the organization language, and lang overrides it', async ({
+  page,
+}) => {
+  await gotoTv(page, `${TV}?view=standings`);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'es');
+  await expect(
+    page.getByRole('heading', { name: 'Estadísticas y tablas del torneo' }),
+  ).toBeVisible();
+
+  await gotoTv(page, `${TV}?view=standings&lang=de`);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await expect(
+    page.getByRole('heading', { name: 'Turnierstatistiken und -tabellen' }),
+  ).toBeVisible();
+
+  await gotoTv(page, `${TV}/stages/1/matches/34`);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'es');
+});
+
 test('the standings view shows the standings, not the recap of a finished tournament', async ({
   page,
 }) => {
-  await page.goto(`${TV}?view=standings&lang=es`);
+  await gotoTv(page, `${TV}?view=standings&lang=es`);
 
   await expect(page.locator('.tv-standings-table')).toBeVisible();
   await expect(page.getByTestId('tv-champion-panel')).toHaveCount(0);
@@ -177,7 +254,7 @@ test('the standings view shows the standings, not the recap of a finished tourna
 test('the header of a finished tournament names the day it ended and runs no clock', async ({
   page,
 }) => {
-  await page.goto(`${TV}?lang=es`);
+  await gotoTv(page, `${TV}?lang=es`);
 
   const clocks = page.locator('.tv-scorebug__clock');
   await expect(clocks).toHaveCount(1);
@@ -187,18 +264,18 @@ test('the header of a finished tournament names the day it ended and runs no clo
 });
 
 test('no machine timestamp reaches the screen, the ticker included', async ({ page }) => {
-  await page.goto(`${TV}?lang=es`);
+  await gotoTv(page, `${TV}?lang=es`);
   await expect(page.locator('.cl-ticker__meta').first()).toBeVisible();
 
   const text = await page.locator('body').innerText();
   expect(text).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
-  // The kick-off reads as a date and a time in the organization's zone: 12:00Z + 1 h = 10:00.
-  await expect(page.locator('.cl-ticker__meta').first()).toContainText('1-nov 10:00');
+  // Latest finalized match first (descending by kickoff): match 36 at 2025-11-03T00:00Z = 2-nov 21:00 in San Juan.
+  await expect(page.locator('.cl-ticker__meta').first()).toContainText('2-nov 21:00');
 });
 
 test('the dashboard and the pinned route keep the same bottom margin', async ({ page }) => {
   const bottomGap = async (path: string): Promise<number> => {
-    await page.goto(path);
+    await gotoTv(page, path);
     await expect(page.locator('.tv-root-container')).toBeVisible();
     const box = await page.locator('.tv-main-stage').boundingBox();
     if (box === null) throw new Error('the main stage should have a layout box');
@@ -218,9 +295,27 @@ test('the kiosk refreshes the live matches from an address that is served', asyn
   const refresh = page.waitForResponse(
     (response) => new URL(response.url()).pathname === `${BASE}/live`,
   );
-  await page.goto(`${TV}?lang=es`);
+  await gotoTv(page, `${TV}?lang=es`);
   await page.clock.runFor(16_000);
 
   expect((await refresh).status()).toBe(200);
   expect(requested).not.toContain(`/api${BASE}/live`);
+});
+
+test('an in-progress tournament between matches reads En progreso and features the next match', async ({
+  page,
+}) => {
+  await gotoTv(page, `${IN_PROGRESS_TV}?lang=es`);
+
+  const badge = page.locator('.tv-scorebug__badge');
+  await expect(badge).toContainText('En progreso');
+  const start = page.locator('.tv-start-time');
+  await expect(start).toContainText('Aldo Cantoni');
+  await expect(start.locator('.tv-start-time__when')).not.toBeEmpty();
+  await expect(page.getByText('0 : 0')).toHaveCount(0);
+
+  // One poll interval later the same answer stands.
+  await page.waitForTimeout(11_000);
+  await expect(badge).toContainText('En progreso');
+  await expect(start).toContainText('Aldo Cantoni');
 });

@@ -1,0 +1,606 @@
+/* Multi-court grid: a fixed header, then the courts take the rest of the frame. */
+.tv-multicourt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cl-space-4);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.tv-multicourt__pager {
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--tv-min-secondary-size);
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.tv-multicourt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: var(--cl-space-4);
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+}
+
+.tv-multicourt-grid--1 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+.tv-multicourt-grid--2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.tv-multicourt-grid--4 {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+
+.tv-multicourt-grid--6 {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+}
+
+.tv-multicourt-grid--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(1.2rem, 2.4vmin, 2rem);
+  color: var(--tv-text-secondary);
+}
+
+.tv-court-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cl-space-3);
+  min-height: 0;
+  padding: 2vmin;
+  background: var(--tv-bg-surface);
+  border: 1px solid var(--tv-border);
+  overflow: hidden;
+}
+
+/* The court name and the footer keep their height; the score takes whatever the card has left. */
+.tv-court-card__venue,
+.tv-court-card__footer {
+  flex: 0 0 auto;
+}
+
+.tv-court-card__score {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.tv-court-card__venue {
+  font-family: var(--cl-font-mono);
+  /* The court name is a caption: never under the secondary floor. */
+  font-size: max(var(--tv-min-secondary-size), 2vmin);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tv-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-court-card__score {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cl-space-2);
+  flex: 1;
+  justify-content: center;
+}
+
+.tv-court-card__side {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-3);
+}
+
+.tv-court-card__name {
+  font-family: var(--cl-font-display);
+  font-size: clamp(1rem, 2.6vmin, 1.8rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--tv-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-court-card__value {
+  font-family: var(--cl-font-mono);
+  font-size: clamp(2.2rem, 7vmin, 4.5rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--tv-text-primary);
+}
+
+.tv-court-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cl-space-3);
+}
+
+.tv-court-card__clock {
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.9rem, 1.8vmin, 1.3rem);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--tv-text-secondary);
+}
+
+/* The compact match list: two matches to a row, one page at a time. */
+.tv-match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2vmin;
+  min-height: 0;
+}
+
+.tv-match-list__entries {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8vmin 1.6vmin;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-match-list__entry {
+  display: grid;
+  /* The stage line spans the entry, the two teams and the score flank it, the kickoff or court line closes it. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas:
+    'scope scope scope'
+    'home middle away'
+    'when when when';
+  align-items: center;
+  gap: 0.6vmin 1.2vmin;
+  min-width: 0;
+  padding: 0.8vmin 1.2vmin;
+  background: var(--cl-surface-chrome);
+  border: 1px solid var(--tv-border);
+  font-family: var(--cl-font-mono);
+}
+
+/* The stage, zone and round: one line that ends in an ellipsis; its full text is the accessible name. */
+.tv-match-list__scope {
+  grid-area: scope;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--tv-text-muted);
+  font-size: var(--tv-min-secondary-size);
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The kickoff and the court of a played match: its own line, which never truncates. */
+.tv-match-list__when {
+  grid-area: when;
+  text-align: center;
+  color: var(--tv-text-muted);
+  font-size: var(--tv-min-secondary-size);
+  overflow-wrap: anywhere;
+}
+
+.tv-match-list__middle {
+  grid-area: middle;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* A scheduled entry's start time, in the place its scoreline would be. */
+.tv-match-list__start {
+  align-items: center;
+}
+
+.tv-match-list__start .tv-start-time__when {
+  font-size: var(--tv-min-team-name-size);
+}
+
+/* A block heading of the ordered list: it spans both columns and names the block's state. */
+.tv-match-list__heading {
+  grid-column: 1 / -1;
+  padding-top: 0.6vmin;
+  color: var(--cl-primary);
+  font-family: var(--cl-font-display);
+  font-size: var(--tv-min-secondary-size);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tv-match-list__rescheduled {
+  grid-column: 1 / -1;
+  color: var(--tv-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.tv-match-list__state {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.tv-match-list__side {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--cl-font-display);
+  /* The team names are the largest text on a list entry: the broadcast team-name size. */
+  font-size: var(--tv-min-team-name-size);
+  line-height: 1.1;
+}
+
+.tv-match-list__side--home {
+  grid-area: home;
+}
+
+.tv-match-list__side--away {
+  grid-area: away;
+}
+
+.tv-match-list__side .cl-entrant-name {
+  font-family: inherit;
+  /* Block, so the side's own ellipsis cuts a long name rather than the cell's edge. */
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-match-list__side--home {
+  text-align: right;
+}
+
+.tv-match-list__side--away {
+  text-align: left;
+}
+
+.tv-match-list__score {
+  color: var(--tv-text-primary);
+  font-size: var(--tv-min-team-name-size);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--cl-weight-bold);
+}
+
+/* The pinned match's recent results: one group per side, one line per match. */
+.tv-recent-results {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2vmin;
+  min-height: 0;
+  font-family: var(--cl-font-mono);
+}
+
+.tv-recent-results__team {
+  margin: 0;
+  font-family: var(--cl-font-display);
+  font-size: var(--tv-min-team-name-size);
+  text-transform: uppercase;
+}
+
+.tv-recent-results__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6vmin;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-recent-results__match {
+  display: flex;
+  justify-content: space-between;
+  gap: 1vmin;
+  min-width: 0;
+  font-size: var(--tv-min-secondary-size);
+}
+
+.tv-recent-results__when {
+  color: var(--tv-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.tv-recent-results__score {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.tv-standings-pager {
+  margin: 0;
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: var(--tv-min-secondary-size);
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.tv-rail-standings {
+  display: flex;
+  flex-direction: column;
+  gap: 1vmin;
+  /* Keeps its natural height, so the frame around it measures the rows that overflow it. */
+  flex: 0 0 auto;
+}
+
+.tv-match-list__pager {
+  margin: 0;
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.7rem, 1.3vmin, 0.95rem);
+  text-align: right;
+  text-transform: uppercase;
+}
+
+/* A fixed view fills the frame: the rail takes the whole stage. */
+.tv-main-stage--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.tv-scorebug__clock-label {
+  color: var(--tv-text-muted);
+  font-family: var(--cl-font-mono);
+  font-size: 0.7em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/*
+ * Narrow or portrait frames stack the zones' champions one under another: with many final zones a
+ * row of columns shrinks each to a sliver, while a column keeps every champion readable and the
+ * panel scrolls for whatever does not fit.
+ */
+@media (max-width: 768px), (orientation: portrait) {
+  .tv-champions {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    height: auto;
+    max-height: 100%;
+    overflow-y: auto;
+  }
+
+  .tv-champions__zone {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1.6vmin 3vmin;
+    padding: 2vmin 3vmin;
+    text-align: left;
+  }
+
+  .tv-champions__list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1.6vmin 3vmin;
+  }
+
+  .tv-champions__champion {
+    flex-direction: row;
+    gap: 2vmin;
+  }
+}
+
+/*
+ * Narrow or portrait frames: the title card stacks (brand and titles above, status and clock
+ * below) instead of splitting its width in two, team names stay full and truncate, and each entry
+ * of the match list is two lines.
+ */
+@media (max-width: 768px), (orientation: portrait) {
+  .tv-scorebug {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.6vmin;
+    padding: 2.4vmin 3vmin;
+  }
+
+  .tv-scorebug__right {
+    justify-content: flex-start;
+  }
+
+  .tv-match-spotlight__vs-grid {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 2vmin;
+  }
+
+  .tv-match-spotlight__vs-grid .tv-team-side__emblem-wrap {
+    width: 64px;
+    height: 64px;
+  }
+
+  .tv-score-center__digits {
+    font-size: max(var(--tv-min-score-size), clamp(2.2rem, 11vw, 3.5rem));
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+
+  .tv-presentation-layout,
+  .tv-multi-match-dashboard {
+    overflow: auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+
+  .tv-dashboard-live-panel,
+  .tv-dashboard-upcoming-panel,
+  .tv-dashboard-standings {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .tv-presentation-hero {
+    min-height: 58vmin;
+  }
+
+  .tv-presentation-rail {
+    grid-template-rows: auto;
+  }
+
+  .tv-layout-panel {
+    min-height: 28vmin;
+  }
+
+  .tv-next-match-crawl {
+    grid-column: auto;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tv-next-match-crawl ol,
+  .tv-dashboard-upcoming-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tv-dashboard-live-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tv-dashboard-match {
+    min-height: 32vmin;
+  }
+
+  .tv-dashboard-standings {
+    max-height: 60vmin;
+  }
+
+  .tv-match-list__entries {
+    gap: 0.8vmin;
+  }
+
+  .tv-match-list__entry {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    row-gap: 0.4vmin;
+    padding: 1vmin 1.2vmin;
+  }
+
+  /* The stage line spans the entry on the narrow layout too. */
+  .tv-match-list__scope {
+    text-align: center;
+  }
+}
+
+/* The series and the sets beside a broadcast score. Fixed sizes: nothing shifts when a set ends. */
+.tv-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1vmin 2vmin;
+  font-family: var(--cl-font-mono);
+  font-size: clamp(0.8rem, 1.6vmin, 1.15rem);
+  text-transform: uppercase;
+}
+
+.tv-progress__row {
+  display: contents;
+}
+
+.tv-progress__series {
+  display: inline-flex;
+  align-items: center;
+  gap: 1vmin;
+  color: var(--tv-text-secondary);
+}
+
+.tv-progress__pips {
+  display: inline-flex;
+  gap: 0.6vmin;
+}
+
+.tv-progress__pip {
+  width: 1.6vmin;
+  min-width: 10px;
+  height: 1.6vmin;
+  min-height: 10px;
+  border: 1px solid var(--tv-border-active);
+  background: transparent;
+}
+
+.tv-progress__pip--won-home,
+.tv-progress__pip--won-away {
+  background: var(--tv-live-cyan);
+}
+
+.tv-progress__pip--current {
+  background: color-mix(in srgb, var(--tv-live-cyan) 40%, transparent);
+  animation: tvPulseDot 1.6s ease-in-out infinite;
+}
+
+.tv-progress__pip--not-required {
+  opacity: 0.25;
+}
+
+.tv-progress__sets {
+  display: inline-flex;
+  gap: 0.8vmin;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-progress__set {
+  display: grid;
+  min-width: 9vmin;
+  padding: 0.6vmin 1vmin;
+  text-align: center;
+  background: var(--cl-surface-chrome);
+  border: 1px solid var(--tv-border);
+}
+
+.tv-progress__set--current {
+  border-color: var(--tv-border-active);
+  color: var(--tv-live-cyan);
+}
+
+.tv-progress__set-label {
+  color: var(--tv-text-muted);
+  font-size: 0.75em;
+}
+
+.tv-progress__set-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--cl-weight-bold);
+}
+
+/* The segment reads as the language writes it ("3er set", "2nd Half"), not in capitals. */
+.tv-progress__segment {
+  color: var(--tv-live-cyan);
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-progress__pip--current {
+    animation: none;
+  }
+}
+
+/* A side's name and its counters, stacked under the crest and aligned with the score row. */
+.tv-lower-third__side-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--cl-space-1);
+  min-width: 0;
+}
+
+.tv-lower-third__side--away .tv-lower-third__side-body {
+  align-items: flex-end;
+}

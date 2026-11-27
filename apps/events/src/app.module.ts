@@ -1,6 +1,6 @@
-import { Module, type Provider } from '@nestjs/common';
+import { Logger, Module, type Provider } from '@nestjs/common';
 import { TokenVerifier, authConfigFromEnv } from '@copalibre/auth';
-import { createDatabase, databaseConfigFromEnv, type Database } from '@copalibre/persistence';
+import { createRuntimeDatabase, type Database } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { DATABASE } from './database.token.js';
 import { EventsController, LongPollController } from './events.controller.js';
@@ -17,7 +17,8 @@ import { RealtimeTelemetry } from './stream/realtime-telemetry.js';
 const providers: Provider[] = [
   {
     provide: DATABASE,
-    useFactory: (): Kysely<Database> => createDatabase(databaseConfigFromEnv()),
+    useFactory: (): Kysely<Database> =>
+      createRuntimeDatabase((message) => new Logger('Database').warn(message)),
   },
   {
     provide: TokenVerifier,

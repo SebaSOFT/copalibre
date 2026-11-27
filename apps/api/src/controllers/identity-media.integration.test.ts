@@ -6,12 +6,23 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { PrincipalThrottlerGuard } from '../auth/principal-throttler.guard.js';
 import { Test } from '@nestjs/testing';
 import sharp from 'sharp';
-import type { ObjectStorageAdapter } from '@copalibre/object-storage';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
+  createObjectStorageAdapter,
+  emblemRenditionKey,
+  type ObjectReference,
+  type ObjectStorageAdapter,
+  type StoredObject,
+} from '@copalibre/object-storage';
+import {
+  AuditReader,
   EnrollmentRepository,
   ObjectMetadataRepository,
   OrganizationAccessRepository,
   OrganizationRepository,
+  OutboxReader,
   PersonRepository,
   TournamentRepository,
   withTransaction,
@@ -34,6 +45,8 @@ import {
   PersonMediaController,
   TournamentMediaController,
 } from './identity-media.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
+import { applyApiSecurityHeaders } from '../http/security-headers.js';
 
 /**
  * The person-photo/club-emblem upload and public-serve endpoints through the
@@ -92,20 +105,33 @@ class FakeTokenVerifier {
   }
 }
 
-class FakeObjectStorage implements ObjectStorageAdapter {
+/**
+ * The real filesystem profile, recording every write: a missing key throws as
+ * it does in production, which is how a missing rendition is detected.
+ */
+class RecordingStorage implements ObjectStorageAdapter {
   readonly profile = 'filesystem' as const;
-  private readonly objects = new Map<string, Uint8Array>();
+  readonly writes: string[] = [];
+  constructor(private readonly inner: ObjectStorageAdapter) {}
 
-  async put(key: string, body: Uint8Array): Promise<{ key: string }> {
-    this.objects.set(key, body);
-    return { key };
+  put(key: string, body: Uint8Array, contentType: string): Promise<ObjectReference> {
+    this.writes.push(key);
+    return this.inner.put(key, body, contentType);
   }
-  async get(reference: { key: string }): Promise<{ body: Uint8Array; contentType?: string }> {
-    return { body: this.objects.get(reference.key) ?? new Uint8Array() };
+  get(reference: ObjectReference): Promise<StoredObject> {
+    return this.inner.get(reference);
   }
-  async delete(reference: { key: string }): Promise<void> {
-    this.objects.delete(reference.key);
+  delete(reference: ObjectReference): Promise<void> {
+    return this.inner.delete(reference);
   }
+}
+
+async function solidPng(background: { r: number; g: number; b: number }): Promise<Buffer> {
+  return sharp({
+    create: { width: 410, height: 512, channels: 4, background: { ...background, alpha: 1 } },
+  })
+    .png()
+    .toBuffer();
 }
 
 function descriptor(): DisciplineDescriptor {
@@ -139,8 +165,14 @@ describe('person photo / club emblem upload and public serve (integration)', () 
   let clubId: string;
   let tournamentAlias: string;
   let tournamentId: string;
+  let storageRoot: string;
+  let storage: RecordingStorage;
 
   beforeAll(async () => {
+    storageRoot = await mkdtemp(join(tmpdir(), 'copalibre-identity-media-'));
+    storage = new RecordingStorage(
+      createObjectStorageAdapter({ profile: 'filesystem', rootDirectory: storageRoot }),
+    );
     scratch = await createMigratedDatabase('identity-media-http');
     db = scratch.db;
     organizationAlias = 'liga-media';
@@ -227,6 +259,19 @@ describe('person photo / club emblem upload and public serve (integration)', () 
       });
     });
     tournamentId = tournament.tournamentId;
+    await withTransaction(db, async (uow) => {
+      await new EnrollmentRepository(db).registerEntrant(uow, {
+        organizationId: organization.organizationId,
+        tournamentId,
+        entrantRef: { kind: 'person', personId },
+        ...AUDIT,
+      });
+      await new TournamentRepository(db).publish(uow, {
+        tournamentId,
+        organizationId: organization.organizationId,
+        ...AUDIT,
+      });
+    });
 
     @Module({
       controllers: [
@@ -239,7 +284,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
       providers: [
         { provide: DATABASE, useValue: db },
         { provide: TokenVerifier, useClass: FakeTokenVerifier },
-        { provide: OBJECT_STORAGE, useValue: new FakeObjectStorage() },
+        { provide: OBJECT_STORAGE, useValue: storage },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
         { provide: APP_GUARD, useClass: OrganizationAccessGuard },
         { provide: APP_GUARD, useClass: PrincipalThrottlerGuard },
@@ -250,6 +295,9 @@ describe('person photo / club emblem upload and public serve (integration)', () 
 
     const moduleRef = await Test.createTestingModule({ imports: [TestModule] }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
+    // As main.ts does: what an uploaded image is served with includes these headers.
+    await applyApiSecurityHeaders(app as NestFastifyApplication);
     app.useGlobalPipes(createApiValidationPipe());
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
@@ -258,6 +306,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
   afterAll(async () => {
     await app?.close();
     await scratch?.drop();
+    await rm(storageRoot, { recursive: true, force: true });
   });
 
   function inject(options: Parameters<NestFastifyApplication['inject']>[0]) {
@@ -267,7 +316,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
   it('refuses an unauthenticated upload attempt', async () => {
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/persons/${personId}/photo`,
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
       payload: { filename: 'p.png', contentType: 'image/png', contentBase64: 'AA==' },
     });
     expect(response.statusCode).toBe(401);
@@ -278,7 +327,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
   it('refuses an authenticated photo upload missing contentBase64 with 400', async () => {
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/persons/${personId}/photo`,
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
       headers: { authorization: 'Bearer organizer' },
       payload: { filename: 'photo.png', contentType: 'image/png' },
     });
@@ -288,7 +337,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
   it('404s a person with no photo, on the unauthenticated public route', async () => {
     const response = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/persons/${personId}/photo`,
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -298,7 +347,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     const contentBase64 = bytes.toString('base64');
     const upload = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/persons/${personId}/photo`,
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
       headers: { authorization: 'Bearer organizer' },
       payload: { filename: 'photo.png', contentType: 'image/png', contentBase64 },
     });
@@ -307,7 +356,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
 
     const pending = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/persons/${personId}/photo`,
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
     });
     expect(pending.statusCode).toBe(202);
     expect(pending.rawPayload.length).toBe(0);
@@ -316,11 +365,102 @@ describe('person photo / club emblem upload and public serve (integration)', () 
 
     const passed = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/persons/${personId}/photo`,
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
     });
     expect(passed.statusCode).toBe(200);
     expect(passed.headers['content-type']).toBe('image/png');
     expect(Buffer.from(passed.rawPayload).equals(bytes)).toBe(true);
+  });
+
+  it('keeps a traversal filename inside the person and serves the decoded type, not the declared one', async () => {
+    const bytes = await conformingPng();
+    const upload = await inject({
+      method: 'POST',
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: {
+        filename: '../../../../another-organization/persons/x/photo.png',
+        contentType: 'text/html',
+        contentBase64: bytes.toString('base64'),
+      },
+    });
+    expect(upload.statusCode).toBe(201);
+    const { objectId } = upload.json() as { objectId: string };
+
+    const stored = await new ObjectMetadataRepository(db).findById(objectId);
+    expect(stored?.storageKey).toMatch(
+      new RegExp(`^${currentOrganizationId}/persons/${personId}/[0-9a-f-]+-photo\\.png$`),
+    );
+    expect(stored?.contentType).toBe('image/png');
+
+    await new ObjectMetadataRepository(db).markPassed(objectId);
+    const served = await inject({
+      method: 'GET',
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
+    });
+    expect(served.headers['content-type']).toBe('image/png');
+  });
+
+  it('serves an uploaded SVG under a policy that runs none of its script', async () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="410" height="512"><script>alert(1)</script></svg>`;
+    const upload = await inject({
+      method: 'POST',
+      url: `/api/organizations/${organizationAlias}/clubs/${clubId}/emblem`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: {
+        filename: 'emblem.png',
+        contentType: 'image/png',
+        contentBase64: Buffer.from(svg).toString('base64'),
+      },
+    });
+    expect(upload.statusCode).toBe(201);
+    const { objectId } = upload.json() as { objectId: string };
+    await new ObjectMetadataRepository(db).markPassed(objectId);
+    const served = await inject({
+      method: 'GET',
+      url: `/api/organizations/${organizationAlias}/clubs/${clubId}/emblem`,
+    });
+    expect(served.headers['content-type']).toBe('image/svg+xml');
+    expect(served.headers['content-security-policy']).toContain("default-src 'none'");
+    expect(served.headers['x-content-type-options']).toBe('nosniff');
+  });
+
+  it('refuses an image larger than the decoded size limit before storing anything', async () => {
+    const count = async () =>
+      (await db.selectFrom('object_metadata').select('object_id').execute()).length;
+    const before = await count();
+    const upload = await inject({
+      method: 'POST',
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: {
+        filename: 'photo.png',
+        contentType: 'image/png',
+        contentBase64: Buffer.alloc(10 * 1024 * 1024 + 1).toString('base64'),
+      },
+    });
+    expect(upload.statusCode).toBeGreaterThanOrEqual(400);
+    expect(upload.statusCode).toBeLessThan(500);
+    expect(await count()).toBe(before);
+  });
+
+  it('refuses an image format uploads do not take', async () => {
+    const tiff = await sharp({
+      create: { width: 410, height: 512, channels: 3, background: { r: 0, g: 0, b: 0 } },
+    })
+      .tiff()
+      .toBuffer();
+    const upload = await inject({
+      method: 'POST',
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: {
+        filename: 'photo.png',
+        contentType: 'image/png',
+        contentBase64: tiff.toString('base64'),
+      },
+    });
+    expect(upload.statusCode).toBe(400);
   });
 
   it('404s once a photo fails validation, never serving a flagged object', async () => {
@@ -335,7 +475,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     const contentBase64 = (await conformingPng()).toString('base64');
     const upload = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/persons/${flaggedPerson.person.personId}/photo`,
+      url: `/api/organizations/${organizationAlias}/persons/${flaggedPerson.person.personId}/photo`,
       headers: { authorization: 'Bearer organizer' },
       payload: { filename: 'photo.png', contentType: 'image/png', contentBase64 },
     });
@@ -350,7 +490,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
 
     const response = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/persons/${flaggedPerson.person.personId}/photo`,
+      url: `/api/organizations/${organizationAlias}/persons/${flaggedPerson.person.personId}/photo`,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -359,7 +499,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     const bytes = await conformingPng(410, 800);
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/persons/${personId}/photo`,
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
       headers: { authorization: 'Bearer organizer' },
       payload: {
         filename: 'photo.png',
@@ -374,7 +514,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     const bytes = await conformingPng(200, 512);
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/persons/${personId}/photo`,
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/photo`,
       headers: { authorization: 'Bearer organizer' },
       payload: {
         filename: 'photo.png',
@@ -390,7 +530,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     const contentBase64 = Buffer.from(svg).toString('base64');
     const upload = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/clubs/${clubId}/emblem`,
+      url: `/api/organizations/${organizationAlias}/clubs/${clubId}/emblem`,
       headers: { authorization: 'Bearer organizer' },
       payload: { filename: 'emblem.svg', contentType: 'image/svg+xml', contentBase64 },
     });
@@ -400,7 +540,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
 
     const response = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/clubs/${clubId}/emblem`,
+      url: `/api/organizations/${organizationAlias}/clubs/${clubId}/emblem`,
     });
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toBe('image/svg+xml');
@@ -412,7 +552,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     const contentBase64 = Buffer.from(svg).toString('base64');
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/clubs/${clubId}/emblem`,
+      url: `/api/organizations/${organizationAlias}/clubs/${clubId}/emblem`,
       headers: { authorization: 'Bearer organizer' },
       payload: { filename: 'emblem.svg', contentType: 'image/svg+xml', contentBase64 },
     });
@@ -422,7 +562,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
   it('refuses an unauthenticated organization emblem upload', async () => {
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/emblem`,
+      url: `/api/organizations/${organizationAlias}/emblem`,
       payload: { filename: 'o.png', contentType: 'image/png', contentBase64: 'AA==' },
     });
     expect(response.statusCode).toBe(401);
@@ -431,7 +571,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
   it('404s an emblem request for an organization alias that does not exist', async () => {
     const response = await inject({
       method: 'GET',
-      url: `/organizations/no-such-org/emblem`,
+      url: `/api/organizations/no-such-org/emblem`,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -441,7 +581,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     const contentBase64 = Buffer.from(svg).toString('base64');
     const upload = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/emblem`,
+      url: `/api/organizations/${organizationAlias}/emblem`,
       headers: { authorization: 'Bearer organizer' },
       payload: { filename: 'emblem.svg', contentType: 'image/svg+xml', contentBase64 },
     });
@@ -452,7 +592,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     // ordering) — served as 202 with no body until the async scan passes it.
     const pending = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/emblem`,
+      url: `/api/organizations/${organizationAlias}/emblem`,
     });
     expect(pending.statusCode).toBe(202);
 
@@ -460,7 +600,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
 
     const response = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/emblem`,
+      url: `/api/organizations/${organizationAlias}/emblem`,
     });
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toBe('image/svg+xml');
@@ -471,7 +611,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     const bytes = await conformingPng(410, 600);
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/emblem`,
+      url: `/api/organizations/${organizationAlias}/emblem`,
       headers: { authorization: 'Bearer organizer' },
       payload: {
         filename: 'emblem.png',
@@ -487,7 +627,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     const bytes = await conformingPng(300, 512);
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/emblem`,
+      url: `/api/organizations/${organizationAlias}/emblem`,
       headers: { authorization: 'Bearer organizer' },
       payload: {
         filename: 'emblem.png',
@@ -504,7 +644,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     const bytes = await conformingPng(414, 517);
     const response = await inject({
       method: 'POST',
-      url: `/organizations/${organizationAlias}/emblem`,
+      url: `/api/organizations/${organizationAlias}/emblem`,
       headers: { authorization: 'Bearer organizer' },
       payload: {
         filename: 'emblem.png',
@@ -518,7 +658,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
   it('sets and clears a nationality through the authenticated PATCH route', async () => {
     const set = await inject({
       method: 'PATCH',
-      url: `/organizations/${organizationAlias}/persons/${personId}/nationality`,
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/nationality`,
       headers: { authorization: 'Bearer organizer' },
       payload: { nationality: 'AR' },
     });
@@ -527,7 +667,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
 
     const cleared = await inject({
       method: 'PATCH',
-      url: `/organizations/${organizationAlias}/persons/${personId}/nationality`,
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/nationality`,
       headers: { authorization: 'Bearer organizer' },
       payload: { nationality: null },
     });
@@ -535,16 +675,58 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     expect(cleared.json()).toMatchObject({ personId, nationality: null });
   });
 
+  it('audits and publishes each public-visibility change in the same transaction', async () => {
+    const hide = await inject({
+      method: 'PATCH',
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/public-visibility`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { hiddenFromPublic: true },
+    });
+    expect(hide.statusCode).toBe(200);
+    expect(hide.json()).toEqual({ personId, hiddenFromPublic: true });
+
+    const unhide = await inject({
+      method: 'PATCH',
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/public-visibility`,
+      headers: { authorization: 'Bearer organizer' },
+      payload: { hiddenFromPublic: false },
+    });
+    expect(unhide.statusCode).toBe(200);
+    expect(unhide.json()).toEqual({ personId, hiddenFromPublic: false });
+
+    const history = await new AuditReader(db).historyFor('person', personId);
+    const changes = history.filter(
+      (record) => record.action === 'person.public-visibility-updated',
+    );
+    expect(changes.slice(-2)).toMatchObject([
+      {
+        actor: 'user:organizer-1',
+        previousState: { hiddenFromPublic: false },
+        resultingState: { hiddenFromPublic: true },
+      },
+      {
+        actor: 'user:organizer-1',
+        previousState: { hiddenFromPublic: true },
+        resultingState: { hiddenFromPublic: false },
+      },
+    ]);
+    const events = (await new OutboxReader(db).pending(10_000)).filter(
+      (event) =>
+        event.entityId === personId && event.eventType === 'person.public-visibility-updated',
+    );
+    expect(events.slice(-2).map((event) => event.payload.hiddenFromPublic)).toEqual([true, false]);
+  });
+
   it('reads a person’s profile for an admin, refusing an unauthenticated request', async () => {
     const anonymous = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/persons/${personId}`,
+      url: `/api/organizations/${organizationAlias}/persons/${personId}`,
     });
     expect(anonymous.statusCode).toBe(401);
 
     const response = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/persons/${personId}`,
+      url: `/api/organizations/${organizationAlias}/persons/${personId}`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(response.statusCode).toBe(200);
@@ -554,7 +736,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
   it('404s a person profile request for an unknown person', async () => {
     const response = await inject({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/persons/00000000-0000-7000-8000-000000000099`,
+      url: `/api/organizations/${organizationAlias}/persons/00000000-0000-7000-8000-000000000099`,
       headers: { authorization: 'Bearer organizer' },
     });
     expect(response.statusCode).toBe(404);
@@ -563,7 +745,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
   it('refuses an unauthenticated nationality change', async () => {
     const response = await inject({
       method: 'PATCH',
-      url: `/organizations/${organizationAlias}/persons/${personId}/nationality`,
+      url: `/api/organizations/${organizationAlias}/persons/${personId}/nationality`,
       payload: { nationality: 'AR' },
     });
     expect(response.statusCode).toBe(401);
@@ -580,7 +762,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
       );
       const response = await inject({
         method: 'POST',
-        url: `/organizations/${organizationAlias}/persons/${person.person.personId}/photo`,
+        url: `/api/organizations/${organizationAlias}/persons/${person.person.personId}/photo`,
         headers: { authorization: `Bearer ${token}` },
         payload: {
           filename: 'photo.png',
@@ -612,7 +794,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     it('404s when no emblem has been uploaded', async () => {
       const response = await inject({
         method: 'GET',
-        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+        url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
       });
       expect(response.statusCode).toBe(404);
     });
@@ -621,7 +803,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
       const nonConforming = await conformingPng(100, 100);
       const response = await inject({
         method: 'POST',
-        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+        url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
         headers: { authorization: 'Bearer organizer' },
         payload: {
           filename: 'emblem-bad.png',
@@ -639,7 +821,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
       const bytes = await conformingPng();
       const upload = await inject({
         method: 'POST',
-        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+        url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
         headers: { authorization: 'Bearer organizer' },
         payload: {
           filename: 'tournament-emblem.png',
@@ -658,7 +840,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
       // Pending state returns 202
       const pending = await inject({
         method: 'GET',
-        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+        url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
       });
       expect(pending.statusCode).toBe(202);
 
@@ -667,7 +849,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
 
       const passed = await inject({
         method: 'GET',
-        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+        url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
       });
       expect(passed.statusCode).toBe(200);
       expect(passed.headers['content-type']).toBe('image/png');
@@ -677,7 +859,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     it('deletes tournament emblem, clearing reference and stored object metadata', async () => {
       const deleteRes = await inject({
         method: 'DELETE',
-        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+        url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
         headers: { authorization: 'Bearer organizer' },
       });
       expect(deleteRes.statusCode).toBe(200);
@@ -690,7 +872,7 @@ describe('person photo / club emblem upload and public serve (integration)', () 
       // Subsequent GET 404s
       const after = await inject({
         method: 'GET',
-        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+        url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
       });
       expect(after.statusCode).toBe(404);
     });
@@ -698,10 +880,115 @@ describe('person photo / club emblem upload and public serve (integration)', () 
     it('404s when attempting to delete an emblem from a tournament that has none', async () => {
       const deleteAgain = await inject({
         method: 'DELETE',
-        url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+        url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
         headers: { authorization: 'Bearer organizer' },
       });
       expect(deleteAgain.statusCode).toBe(404);
+    });
+  });
+
+  describe('emblem renditions', () => {
+    const routes = (): readonly (readonly [string, string])[] => [
+      ['organization', `/api/organizations/${organizationAlias}/emblem`],
+      ['club', `/api/organizations/${organizationAlias}/clubs/${clubId}/emblem`],
+      [
+        'tournament',
+        `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/emblem`,
+      ],
+    ];
+
+    async function upload(url: string, bytes: Buffer, filename = 'emblem.png') {
+      const response = await inject({
+        method: 'POST',
+        url,
+        headers: { authorization: 'Bearer organizer' },
+        payload: { filename, contentType: 'image/png', contentBase64: bytes.toString('base64') },
+      });
+      expect(response.statusCode).toBe(201);
+      const { objectId } = response.json() as { objectId: string };
+      const metadata = await new ObjectMetadataRepository(db).findById(objectId);
+      return { objectId, storageKey: metadata?.storageKey ?? '' };
+    }
+
+    it.each([0, 1, 2])('serves, stores once and refuses widths on route %i', async (index) => {
+      const [, url] = routes()[index] ?? ['', ''];
+      const original = await solidPng({ r: 200, g: 30, b: 30 });
+      const { objectId, storageKey } = await upload(url, original);
+      const renditionKey = emblemRenditionKey(storageKey, 128);
+
+      // Pending: the same 202 as the original, and nothing rendered.
+      const pending = await inject({ method: 'GET', url: `${url}?width=64` });
+      expect(pending.statusCode).toBe(202);
+      expect(storage.writes).not.toContain(emblemRenditionKey(storageKey, 64));
+
+      await new ObjectMetadataRepository(db).markPassed(objectId);
+
+      const first = await inject({ method: 'GET', url: `${url}?width=128` });
+      expect(first.statusCode).toBe(200);
+      expect(first.headers['content-type']).toBe('image/webp');
+      expect(first.headers['cache-control']).toBe('public, max-age=31536000, immutable');
+      expect(await sharp(first.rawPayload).metadata()).toMatchObject({
+        format: 'webp',
+        width: 128,
+        height: 160,
+      });
+      expect(storage.writes.filter((key) => key === renditionKey)).toHaveLength(1);
+
+      const second = await inject({ method: 'GET', url: `${url}?width=128` });
+      expect(second.statusCode).toBe(200);
+      expect(Buffer.from(second.rawPayload).equals(Buffer.from(first.rawPayload))).toBe(true);
+      expect(storage.writes.filter((key) => key === renditionKey)).toHaveLength(1);
+
+      const writesBefore = storage.writes.length;
+      for (const width of ['100', '410', 'abc', '']) {
+        const refused = await inject({ method: 'GET', url: `${url}?width=${width}` });
+        expect(refused.statusCode).toBe(400);
+        expect(refused.json().detail ?? refused.body).toContain('64, 128, 256');
+      }
+      expect(storage.writes).toHaveLength(writesBefore);
+
+      const unchanged = await inject({ method: 'GET', url });
+      expect(unchanged.statusCode).toBe(200);
+      expect(unchanged.headers['content-type']).toBe('image/png');
+      expect(Buffer.from(unchanged.rawPayload).equals(original)).toBe(true);
+    });
+
+    it('serves an SVG emblem as stored when a width is asked', async () => {
+      const [, url] = routes()[1] ?? ['', ''];
+      const svg = conformingSvg();
+      const response = await inject({
+        method: 'POST',
+        url,
+        headers: { authorization: 'Bearer organizer' },
+        payload: {
+          filename: 'emblem.svg',
+          contentType: 'image/svg+xml',
+          contentBase64: Buffer.from(svg).toString('base64'),
+        },
+      });
+      const { objectId } = response.json() as { objectId: string };
+      await new ObjectMetadataRepository(db).markPassed(objectId);
+
+      const served = await inject({ method: 'GET', url: `${url}?width=64` });
+      expect(served.statusCode).toBe(200);
+      expect(served.headers['content-type']).toBe('image/svg+xml');
+      expect(served.rawPayload.toString()).toBe(svg);
+    });
+
+    it('serves a rendition of the new image once a club replaces its emblem', async () => {
+      const [, url] = routes()[1] ?? ['', ''];
+      const red = await upload(url, await solidPng({ r: 220, g: 20, b: 20 }), 'red.png');
+      await new ObjectMetadataRepository(db).markPassed(red.objectId);
+      expect((await inject({ method: 'GET', url: `${url}?width=64` })).statusCode).toBe(200);
+
+      const blue = await upload(url, await solidPng({ r: 20, g: 20, b: 220 }), 'blue.png');
+      await new ObjectMetadataRepository(db).markPassed(blue.objectId);
+      const replaced = await inject({ method: 'GET', url: `${url}?width=64` });
+
+      const [redChannel, , blueChannel] = (await sharp(replaced.rawPayload).stats()).channels;
+      expect(blueChannel?.mean).toBeGreaterThan(150);
+      expect(redChannel?.mean).toBeLessThan(80);
+      expect(blue.storageKey).not.toBe(red.storageKey);
     });
   });
 });

@@ -97,6 +97,7 @@ describe('API request validation pipe & observation', () => {
     expect(logs).toHaveLength(1);
     expect(logs[0]).toContain('secretPasswordKey');
     expect(logs[0]).toContain('authSecret');
+    expect(logs[0]).toContain('on SampleDto');
     expect(logs[0]).not.toContain(secretPassword);
     expect(logs[0]).not.toContain(secretToken);
   });

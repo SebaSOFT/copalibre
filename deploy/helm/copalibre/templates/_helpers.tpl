@@ -53,3 +53,41 @@ spec:
           averageUtilization: {{ $cfg.cpu.targetAverageUtilization }}
     {{- end }}
 {{- end -}}
+
+{{/*
+Origin of an external OIDC provider for the web role's Content Security
+Policy: web.env.COPALIBRE_CSP_IDENTITY_ORIGIN when set; otherwise the origin of
+web.env.COPALIBRE_JWT_ISSUER when it differs from env.COPALIBRE_APP_URL's; else
+empty, the built-in identity provider, which the policy already allows as 'self'.
+*/}}
+{{- define "copalibre.cspIdentityOrigin" -}}
+{{- $explicit := .Values.web.env.COPALIBRE_CSP_IDENTITY_ORIGIN | default "" -}}
+{{- if $explicit -}}
+{{- $explicit -}}
+{{- else -}}
+{{- $issuer := regexFind "^https?://[^/]+" (.Values.web.env.COPALIBRE_JWT_ISSUER | default "") -}}
+{{- $app := regexFind "^https?://[^/]+" (.Values.env.COPALIBRE_APP_URL | default "") -}}
+{{- if and $issuer (ne $issuer $app) -}}
+{{- $issuer -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether browser session cookies carry Secure and the __Host- prefix: an explicit
+env.COPALIBRE_SESSION_COOKIE_SECURE, else session.cookieSecure, else false only
+when this chart's own ingress is enabled without TLS, else true.
+*/}}
+{{- define "copalibre.sessionCookieSecure" -}}
+{{- $explicit := .Values.env.COPALIBRE_SESSION_COOKIE_SECURE | default "" | toString -}}
+{{- $configured := (.Values.session | default dict).cookieSecure -}}
+{{- if $explicit -}}
+{{- $explicit -}}
+{{- else if not (kindIs "invalid" $configured) -}}
+{{- $configured | toString -}}
+{{- else if and .Values.ingress.enabled (not .Values.ingress.tls.enabled) -}}
+false
+{{- else -}}
+true
+{{- end -}}
+{{- end -}}

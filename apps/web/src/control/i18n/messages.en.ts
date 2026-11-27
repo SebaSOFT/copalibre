@@ -11,6 +11,137 @@ import { defineMessages } from '../../lib/i18n/define-messages.ts';
  * {...messages.someKey} />` directly.
  */
 export const messages = defineMessages({
+  dateInputFormatHint: {
+    id: 'control.dateInput.formatHint',
+    defaultMessage: 'Local date format; for example: {example}.',
+  },
+  dateTimeInputFormatHint: {
+    id: 'control.dateTimeInput.formatHint',
+    defaultMessage: 'Local date and time format; for example: {example}.',
+  },
+  pageHeaderLoading: {
+    id: 'control.pageHeader.loading',
+    defaultMessage: 'Loading page heading',
+  },
+  pageHeaderBreadcrumb: {
+    id: 'control.pageHeader.breadcrumb',
+    defaultMessage: 'Breadcrumb',
+  },
+  pageHeaderOrganizationFallback: {
+    id: 'control.pageHeader.organizationFallback',
+    defaultMessage: 'Organization',
+  },
+  pageHeaderTournamentFallback: {
+    id: 'control.pageHeader.tournamentFallback',
+    defaultMessage: 'Tournament',
+  },
+  interactionPairTv: { id: 'control.interaction.pairTv', defaultMessage: 'Pair TV' },
+  interactionPairDescription: {
+    id: 'control.interaction.pairDescription',
+    defaultMessage: 'Connect a TV to display live scores.',
+  },
+  interactionWhoCanPair: {
+    id: 'control.interaction.whoCanPair',
+    defaultMessage: 'An organization admin can pair a TV.',
+  },
+  interactionInviteDescription: {
+    id: 'control.interaction.inviteDescription',
+    defaultMessage: 'Invite someone to help manage this organization.',
+  },
+  interactionWhoCanInvite: {
+    id: 'control.interaction.whoCanInvite',
+    defaultMessage: 'An organization admin can invite users.',
+  },
+  interactionTokenDescription: {
+    id: 'control.interaction.tokenDescription',
+    defaultMessage: 'Create a token to access the API from another tool.',
+  },
+  sideSourceWinner: { id: 'control.sideSource.winner', defaultMessage: 'Winner of {match}' },
+  sideSourceLoser: { id: 'control.sideSource.loser', defaultMessage: 'Loser of {match}' },
+  sideSourceWinnerShort: { id: 'control.sideSource.winnerShort', defaultMessage: 'W {match}' },
+  sideSourceLoserShort: { id: 'control.sideSource.loserShort', defaultMessage: 'L {match}' },
+  sideSourceAwaiting: { id: 'control.sideSource.awaiting', defaultMessage: 'Awaiting {source}' },
+  sideSourceRound: {
+    id: 'control.sideSource.round',
+    defaultMessage: 'Round {round}, match {position}',
+  },
+  sideSourceRoundShort: {
+    id: 'control.sideSource.roundShort',
+    defaultMessage: 'R{round}·{position}',
+  },
+  sideSourceMatch: { id: 'control.sideSource.match', defaultMessage: 'Match {position}' },
+  sideSourceMatchShort: { id: 'control.sideSource.matchShort', defaultMessage: 'M{position}' },
+  sideSourceFinal: { id: 'control.sideSource.final', defaultMessage: 'Final' },
+  sideSourceFinalShort: { id: 'control.sideSource.finalShort', defaultMessage: 'F' },
+  sideSourceSemiFinal: {
+    id: 'control.sideSource.semiFinal',
+    defaultMessage: 'Semi-final {position}',
+  },
+  sideSourceSemiFinalShort: {
+    id: 'control.sideSource.semiFinalShort',
+    defaultMessage: 'Semi-final {position}',
+  },
+  sideSourceQuarterFinal: {
+    id: 'control.sideSource.quarterFinal',
+    defaultMessage: 'Quarter-final {position}',
+  },
+  sideSourceQuarterFinalShort: {
+    id: 'control.sideSource.quarterFinalShort',
+    defaultMessage: 'Quarter-final {position}',
+  },
+  sideSourcePlace: { id: 'control.sideSource.place', defaultMessage: 'Place {place}' },
+  sideSourcePlaces: { id: 'control.sideSource.places', defaultMessage: 'Places {from}–{to}' },
+  sideSourceUnknown: { id: 'control.sideSource.unknown', defaultMessage: 'Awaiting participant' },
+  sideSourceSeed: { id: 'control.sideSource.seed', defaultMessage: 'Seed {seed}' },
+  sideSourceBye: { id: 'control.sideSource.bye', defaultMessage: 'Bye' },
+  sideSourceQualifierGroup: {
+    id: 'control.sideSource.qualifierGroup',
+    defaultMessage: '{rank} {group}',
+  },
+  sideSourceQualifierGroupNumber: {
+    id: 'control.sideSource.qualifierGroupNumber',
+    defaultMessage: 'Group {number}',
+  },
+  sideSourceQualifierBest: {
+    id: 'control.sideSource.qualifierBest',
+    defaultMessage: 'Best {rank}',
+  },
+  sideSourceQualifierNthBest: {
+    id: 'control.sideSource.qualifierNthBest',
+    defaultMessage: '{order} best {rank}',
+  },
+  sideSourceQualifierRunnerUp: {
+    id: 'control.sideSource.qualifierRunnerUp',
+    defaultMessage: 'runner-up',
+  },
+  sideSourceQualifier: {
+    id: 'control.sideSource.qualifier',
+    defaultMessage: 'Qualifier {number}',
+  },
+  sideSourceQualifierShort: {
+    id: 'control.sideSource.qualifierShort',
+    defaultMessage: 'Q{number}',
+  },
+  sideSourceOrdinal1: {
+    id: 'control.sideSource.ordinal1',
+    defaultMessage: '1st',
+  },
+  sideSourceOrdinal2: {
+    id: 'control.sideSource.ordinal2',
+    defaultMessage: '2nd',
+  },
+  sideSourceOrdinal3: {
+    id: 'control.sideSource.ordinal3',
+    defaultMessage: '3rd',
+  },
+  sideSourceOrdinalOther: {
+    id: 'control.sideSource.ordinalOther',
+    defaultMessage: '{n}th',
+  },
+  scheduleConcurrentChange: {
+    id: 'control.schedule.concurrentChange',
+    defaultMessage: '{match} was rescheduled by {actor}. Preview updated.',
+  },
   bracketHighlightEntrant: {
     id: 'control.bracket.highlightEntrant',
     defaultMessage: 'Highlight path for {entrant}',
@@ -22,21 +153,63 @@ export const messages = defineMessages({
   },
   // Shell
   shellSections: { id: 'control.shell.sections', defaultMessage: 'Sections' },
+  shellSkipToContent: { id: 'control.shell.skipToContent', defaultMessage: 'Skip to content' },
   shellWhatIsThisScreen: {
     id: 'control.shell.whatIsThisScreen',
     defaultMessage: 'What is this screen?',
+  },
+  shellApiReference: {
+    id: 'control.shell.apiReference',
+    defaultMessage: 'API reference',
   },
   shellOpenNavigation: {
     id: 'control.shell.openNavigation',
     defaultMessage: 'Open navigation menu',
   },
   shellLanguage: { id: 'control.shell.language', defaultMessage: 'Language' },
+  shellSessionReconnecting: {
+    id: 'control.shell.sessionReconnecting',
+    defaultMessage: 'Reconnecting session… Retrying automatically.',
+  },
   shellLogout: { id: 'control.shell.logout', defaultMessage: 'Log out' },
   shellPublicOverview: {
     id: 'control.shell.publicOverview',
     defaultMessage: 'Public organization page',
   },
   authPublicHome: { id: 'auth.publicHome', defaultMessage: 'Return to public site' },
+  authLoginTitle: { id: 'auth.loginTitle', defaultMessage: 'Sign in to operate' },
+  authLoginContext: { id: 'auth.loginContext', defaultMessage: 'Organization console' },
+  authEmailLabel: { id: 'auth.emailLabel', defaultMessage: 'Email' },
+  authPasswordLabel: { id: 'auth.passwordLabel', defaultMessage: 'Password' },
+  authPasswordWithMinimum: {
+    id: 'auth.passwordWithMinimum',
+    defaultMessage: 'Password (at least {minimum} characters)',
+  },
+  authLoginSubmit: { id: 'auth.loginSubmit', defaultMessage: 'Sign in' },
+  authOidcButton: { id: 'auth.oidcButton', defaultMessage: 'Continue with identity provider' },
+  authForgotPasswordLink: {
+    id: 'auth.forgotPasswordLink',
+    defaultMessage: 'Forgot your password?',
+  },
+  authForgotTitle: { id: 'auth.forgotTitle', defaultMessage: 'Recover password' },
+  authForgotSubmit: { id: 'auth.forgotSubmit', defaultMessage: 'Send link' },
+  authForgotBack: { id: 'auth.forgotBack', defaultMessage: 'Back to sign-in' },
+  authResetTitle: { id: 'auth.resetTitle', defaultMessage: 'Create new password' },
+  authResetSubmit: { id: 'auth.resetSubmit', defaultMessage: 'Reset password' },
+  authInvalidResetLink: { id: 'auth.invalidResetLink', defaultMessage: 'Invalid recovery link.' },
+  authTagline: { id: 'auth.tagline', defaultMessage: 'Tournament operations' },
+  authPasswordUpdated: {
+    id: 'auth.passwordUpdated',
+    defaultMessage: 'Password updated. You can now sign in.',
+  },
+  authForgotLinkSent: {
+    id: 'auth.forgotLinkSent',
+    defaultMessage: 'If the email exists, a link has been sent.',
+  },
+  authSessionExpired: {
+    id: 'auth.sessionExpired',
+    defaultMessage: 'Your session expired. Please sign in again.',
+  },
   tournamentPublicSite: { id: 'control.tournament.publicSite', defaultMessage: 'Public site' },
   tournamentTvDisplay: { id: 'control.tournament.tvDisplay', defaultMessage: 'TV display' },
   tournamentPublicSiteShort: { id: 'control.tournament.publicSiteShort', defaultMessage: 'Public' },
@@ -51,6 +224,51 @@ export const messages = defineMessages({
   navAnalytics: { id: 'control.nav.analytics', defaultMessage: 'Analytics' },
   navResources: { id: 'control.nav.resources', defaultMessage: 'Venues & officials' },
   navAuditTrail: { id: 'control.nav.auditTrail', defaultMessage: 'Audit trail' },
+  shellNavGroupOverview: {
+    id: 'control.shell.navGroup.overview',
+    defaultMessage: 'Overview',
+  },
+  shellNavGroupTeamsRosters: {
+    id: 'control.shell.navGroup.teamsRosters',
+    defaultMessage: 'Teams and rosters',
+  },
+  shellNavGroupZonesGroups: {
+    id: 'control.shell.navGroup.zonesGroups',
+    defaultMessage: 'Zones and groups',
+  },
+  shellNavGroupSeedingBrackets: {
+    id: 'control.shell.navGroup.seedingBrackets',
+    defaultMessage: 'Seeding and brackets',
+  },
+  shellNavGroupSchedule: {
+    id: 'control.shell.navGroup.schedule',
+    defaultMessage: 'Schedule',
+  },
+  shellNavGroupVenues: {
+    id: 'control.shell.navGroup.venues',
+    defaultMessage: 'Venues',
+  },
+  shellNavGroupOfficials: {
+    id: 'control.shell.navGroup.officials',
+    defaultMessage: 'Officials',
+  },
+  shellNavGroupBroadcast: {
+    id: 'control.shell.navGroup.broadcast',
+    defaultMessage: 'Broadcast',
+  },
+  shellNavGroupAdministration: {
+    id: 'control.shell.navGroup.administration',
+    defaultMessage: 'Administration',
+  },
+  shellPreferences: { id: 'control.shell.preferences', defaultMessage: 'Preferences' },
+  shellScopeActionOpenLiveConsole: {
+    id: 'control.shell.scopeAction.openLiveConsole',
+    defaultMessage: 'Open live console',
+  },
+  shellScopeActionEditTournamentSettings: {
+    id: 'control.shell.scopeAction.editTournamentSettings',
+    defaultMessage: 'Edit tournament settings',
+  },
   navPlatformAdministration: {
     id: 'control.nav.platformAdministration',
     defaultMessage: 'Platform administration',
@@ -130,6 +348,14 @@ export const messages = defineMessages({
   platformSuperAdminPrincipalId: {
     id: 'control.platform.users.superAdminPrincipalId',
     defaultMessage: 'Principal ID',
+  },
+  platformSuperAdminLabel: {
+    id: 'control.platform.users.superAdminLabel',
+    defaultMessage: 'Super-admin {position}',
+  },
+  platformSuperAdminRemoveLabel: {
+    id: 'control.platform.users.removeSuperAdmin',
+    defaultMessage: 'Remove super-admin {position}',
   },
   platformCreateSuperAdmin: {
     id: 'control.platform.users.createSuperAdmin',
@@ -238,9 +464,10 @@ export const messages = defineMessages({
 
   // Tournament lifecycle labels (lib/dashboard.ts LIFECYCLE_PRESENTATION)
   lifecycleLive: { id: 'control.lifecycle.live', defaultMessage: 'LIVE' },
-  lifecycleUpcoming: { id: 'control.lifecycle.upcoming', defaultMessage: 'UPCOMING' },
-  lifecycleDraft: { id: 'control.lifecycle.draft', defaultMessage: 'DRAFT' },
-  lifecycleFinished: { id: 'control.lifecycle.finished', defaultMessage: 'FINISHED' },
+  lifecycleInProgress: { id: 'control.lifecycle.inProgress', defaultMessage: 'In progress' },
+  lifecycleUpcoming: { id: 'control.lifecycle.upcoming', defaultMessage: 'Upcoming' },
+  lifecycleDraft: { id: 'control.lifecycle.draft', defaultMessage: 'Draft' },
+  lifecycleFinished: { id: 'control.lifecycle.finished', defaultMessage: 'Finished' },
 
   // Dashboard (QuickStats.tsx, TournamentSummaryCard.tsx, ActivityLog.tsx, Dashboard.tsx)
   dashboardSummary: { id: 'control.dashboard.summary', defaultMessage: 'Summary' },
@@ -264,6 +491,39 @@ export const messages = defineMessages({
     id: 'control.metric.demonstration',
     defaultMessage: 'Demonstration figure',
   },
+  dashboardDescription: {
+    id: 'control.dashboard.description',
+    defaultMessage: 'Tournaments, registrations and broadcast devices for your organization.',
+  },
+  dashboardSearchLabel: {
+    id: 'control.dashboard.searchLabel',
+    defaultMessage: 'Search tournaments',
+  },
+  dashboardSearchPlaceholder: {
+    id: 'control.dashboard.searchPlaceholder',
+    defaultMessage: 'Search by tournament name',
+  },
+  dashboardFiltersLabel: {
+    id: 'control.dashboard.filtersLabel',
+    defaultMessage: 'Tournament status',
+  },
+  dashboardFilterAll: { id: 'control.dashboard.filterAll', defaultMessage: 'All' },
+  dashboardResultCount: {
+    id: 'control.dashboard.resultCount',
+    defaultMessage: '{count, plural, one {# tournament} other {# tournaments}}',
+  },
+  dashboardNoMatchingTournaments: {
+    id: 'control.dashboard.noMatchingTournaments',
+    defaultMessage: 'No tournaments match your search and filters.',
+  },
+  dashboardActiveTournamentsContext: {
+    id: 'control.dashboard.activeTournamentsContext',
+    defaultMessage: 'Currently in progress',
+  },
+  dashboardPendingRegistrationsContext: {
+    id: 'control.dashboard.pendingRegistrationsContext',
+    defaultMessage: 'Waiting for organization review',
+  },
   dashboardActiveTournaments: {
     id: 'control.dashboard.activeTournaments',
     defaultMessage: 'Active tournaments',
@@ -279,6 +539,10 @@ export const messages = defineMessages({
   dashboardRecentActivity: {
     id: 'control.dashboard.recentActivity',
     defaultMessage: 'Recent activity',
+  },
+  dashboardActivityGroupedSummary: {
+    id: 'control.dashboard.activityGroupedSummary',
+    defaultMessage: '{count} matching actions in 5 minutes',
   },
   dashboardNoActivityYet: {
     id: 'control.dashboard.noActivityYet',
@@ -297,9 +561,115 @@ export const messages = defineMessages({
     id: 'control.dashboard.noTournamentsCta',
     defaultMessage: 'Create your first tournament',
   },
+  dashboardPairTvTournament: {
+    id: 'control.dashboard.pairTvTournament',
+    defaultMessage: 'Tournament for TV pairing',
+  },
+  dashboardPairTvNeedsTournament: {
+    id: 'control.dashboard.pairTvNeedsTournament',
+    defaultMessage: 'Create a tournament before pairing a TV screen.',
+  },
   dashboardParticipantsCsv: {
     id: 'control.dashboard.participantsCsv',
-    defaultMessage: 'Participants CSV',
+    defaultMessage: 'Teams CSV',
+  },
+  dashboardIndividualsCsv: {
+    id: 'control.dashboard.individualsCsv',
+    defaultMessage: 'Individual participants CSV',
+  },
+  dashboardExportColumnsTitle: {
+    id: 'control.dashboard.exportColumns.title',
+    defaultMessage: 'Personal data in export',
+  },
+  dashboardExportColumnsIntro: {
+    id: 'control.dashboard.exportColumns.intro',
+    defaultMessage:
+      'Choose which personal-data columns to include. Clear an option to omit that data from the downloaded file.',
+  },
+  dashboardExportColumnName: {
+    id: 'control.dashboard.exportColumns.name',
+    defaultMessage: 'Participant name',
+  },
+  dashboardExportColumnIdentityDocument: {
+    id: 'control.dashboard.exportColumns.identityDocument',
+    defaultMessage: 'Identity document (type and number)',
+  },
+  dashboardExportColumnsDownload: {
+    id: 'control.dashboard.exportColumns.download',
+    defaultMessage: 'Download CSV',
+  },
+  dashboardExportColumnsCancel: {
+    id: 'control.dashboard.exportColumns.cancel',
+    defaultMessage: 'Cancel',
+  },
+  dashboardExportFailed: {
+    id: 'control.dashboard.export.failed',
+    defaultMessage: 'CSV export failed. Try again.',
+  },
+  dashboardPublishAction: {
+    id: 'control.dashboard.publish.action',
+    defaultMessage: 'Publish tournament',
+  },
+  dashboardPublishTitle: {
+    id: 'control.dashboard.publish.title',
+    defaultMessage: 'Review before publishing {name}',
+  },
+  dashboardPublishIntro: {
+    id: 'control.dashboard.publish.intro',
+    defaultMessage:
+      'Review the public pages and participant information that will be visible after publishing.',
+  },
+  dashboardPublishOverview: {
+    id: 'control.dashboard.publish.overview',
+    defaultMessage: 'Tournament overview',
+  },
+  dashboardPublishMatches: {
+    id: 'control.dashboard.publish.matches',
+    defaultMessage: 'Matches and results',
+  },
+  dashboardPublishStandings: {
+    id: 'control.dashboard.publish.standings',
+    defaultMessage: 'Standings',
+  },
+  dashboardPublishSchedule: {
+    id: 'control.dashboard.publish.schedule',
+    defaultMessage: 'Schedule, venues and officials',
+  },
+  dashboardPublishYouthHidden: {
+    id: 'control.dashboard.publish.youthHidden',
+    defaultMessage:
+      'Because this tournament includes minors and youth profiles are hidden, their names appear without photos, nationalities, public profiles or career records.',
+  },
+  dashboardPublishYouthProfilesVisible: {
+    id: 'control.dashboard.publish.youthProfilesVisible',
+    defaultMessage:
+      'This tournament includes minors and public youth profiles are enabled. Profiles may show names, photos, nationalities and career records. People hidden from public pages remain hidden.',
+  },
+  dashboardPublishReviewPrivacy: {
+    id: 'control.dashboard.publish.reviewPrivacy',
+    defaultMessage: 'Review privacy settings',
+  },
+  dashboardPublishProfilesVisible: {
+    id: 'control.dashboard.publish.profilesVisible',
+    defaultMessage:
+      'Public player profiles may show names, photos, nationalities and career records. People hidden from public pages remain hidden.',
+  },
+  dashboardPublishPrivacyChanged: {
+    id: 'control.dashboard.publish.privacyChanged',
+    defaultMessage:
+      'Privacy settings changed after this preview. Review the updated visibility summary before confirming.',
+  },
+  dashboardPublishCancel: {
+    id: 'control.dashboard.publish.cancel',
+    defaultMessage: 'Cancel',
+  },
+  dashboardPublishSuccess: {
+    id: 'control.dashboard.publish.success',
+    defaultMessage: 'Tournament published.',
+  },
+  dashboardPublishUnavailable: {
+    id: 'control.dashboard.publish.unavailable',
+    defaultMessage: 'The publication preview is unavailable.',
   },
   dashboardResultsCsv: { id: 'control.dashboard.resultsCsv', defaultMessage: 'Results CSV' },
   dashboardStandingsCsv: {
@@ -325,6 +695,10 @@ export const messages = defineMessages({
     defaultMessage: 'TV screen status',
   },
   deviceHeartbeatTitle: { id: 'control.deviceHeartbeat.title', defaultMessage: 'TV screens' },
+  deviceHeartbeatUnnamedToken: {
+    id: 'control.deviceHeartbeat.unnamedToken',
+    defaultMessage: 'Unlabelled display',
+  },
   deviceHeartbeatEmpty: {
     id: 'control.deviceHeartbeat.empty',
     defaultMessage: 'No TV devices provisioned yet.',
@@ -450,6 +824,11 @@ export const messages = defineMessages({
     id: 'control.authoring.created',
     defaultMessage: 'Tournament created: {alias}',
   },
+  authoringEmblemFailed: {
+    id: 'control.authoring.emblemFailed',
+    defaultMessage:
+      'Tournament {alias} was created, but its emblem could not be uploaded. Add it from the tournament settings.',
+  },
   authoringCreateFailed: {
     id: 'control.authoring.createFailed',
     defaultMessage: 'Could not create the tournament.',
@@ -509,13 +888,94 @@ export const messages = defineMessages({
     id: 'control.matchConsole.neverSynced',
     defaultMessage: 'Not yet synced',
   },
+  interactionLoading: { id: 'control.interaction.loading', defaultMessage: 'Loading {thing}' },
+  interactionEmptyHeading: {
+    id: 'control.interaction.emptyHeading',
+    defaultMessage: 'Nothing here yet',
+  },
+  interactionEmptyDescription: {
+    id: 'control.interaction.emptyDescription',
+    defaultMessage: 'Start by adding the first item.',
+  },
+  interactionWhoCanAct: {
+    id: 'control.interaction.whoCanAct',
+    defaultMessage: 'An organization admin can create tournaments.',
+  },
+  interactionStale: { id: 'control.interaction.stale', defaultMessage: 'Stale' },
+  interactionRetry: { id: 'control.interaction.retry', defaultMessage: 'Retry' },
+  interactionRetryIn: {
+    id: 'control.interaction.retryIn',
+    defaultMessage: 'Retrying in {seconds} s',
+  },
+  interactionReadFailed: {
+    id: 'control.interaction.readFailed',
+    defaultMessage: "Couldn't load {thing}. Retrying in {seconds} s.",
+  },
+  interactionFailedEmpty: {
+    id: 'control.interaction.failedEmpty',
+    defaultMessage: "Couldn't load {thing}.",
+  },
+  interactionQueued: { id: 'control.interaction.queued', defaultMessage: 'Queued' },
+  interactionSent: { id: 'control.interaction.sent', defaultMessage: 'Sent' },
+  interactionConfirmed: { id: 'control.interaction.confirmed', defaultMessage: 'Confirmed' },
+  interactionRefused: { id: 'control.interaction.refused', defaultMessage: 'Refused' },
+  interactionOnline: { id: 'control.interaction.online', defaultMessage: 'Online' },
+  interactionOffline: { id: 'control.interaction.offline', defaultMessage: 'Offline' },
+  interactionLastSynced: {
+    id: 'control.interaction.lastSynced',
+    defaultMessage: 'Last synced {time}',
+  },
+  interactionNeverSynced: {
+    id: 'control.interaction.neverSynced',
+    defaultMessage: 'Not yet synced',
+  },
+  interactionQueuedCount: {
+    id: 'control.interaction.queuedCount',
+    defaultMessage: '{count, plural, one {# queued action} other {# queued actions}}',
+  },
+  interactionRefusedCount: {
+    id: 'control.interaction.refusedCount',
+    defaultMessage: '{count, plural, one {# refused action} other {# refused actions}}',
+  },
   matchConsoleClockCommands: {
     id: 'control.matchConsole.clockCommands',
     defaultMessage: 'Clock commands',
   },
-  matchConsoleStartClock: { id: 'control.matchConsole.startClock', defaultMessage: 'Start' },
   matchConsolePauseClock: { id: 'control.matchConsole.pauseClock', defaultMessage: 'Pause' },
-  matchConsoleEndSegment: { id: 'control.matchConsole.endSegment', defaultMessage: 'End period' },
+  matchConsoleEndSegment: { id: 'control.matchConsole.endSegment', defaultMessage: 'End segment' },
+  matchConsoleStartMatch: { id: 'control.matchConsole.startMatch', defaultMessage: 'Start match' },
+  matchConsoleStartSegment: {
+    id: 'control.matchConsole.startSegment',
+    defaultMessage: 'Start segment',
+  },
+  matchConsoleResume: { id: 'control.matchConsole.resume', defaultMessage: 'Resume' },
+  matchConsoleReopenSegment: {
+    id: 'control.matchConsole.reopenSegment',
+    defaultMessage: 'Reopen segment…',
+  },
+  matchConsoleAnotherSegmentRunning: {
+    id: 'control.matchConsole.anotherSegmentRunning',
+    defaultMessage: '{segment} is running. Pause or end it before starting or resuming another.',
+  },
+  matchConsoleCorrectTimeLabel: {
+    id: 'control.matchConsole.correctTimeLabel',
+    defaultMessage: 'Time (mm:ss)',
+  },
+  matchConsoleCorrectTime: { id: 'control.matchConsole.correctTime', defaultMessage: 'Correct' },
+  matchConsoleReopenConfirm: {
+    id: 'control.matchConsole.reopenConfirm',
+    defaultMessage:
+      'Reopen {segment}? It returns to paused with its time kept. The reason is recorded in the audit trail.',
+  },
+  matchConsoleReopenReason: { id: 'control.matchConsole.reopenReason', defaultMessage: 'Reason' },
+  matchConsoleReopenConfirmButton: {
+    id: 'control.matchConsole.reopenConfirmButton',
+    defaultMessage: 'Reopen segment',
+  },
+  matchConsoleSegmentStatePaused: {
+    id: 'control.matchConsole.segmentStatePaused',
+    defaultMessage: 'paused',
+  },
   matchConsoleExpandLedger: {
     id: 'control.matchConsole.expandLedger',
     defaultMessage: 'Show full history',
@@ -559,20 +1019,37 @@ export const messages = defineMessages({
   },
   matchConsoleClockAndPeriod: {
     id: 'control.matchConsole.clockAndPeriod',
-    defaultMessage: 'Clock and period',
+    defaultMessage: 'Clock and segment',
   },
   matchConsoleSegment: { id: 'control.matchConsole.segment', defaultMessage: 'Segment' },
   matchConsoleActiveSegment: {
     id: 'control.matchConsole.activeSegment',
     defaultMessage: 'Active segment',
   },
-  matchConsoleElapsedSeconds: {
-    id: 'control.matchConsole.elapsedSeconds',
-    defaultMessage: 'Elapsed seconds',
+  matchConsoleNoSegments: {
+    id: 'control.matchConsole.noSegments',
+    defaultMessage: 'This match has no segments yet.',
   },
-  matchConsoleApplyClock: {
-    id: 'control.matchConsole.applyClock',
-    defaultMessage: 'Apply clock',
+  matchConsoleStartCreates: {
+    id: 'control.matchConsole.startCreates',
+    defaultMessage:
+      '{count, plural, one {Start creates # {type} segment} other {Start creates # {type} segments}}',
+  },
+  matchConsoleAddSegment: {
+    id: 'control.matchConsole.addSegment',
+    defaultMessage: 'Add segment',
+  },
+  matchConsoleAddSegmentLabel: {
+    id: 'control.matchConsole.addSegmentLabel',
+    defaultMessage: 'Segment to add',
+  },
+  matchConsoleOutsidePlan: {
+    id: 'control.matchConsole.outsidePlan',
+    defaultMessage: '(outside the plan)',
+  },
+  matchConsoleNoEvents: {
+    id: 'control.matchConsole.noEvents',
+    defaultMessage: 'No events to show.',
   },
   matchConsoleRecordEvent: {
     id: 'control.matchConsole.recordEvent',
@@ -850,7 +1327,6 @@ export const messages = defineMessages({
     id: 'control.review.selectRow',
     defaultMessage: 'Select {displayName}',
   },
-  reviewIdLabel: { id: 'control.review.idLabel', defaultMessage: 'ID: {entrantId}' },
   reviewContact: { id: 'control.review.contact', defaultMessage: 'Contact' },
   reviewTeamMembers: { id: 'control.review.teamMembers', defaultMessage: 'Team members' },
   reviewTeamMembersUnavailable: {
@@ -883,7 +1359,10 @@ export const messages = defineMessages({
     defaultMessage: 'Nationality',
   },
   reviewNationalityNone: { id: 'control.review.nationalityNone', defaultMessage: 'Not set' },
-  reviewSaveNationality: { id: 'control.review.saveNationality', defaultMessage: 'Save' },
+  reviewSaveNationality: {
+    id: 'control.review.saveNationality',
+    defaultMessage: 'Save nationality',
+  },
   reviewUploadPhoto: { id: 'control.review.uploadPhoto', defaultMessage: 'Upload photo' },
   reviewViewProfile: { id: 'control.review.viewProfile', defaultMessage: 'View profile' },
   reviewAddParticipant: { id: 'control.review.addParticipant', defaultMessage: 'Add participant' },
@@ -919,7 +1398,7 @@ export const messages = defineMessages({
     id: 'control.review.participantAliasLabel',
     defaultMessage: 'Alias (optional)',
   },
-  reviewEditIdentity: { id: 'control.review.editIdentity', defaultMessage: 'Edit' },
+  reviewEditIdentity: { id: 'control.review.editIdentity', defaultMessage: 'Edit identity' },
   reviewEditIdentityTitle: {
     id: 'control.review.editIdentityTitle',
     defaultMessage: 'Edit identity',
@@ -928,7 +1407,10 @@ export const messages = defineMessages({
     id: 'control.review.editIdentityCancel',
     defaultMessage: 'Cancel',
   },
-  reviewEditIdentitySave: { id: 'control.review.editIdentitySave', defaultMessage: 'Save' },
+  reviewEditIdentitySave: {
+    id: 'control.review.editIdentitySave',
+    defaultMessage: 'Save identity',
+  },
   reviewLinkIdentity: { id: 'control.review.linkIdentity', defaultMessage: 'Link identity' },
   reviewUnlinkIdentity: { id: 'control.review.unlinkIdentity', defaultMessage: 'Unlink' },
   reviewLinkIdentityTitle: {
@@ -1010,6 +1492,19 @@ export const messages = defineMessages({
     id: 'control.personProfile.nationalityLabel',
     defaultMessage: 'Nationality',
   },
+  personProfileHiddenLabel: {
+    id: 'control.personProfile.hiddenLabel',
+    defaultMessage: 'Hidden from public pages',
+  },
+  personProfileHiddenHelp: {
+    id: 'control.personProfile.hiddenHelp',
+    defaultMessage:
+      "Hide this person's name, photo, nationality and career from public pages. Results stay unchanged.",
+  },
+  personProfileVisibilitySaved: {
+    id: 'control.personProfile.visibilitySaved',
+    defaultMessage: 'Public visibility updated.',
+  },
   personProfileBack: {
     id: 'control.personProfile.back',
     defaultMessage: 'Back to registrations',
@@ -1032,10 +1527,6 @@ export const messages = defineMessages({
     defaultMessage: 'Could not apply the change.',
   },
   rolesSectionLabel: { id: 'control.roles.sectionLabel', defaultMessage: 'Roles and permissions' },
-  rolesBreadcrumb: {
-    id: 'control.roles.breadcrumb',
-    defaultMessage: '{organizationAlias} / Organization',
-  },
   rolesTitle: { id: 'control.roles.title', defaultMessage: 'Roles and permissions' },
   rolesAddUser: { id: 'control.roles.addUser', defaultMessage: 'Invite user' },
   rolesColumnUser: { id: 'control.roles.columnUser', defaultMessage: 'User' },
@@ -1156,6 +1647,7 @@ export const messages = defineMessages({
     id: 'control.roles.selectTournamentPlaceholder',
     defaultMessage: 'Select tournament…',
   },
+  selectPlaceholder: { id: 'control.select.placeholder', defaultMessage: 'Select…' },
 
   // AuditTrailPage.tsx
   auditTrailTitle: { id: 'control.auditTrail.title', defaultMessage: 'Audit trail' },
@@ -1234,6 +1726,7 @@ export const messages = defineMessages({
   },
   wizardStepRules: { id: 'control.wizard.step.rules', defaultMessage: 'Event rules' },
   wizardStepWindow: { id: 'control.wizard.step.window', defaultMessage: 'Window' },
+  wizardStepPrivacy: { id: 'control.wizard.step.privacy', defaultMessage: 'Privacy' },
   wizardStepSummary: { id: 'control.wizard.step.summary', defaultMessage: 'Summary' },
   wizardFormatPreviewTitle: {
     id: 'control.wizard.formatPreview.title',
@@ -1368,6 +1861,10 @@ export const messages = defineMessages({
     defaultMessage: 'Group {number} capacity',
   },
   stageFormatLeague: { id: 'control.stageEditor.format.league', defaultMessage: 'League' },
+  matchFormatBestOf: {
+    id: 'control.match.format.bestOf',
+    defaultMessage: 'Best of {games}',
+  },
   stageFormatRoundRobin: {
     id: 'control.stageEditor.format.roundRobin',
     defaultMessage: 'Round robin',
@@ -1455,6 +1952,10 @@ export const messages = defineMessages({
     id: 'control.wizard.problem.aliasFormat',
     defaultMessage: 'The alias uses lowercase letters and hyphens',
   },
+  wizardProblemChooseMinors: {
+    id: 'control.wizard.problem.chooseMinors',
+    defaultMessage: 'Choose whether this tournament includes minors',
+  },
   wizardProblemChooseDiscipline: {
     id: 'control.wizard.problem.chooseDiscipline',
     defaultMessage: 'Choose a discipline',
@@ -1508,6 +2009,31 @@ export const messages = defineMessages({
   wizardSteps: { id: 'control.wizard.steps', defaultMessage: 'Steps' },
   wizardFieldName: { id: 'control.wizard.field.name', defaultMessage: 'Name' },
   wizardFieldAlias: { id: 'control.wizard.field.alias', defaultMessage: 'Alias' },
+  wizardEmblemHelp: {
+    id: 'control.wizard.emblemHelp',
+    defaultMessage: 'Optional. It is added once the tournament is created.',
+  },
+  wizardIncludesMinorsQuestion: {
+    id: 'control.wizard.includesMinors.question',
+    defaultMessage: 'Do participants in this tournament include minors?',
+  },
+  wizardIncludesMinorsHelp: {
+    id: 'control.wizard.includesMinors.help',
+    defaultMessage:
+      'Choose yes or no. Youth player profiles stay hidden unless you explicitly allow them in Privacy settings.',
+  },
+  wizardIncludesMinorsYes: {
+    id: 'control.wizard.includesMinors.yes',
+    defaultMessage: 'Yes, participants include minors',
+  },
+  wizardIncludesMinorsNo: {
+    id: 'control.wizard.includesMinors.no',
+    defaultMessage: 'No, this tournament has no minor participants',
+  },
+  wizardSummaryReviewPrivacy: {
+    id: 'control.wizard.summary.reviewPrivacy',
+    defaultMessage: 'Review privacy choice',
+  },
   wizardFieldDiscipline: { id: 'control.wizard.field.discipline', defaultMessage: 'Discipline' },
   wizardFieldFormat: { id: 'control.wizard.field.format', defaultMessage: 'Format' },
   wizardEnableSeries: {
@@ -1565,15 +2091,15 @@ export const messages = defineMessages({
     id: 'control.wizard.rule.hookHelp',
     defaultMessage: 'Runs synchronously at event.recorded using vocabulary accepted by server.',
   },
-  wizardRuleGiven: { id: 'control.wizard.rule.given', defaultMessage: 'GIVEN' },
+  wizardRuleGiven: { id: 'control.wizard.rule.given', defaultMessage: 'Given' },
   wizardRuleGivenEvent: {
     id: 'control.wizard.rule.givenEvent',
     defaultMessage:
       'The system supplies the recorded discipline-defined event that triggers this rule (event.recorded).',
   },
-  wizardRuleWhen: { id: 'control.wizard.rule.when', defaultMessage: 'WHEN' },
-  wizardRuleThen: { id: 'control.wizard.rule.then', defaultMessage: 'THEN' },
-  wizardRuleAnd: { id: 'control.wizard.rule.and', defaultMessage: 'AND' },
+  wizardRuleWhen: { id: 'control.wizard.rule.when', defaultMessage: 'When' },
+  wizardRuleThen: { id: 'control.wizard.rule.then', defaultMessage: 'Then' },
+  wizardRuleAnd: { id: 'control.wizard.rule.and', defaultMessage: 'And' },
   wizardRuleAddCondition: {
     id: 'control.wizard.rule.addCondition',
     defaultMessage: 'Add condition',
@@ -1631,7 +2157,11 @@ export const messages = defineMessages({
   },
   wizardBack: { id: 'control.wizard.back', defaultMessage: 'Back' },
   wizardCreate: { id: 'control.wizard.create', defaultMessage: 'Create tournament' },
-  wizardContinue: { id: 'control.wizard.continue', defaultMessage: 'Continue' },
+  wizardContinue: { id: 'control.wizard.continue', defaultMessage: 'Continue to the next step' },
+  wizardReturnToSummary: {
+    id: 'control.wizard.returnToSummary',
+    defaultMessage: 'Return to summary',
+  },
 
   // Decision descriptions — what each wizard decision does
   // during the competition, not what the setting is named.
@@ -1771,10 +2301,6 @@ export const messages = defineMessages({
   // Standings (components/StandingsTemplate.tsx)
   standingsSectionLabel: { id: 'control.standings.sectionLabel', defaultMessage: 'Standings' },
   standingsTitle: { id: 'control.standings.title', defaultMessage: 'Standings' },
-  standingsProjectionVersion: {
-    id: 'control.standings.projectionVersion',
-    defaultMessage: 'Projection v{version}',
-  },
   standingsUnresolvedTie: {
     id: 'control.standings.unresolvedTie',
     defaultMessage: ' · unresolved tie',
@@ -1891,6 +2417,10 @@ export const messages = defineMessages({
     id: 'control.zoneGroup.manualPlacement',
     defaultMessage: 'Manual placement',
   },
+  zoneGroupChooseAssignmentMode: {
+    id: 'control.zoneGroup.chooseAssignmentMode',
+    defaultMessage: 'Choose an assignment mode to preview or place entrants.',
+  },
   zoneGroupZoneCount: { id: 'control.zoneGroup.zoneCount', defaultMessage: 'Number of zones' },
   zoneGroupGroupCount: { id: 'control.zoneGroup.groupCount', defaultMessage: 'Number of groups' },
   zoneGroupSeed: { id: 'control.zoneGroup.seed', defaultMessage: 'Draw seed' },
@@ -1924,8 +2454,21 @@ export const messages = defineMessages({
     id: 'control.zoneGroup.renameGroupLabel',
     defaultMessage: 'Rename group {name}',
   },
-  zoneGroupRename: { id: 'control.zoneGroup.rename', defaultMessage: 'Rename' },
+  zoneGroupRenameZone: { id: 'control.zoneGroup.renameZone', defaultMessage: 'Rename zone' },
+  zoneGroupRenameGroup: { id: 'control.zoneGroup.renameGroup', defaultMessage: 'Rename group' },
   zoneGroupDelete: { id: 'control.zoneGroup.delete', defaultMessage: 'Delete' },
+  zoneGroupDeleteHelp: {
+    id: 'control.zoneGroup.deleteHelp',
+    defaultMessage:
+      'Removing a zone or group keeps its assignments and can be undone for 10 seconds. Removal is blocked while it contains fixtures.',
+  },
+  zoneGroupZoneDeleted: { id: 'control.zoneGroup.zoneDeleted', defaultMessage: 'Zone removed.' },
+  zoneGroupGroupDeleted: { id: 'control.zoneGroup.groupDeleted', defaultMessage: 'Group removed.' },
+  zoneGroupZoneRestored: { id: 'control.zoneGroup.zoneRestored', defaultMessage: 'Zone restored.' },
+  zoneGroupGroupRestored: {
+    id: 'control.zoneGroup.groupRestored',
+    defaultMessage: 'Group restored.',
+  },
   zoneGroupZonePlaysInherited: {
     id: 'control.zoneGroup.zonePlaysInherited',
     defaultMessage: 'Plays {format} (the stage’s format)',
@@ -1983,6 +2526,142 @@ export const messages = defineMessages({
     id: 'control.settings.loadFailed',
     defaultMessage: 'Could not load the tournament settings.',
   },
+  settingsSections: {
+    id: 'control.settings.sections',
+    defaultMessage: 'Tournament settings sections',
+  },
+  settingsTabGeneral: { id: 'control.settings.tab.general', defaultMessage: 'Settings' },
+  settingsTabPrivacy: { id: 'control.settings.tab.privacy', defaultMessage: 'Privacy' },
+  settingsPrivacyHeading: {
+    id: 'control.settings.privacy.heading',
+    defaultMessage: 'Public player profiles',
+  },
+  settingsPrivacyIntro: {
+    id: 'control.settings.privacy.intro',
+    defaultMessage:
+      'The organizer decides whether this tournament includes minors. Birth dates never determine this setting.',
+  },
+  settingsIncludesMinorsLabel: {
+    id: 'control.settings.privacy.includesMinors.label',
+    defaultMessage: 'Participants include minors',
+  },
+  settingsIncludesMinorsHelp: {
+    id: 'control.settings.privacy.includesMinors.help',
+    defaultMessage:
+      'When this is on, player profiles stay hidden unless you enable public youth profiles below.',
+  },
+  settingsShowYouthProfilesLabel: {
+    id: 'control.settings.privacy.showYouthProfiles.label',
+    defaultMessage: 'Show youth player profiles publicly',
+  },
+  settingsShowYouthProfilesHelp: {
+    id: 'control.settings.privacy.showYouthProfiles.help',
+    defaultMessage:
+      'Player names, photos, nationality and profile pages become public, and tournament statistics can contribute to career pages.',
+  },
+  tournamentSummaryFullRules: {
+    id: 'control.tournamentSummary.fullRules',
+    defaultMessage: 'Full rules',
+  },
+  rulesetColumnParameter: { id: 'control.ruleset.column.parameter', defaultMessage: 'Parameter' },
+  rulesetColumnValue: { id: 'control.ruleset.column.value', defaultMessage: 'Value' },
+  rulesetColumnSource: { id: 'control.ruleset.column.source', defaultMessage: 'Source' },
+  rulesetColumnAction: { id: 'control.ruleset.column.action', defaultMessage: 'Action' },
+  rulesetSourceOverride: {
+    id: 'control.ruleset.source.override',
+    defaultMessage: 'Tournament value',
+  },
+  rulesetSourceModified: { id: 'control.ruleset.source.modified', defaultMessage: 'Modified' },
+  rulesetTabAll: { id: 'control.ruleset.tab.all', defaultMessage: 'All' },
+  rulesetTabFormat: { id: 'control.ruleset.tab.format', defaultMessage: 'Format' },
+  rulesetTabScoring: { id: 'control.ruleset.tab.scoring', defaultMessage: 'Scoring' },
+  rulesetTabTiebreakers: { id: 'control.ruleset.tab.tiebreakers', defaultMessage: 'Tiebreakers' },
+  tiebreakerPoints: {
+    id: 'control.tiebreaker.points',
+    defaultMessage: 'Points',
+  },
+  tiebreakerScoreDifference: {
+    id: 'control.tiebreaker.scoreDifference',
+    defaultMessage: 'Score difference',
+  },
+  tiebreakerGoalAverage: {
+    id: 'control.tiebreaker.goalAverage',
+    defaultMessage: 'Goal average',
+  },
+  tiebreakerGoalsFor: {
+    id: 'control.tiebreaker.goalsFor',
+    defaultMessage: 'Goals for',
+  },
+  tiebreakerGoalsAgainst: {
+    id: 'control.tiebreaker.goalsAgainst',
+    defaultMessage: 'Goals against',
+  },
+  tiebreakerMatchesWon: {
+    id: 'control.tiebreaker.matchesWon',
+    defaultMessage: 'Matches won',
+  },
+  tiebreakerSetsWon: {
+    id: 'control.tiebreaker.setsWon',
+    defaultMessage: 'Sets won',
+  },
+  tiebreakerGamesWon: {
+    id: 'control.tiebreaker.gamesWon',
+    defaultMessage: 'Games won',
+  },
+  tiebreakerHeadToHead: {
+    id: 'control.tiebreaker.headToHead',
+    defaultMessage: 'Head-to-head',
+  },
+  rulesetTabRegistration: {
+    id: 'control.ruleset.tab.registration',
+    defaultMessage: 'Registration',
+  },
+  rulesetTabOther: { id: 'control.ruleset.tab.other', defaultMessage: 'Other' },
+  rulesetSections: { id: 'control.ruleset.sections', defaultMessage: 'Ruleset categories' },
+  rulesetSourceDefault: {
+    id: 'control.ruleset.source.default',
+    defaultMessage: 'Discipline default',
+  },
+  rulesetActionOverride: { id: 'control.ruleset.action.override', defaultMessage: 'Replace value' },
+  zoneGroupGroupCountFact: {
+    id: 'control.zoneGroup.groupCountFact',
+    defaultMessage: '{count, plural, one {# group} other {# groups}}',
+  },
+  zoneGroupGroupMatches: {
+    id: 'control.zoneGroup.groupMatches',
+    defaultMessage: '{count, plural, one {# match} other {# matches}}',
+  },
+  zoneGroupGroupNoMatches: {
+    id: 'control.zoneGroup.groupNoMatches',
+    defaultMessage: 'No matches yet',
+  },
+  zoneGroupGroupVenues: {
+    id: 'control.zoneGroup.groupVenues',
+    defaultMessage: '{count, plural, one {# venue} other {# venues}}',
+  },
+  promotionColumnPosition: { id: 'control.promotion.column.position', defaultMessage: 'Position' },
+  promotionColumnEntrant: { id: 'control.promotion.column.entrant', defaultMessage: 'Entrant' },
+  promotionColumnGroupRank: {
+    id: 'control.promotion.column.groupRank',
+    defaultMessage: 'Position in group',
+  },
+  promotionColumnBand: { id: 'control.promotion.column.band', defaultMessage: 'Band' },
+  promotionSlotTotal: { id: 'control.promotion.slotTotal', defaultMessage: 'slots across bands' },
+  seedingFilter: { id: 'control.seeding.filter', defaultMessage: 'Filter participants' },
+  wizardNextStep: { id: 'control.wizard.nextStep', defaultMessage: 'Next: {step}' },
+  imageCropModalPreview: { id: 'control.imageCropModal.preview', defaultMessage: 'Preview' },
+  unsavedChangesSummary: {
+    id: 'control.unsavedChanges.summary',
+    defaultMessage: '{count, plural, one {# unsaved change} other {# unsaved changes}}',
+  },
+  unsavedChangesFields: { id: 'control.unsavedChanges.fields', defaultMessage: 'Changed fields' },
+  unsavedChangesReset: { id: 'control.unsavedChanges.reset', defaultMessage: 'Reset' },
+  unsavedChangesSave: { id: 'control.unsavedChanges.save', defaultMessage: 'Save changes' },
+  settingsPrivacySave: {
+    id: 'control.settings.privacy.save',
+    defaultMessage: 'Save privacy settings',
+  },
+  rulesetRetry: { id: 'control.ruleset.retry', defaultMessage: 'Retry' },
   settingsNameLabel: { id: 'control.settings.nameLabel', defaultMessage: 'Name' },
   settingsRegionLabel: { id: 'control.settings.regionLabel', defaultMessage: 'Region' },
   settingsCapacityLabel: { id: 'control.settings.capacityLabel', defaultMessage: 'Capacity' },
@@ -1995,7 +2674,7 @@ export const messages = defineMessages({
     defaultMessage: 'Feature on the organization’s public page',
   },
   settingsPreview: { id: 'control.settings.preview', defaultMessage: 'Preview' },
-  settingsSave: { id: 'control.settings.save', defaultMessage: 'Save' },
+  settingsSave: { id: 'control.settings.save', defaultMessage: 'Save settings' },
   settingsSaved: { id: 'control.settings.saved', defaultMessage: 'Settings saved.' },
   settingsMutationClass: {
     id: 'control.settings.mutationClass',
@@ -2040,7 +2719,7 @@ export const messages = defineMessages({
   // passes the result down as props.
   filePickerPrompt: {
     id: 'control.filePicker.prompt',
-    defaultMessage: 'Choose a file or drag here',
+    defaultMessage: 'Choose a file or drag it here.',
   },
   filePickerPromptDragging: {
     id: 'control.filePicker.promptDragging',
@@ -2050,6 +2729,10 @@ export const messages = defineMessages({
     id: 'control.filePicker.acceptedFormats',
     defaultMessage: 'Accepted formats: {formats}',
   },
+  filePickerImageFormats: {
+    id: 'control.filePicker.imageFormats',
+    defaultMessage: 'PNG, JPG, SVG or WebP.',
+  },
   filePickerMaxSize: {
     id: 'control.filePicker.maxSize',
     defaultMessage: 'Max size: {size}',
@@ -2057,6 +2740,10 @@ export const messages = defineMessages({
   filePickerClear: {
     id: 'control.filePicker.clear',
     defaultMessage: 'Clear',
+  },
+  filePickerClearLabel: {
+    id: 'control.filePicker.clearLabel',
+    defaultMessage: 'Clear selected file',
   },
   filePickerFilesSelected: {
     id: 'control.filePicker.filesSelected',
@@ -2105,16 +2792,76 @@ export const messages = defineMessages({
   // SeedingBuilderPage.tsx — stage rename/format-change/delete
   stageSettingsTitle: { id: 'control.stageSettings.title', defaultMessage: 'Stage settings' },
   stageRenameLabel: { id: 'control.stageSettings.renameLabel', defaultMessage: 'New stage name' },
-  stageRenameSubmit: { id: 'control.stageSettings.renameSubmit', defaultMessage: 'Rename' },
+  stageRenameSubmit: {
+    id: 'control.stageSettings.renameSubmit',
+    defaultMessage: 'Rename stage',
+  },
   stageFormatLabel: { id: 'control.stageSettings.formatLabel', defaultMessage: 'Format' },
   stageFormatSubmit: {
     id: 'control.stageSettings.formatSubmit',
     defaultMessage: 'Change format',
   },
   stageDelete: { id: 'control.stageSettings.delete', defaultMessage: 'Delete stage' },
+  stageDeleteTitle: {
+    id: 'control.stageSettings.deleteTitle',
+    defaultMessage: 'Delete {name}?',
+  },
+  stageDeleteDescription: {
+    id: 'control.stageSettings.deleteDescription',
+    defaultMessage: 'This permanently removes this stage and its records.',
+  },
+  stageDeleteTypeName: {
+    id: 'control.stageSettings.deleteTypeName',
+    defaultMessage: 'Type the stage name to confirm',
+  },
+  stageDeleteFixtures: { id: 'control.stageSettings.deleteFixtures', defaultMessage: 'Fixtures' },
+  stageDeleteMatches: {
+    id: 'control.stageSettings.deleteMatches',
+    defaultMessage: 'Matches and results',
+  },
+  stageDeleteZonesGroups: {
+    id: 'control.stageSettings.deleteZonesGroups',
+    defaultMessage: 'Zones and groups',
+  },
+  stageDeleteEvents: {
+    id: 'control.stageSettings.deleteEvents',
+    defaultMessage: 'Recorded events',
+  },
+  stageDeleteSchedule: {
+    id: 'control.stageSettings.deleteSchedule',
+    defaultMessage: 'Schedule placements and official assignments',
+  },
+  stageDeleteReports: {
+    id: 'control.stageSettings.deleteReports',
+    defaultMessage: 'Participant reports and evidence',
+  },
+  stageDeleteStatistics: {
+    id: 'control.stageSettings.deleteStatistics',
+    defaultMessage: 'Statistics and standings',
+  },
+  stageDeleteAccess: {
+    id: 'control.stageSettings.deleteAccess',
+    defaultMessage: 'Match permissions and display tokens',
+  },
+  stageDeleteConfiguration: {
+    id: 'control.stageSettings.deleteConfiguration',
+    defaultMessage: 'Stage configurations, rulesets, and thresholds',
+  },
+  stageDeletePromotionPlans: {
+    id: 'control.stageSettings.deletePromotionPlans',
+    defaultMessage: 'Promotion plans',
+  },
+  stageDeleteCommandRecords: {
+    id: 'control.stageSettings.deleteCommandRecords',
+    defaultMessage: 'Saved command responses',
+  },
+  stageDeleteUnavailable: {
+    id: 'control.stageSettings.deleteUnavailable',
+    defaultMessage: 'Stage removal is unavailable.',
+  },
   stageSeededExplanation: {
     id: 'control.stageSettings.seededExplanation',
-    defaultMessage: 'This stage already has fixtures, so its format and removal are locked.',
+    defaultMessage: 'This stage already has fixtures, so its format is locked.',
   },
 
   // TournamentHubTemplate.tsx / StageHubTemplate.tsx
@@ -2488,14 +3235,14 @@ export const messages = defineMessages({
     id: 'control.clubManagement.empty',
     defaultMessage: 'This organization has no clubs yet.',
   },
-  clubManagementEdit: { id: 'control.clubManagement.edit', defaultMessage: 'Edit' },
+  clubManagementEdit: { id: 'control.clubManagement.edit', defaultMessage: 'Edit club' },
   clubManagementNewClubName: {
     id: 'control.clubManagement.newClubName',
     defaultMessage: 'New club name',
   },
   clubManagementNewClubAlias: {
     id: 'control.clubManagement.newClubAlias',
-    defaultMessage: 'Alias (optional)',
+    defaultMessage: 'New club alias',
   },
   clubManagementNewClubAbbreviation: {
     id: 'control.clubManagement.newClubAbbreviation',
@@ -2530,6 +3277,19 @@ export const messages = defineMessages({
   },
   clubManagementSaved: { id: 'control.clubManagement.saved', defaultMessage: 'Changes saved.' },
   clubManagementCreated: { id: 'control.clubManagement.created', defaultMessage: 'Club created.' },
+  clubManagementAliasRequired: {
+    id: 'control.clubManagement.aliasRequired',
+    defaultMessage: 'Enter an alias.',
+  },
+  clubManagementAliasHint: {
+    id: 'control.clubManagement.aliasHint',
+    defaultMessage:
+      "The alias is the club's public address. Use lowercase letters, numbers and hyphens.",
+  },
+  clubManagementAliasTaken: {
+    id: 'control.clubManagement.aliasTaken',
+    defaultMessage: 'Another club already uses this alias.',
+  },
   clubManagementEmblemUploaded: {
     id: 'control.clubManagement.emblemUploaded',
     defaultMessage: 'Emblem uploaded.',
@@ -2547,7 +3307,10 @@ export const messages = defineMessages({
     id: 'control.clubPortal.membersEmpty',
     defaultMessage: 'This club has no members yet.',
   },
-  clubPortalMembersEdit: { id: 'control.clubPortal.membersEdit', defaultMessage: 'Edit' },
+  clubPortalMembersEdit: {
+    id: 'control.clubPortal.membersEdit',
+    defaultMessage: 'Edit members',
+  },
   clubPortalMembersNewMemberName: {
     id: 'control.clubPortal.newMemberName',
     defaultMessage: 'New member name',
@@ -2655,7 +3418,7 @@ export const messages = defineMessages({
   },
   resourceManagementTitle: {
     id: 'control.resourceManagement.title',
-    defaultMessage: 'Venues & officials',
+    defaultMessage: 'Venues, schedules & officials',
   },
   resourceManagementLoading: {
     id: 'control.resourceManagement.loading',
@@ -2685,7 +3448,18 @@ export const messages = defineMessages({
     id: 'control.resourceManagement.officialsEmpty',
     defaultMessage: 'This organization has no officials yet.',
   },
-  resourceManagementEdit: { id: 'control.resourceManagement.edit', defaultMessage: 'Edit' },
+  resourceManagementEditVenue: {
+    id: 'control.resourceManagement.editVenue',
+    defaultMessage: 'Edit venue',
+  },
+  resourceManagementEditSchedule: {
+    id: 'control.resourceManagement.editSchedule',
+    defaultMessage: 'Edit schedule',
+  },
+  resourceManagementEditOfficial: {
+    id: 'control.resourceManagement.editOfficial',
+    defaultMessage: 'Edit official',
+  },
   resourceManagementNewVenueName: {
     id: 'control.resourceManagement.newVenueName',
     defaultMessage: 'New venue name',
@@ -2755,6 +3529,18 @@ export const messages = defineMessages({
   resourceManagementVenueCreated: {
     id: 'control.resourceManagement.venueCreated',
     defaultMessage: 'Venue created.',
+  },
+  resourceManagementDeleteVenue: {
+    id: 'control.resourceManagement.deleteVenue',
+    defaultMessage: 'Remove venue',
+  },
+  resourceManagementVenueDeleted: {
+    id: 'control.resourceManagement.venueDeleted',
+    defaultMessage: 'Venue removed.',
+  },
+  resourceManagementVenueRestored: {
+    id: 'control.resourceManagement.venueRestored',
+    defaultMessage: 'Venue restored.',
   },
   resourceManagementNewOfficialName: {
     id: 'control.resourceManagement.newOfficialName',
@@ -2868,6 +3654,11 @@ export const messages = defineMessages({
     id: 'control.resourceManagement.deleteSchedule',
     defaultMessage: 'Delete schedule',
   },
+  resourceManagementDeleteScheduleConsequences: {
+    id: 'control.resourceManagement.deleteScheduleConsequences',
+    defaultMessage:
+      'Deletes {slots} slots and unassigns {matches} matches. Match results stay unchanged.',
+  },
 
   // Schedule builder — manual assignment of time, venue, and officials to a stage's fixtures.
   scheduleBuilderSectionLabel: {
@@ -2892,6 +3683,10 @@ export const messages = defineMessages({
     id: 'control.scheduleBuilder.listViewLabel',
     defaultMessage: 'List view',
   },
+  scheduleBuilderDailyScheduleLabel: {
+    id: 'control.scheduleBuilder.dailyScheduleLabel',
+    defaultMessage: 'Schedule by day',
+  },
   scheduleBuilderNoFixtures: {
     id: 'control.scheduleBuilder.noFixtures',
     defaultMessage: 'This stage has no fixtures yet.',
@@ -2913,18 +3708,107 @@ export const messages = defineMessages({
     defaultMessage: 'Duration (minutes)',
   },
   scheduleBuilderVenue: { id: 'control.scheduleBuilder.venue', defaultMessage: 'Venue' },
+  scheduleBuilderFilterDay: {
+    id: 'control.scheduleBuilder.filterDay',
+    defaultMessage: 'Day',
+  },
+  scheduleBuilderFilterVenue: {
+    id: 'control.scheduleBuilder.filterVenue',
+    defaultMessage: 'Venue',
+  },
+  scheduleBuilderAllDays: {
+    id: 'control.scheduleBuilder.allDays',
+    defaultMessage: 'All days',
+  },
+  scheduleBuilderAllVenues: {
+    id: 'control.scheduleBuilder.allVenues',
+    defaultMessage: 'All venues',
+  },
   scheduleBuilderNoVenue: { id: 'control.scheduleBuilder.noVenue', defaultMessage: 'No venue' },
+  scheduleBuilderNoMatchesForFilters: {
+    id: 'control.scheduleBuilder.noMatchesForFilters',
+    defaultMessage: 'No matches fit these filters.',
+  },
   scheduleBuilderOfficials: {
     id: 'control.scheduleBuilder.officials',
     defaultMessage: 'Officials',
+  },
+  scheduleBuilderOfficialsSummary: {
+    id: 'control.scheduleBuilder.officialsSummary',
+    defaultMessage: 'Officials: {names}',
+  },
+  scheduleBuilderNoOfficialsAssigned: {
+    id: 'control.scheduleBuilder.noOfficialsAssigned',
+    defaultMessage: 'No officials assigned',
+  },
+  scheduleBuilderEditOfficials: {
+    id: 'control.scheduleBuilder.editOfficials',
+    defaultMessage: 'Edit officials',
+  },
+  scheduleBuilderDoneOfficials: {
+    id: 'control.scheduleBuilder.doneOfficials',
+    defaultMessage: 'Done',
+  },
+  scheduleBuilderChooseDay: {
+    id: 'control.scheduleBuilder.chooseDay',
+    defaultMessage: 'Choose a day',
+  },
+  scheduleBuilderSlotOption: {
+    id: 'control.scheduleBuilder.slotOption',
+    defaultMessage: '{time} · {venue}',
+  },
+  scheduleBuilderSlotOptionFull: {
+    id: 'control.scheduleBuilder.slotOptionFull',
+    defaultMessage: '{time} · {venue} · Full',
+  },
+  scheduleBuilderSlotOccupancy: {
+    id: 'control.scheduleBuilder.slotOccupancy',
+    defaultMessage: '{count}/{capacity}',
+  },
+  scheduleBuilderNoOfficialsAvailable: {
+    id: 'control.scheduleBuilder.noOfficialsAvailable',
+    defaultMessage: 'No officials are available to assign.',
+  },
+  scheduleBuilderAssignBeforePreview: {
+    id: 'control.scheduleBuilder.assignBeforePreview',
+    defaultMessage: 'Assign at least one match to a time and venue to preview the schedule.',
+  },
+  scheduleBuilderPreviewBeforePublish: {
+    id: 'control.scheduleBuilder.previewBeforePublish',
+    defaultMessage: 'Preview the current assignments before publishing.',
+  },
+  scheduleBuilderResolveConflictsBeforePublish: {
+    id: 'control.scheduleBuilder.resolveConflictsBeforePublish',
+    defaultMessage: 'Resolve the listed conflicts before publishing.',
   },
   scheduleBuilderPreview: {
     id: 'control.scheduleBuilder.preview',
     defaultMessage: 'Preview',
   },
+  scheduleBuilderStreamUrl: {
+    id: 'control.scheduleBuilder.streamUrl',
+    defaultMessage: 'Stream link',
+  },
+  scheduleBuilderStreamUrlInvalid: {
+    id: 'control.scheduleBuilder.streamUrlInvalid',
+    defaultMessage:
+      'Enter a full link, up to 2048 characters, that starts with http:// or https://',
+  },
+  scheduleBuilderStreamUrlEdit: {
+    id: 'control.scheduleBuilder.streamUrlEdit',
+    defaultMessage: 'Edit stream',
+  },
+  scheduleBuilderStreamUrlSave: {
+    id: 'control.scheduleBuilder.streamUrlSave',
+    defaultMessage: 'Save link',
+  },
+  scheduleBuilderStreamUrlClear: {
+    id: 'control.scheduleBuilder.streamUrlClear',
+    defaultMessage: 'Remove link',
+  },
   scheduleBuilderPublish: {
     id: 'control.scheduleBuilder.publish',
-    defaultMessage: 'Publish',
+    defaultMessage: 'Publish schedule',
   },
   scheduleBuilderPublished: {
     id: 'control.scheduleBuilder.published',
@@ -3006,7 +3890,10 @@ export const messages = defineMessages({
     defaultMessage: 'Could not load organization settings.',
   },
   orgIdentityName: { id: 'control.orgIdentity.name', defaultMessage: 'Name' },
-  orgIdentitySave: { id: 'control.orgIdentity.save', defaultMessage: 'Save' },
+  orgIdentitySave: {
+    id: 'control.orgIdentity.save',
+    defaultMessage: 'Save organization details',
+  },
   orgIdentitySaved: { id: 'control.orgIdentity.saved', defaultMessage: 'Organization updated.' },
   orgIdentitySaveFailed: {
     id: 'control.orgIdentity.saveFailed',
@@ -3052,6 +3939,19 @@ export const messages = defineMessages({
   statisticsRebuildTrigger: {
     id: 'control.statisticsRebuild.trigger',
     defaultMessage: 'Rebuild statistics',
+  },
+  statisticsRebuildMatches: {
+    id: 'control.statisticsRebuild.matches',
+    defaultMessage: 'Matches to recompute',
+  },
+  statisticsRebuildFigures: {
+    id: 'control.statisticsRebuild.figures',
+    defaultMessage: 'Statistic rows to write',
+  },
+  statisticsRebuildConsequences: {
+    id: 'control.statisticsRebuild.consequences',
+    defaultMessage:
+      'Rebuilds statistics from recorded events. Matches: {matches}; statistic rows to write: {figures}.',
   },
   statisticsRebuildConfirmPrompt: {
     id: 'control.statisticsRebuild.confirmPrompt',
@@ -3110,7 +4010,7 @@ export const messages = defineMessages({
   imageCropModalZoom: { id: 'control.imageCropModal.zoom', defaultMessage: 'Zoom' },
   imageCropModalRotation: { id: 'control.imageCropModal.rotation', defaultMessage: 'Rotation' },
   imageCropModalCancel: { id: 'control.imageCropModal.cancel', defaultMessage: 'Cancel' },
-  imageCropModalConfirm: { id: 'control.imageCropModal.confirm', defaultMessage: 'Use image' },
+  imageCropModalConfirm: { id: 'control.imageCropModal.confirm', defaultMessage: 'Apply' },
   imageCropModalClose: { id: 'control.imageCropModal.close', defaultMessage: 'Close' },
   imageCropModalProcessing: {
     id: 'control.imageCropModal.processing',
@@ -3294,7 +4194,7 @@ export const messages = defineMessages({
   descriptorDecisionSegmentTypes: {
     id: 'control.descriptor.decisionSegmentTypes',
     defaultMessage:
-      'The phases a match is divided into (halves, sets, rounds). Optional — a discipline decided in one uninterrupted match declares none.',
+      'The segments a match is divided into (halves, sets, rounds). Optional — a discipline decided in one uninterrupted match declares none.',
   },
   descriptorFieldSegmentTypeName: {
     id: 'control.descriptor.fieldSegmentTypeName',
@@ -3491,7 +4391,10 @@ export const messages = defineMessages({
     defaultMessage: 'The segment that closes must be one declared in the participants step.',
   },
   descriptorBack: { id: 'control.descriptor.back', defaultMessage: 'Back' },
-  descriptorContinue: { id: 'control.descriptor.continue', defaultMessage: 'Continue' },
+  descriptorContinue: {
+    id: 'control.descriptor.continue',
+    defaultMessage: 'Continue descriptor setup',
+  },
   descriptorAuthorAndInstall: {
     id: 'control.descriptor.authorAndInstall',
     defaultMessage: 'Author and install',
@@ -3601,7 +4504,7 @@ export const messages = defineMessages({
   profileAdd: { id: 'control.profile.add', defaultMessage: 'Add' },
   profileRemove: { id: 'control.profile.remove', defaultMessage: 'Remove' },
   profileBack: { id: 'control.profile.back', defaultMessage: 'Back' },
-  profileContinue: { id: 'control.profile.continue', defaultMessage: 'Continue' },
+  profileContinue: { id: 'control.profile.continue', defaultMessage: 'Continue profile setup' },
   profileAuthorAndInstall: {
     id: 'control.profile.authorAndInstall',
     defaultMessage: 'Author and install',
@@ -3609,6 +4512,14 @@ export const messages = defineMessages({
 
   // Matches view — MatchesViewPage.tsx, shared MatchCard.tsx
   matchesViewControlTitle: { id: 'control.matchesView.title', defaultMessage: 'Matches' },
+  matchesViewListHeading: {
+    id: 'control.matchesView.listHeading',
+    defaultMessage: 'All matches',
+  },
+  matchesViewCardHeading: {
+    id: 'control.matchesView.cardHeading',
+    defaultMessage: 'Match {match}',
+  },
   matchesViewControlLoadFailed: {
     id: 'control.matchesView.loadFailed',
     defaultMessage: 'Could not load matches.',
@@ -3648,14 +4559,6 @@ export const messages = defineMessages({
     id: 'control.matchesView.position',
     defaultMessage: 'Position #{position}',
   },
-  matchesViewDecidedBy: {
-    id: 'control.matchesView.decidedBy',
-    defaultMessage: 'Decided by: {factor}',
-  },
-  matchesViewDecidedByAriaLabel: {
-    id: 'control.matchesView.decidedByAriaLabel',
-    defaultMessage: 'The deciding factor between tied standings rows.',
-  },
   matchesViewFullTraceHeading: {
     id: 'control.matchesView.fullTraceHeading',
     defaultMessage: 'Full standings comparator trace',
@@ -3667,7 +4570,7 @@ export const messages = defineMessages({
   },
   matchesViewResultStateUpcoming: {
     id: 'control.matchesView.resultState.upcoming',
-    defaultMessage: 'UPCOMING',
+    defaultMessage: 'Upcoming',
   },
   matchesViewResultStateFinal: {
     id: 'control.matchesView.resultState.final',
@@ -3675,20 +4578,23 @@ export const messages = defineMessages({
   },
   matchesViewResultStateDisputed: {
     id: 'control.matchesView.resultState.disputed',
-    defaultMessage: 'DISPUTED',
+    defaultMessage: 'Disputed',
   },
   matchesViewResultStateWinner: {
     id: 'control.matchesView.resultState.winner',
-    defaultMessage: 'WON',
+    defaultMessage: 'Won',
   },
   matchesViewResultStateLoser: {
     id: 'control.matchesView.resultState.loser',
-    defaultMessage: 'LOST',
+    defaultMessage: 'Lost',
   },
-  matchesViewResultStateTbd: { id: 'control.matchesView.resultState.tbd', defaultMessage: 'TBD' },
+  matchesViewResultStateTbd: {
+    id: 'control.matchesView.resultState.tbd',
+    defaultMessage: 'To be determined',
+  },
   matchesViewResultStateCancelled: {
     id: 'control.matchesView.resultState.cancelled',
-    defaultMessage: 'CANCELLED',
+    defaultMessage: 'Cancelled',
   },
   matchesViewSeriesAriaLabel: {
     id: 'control.matchesView.series.ariaLabel',
@@ -3709,8 +4615,12 @@ export const messages = defineMessages({
   matchesViewSeeAll: { id: 'control.matchesView.seeAll', defaultMessage: 'See every match' },
 
   // Dashboard tournament card
-  dashboardOpen: { id: 'control.dashboard.open', defaultMessage: 'Open' },
+  dashboardOpen: { id: 'control.dashboard.open', defaultMessage: 'Open tournament' },
   dashboardExport: { id: 'control.dashboard.export', defaultMessage: 'Export' },
+  dashboardMoreActions: {
+    id: 'control.dashboard.moreActions',
+    defaultMessage: 'More actions',
+  },
   dashboardResumeEditing: {
     id: 'control.dashboard.resumeEditing',
     defaultMessage: 'Resume editing',
@@ -3733,6 +4643,14 @@ export const messages = defineMessages({
     id: 'control.liveConsole.createTournament',
     defaultMessage: 'Create tournament',
   },
+  liveConsoleViewMatches: {
+    id: 'control.liveConsole.viewMatches',
+    defaultMessage: 'View matches',
+  },
+  liveConsoleMatchReports: {
+    id: 'control.liveConsole.matchReports',
+    defaultMessage: 'Match reports',
+  },
 
   // Preferences route — the personal-access-token
   // list's own loading state. Uses the shared catalogue rather than this
@@ -3744,10 +4662,65 @@ export const messages = defineMessages({
     defaultMessage: 'Loading…',
   },
   preferencesTitle: { id: 'preferences.title', defaultMessage: 'Personal Preferences' },
+  preferencesThemeTitle: { id: 'control.preferences.theme', defaultMessage: 'Theme' },
+  preferencesThemeDark: { id: 'control.preferences.themeDark', defaultMessage: 'Dark' },
+  preferencesThemeLight: { id: 'control.preferences.themeLight', defaultMessage: 'Light' },
+  preferencesThemeSystem: { id: 'control.preferences.themeSystem', defaultMessage: 'System' },
   preferencesPatTitle: { id: 'preferences.patTitle', defaultMessage: 'Personal Access Tokens' },
   preferencesPatDescription: {
     id: 'preferences.patDescription',
     defaultMessage: 'Generate tokens to access the API directly. Tokens are only shown once.',
+  },
+  preferencesPatApiReference: {
+    id: 'preferences.patApiReference',
+    defaultMessage: 'Try the API with a token in the API reference',
+  },
+  preferencesPatScopes: { id: 'preferences.patScopes', defaultMessage: 'Token permissions' },
+  preferencesPatNoScopes: {
+    id: 'preferences.patNoScopes',
+    defaultMessage: 'Your session has no permissions that can be granted.',
+  },
+  preferencesPatScopesRequired: {
+    id: 'preferences.patScopesRequired',
+    defaultMessage: 'Choose at least one permission to generate a token.',
+  },
+  preferencesPatRevocationTitle: {
+    id: 'preferences.patRevocation.title',
+    defaultMessage: 'Revoke {label}',
+  },
+  preferencesPatRevocationDescription: {
+    id: 'preferences.patRevocation.description',
+    defaultMessage:
+      'This token has been used. Revoking it will invalidate it immediately and cannot be undone.',
+  },
+  preferencesPatRevocationCount: {
+    id: 'preferences.patRevocation.count',
+    defaultMessage: 'Tokens revoked',
+  },
+  preferencesPatRevoked: {
+    id: 'preferences.patRevocation.revoked',
+    defaultMessage: 'Token revoked.',
+  },
+  preferencesPatRestored: {
+    id: 'preferences.patRevocation.restored',
+    defaultMessage: 'Token restored.',
+  },
+  preferencesPatUndo: { id: 'preferences.patRevocation.undo', defaultMessage: 'Undo' },
+  consequenceDialogSummary: {
+    id: 'control.consequenceDialog.summary',
+    defaultMessage: 'Review these changes before confirming.',
+  },
+  consequenceDialogSlotsDeleted: {
+    id: 'control.consequenceDialog.slotsDeleted',
+    defaultMessage: 'Schedule slots deleted',
+  },
+  consequenceDialogMatchesUnassigned: {
+    id: 'control.consequenceDialog.matchesUnassigned',
+    defaultMessage: 'Matches unassigned',
+  },
+  consequenceDialogTypeObjectName: {
+    id: 'control.consequenceDialog.typeObjectName',
+    defaultMessage: 'Type the exact name to confirm',
   },
   preferencesPatCreate: { id: 'preferences.createPat', defaultMessage: 'Generate Token' },
   preferencesPatLabel: { id: 'preferences.patLabel', defaultMessage: 'Token Label' },
@@ -3794,6 +4767,16 @@ export const messages = defineMessages({
     defaultMessage: '{count} media files',
   },
   analyticsNoData: { id: 'control.analytics.noData', defaultMessage: 'No data' },
+  analyticsStatusChart: {
+    id: 'control.analytics.statusChart',
+    defaultMessage: 'Tournament status distribution',
+  },
+  chartLegend: { id: 'control.chart.legend', defaultMessage: 'Legend' },
+  chartShowAsChart: { id: 'control.chart.showAsChart', defaultMessage: 'Show as chart' },
+  chartShowAsTable: { id: 'control.chart.showAsTable', defaultMessage: 'Show as table' },
+  chartOther: { id: 'control.chart.other', defaultMessage: 'Other' },
+  chartEntity: { id: 'control.chart.entity', defaultMessage: 'Entrant' },
+  chartValue: { id: 'control.chart.value', defaultMessage: 'Value' },
   analyticsTournamentOverview: {
     id: 'control.analytics.tournamentOverview',
     defaultMessage: 'Tournament overview',
@@ -3848,6 +4831,10 @@ export const messages = defineMessages({
   tournamentCompletionStage: {
     id: 'control.tournament.completionStage',
     defaultMessage: 'Stage {stageNumber}',
+  },
+  tournamentCompletionValue: {
+    id: 'control.tournament.completionValue',
+    defaultMessage: '{resolved, number} of {total, number}',
   },
 
   // DisciplineSummary (ui/organisms/discipline-summary.tsx) —
@@ -4002,6 +4989,11 @@ export const messages = defineMessages({
   },
 
   // Invitation acceptance (AcceptInvitationForm.tsx / accept.astro)
+  invitationRequiresJavascript: {
+    id: 'invitation.requiresJavascript',
+    defaultMessage:
+      'Accepting an invitation requires JavaScript. Turn it on and open the link again.',
+  },
   invitationMissingToken: {
     id: 'invitation.missingToken',
     defaultMessage: 'The invitation token was not found in the link.',
@@ -4025,7 +5017,7 @@ export const messages = defineMessages({
   invitationTitle: { id: 'invitation.title', defaultMessage: 'Accept invitation' },
   invitationSubtitle: {
     id: 'invitation.subtitle',
-    defaultMessage: 'Set up your CopaLibre administrator account',
+    defaultMessage: 'Choose a password to join your organization on CopaLibre',
   },
   invitationSuccessHeading: {
     id: 'invitation.successHeading',
@@ -4326,5 +5318,515 @@ export const messages = defineMessages({
   platformDiagnosticsLoading: {
     id: 'control.platform.diagnostics.loading',
     defaultMessage: 'Loading platform diagnostics…',
+  },
+  settingsMinimumRestLabel: {
+    id: 'control.settings.minimumRestLabel',
+    defaultMessage: 'Minimum rest between matches (minutes)',
+  },
+  settingsMinimumRestHelp: {
+    id: 'control.settings.minimumRestHelp',
+    defaultMessage:
+      "Checked whenever this tournament's matches are scheduled: an entrant's next match must start at least this long after their previous one ends. Leave it empty for no rule. Changing it moves no match.",
+  },
+  tournamentSummaryMinimumRest: {
+    id: 'control.tournamentSummary.minimumRest',
+    defaultMessage: "Minimum rest between an entrant's matches: {minutes} minutes",
+  },
+  scheduleBuilderWithdraw: {
+    id: 'control.scheduleBuilder.withdraw',
+    defaultMessage: 'Withdraw from slot',
+  },
+  scheduleBuilderKeepPlacement: {
+    id: 'control.scheduleBuilder.keepPlacement',
+    defaultMessage: 'Keep in slot',
+  },
+  scheduleBuilderWithdrawn: {
+    id: 'control.scheduleBuilder.withdrawn',
+    defaultMessage: 'Withdrawn — it will have no scheduled time once published',
+  },
+  scheduleBuilderFreedSlotsHeading: {
+    id: 'control.scheduleBuilder.freedSlotsHeading',
+    defaultMessage: 'Slots this batch frees',
+  },
+  scheduleBuilderLiveLocked: {
+    id: 'control.scheduleBuilder.liveLocked',
+    defaultMessage: 'In progress — it cannot be moved or withdrawn while it is played',
+  },
+  scheduleBuilderConcludedLocked: {
+    id: 'control.scheduleBuilder.concludedLocked',
+    defaultMessage: 'Played — its schedule is a record; use the correction workflow',
+  },
+  reasonPromptTitle: {
+    id: 'control.reasonPrompt.title',
+    defaultMessage: 'Why are these published matches changing?',
+  },
+  reasonPromptDescription: {
+    id: 'control.reasonPrompt.description',
+    defaultMessage:
+      'Entrants and spectators already saw these times. Give one reason for the batch, or mark a match as an exception with its own reason.',
+  },
+  reasonPromptBatchLabel: {
+    id: 'control.reasonPrompt.batchLabel',
+    defaultMessage: 'Reason for this batch',
+  },
+  reasonPromptPlaceholder: {
+    id: 'control.reasonPrompt.placeholder',
+    defaultMessage: 'Pick a reason or type one',
+  },
+  reasonPromptExceptionToggle: {
+    id: 'control.reasonPrompt.exceptionToggle',
+    defaultMessage: 'Different reason',
+  },
+  reasonPromptExceptionLabel: {
+    id: 'control.reasonPrompt.exceptionLabel',
+    defaultMessage: 'Reason for {match}',
+  },
+  reasonPromptSelectRow: {
+    id: 'control.reasonPrompt.selectRow',
+    defaultMessage: 'Select {match}',
+  },
+  reasonPromptMarkSelected: {
+    id: 'control.reasonPrompt.markSelected',
+    defaultMessage: 'Mark selected as exception',
+  },
+  reasonPromptSharedLabel: {
+    id: 'control.reasonPrompt.sharedLabel',
+    defaultMessage:
+      'Reason for the {count, plural, one {selected match} other {# selected matches}}',
+  },
+  reasonPromptSummary: {
+    id: 'control.reasonPrompt.summary',
+    defaultMessage:
+      '{total, plural, one {# match} other {# matches}} · {batch} with batch reason · {exceptions, plural, one {# exception} other {# exceptions}}',
+  },
+  reasonPromptUncovered: {
+    id: 'control.reasonPrompt.uncovered',
+    defaultMessage:
+      '{count, plural, one {# match still needs a reason} other {# matches still need a reason}}',
+  },
+  reasonPromptKeyboardHint: {
+    id: 'control.reasonPrompt.keyboardHint',
+    defaultMessage:
+      '↑/↓ move between matches · Space selects · E marks an exception · Enter publishes · Esc closes',
+  },
+  reasonPromptChange: {
+    id: 'control.reasonPrompt.change',
+    defaultMessage: '{from} → {to}',
+  },
+  reasonPromptWithdrawnChange: {
+    id: 'control.reasonPrompt.withdrawnChange',
+    defaultMessage: '{from} → withdrawn',
+  },
+  reasonPromptPublish: {
+    id: 'control.reasonPrompt.publish',
+    defaultMessage: 'Publish changes',
+  },
+  reasonPromptCancel: {
+    id: 'control.reasonPrompt.cancel',
+    defaultMessage: 'Back to the builder',
+  },
+  reasonPromptClose: {
+    id: 'control.reasonPrompt.close',
+    defaultMessage: 'Close',
+  },
+  reasonPromptPresetsGroup: {
+    id: 'control.reasonPrompt.presetsGroup',
+    defaultMessage: 'Common reasons',
+  },
+  reasonPromptRecentGroup: {
+    id: 'control.reasonPrompt.recentGroup',
+    defaultMessage: 'Recently used',
+  },
+  reasonPromptExceptionBadge: {
+    id: 'control.reasonPrompt.exceptionBadge',
+    defaultMessage: 'Exception',
+  },
+  scheduleReasonVenueUnavailable: {
+    id: 'control.scheduleReason.venueUnavailable',
+    defaultMessage: 'Venue unavailable',
+  },
+  scheduleReasonWeather: {
+    id: 'control.scheduleReason.weather',
+    defaultMessage: 'Weather',
+  },
+  scheduleReasonEntrantRequest: {
+    id: 'control.scheduleReason.entrantRequest',
+    defaultMessage: 'Requested by an entrant',
+  },
+  scheduleReasonOfficialsUnavailable: {
+    id: 'control.scheduleReason.officialsUnavailable',
+    defaultMessage: 'Officials unavailable',
+  },
+  scheduleReasonPriorMatchOverran: {
+    id: 'control.scheduleReason.priorMatchOverran',
+    defaultMessage: 'A previous match ran long',
+  },
+  scheduleReasonBroadcast: {
+    id: 'control.scheduleReason.broadcast',
+    defaultMessage: 'Broadcast schedule',
+  },
+  scheduleReasonDataCorrection: {
+    id: 'control.scheduleReason.dataCorrection',
+    defaultMessage: 'Correcting a mistake',
+  },
+  scheduleReasonOther: {
+    id: 'control.scheduleReason.other',
+    defaultMessage: 'Other',
+  },
+  seedingAheadTitle: {
+    id: 'control.seeding.ahead.title',
+    defaultMessage: 'Generate ahead',
+  },
+  seedingAheadDescription: {
+    id: 'control.seeding.ahead.description',
+    defaultMessage:
+      'A reviewed promotion plan routes qualifiers to this stage. Generate its bracket now with qualifier positions; entrants are confirmed once the prior stage completes.',
+  },
+  seedingAheadGenerate: {
+    id: 'control.seeding.ahead.generate',
+    defaultMessage: 'Generate ahead',
+  },
+  seedingAheadGenerated: {
+    id: 'control.seeding.ahead.generated',
+    defaultMessage: 'Generated ahead. Confirm the qualification once the prior stage completes.',
+  },
+  seedingAheadPreview: {
+    id: 'control.seeding.ahead.preview',
+    defaultMessage: 'Bracket preview',
+  },
+  seedingAheadConfirmLink: {
+    id: 'control.seeding.ahead.confirmLink',
+    defaultMessage: 'Confirm qualification',
+  },
+  qualificationTitle: {
+    id: 'control.qualification.title',
+    defaultMessage: 'Qualification',
+  },
+  qualificationLoading: {
+    id: 'control.qualification.loading',
+    defaultMessage: 'Loading qualification…',
+  },
+  qualificationLoadFailed: {
+    id: 'control.qualification.loadFailed',
+    defaultMessage: 'Could not load the qualification.',
+  },
+  qualificationEmpty: {
+    id: 'control.qualification.empty',
+    defaultMessage: 'No promotion plan routes qualifiers to this stage.',
+  },
+  qualificationIncomplete: {
+    id: 'control.qualification.incomplete',
+    defaultMessage:
+      '{count, plural, one {# match of the prior stage is} other {# matches of the prior stage are}} still unresolved. Entrants can be confirmed once it completes.',
+  },
+  qualificationNotStarted: {
+    id: 'control.qualification.notStarted',
+    defaultMessage:
+      'The prior stage has no matches yet. Entrants can be confirmed once it completes.',
+  },
+  qualificationTie: {
+    id: 'control.qualification.tie',
+    defaultMessage:
+      '{entrants} are tied at the cut line{group, select, none {} other { of {group}}} for {positions}. Resolve the tie before confirming.',
+  },
+  qualificationStale: {
+    id: 'control.qualification.stale',
+    defaultMessage: 'A result changed after the confirmation. Re-confirm needed.',
+  },
+  qualificationConfirmed: {
+    id: 'control.qualification.confirmed',
+    defaultMessage: 'Qualification confirmed. Every qualifier side shows its entrant.',
+  },
+  qualificationReady: {
+    id: 'control.qualification.ready',
+    defaultMessage: 'Review each position, then confirm. Every side is filled in one step.',
+  },
+  qualificationPositionColumn: {
+    id: 'control.qualification.positionColumn',
+    defaultMessage: 'Position',
+  },
+  qualificationZoneColumn: {
+    id: 'control.qualification.zoneColumn',
+    defaultMessage: 'Zone',
+  },
+  qualificationEntrantColumn: {
+    id: 'control.qualification.entrantColumn',
+    defaultMessage: 'Entrant',
+  },
+  qualificationConfirmedColumn: {
+    id: 'control.qualification.confirmedColumn',
+    defaultMessage: 'Confirmed',
+  },
+  qualificationConfirm: {
+    id: 'control.qualification.confirm',
+    defaultMessage: 'Confirm qualification',
+  },
+  qualificationReconfirm: {
+    id: 'control.qualification.reconfirm',
+    defaultMessage: 'Re-confirm qualification',
+  },
+  qualificationConfirmSucceeded: {
+    id: 'control.qualification.confirmSucceeded',
+    defaultMessage:
+      'Qualification confirmed: {count, plural, one {# side} other {# sides}} filled.',
+  },
+  qualificationPreviewMoved: {
+    id: 'control.qualification.previewMoved',
+    defaultMessage: 'The standings changed since this preview. Review it again before confirming.',
+  },
+  qualificationSeedingLink: {
+    id: 'control.qualification.seedingLink',
+    defaultMessage: 'Back to seeding',
+  },
+  promotionPlanRequiresRebuild: {
+    id: 'control.promotion.planRequiresRebuild',
+    defaultMessage:
+      'Stage {stage} was generated ahead from this plan. Generate it again so its positions match before confirming.',
+  },
+  scheduleBuilderArisenHeading: {
+    id: 'control.scheduleBuilder.arisenHeading',
+    defaultMessage: 'Conflicts that arose after publication',
+  },
+  scheduleBuilderArisenDescription: {
+    id: 'control.scheduleBuilder.arisenDescription',
+    defaultMessage:
+      'Each placement was valid when published, and nothing was moved. Move a match, preview and publish to resolve a conflict.',
+  },
+  scheduleBuilderConflictRest: {
+    id: 'control.scheduleBuilder.conflictRest',
+    defaultMessage: '{entrant} lacks the required rest between {match} and {other}',
+  },
+  scheduleBuilderConflictVenue: {
+    id: 'control.scheduleBuilder.conflictVenue',
+    defaultMessage: 'The venue is over capacity for {match} and {other}',
+  },
+  scheduleBuilderConflictOfficial: {
+    id: 'control.scheduleBuilder.conflictOfficial',
+    defaultMessage: 'An official is booked for both {match} and {other}',
+  },
+  scheduleBuilderOtherMatch: {
+    id: 'control.scheduleBuilder.otherMatch',
+    defaultMessage: 'a match outside this stage',
+  },
+  scheduleBuilderConflictFinalized: {
+    id: 'control.scheduleBuilder.conflictFinalized',
+    defaultMessage: '{match} is finalized: its schedule is a record and can no longer change',
+  },
+  scheduleBuilderConflictInProgress: {
+    id: 'control.scheduleBuilder.conflictInProgress',
+    defaultMessage: '{match} is being played: it cannot be moved or withdrawn now',
+  },
+  scheduleBuilderPublishRefused: {
+    id: 'control.scheduleBuilder.publishRefused',
+    defaultMessage: 'The schedule was not published: it now has conflicts, listed below.',
+  },
+  copyIdButton: { id: 'control.copyId.button', defaultMessage: 'Copy ID' },
+  copyIdSuccess: { id: 'control.copyId.success', defaultMessage: 'ID copied' },
+  copyIdFailure: { id: 'control.copyId.failure', defaultMessage: 'Could not copy ID' },
+  infoAbout: { id: 'control.info.about', defaultMessage: 'About {subject}' },
+  auditCopyEntityId: { id: 'control.auditTrail.copyEntityId', defaultMessage: 'Copy record ID' },
+  auditCopyActorId: { id: 'control.auditTrail.copyActorId', defaultMessage: 'Copy actor ID' },
+  rolesDescription: {
+    id: 'control.roles.description',
+    defaultMessage: 'Choose who can operate this organization and what each role can do.',
+  },
+  rolesKpiLabel: { id: 'control.roles.kpiLabel', defaultMessage: 'Operators summary' },
+  rolesKpiOperators: { id: 'control.roles.kpiOperators', defaultMessage: 'Operators' },
+  rolesSearchLabel: { id: 'control.roles.searchLabel', defaultMessage: 'Search operators' },
+  rolesSearchPlaceholder: {
+    id: 'control.roles.searchPlaceholder',
+    defaultMessage: 'Email address',
+  },
+  rolesFiltersLabel: { id: 'control.roles.filtersLabel', defaultMessage: 'Filter by role' },
+  rolesFilterAll: { id: 'control.roles.filterAll', defaultMessage: 'All' },
+  rolesResultCount: {
+    id: 'control.roles.resultCount',
+    defaultMessage: '{count, plural, one {# operator} other {# operators}}',
+  },
+  rolesNoMatches: {
+    id: 'control.roles.noMatches',
+    defaultMessage: 'No operators match this filter.',
+  },
+  rolesScopeOrganization: {
+    id: 'control.roles.scopeOrganization',
+    defaultMessage: 'Whole organization',
+  },
+  rolesScopeClub: { id: 'control.roles.scopeClub', defaultMessage: 'Club: {name}' },
+  rolesScopeTournament: {
+    id: 'control.roles.scopeTournament',
+    defaultMessage: 'Tournament: {name}',
+  },
+  auditTrailKpiLabel: { id: 'control.auditTrail.kpiLabel', defaultMessage: 'Audit trail summary' },
+  auditTrailKpiEvents: { id: 'control.auditTrail.kpiEvents', defaultMessage: 'Events' },
+  auditTrailKpiApplied: {
+    id: 'control.auditTrail.kpiApplied',
+    defaultMessage: 'Applied on this page',
+  },
+  auditTrailKpiRefused: {
+    id: 'control.auditTrail.kpiRefused',
+    defaultMessage: 'Refused on this page',
+  },
+  auditTrailFiltersLabel: {
+    id: 'control.auditTrail.filtersLabel',
+    defaultMessage: 'Filter by result',
+  },
+  auditTrailFilterAll: { id: 'control.auditTrail.filterAll', defaultMessage: 'All' },
+  auditTrailResultCount: {
+    id: 'control.auditTrail.resultCount',
+    defaultMessage: '{count, plural, one {# event on this page} other {# events on this page}}',
+  },
+  analyticsKpiLabel: { id: 'control.analytics.kpiLabel', defaultMessage: 'Tournament summary' },
+  analyticsInProgress: { id: 'control.analytics.inProgress', defaultMessage: 'In progress' },
+  analyticsOperationsTitle: {
+    id: 'control.analytics.operationsTitle',
+    defaultMessage: 'Match progress',
+  },
+  analyticsMatchesResolvedRatio: {
+    id: 'control.analytics.matchesResolvedRatio',
+    defaultMessage: 'Matches resolved',
+  },
+  analyticsTournamentsFinishedRatio: {
+    id: 'control.analytics.tournamentsFinishedRatio',
+    defaultMessage: 'Tournaments finished',
+  },
+  analyticsRatioOf: { id: 'control.analytics.ratioOf', defaultMessage: '{value} / {total}' },
+  analyticsColumnAction: { id: 'control.analytics.column.action', defaultMessage: 'Open' },
+  analyticsOpenTournament: {
+    id: 'control.analytics.openTournament',
+    defaultMessage: 'Open {name}',
+  },
+  analyticsPaginationLabel: {
+    id: 'control.analytics.paginationLabel',
+    defaultMessage: 'Tournaments pages',
+  },
+  analyticsExportCsv: { id: 'control.analytics.exportCsv', defaultMessage: 'Export CSV' },
+  paginationPrevious: { id: 'control.pagination.previous', defaultMessage: 'Previous' },
+  paginationNext: { id: 'control.pagination.next', defaultMessage: 'Next' },
+  preferencesDescription: {
+    id: 'control.preferences.description',
+    defaultMessage: 'Your theme and the access tokens you use with the API.',
+  },
+  orgPageDescription: {
+    id: 'control.orgPage.description',
+    defaultMessage:
+      "The organization's name, emblem, language and time zone, its storage and statistics, and its access tokens.",
+  },
+  preferencesPatCreatedColumn: {
+    id: 'control.preferences.patCreatedColumn',
+    defaultMessage: 'Created',
+  },
+  preferencesPatExpiresColumn: {
+    id: 'control.preferences.patExpiresColumn',
+    defaultMessage: 'Expires',
+  },
+  resourceManagementDescription: {
+    id: 'control.resourceManagement.description',
+    defaultMessage: 'Where matches are played, when they can be scheduled and who officiates them.',
+  },
+  resourceManagementVenueMeta: {
+    id: 'control.resourceManagement.venueMeta',
+    defaultMessage: 'Capacity {count}',
+  },
+  resourceManagementOfficialsKpiLabel: {
+    id: 'control.resourceManagement.officialsKpiLabel',
+    defaultMessage: 'Officials summary',
+  },
+  resourceManagementKpiOfficials: {
+    id: 'control.resourceManagement.kpiOfficials',
+    defaultMessage: 'Officials',
+  },
+  resourceManagementKpiReferees: {
+    id: 'control.resourceManagement.kpiReferees',
+    defaultMessage: 'Referees',
+  },
+  resourceManagementRailLabel: {
+    id: 'control.resourceManagement.railLabel',
+    defaultMessage: 'Register venues, schedules and officials',
+  },
+  resourceManagementRegisterVenueHeading: {
+    id: 'control.resourceManagement.registerVenueHeading',
+    defaultMessage: 'Register a venue',
+  },
+  resourceManagementNewScheduleHeading: {
+    id: 'control.resourceManagement.newScheduleHeading',
+    defaultMessage: 'Create a schedule',
+  },
+  resourceManagementAddOfficialHeading: {
+    id: 'control.resourceManagement.addOfficialHeading',
+    defaultMessage: 'Register an official',
+  },
+  scheduleBuilderDescription: {
+    id: 'control.scheduleBuilder.description',
+    defaultMessage: 'Place each match in a slot, check conflicts, then publish.',
+  },
+  scheduleBuilderKpiLabel: {
+    id: 'control.scheduleBuilder.kpiLabel',
+    defaultMessage: 'Schedule progress',
+  },
+  scheduleBuilderKpiMatches: {
+    id: 'control.scheduleBuilder.kpiMatches',
+    defaultMessage: 'Matches to place',
+  },
+  scheduleBuilderKpiPlaced: { id: 'control.scheduleBuilder.kpiPlaced', defaultMessage: 'Placed' },
+  scheduleBuilderKpiConflicts: {
+    id: 'control.scheduleBuilder.kpiConflicts',
+    defaultMessage: 'Conflicts found',
+  },
+  auditTrailShowDetails: { id: 'control.auditTrail.showDetails', defaultMessage: 'Show details' },
+  auditTrailHideDetails: { id: 'control.auditTrail.hideDetails', defaultMessage: 'Hide details' },
+  auditTrailColumnDetails: { id: 'control.auditTrail.columnDetails', defaultMessage: 'Details' },
+  analyticsPrimaryLabel: {
+    id: 'control.analytics.primaryLabel',
+    defaultMessage: 'Tournament status panel',
+  },
+  dataTableMoreColumns: { id: 'control.dataTable.moreColumns', defaultMessage: 'More columns' },
+  dataTableShowDetails: { id: 'control.dataTable.showDetails', defaultMessage: 'Show details' },
+  dataTableHideDetails: { id: 'control.dataTable.hideDetails', defaultMessage: 'Hide details' },
+  orgIdentityLanguage: {
+    id: 'control.orgIdentity.language',
+    defaultMessage: 'Primary language',
+  },
+  orgIdentityLanguageHelp: {
+    id: 'control.orgIdentity.languageHelp',
+    defaultMessage: "Language of the organization's public pages, TV and emails.",
+  },
+  orgIdentityTimezone: {
+    id: 'control.orgIdentity.timezone',
+    defaultMessage: 'Time zone',
+  },
+  orgIdentityTimezoneHelp: {
+    id: 'control.orgIdentity.timezoneHelp',
+    defaultMessage: 'Decides which day each match falls on in schedules and kick-off times.',
+  },
+  orgIdentityWithheld: {
+    id: 'control.orgIdentity.withheld',
+    defaultMessage:
+      '{roleCount, plural, one {Only the {roles} role can edit these details.} other {Only the {roles} roles can edit these details.}}',
+  },
+  orgSectionWithheld: {
+    id: 'control.orgSection.withheld',
+    defaultMessage:
+      '{roleCount, plural, one {Only the {roles} role can use this section.} other {Only the {roles} roles can use this section.}}',
+  },
+  storageUsageObjectMeta: {
+    id: 'control.storageUsage.objectMeta',
+    defaultMessage: '{contentType} · {size} · {date}',
+  },
+  storageUsageDeleteObjectLabel: {
+    id: 'control.storageUsage.deleteObjectLabel',
+    defaultMessage: 'Delete {contentType} file of {size}, uploaded {date}',
+  },
+  storageUsageDeleteTitle: {
+    id: 'control.storageUsage.deleteTitle',
+    defaultMessage: 'Delete this file?',
+  },
+  storageUsageDeleteDescription: {
+    id: 'control.storageUsage.deleteDescription',
+    defaultMessage:
+      'This {contentType} file ({size}, uploaded {date}) is not used anywhere. Deleting it frees the space and cannot be undone.',
+  },
+  preferencesAppearanceHeading: {
+    id: 'control.preferences.appearanceHeading',
+    defaultMessage: 'Appearance',
   },
 });

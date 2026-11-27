@@ -1,0 +1,14 @@
+---
+type ContainerVariant = 'public' | 'reading';
+
+interface Props {
+  readonly variant: ContainerVariant;
+  readonly class?: string;
+}
+
+const { variant, class: className } = Astro.props;
+---
+
+<div class:list={['cl-container', `cl-container--${variant}`, className]}>
+  <slot />
+</div>

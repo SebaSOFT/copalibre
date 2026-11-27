@@ -65,6 +65,7 @@ export const PUBLIC_EVENT_FIELDS: Readonly<Record<string, readonly string[]>> = 
   'match.finalized': ['matchId', 'result'],
   'result.superseded': ['matchId', 'reason'],
   'match.started': ['matchId', 'startedAt'],
+  'match.clock-changed': ['matchId', 'segmentNumber', 'elapsedSeconds', 'running', 'changedAt'],
   'match.event-recorded': [
     'matchId',
     'definitionCode',
@@ -75,7 +76,17 @@ export const PUBLIC_EVENT_FIELDS: Readonly<Record<string, readonly string[]>> = 
     'clockSeconds',
   ],
   'standings.recalculated': ['stageId', 'rows'],
-  'schedule.published': ['stageId', 'fixtures'],
+  'match.rescheduled': [
+    'matchId',
+    'stageId',
+    'startsAt',
+    'estimatedEnd',
+    'venue',
+    'withdrawn',
+    'previous',
+  ],
+  'match.anulled': ['matchId', 'status'],
+  'fixture.entrant-resolved': ['matchId', 'side', 'entrantId'],
   'stage.started': ['stageId', 'startedAt'],
   'stage.finished': ['stageId', 'finishedAt'],
 };

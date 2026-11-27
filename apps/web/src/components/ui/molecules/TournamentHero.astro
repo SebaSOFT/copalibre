@@ -8,8 +8,9 @@ import EmblemImage from '../atoms/EmblemImage.astro';
 interface Props {
   readonly model: OverviewModel;
   readonly labels: TournamentHeroLabels;
+  readonly showLiveBadge?: boolean;
 }
-const { model, labels } = Astro.props;
+const { model, labels, showLiveBadge = true } = Astro.props;
 const tournamentName = displayName(model);
 const emblemSrc =
   model.emblemObjectId && model.organizationAlias && model.tournamentAlias
@@ -21,23 +22,22 @@ const emblemSrc =
 <section class="cl-tournament-hero" aria-label={tournamentName}>
   <div class="cl-tournament-hero__content">
     <div class="cl-tournament-hero__header">
-      {
-        emblemSrc && (
-          <EmblemImage
-            alt={labels.emblemAlt}
-            placeholderAlt={labels.emblemPlaceholderAlt}
-            size={56}
-            src={emblemSrc}
-          />
-        )
-      }
+      {emblemSrc && (
+        <EmblemImage
+          alt={labels.emblemAlt}
+          placeholderAlt={labels.emblemPlaceholderAlt}
+          eager
+          size={56}
+          src={emblemSrc}
+        />
+      )}
       <div class="cl-tournament-hero__titles">
         <p>{model.organizationName}</p>
-        <h1>{tournamentName}</h1>
+        <h1 id="tournament-title">{tournamentName}</h1>
       </div>
     </div>
     {/* The count is the label: "live" as a colour alone is not a state. */}
-    <Badge as="p">{labels.liveCountText}</Badge>
+    {showLiveBadge && model.liveCount > 0 && <Badge as="p">{labels.liveCountText}</Badge>}
   </div>
 </section>
 
@@ -45,8 +45,8 @@ const emblemSrc =
   .cl-tournament-hero {
     position: relative;
     display: flex;
-    align-items: flex-end;
-    min-height: 320px;
+    align-items: center;
+    min-height: 0;
     padding: var(--cl-space-5);
     color: var(--cl-text-primary);
   }
@@ -61,5 +61,11 @@ const emblemSrc =
   .cl-tournament-hero__titles {
     display: flex;
     flex-direction: column;
+    gap: var(--cl-space-2);
+  }
+
+  .cl-tournament-hero__titles p,
+  .cl-tournament-hero__titles h1 {
+    margin: 0;
   }
 </style>

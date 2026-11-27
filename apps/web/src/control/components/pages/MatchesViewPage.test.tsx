@@ -1,9 +1,14 @@
+import { expectFirstReadFailure } from './resilient-read.test-support.js';
 import { jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MatchesViewPage } from '../pages/MatchesViewPage.js';
+import { IntlProvider } from 'react-intl';
+import { CATALOGS } from '../../i18n/ControlIntl.js';
+import { ToastProvider } from '../ToastProvider.js';
 import { withIntl } from '../../i18n/test-support.js';
 import type { ControlApiClient } from '../../lib/api-client.js';
 import type { MatchCardData } from '../../../lib/matches-view.js';
+import { clearResilientReadCache } from './use-resilient-read.js';
 
 const match: MatchCardData = {
   matchId: 'match-1',
@@ -19,7 +24,8 @@ const match: MatchCardData = {
   groupName: 'Grupo A',
   homePosition: 1,
   awayPosition: 2,
-  decidingFactor: 'head-to-head goal difference',
+  decidingFactorCode: 'head-to-head',
+  decidingFactorRule: 2,
   homeTrace: ['Comparator: head-to-head goal difference — Club Andes ahead'],
   awayTrace: ['Comparator: head-to-head goal difference — Deportivo Sur behind'],
 };
@@ -32,6 +38,8 @@ function stubClient(overrides: Partial<ControlApiClient> = {}): ControlApiClient
 }
 
 describe('MatchesViewPage', () => {
+  beforeEach(() => clearResilientReadCache());
+
   it('renders the fetched matches as cards, including the full trace', async () => {
     render(
       withIntl(
@@ -112,7 +120,9 @@ describe('MatchesViewPage', () => {
 
     fireEvent.click(liveButton);
 
-    expect(liveButton.getAttribute('aria-pressed')).toBe('true');
+    expect((await screen.findByRole('button', { name: 'Live' })).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
     await waitFor(() => {
       expect(fetchMatchesView).toHaveBeenLastCalledWith('liga-mendocina', 'apertura-2026', {
         state: 'live',
@@ -175,10 +185,39 @@ describe('MatchesViewPage', () => {
       ),
     );
 
-    await waitFor(() => {
-      expect(screen.getByText('Could not load matches.')).toBeDefined();
-    });
+    await expectFirstReadFailure();
     expect(document.querySelector('.cl-matches-view__grid')).toBeNull();
+  });
+
+  it('keeps the last successful matches visible and marks them stale when a later read fails', async () => {
+    const organizationAlias = 'stale-matches-league';
+    const tournamentAlias = 'stale-matches-cup';
+    const firstRead = render(
+      withIntl(
+        <MatchesViewPage
+          client={stubClient()}
+          organizationAlias={organizationAlias}
+          tournamentAlias={tournamentAlias}
+        />,
+      ),
+    );
+    await screen.findByText('Club Andes');
+    firstRead.unmount();
+
+    const { container } = render(
+      withIntl(
+        <MatchesViewPage
+          client={stubClient({ fetchMatchesView: () => Promise.reject(new Error('network down')) })}
+          organizationAlias={organizationAlias}
+          tournamentAlias={tournamentAlias}
+        />,
+      ),
+    );
+
+    expect(await screen.findByText('Club Andes')).toBeDefined();
+    await waitFor(() =>
+      expect(container.querySelector('.cl-stale-mark')?.textContent).toContain('Stale'),
+    );
   });
 
   it('fetches and renders the tournament completion summary', async () => {
@@ -222,6 +261,41 @@ describe('MatchesViewPage', () => {
       expect(screen.getByTestId('completion-value').textContent).toBe('18 of 32');
     });
     expect(screen.getByText('Tournament completion')).toBeDefined();
+  });
+
+  it.each([
+    ['es', '18 de 32'],
+    ['fr', '18 sur 32'],
+    ['de', '18 von 32'],
+    ['zh', '18 / 32'],
+  ] as const)('writes the completion figure in %s, not in English', async (locale, expected) => {
+    const fetchCompletion = jest.fn(() =>
+      Promise.resolve({
+        totalMatches: 32,
+        resolvedMatches: 18,
+        finalizedMatches: 17,
+        forfeitedMatches: 1,
+        liveMatches: 2,
+        scheduledMatches: 12,
+        stages: [],
+      }),
+    );
+
+    render(
+      <IntlProvider defaultLocale="en" locale={locale} messages={CATALOGS[locale]}>
+        <ToastProvider>
+          <MatchesViewPage
+            client={stubClient({ fetchCompletion })}
+            organizationAlias="liga-mendocina"
+            tournamentAlias="apertura-2026"
+          />
+        </ToastProvider>
+      </IntlProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('completion-value').textContent).toBe(expected);
+    });
   });
 
   it('renders StatTile unavailable presentation rather than a bare zero when tournament has no matches', async () => {

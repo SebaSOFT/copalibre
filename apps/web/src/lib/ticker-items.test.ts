@@ -1,5 +1,5 @@
 import type { TableProjectionResponse } from '@copalibre/api/src/dto/table-projections.dto.js';
-import { buildTickerItems } from './ticker-items.js';
+import { buildTickerItems, type TickerLabels } from './ticker-items.js';
 import { publicIntl, tickerLabels } from './i18n/public-intl.js';
 import type { OverviewMatch } from './overview.js';
 
@@ -132,6 +132,43 @@ describe('buildTickerItems', () => {
     });
     expect(items[0]?.badge).toBe('Goleadores');
     expect(items[0]?.meta).toBe('Goles');
+  });
+
+  it('uses the player name as performer subject and combines metric with entrant abbreviation', () => {
+    const withPlayer: TableProjectionResponse = {
+      ...footballScorers,
+      rows: [
+        {
+          actorId: 'player-10',
+          actorName: 'Mateo Moreno',
+          entrantName: 'Casa de Italia',
+          entrantAbbreviation: 'CIT',
+          rank: 1,
+          sharedRank: false,
+          cells: { rank: { formatted: '1', raw: 1 }, goals: { formatted: '10', raw: 10 } },
+        },
+        {
+          actorId: 'player-11',
+          actorName: '',
+          entrantName: 'Club Hispano',
+          rank: 2,
+          sharedRank: false,
+          cells: { rank: { formatted: '2', raw: 2 }, goals: { formatted: '8', raw: 8 } },
+        },
+      ],
+    };
+    const items = buildTickerItems({
+      matches: [],
+      performers: withPlayer,
+      labels,
+      language: 'en',
+    });
+    expect(items).toHaveLength(2);
+    expect(items[0]?.subject).toBe('Mateo Moreno');
+    expect(items[0]?.meta).toBe('Goals · CIT');
+    expect(items[0]?.figure).toBe('10');
+    expect(items[1]?.subject).toBe('Club Hispano');
+    expect(items[1]?.meta).toBe('Goals');
   });
 
   it('shows no top-performer item for a discipline that declares no player ranking', () => {
@@ -300,6 +337,154 @@ describe('buildTickerItems', () => {
     expect(items[0]?.matchId).toBeUndefined();
     expect(items[0]?.homeEntrantId).toBeUndefined();
     expect(items[0]?.awayEntrantId).toBeUndefined();
+  });
+
+  it('places live matches first, then upcoming, then finished, and shows 0 : 0 when scores are absent', () => {
+    const items = buildTickerItems({
+      matches: [
+        {
+          stageNumber: 1,
+          matchNumber: 1,
+          state: 'final',
+          startsAt: '18:00',
+          home: { name: 'Alpha', score: 2 },
+          away: { name: 'Beta', score: 1 },
+        },
+        {
+          stageNumber: 1,
+          matchNumber: 2,
+          state: 'upcoming',
+          startsAt: '21:00',
+          home: { name: 'Gamma' },
+          away: { name: 'Delta' },
+        },
+        {
+          stageNumber: 1,
+          matchNumber: 3,
+          state: 'live',
+          startsAt: '19:30',
+          home: { name: 'Andes' },
+          away: { name: 'Concepción' },
+        },
+      ],
+      labels,
+      language: 'en',
+    });
+
+    expect(items.map((item) => item.subject)).toEqual(['Andes', 'Gamma', 'Alpha']);
+    expect(items[0]?.tone).toBe('live');
+    expect(items[0]?.figure).toBe('0 : 0');
+    expect(items[1]?.figure).toBe(labels.versus);
+    expect(items[2]?.figure).toBe('2 : 1');
+  });
+
+  it('orders match items by live, delayed, ascending upcoming, and descending final across mixed days', () => {
+    const referenceDate = new Date('2026-11-23T15:00:00.000Z');
+    const items = buildTickerItems({
+      matches: [
+        {
+          stageNumber: 1,
+          matchNumber: 1,
+          state: 'final',
+          startsAt: '2026-11-18T18:00:00.000Z',
+          home: { name: 'Old Final', score: 1 },
+          away: { name: 'Opp', score: 0 },
+        },
+        {
+          stageNumber: 2,
+          matchNumber: 4,
+          state: 'upcoming',
+          startsAt: '2026-11-24T13:00:00.000Z',
+          home: { name: 'Future Later' },
+          away: { name: 'Opp' },
+        },
+        {
+          stageNumber: 1,
+          matchNumber: 2,
+          state: 'final',
+          startsAt: '2026-11-22T20:00:00.000Z',
+          home: { name: 'Recent Final', score: 3 },
+          away: { name: 'Opp', score: 2 },
+        },
+        {
+          stageNumber: 1,
+          matchNumber: 5,
+          state: 'upcoming',
+          startsAt: '2026-11-23T14:00:00.000Z', // 1h past -> delayed
+          home: { name: 'Delayed Early' },
+          away: { name: 'Opp' },
+        },
+        {
+          stageNumber: 2,
+          matchNumber: 1,
+          state: 'upcoming',
+          startsAt: '2026-11-23T16:00:00.000Z',
+          home: { name: 'Upcoming Today' },
+          away: { name: 'Opp' },
+        },
+        {
+          stageNumber: 1,
+          matchNumber: 6,
+          state: 'live',
+          startsAt: '2026-11-23T14:50:00.000Z',
+          home: { name: 'Live Match', score: 1 },
+          away: { name: 'Opp', score: 1 },
+        },
+        {
+          stageNumber: 1,
+          matchNumber: 3,
+          state: 'upcoming',
+          startsAt: '2026-11-23T16:00:00.000Z', // tie with Upcoming Today; stage 1 before stage 2
+          home: { name: 'Upcoming Tie Stage 1' },
+          away: { name: 'Opp' },
+        },
+      ],
+      labels,
+      language: 'en',
+      timeZone: 'America/Argentina/Buenos_Aires',
+      referenceDate,
+    });
+
+    expect(items.map((item) => item.subject)).toEqual([
+      'Live Match',
+      'Delayed Early',
+      'Upcoming Tie Stage 1',
+      'Upcoming Today',
+      'Future Later',
+      'Recent Final',
+      'Old Final',
+    ]);
+    expect(items[1]?.badge).toBe('Delayed');
+    expect(items[1]?.tone).toBe('upcoming');
+    expect(items[2]?.meta).toBe('Today 13:00');
+    expect(items[4]?.meta).toBe('Tomorrow 10:00');
+  });
+
+  it('falls back to upcoming label when labels.delayed is omitted', () => {
+    const referenceDate = new Date('2026-11-23T15:00:00.000Z');
+    const legacyLabels: TickerLabels = {
+      live: labels.live,
+      upcoming: labels.upcoming,
+      final: labels.final,
+      leader: labels.leader,
+      versus: labels.versus,
+    };
+    const items = buildTickerItems({
+      matches: [
+        {
+          stageNumber: 1,
+          matchNumber: 1,
+          state: 'upcoming',
+          startsAt: '2026-11-23T14:00:00.000Z',
+          home: { name: 'Delayed Match' },
+          away: { name: 'Opp' },
+        },
+      ],
+      labels: legacyLabels,
+      language: 'en',
+      referenceDate,
+    });
+    expect(items[0]?.badge).toBe(legacyLabels.upcoming);
   });
 });
 

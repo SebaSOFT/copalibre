@@ -29,20 +29,21 @@ vivo a la pantalla pública del torneo.
 
 ## Manejar el reloj
 
-Cada segmento tiene su propio reloj, y lo manejás con tres botones debajo del segmento que
-seleccionaste:
+Cada segmento tiene su propio reloj. Los botones debajo del segmento que seleccionaste dependen de en qué estado está:
 
-- **Iniciar** arranca el reloj de ese segmento y detiene el que estuviera corriendo — solo corre uno
-  a la vez.
-- **Pausar** lo detiene donde está. Un partido en pausa sigue en curso: la pausa detiene un reloj, no
-  la competencia.
-- **Terminar período** cierra ese segmento. Después no acepta más Iniciar ni Pausar, y no termina el
-  partido — cargar el resultado es una acción aparte.
+- **Iniciar partido** comienza un partido programado y arranca su primer segmento.
+- **Iniciar segmento** arranca un segmento que todavía no corrió.
+- **Pausar** y **Terminar segmento** aparecen mientras un segmento corre. Pausar lo detiene donde está; un partido en pausa sigue en curso.
+- **Reanudar** y **Terminar segmento** aparecen cuando el segmento está detenido y tiene tiempo acumulado.
+- **Reabrir segmento…** aparece en un segmento terminado. Pide un motivo, devuelve el segmento a pausa con su tiempo conservado y no vuelve a correr el reloj: para seguir, usá Reanudar.
 
-Estos registran el momento en que realmente tocaste el silbato. El campo de segundos transcurridos
-que está al lado sigue siendo lo que siempre fue: la forma de corregir un valor mal registrado,
-después del hecho. Ambos caminos quedan en la misma auditoría, con quién lo hizo, cuándo, y qué
-marcaba el reloj antes y después.
+Solo corre un segmento a la vez. Iniciar segmento y Reanudar no se ofrecen mientras otro segmento está corriendo, y la consola indica cuál es: pausalo o terminalo primero.
+
+El selector de segmento muestra como **pausado** a un segmento detenido con tiempo acumulado. Un partido cerrado (finalizado, con forfeit o no requerido) no ofrece ninguna acción de reloj.
+
+**Corregir** fija el tiempo del segmento seleccionado. Se escribe en el campo **Tiempo (mm:ss)**, en minutos y segundos (`20:50`) o en minutos enteros (`45`). Conserva el estado: un segmento corriendo sigue corriendo y uno en pausa sigue en pausa. No está disponible en un partido cerrado (finalizado, con forfeit o no requerido).
+
+Estos botones registran el momento en que realmente tocaste el silbato. Para corregir un valor mal registrado usá **Corregir**. Todos los cambios quedan en la misma auditoría, con quién lo hizo, cuándo, y el estado y el reloj antes y después. Reabrir además guarda el motivo.
 
 ## Leer el registro de eventos
 

@@ -17,10 +17,12 @@ test('the resolver leaves zero unresolved relative imports across apps/web/src',
   );
 });
 
-test('the graph resolves the current node/edge count after the shared bracket layout (362/1383)', () => {
+// The counts move whenever a component or an import between components is added or removed: update
+// them in the same commit, and say what changed in the commit message, not in this title.
+test('the web component graph resolves every node and edge', () => {
   const graph = buildGraph(webSrc);
-  assert.equal(graph.nodes.size, 362);
-  assert.equal(graph.edges.length, 1383);
+  assert.equal(graph.nodes.size, 554);
+  assert.equal(graph.edges.length, 2588);
 });
 
 test('a type-only import is not counted as a render', () => {

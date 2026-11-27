@@ -1,4 +1,9 @@
 ---
+import Button from '../atoms/Button.astro';
+import Form from '../atoms/Form.astro';
+import Input from '../atoms/Input.astro';
+import Select from '../atoms/Select.astro';
+
 /**
  * Consolidated hierarchical match-schedule filter bar:
  * stage tabs -> zone pills (only when the active stage has >1 zone) ->
@@ -15,10 +20,18 @@ export interface MatchScheduleStageOption {
 export type MatchScheduleState = 'all' | 'live' | 'upcoming' | 'final';
 export type MatchScheduleView = 'rows' | 'cards';
 
+export interface MatchScheduleClubOption {
+  readonly alias: string;
+  readonly name: string;
+}
+
 export interface MatchScheduleFiltersLabels {
+  readonly disclosureLabel: string;
   readonly stageFilterAriaLabel: string;
   readonly zoneFilterAriaLabel: string;
   readonly groupFilterAriaLabel: string;
+  readonly clubFilterAriaLabel?: string;
+  readonly dayFilterAriaLabel?: string;
   readonly stateFilterAriaLabel: string;
   readonly viewFilterAriaLabel: string;
   /** The visible title of each row, in the page's language. */
@@ -26,8 +39,18 @@ export interface MatchScheduleFiltersLabels {
     readonly stage: string;
     readonly zone: string;
     readonly group: string;
+    readonly club?: string;
+    readonly day?: string;
     readonly state: string;
     readonly view: string;
+  };
+  readonly clubAll?: string;
+  /** Submits the club choice with scripting off; hidden once the script auto-submits on change. */
+  readonly clubApply?: string;
+  readonly dayOptions?: {
+    readonly all: string;
+    readonly today: string;
+    readonly tomorrow: string;
   };
   readonly viewOptions: { readonly rows: string; readonly cards: string };
   readonly filters: {
@@ -38,6 +61,11 @@ export interface MatchScheduleFiltersLabels {
   };
 }
 
+export interface MatchScheduleDayOption {
+  readonly key: string;
+  readonly label: string;
+}
+
 interface Props {
   readonly stages: readonly MatchScheduleStageOption[];
   readonly activeStageNumber?: number;
@@ -45,16 +73,32 @@ interface Props {
   readonly activeZone?: string;
   readonly groups: readonly string[];
   readonly activeGroup?: string;
+  readonly clubs?: readonly MatchScheduleClubOption[];
+  readonly activeClub?: string;
+  readonly days?: readonly MatchScheduleDayOption[];
+  readonly activeDay?: string;
+  readonly todayKey?: string;
+  readonly tomorrowKey?: string;
   readonly state: MatchScheduleState;
   readonly view: MatchScheduleView;
+  /** What choosing each zone also selects (its stage, when that is unambiguous). */
+  readonly zoneOverrides?: Readonly<Record<string, { readonly stageNumber?: number }>>;
+  /** What choosing each group also selects (its stage and zone, when that is unambiguous). */
+  readonly groupOverrides?: Readonly<
+    Record<string, { readonly stageNumber?: number; readonly zone?: string }>
+  >;
   /** Whether the viewer may choose between rows and cards: only for a short scope. */
   readonly offerView: boolean;
+  /** Opens the disclosure after the viewer has applied a filter. */
+  readonly filtersOpen: boolean;
   readonly labels: MatchScheduleFiltersLabels;
   readonly buildUrl: (
     overrides: Partial<{
       stageNumber: number | undefined;
       zone: string | undefined;
       group: string | undefined;
+      club: string | undefined;
+      day: string | undefined;
       state: MatchScheduleState;
       view: MatchScheduleView;
     }>,
@@ -68,161 +112,280 @@ const {
   activeZone,
   groups,
   activeGroup,
+  clubs = [],
+  activeClub,
+  days = [],
+  activeDay,
+  todayKey,
+  tomorrowKey,
   state,
   view,
   offerView,
+  zoneOverrides = {},
+  groupOverrides = {},
+  filtersOpen,
   labels,
   buildUrl,
 } = Astro.props;
+const hasToday = todayKey !== undefined && days.some((day) => day.key === todayKey);
+// The club choice is a plain GET form: every other active filter travels as a hidden field, so the
+// submitted URL keeps them. The path is the page's own, without its query.
+const clubFormAction = buildUrl({ club: undefined }).split('?')[0];
+const hasTomorrow = tomorrowKey !== undefined && days.some((day) => day.key === tomorrowKey);
 ---
 
-{
-  stages.length > 1 && (
+<details class="cl-match-schedule-filters" open={filtersOpen}>
+  <summary class="cl-match-schedule-filters__summary cl-focusable">
+    {labels.disclosureLabel}
+  </summary>
+  <div class="cl-match-schedule-filters__options">
+    {stages.length > 1 && (
+      <div class="cl-filter-row">
+        <span class="cl-filter-row__title">{labels.titles.stage}</span>
+        <nav class="cl-pill-group" aria-label={labels.stageFilterAriaLabel}>
+          <a
+            class="cl-pill cl-focusable"
+            href={buildUrl({ stageNumber: undefined, zone: undefined, group: undefined })}
+            aria-current={activeStageNumber === undefined ? 'true' : undefined}
+          >
+            {labels.filters.all}
+          </a>
+          {stages.map((stage) => (
+            <a
+              class="cl-pill cl-focusable"
+              href={buildUrl({ stageNumber: stage.stageNumber, zone: undefined, group: undefined })}
+              aria-current={activeStageNumber === stage.stageNumber ? 'true' : undefined}
+            >
+              {stage.stageName}
+            </a>
+          ))}
+        </nav>
+      </div>
+    )}
+
+    {zones.length > 1 && (
+      <div class="cl-filter-row">
+        <span class="cl-filter-row__title">{labels.titles.zone}</span>
+        <nav class="cl-pill-group" aria-label={labels.zoneFilterAriaLabel}>
+          <a
+            class="cl-pill cl-focusable"
+            href={buildUrl({ zone: undefined, group: undefined })}
+            aria-current={activeZone === undefined ? 'true' : undefined}
+          >
+            {labels.filters.all}
+          </a>
+          {zones.map((zone) => (
+            <a
+              class="cl-pill cl-focusable"
+              href={buildUrl({
+                zone,
+                group: undefined,
+                stageNumber: zoneOverrides[zone]?.stageNumber ?? activeStageNumber,
+              })}
+              aria-current={activeZone === zone ? 'true' : undefined}
+            >
+              {zone}
+            </a>
+          ))}
+        </nav>
+      </div>
+    )}
+
+    {groups.length > 1 && (
+      <div class="cl-filter-row">
+        <span class="cl-filter-row__title">{labels.titles.group}</span>
+        <nav class="cl-pill-group" aria-label={labels.groupFilterAriaLabel}>
+          <a
+            class="cl-pill cl-focusable"
+            href={buildUrl({ group: undefined })}
+            aria-current={activeGroup === undefined ? 'true' : undefined}
+          >
+            {labels.filters.all}
+          </a>
+          {groups.map((group) => (
+            <a
+              class="cl-pill cl-focusable"
+              href={buildUrl({
+                group,
+                stageNumber: groupOverrides[group]?.stageNumber ?? activeStageNumber,
+                zone: groupOverrides[group]?.zone ?? activeZone,
+              })}
+              aria-current={activeGroup === group ? 'true' : undefined}
+            >
+              {group}
+            </a>
+          ))}
+        </nav>
+      </div>
+    )}
+
+    {clubs.length > 0 && labels.titles.club && labels.clubAll && labels.clubApply && (
+      <Form action={clubFormAction} class="cl-filter-row" data-schedule-club-form>
+        <span class="cl-filter-row__title" id="matches-club-filter-label">
+          {labels.titles.club}
+        </span>
+        {activeStageNumber !== undefined && (
+          <Input name="stageNumber" value={String(activeStageNumber)} />
+        )}
+        {activeZone !== undefined && <Input name="zone" value={activeZone} />}
+        {activeGroup !== undefined && <Input name="group" value={activeGroup} />}
+        {activeDay !== undefined && <Input name="day" value={activeDay} />}
+        {state !== 'all' && <Input name="state" value={state} />}
+        {view !== 'rows' && <Input name="view" value={view} />}
+        <Select
+          name="club"
+          ariaLabel={labels.clubFilterAriaLabel ?? labels.titles.club}
+          ariaLabelledBy="matches-club-filter-label"
+          dataAttr="data-schedule-club-select"
+          options={[
+            {
+              value: '',
+              label: labels.clubAll,
+              selected: activeClub === undefined,
+              href: buildUrl({ club: undefined }),
+            },
+            ...clubs.map((club) => ({
+              value: club.alias,
+              label: club.name,
+              selected: activeClub === club.alias,
+              href: buildUrl({ club: club.alias }),
+            })),
+          ]}
+        />
+        <Button type="submit" variant="secondary" data-schedule-club-submit>
+          {labels.clubApply}
+        </Button>
+      </Form>
+    )}
+
+    {days.length > 0 && labels.titles.day && labels.dayOptions && (
+      <div class="cl-filter-row">
+        <span class="cl-filter-row__title">{labels.titles.day}</span>
+        <nav class="cl-pill-group" aria-label={labels.dayFilterAriaLabel ?? labels.titles.day}>
+          <a
+            class="cl-pill cl-focusable"
+            href={buildUrl({ day: undefined })}
+            aria-current={activeDay === undefined ? 'true' : undefined}
+          >
+            {labels.dayOptions.all}
+          </a>
+          {hasToday && (
+            <a
+              class="cl-pill cl-focusable"
+              href={buildUrl({ day: todayKey })}
+              aria-current={activeDay === todayKey ? 'true' : undefined}
+            >
+              {labels.dayOptions.today}
+            </a>
+          )}
+          {hasTomorrow && (
+            <a
+              class="cl-pill cl-focusable"
+              href={buildUrl({ day: tomorrowKey })}
+              aria-current={activeDay === tomorrowKey ? 'true' : undefined}
+            >
+              {labels.dayOptions.tomorrow}
+            </a>
+          )}
+          {days.map((day) => (
+            <a
+              class="cl-pill cl-focusable"
+              href={buildUrl({ day: day.key })}
+              aria-current={activeDay === day.key ? 'true' : undefined}
+            >
+              {day.label}
+            </a>
+          ))}
+        </nav>
+      </div>
+    )}
+
     <div class="cl-filter-row">
-      <span class="cl-filter-row__title">{labels.titles.stage}</span>
-      <nav class="cl-pill-group" aria-label={labels.stageFilterAriaLabel}>
+      <span class="cl-filter-row__title">{labels.titles.state}</span>
+      <nav class="cl-pill-group" aria-label={labels.stateFilterAriaLabel}>
         <a
           class="cl-pill cl-focusable"
-          href={buildUrl({ stageNumber: undefined, zone: undefined, group: undefined })}
-          aria-current={activeStageNumber === undefined ? 'true' : undefined}
+          href={buildUrl({ state: 'all' })}
+          aria-current={state === 'all' ? 'true' : undefined}
         >
           {labels.filters.all}
         </a>
-        {stages.map((stage) => (
+        <a
+          class="cl-pill cl-focusable"
+          href={buildUrl({ state: 'live' })}
+          aria-current={state === 'live' ? 'true' : undefined}
+        >
+          {labels.filters.live}
+        </a>
+        <a
+          class="cl-pill cl-focusable"
+          href={buildUrl({ state: 'upcoming' })}
+          aria-current={state === 'upcoming' ? 'true' : undefined}
+        >
+          {labels.filters.upcoming}
+        </a>
+        <a
+          class="cl-pill cl-focusable"
+          href={buildUrl({ state: 'final' })}
+          aria-current={state === 'final' ? 'true' : undefined}
+        >
+          {labels.filters.final}
+        </a>
+      </nav>
+    </div>
+
+    {offerView && (
+      <div class="cl-filter-row">
+        <span class="cl-filter-row__title">{labels.titles.view}</span>
+        <nav class="cl-pill-group" aria-label={labels.viewFilterAriaLabel}>
           <a
             class="cl-pill cl-focusable"
-            href={buildUrl({ stageNumber: stage.stageNumber, zone: undefined, group: undefined })}
-            aria-current={activeStageNumber === stage.stageNumber ? 'true' : undefined}
+            href={buildUrl({ view: 'rows' })}
+            aria-current={view === 'rows' ? 'true' : undefined}
           >
-            {stage.stageName}
+            {labels.viewOptions.rows}
           </a>
-        ))}
-      </nav>
-    </div>
-  )
-}
-
-{
-  zones.length > 1 && (
-    <div class="cl-filter-row">
-      <span class="cl-filter-row__title">{labels.titles.zone}</span>
-      <nav class="cl-pill-group" aria-label={labels.zoneFilterAriaLabel}>
-        <a
-          class="cl-pill cl-focusable"
-          href={buildUrl({ zone: undefined, group: undefined })}
-          aria-current={activeZone === undefined ? 'true' : undefined}
-        >
-          {labels.filters.all}
-        </a>
-        {zones.map((zone) => (
           <a
             class="cl-pill cl-focusable"
-            href={buildUrl({ zone, group: undefined })}
-            aria-current={activeZone === zone ? 'true' : undefined}
+            href={buildUrl({ view: 'cards' })}
+            aria-current={view === 'cards' ? 'true' : undefined}
           >
-            {zone}
+            {labels.viewOptions.cards}
           </a>
-        ))}
-      </nav>
-    </div>
-  )
-}
-
-{
-  groups.length > 1 && (
-    <div class="cl-filter-row">
-      <span class="cl-filter-row__title">{labels.titles.group}</span>
-      <nav class="cl-pill-group" aria-label={labels.groupFilterAriaLabel}>
-        <a
-          class="cl-pill cl-focusable"
-          href={buildUrl({ group: undefined })}
-          aria-current={activeGroup === undefined ? 'true' : undefined}
-        >
-          {labels.filters.all}
-        </a>
-        {groups.map((group) => (
-          <a
-            class="cl-pill cl-focusable"
-            href={buildUrl({ group })}
-            aria-current={activeGroup === group ? 'true' : undefined}
-          >
-            {group}
-          </a>
-        ))}
-      </nav>
-    </div>
-  )
-}
-
-<div class="cl-filter-row">
-  <span class="cl-filter-row__title">{labels.titles.state}</span>
-  <nav class="cl-pill-group" aria-label={labels.stateFilterAriaLabel}>
-    <a
-      class="cl-pill cl-focusable"
-      href={buildUrl({ state: 'all' })}
-      aria-current={state === 'all' ? 'true' : undefined}
-    >
-      {labels.filters.all}
-    </a>
-    <a
-      class="cl-pill cl-focusable"
-      href={buildUrl({ state: 'live' })}
-      aria-current={state === 'live' ? 'true' : undefined}
-    >
-      {labels.filters.live}
-    </a>
-    <a
-      class="cl-pill cl-focusable"
-      href={buildUrl({ state: 'upcoming' })}
-      aria-current={state === 'upcoming' ? 'true' : undefined}
-    >
-      {labels.filters.upcoming}
-    </a>
-    <a
-      class="cl-pill cl-focusable"
-      href={buildUrl({ state: 'final' })}
-      aria-current={state === 'final' ? 'true' : undefined}
-    >
-      {labels.filters.final}
-    </a>
-  </nav>
-</div>
-
-{
-  offerView && (
-    <div class="cl-filter-row">
-      <span class="cl-filter-row__title">{labels.titles.view}</span>
-      <nav class="cl-pill-group" aria-label={labels.viewFilterAriaLabel}>
-        <a
-          class="cl-pill cl-focusable"
-          href={buildUrl({ view: 'rows' })}
-          aria-current={view === 'rows' ? 'true' : undefined}
-        >
-          {labels.viewOptions.rows}
-        </a>
-        <a
-          class="cl-pill cl-focusable"
-          href={buildUrl({ view: 'cards' })}
-          aria-current={view === 'cards' ? 'true' : undefined}
-        >
-          {labels.viewOptions.cards}
-        </a>
-      </nav>
-    </div>
-  )
-}
+        </nav>
+      </div>
+    )}
+  </div>
+</details>
 
 <style>
+  .cl-match-schedule-filters__summary {
+    min-height: var(--cl-touch-target);
+    padding: var(--cl-space-2) var(--cl-space-3);
+    cursor: pointer;
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-sm);
+    letter-spacing: var(--cl-tracking-wide);
+    text-transform: uppercase;
+  }
+  .cl-match-schedule-filters__options {
+    display: grid;
+    gap: var(--cl-space-3);
+    margin-block-start: var(--cl-space-3);
+  }
   .cl-filter-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--cl-space-2) var(--cl-space-3);
   }
-  @media (max-width: 767px) {
+  @media (width < 768px) {
     .cl-filter-row__title {
       flex-basis: 100%;
     }
+  }
+  [data-schedule-club-submit][hidden] {
+    display: none;
   }
   .cl-filter-row__title {
     min-width: 4.5rem;
@@ -233,3 +396,14 @@ const {
     letter-spacing: var(--cl-tracking-wide);
   }
 </style>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>('form[data-schedule-club-form]').forEach((form) => {
+    const select = form.querySelector<HTMLSelectElement>('select[data-schedule-club-select]');
+    const submit = form.querySelector<HTMLButtonElement>('[data-schedule-club-submit]');
+    if (submit) submit.hidden = true;
+    select?.addEventListener('change', () => {
+      form.requestSubmit();
+    });
+  });
+</script>

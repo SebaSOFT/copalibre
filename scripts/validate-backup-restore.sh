@@ -93,7 +93,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:17
+          image: postgres:18
           env:
             - { name: POSTGRES_USER, value: copalibre }
             - { name: POSTGRES_PASSWORD, value: copalibre_backup_restore_only }
@@ -137,7 +137,7 @@ spec:
     spec:
       containers:
         - name: object-storage
-          image: dxflrs/garage:v1.1.0
+          image: dxflrs/garage:v1.3.1
           env:
             - { name: GARAGE_RPC_SECRET, value: ${GARAGE_RPC_SECRET} }
           ports:

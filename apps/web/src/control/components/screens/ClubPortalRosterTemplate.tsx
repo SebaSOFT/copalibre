@@ -104,6 +104,7 @@ export function ClubPortalRosterTemplate({
                 id="roster-team-select"
                 onValueChange={setSelectedTeamId}
                 options={teamOptions}
+                placeholder={intl.formatMessage(messages.selectPlaceholder)}
                 value={selectedTeamId}
               />
             </Field>

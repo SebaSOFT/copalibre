@@ -1,33 +1,94 @@
 ---
 import type { IntlShape } from 'react-intl';
+import { isSupportedLanguage, resolveLabel } from '@copalibre/domain';
 import type { PodiumListingItem } from '../../../lib/podium-emblems.ts';
 import ChampionPodium from './ChampionPodium.astro';
 import Button from '../atoms/Button.astro';
+import { formatTimestamp } from '../../../lib/format-timestamp.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
 
 interface Props {
   readonly tournament: PodiumListingItem;
   readonly organizationAlias: string;
+  readonly organizationTimeZone?: string;
   readonly localePrefix?: string;
   readonly intl: IntlShape;
   readonly featured?: boolean;
 }
 
-const { tournament, organizationAlias, localePrefix = '', intl, featured = false } = Astro.props;
+const {
+  tournament,
+  organizationAlias,
+  organizationTimeZone,
+  localePrefix = '',
+  intl,
+  featured = false,
+} = Astro.props;
 
 const tournamentUrl = `${localePrefix}/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournament.alias)}`;
 const liveUrl = `${tournamentUrl}/live`;
-const isLive = tournament.status === 'live';
+const isInProgress = tournament.status === 'live';
 const isFinished = tournament.status === 'finished';
 const isUpcoming = tournament.status === 'upcoming';
 const winners = tournament.winners ?? [];
+const liveMatches = tournament.liveMatches ?? [];
+const firstLiveMatch = liveMatches[0];
+const hiddenPersonLabel = intl.formatMessage(messages.personHiddenAtRequest);
+const shortLocale = intl.locale.split('-')[0] ?? 'en';
+const language = isSupportedLanguage(shortLocale) ? shortLocale : 'en';
+const disciplineName = tournament.discipline.localizedName
+  ? resolveLabel(tournament.discipline.localizedName, language)
+  : tournament.discipline.name;
+const liveHomeName = firstLiveMatch
+  ? firstLiveMatch.homeHiddenAtRequest
+    ? hiddenPersonLabel
+    : firstLiveMatch.home
+  : '';
+const liveAwayName = firstLiveMatch
+  ? firstLiveMatch.awayHiddenAtRequest
+    ? hiddenPersonLabel
+    : firstLiveMatch.away
+  : '';
+const scheduleDate = (iso: string | undefined): string | undefined => {
+  if (!iso || Number.isNaN(Date.parse(iso))) return undefined;
+  return formatTimestamp(iso, {
+    locale: intl.locale,
+    format: 'date-only',
+    ...(organizationTimeZone === undefined ? {} : { timeZone: organizationTimeZone }),
+  });
+};
+const firstScheduleDay = scheduleDate(tournament.schedule?.firstKickoffAt);
+const lastScheduleDay = scheduleDate(tournament.schedule?.lastKickoffAt);
+const scheduleRange =
+  firstScheduleDay && lastScheduleDay
+    ? firstScheduleDay === lastScheduleDay
+      ? firstScheduleDay
+      : `${firstScheduleDay} – ${lastScheduleDay}`
+    : (firstScheduleDay ?? lastScheduleDay);
+const currentStageName =
+  isInProgress && tournament.progress?.currentStageName?.trim()
+    ? tournament.progress.currentStageName.trim()
+    : undefined;
+const progressText =
+  isInProgress && tournament.progress && tournament.progress.totalMatches > 0
+    ? intl.formatMessage(messages.tournamentCardProgress, {
+        resolved: tournament.progress.resolvedMatches,
+        total: tournament.progress.totalMatches,
+      })
+    : undefined;
+const venuesText =
+  tournament.venueCount !== undefined && tournament.venueCount > 0
+    ? intl.formatMessage(messages.tournamentCardVenues, { count: tournament.venueCount })
+    : undefined;
+const cardDetails = [scheduleRange, currentStageName, progressText, venuesText].filter(
+  (item): item is string => item !== undefined,
+);
 ---
 
 <article
   class:list={[
     'cl-tournament-card',
     {
-      'cl-card-live': isLive,
       'cl-card-featured': featured,
       'cl-card-finished': isFinished,
       'cl-card-upcoming': isUpcoming,
@@ -37,49 +98,78 @@ const winners = tournament.winners ?? [];
 >
   <header class="cl-card-header">
     <div class="cl-card-meta">
-      {
-        tournament.discipline.name && (
-          <span class="cl-discipline-badge">{tournament.discipline.name}</span>
-        )
-      }
+      {disciplineName && <span class="cl-discipline-badge">{disciplineName}</span>}
       <span
         class:list={[
           'cl-status-badge',
           {
-            'cl-badge-live': isLive,
+            'cl-badge-in-progress': isInProgress,
             'cl-badge-upcoming': isUpcoming,
             'cl-badge-finished': isFinished,
           },
         ]}
       >
-        {isLive && <span class="cl-live-pulse" aria-hidden="true" />}
-        {isLive && intl.formatMessage(messages.resultStateLive)}
+        {isInProgress && intl.formatMessage(messages.completionInProgress)}
         {isUpcoming && intl.formatMessage(messages.resultStateUpcoming)}
         {isFinished && intl.formatMessage(messages.resultStateFinal)}
       </span>
+      {featured && (
+        <span class="cl-status-badge cl-badge-featured">
+          {intl.formatMessage(messages.orgPageFeaturedHeading)}
+        </span>
+      )}
     </div>
 
     <h3 class="cl-tournament-name">
-      <a href={tournamentUrl} class="cl-tournament-link" title={tournament.name}
-        >{tournament.name}</a
-      >
+      <a href={tournamentUrl} class="cl-tournament-link" title={tournament.name}>
+        {tournament.name}
+      </a>
     </h3>
   </header>
 
+  {cardDetails.length > 0 && (
+    <ul class="cl-tournament-card__details">
+      {cardDetails.map((detail) => (
+        <li>{detail}</li>
+      ))}
+    </ul>
+  )}
+
   {isFinished && winners.length > 0 && <ChampionPodium winners={winners} intl={intl} />}
+
+  {firstLiveMatch && (
+    <div class="cl-tournament-card__live">
+      <p class="cl-tournament-card__live-match">
+        <span>{liveHomeName}</span>
+        <span class="cl-tournament-card__live-score">
+          {firstLiveMatch.homeScore} – {firstLiveMatch.awayScore}
+        </span>
+        <span>{liveAwayName}</span>
+      </p>
+      {liveMatches.length > 1 && (
+        <p class="cl-tournament-card__live-more">
+          {intl.formatMessage(messages.organizationMoreLive, { count: liveMatches.length - 1 })}
+        </p>
+      )}
+    </div>
+  )}
 
   <footer class="cl-card-footer">
     <div class="cl-card-actions">
-      <Button href={tournamentUrl} variant="primary">
-        {intl.formatMessage(messages.tournamentsViewDetails)}
-      </Button>
-      {
-        isLive && (
-          <Button href={liveUrl} variant="secondary">
+      {liveMatches.length > 0 ? (
+        <>
+          <Button href={liveUrl} variant="primary">
             {intl.formatMessage(messages.livePageTitle)} &rarr;
           </Button>
-        )
-      }
+          <Button href={tournamentUrl} variant="secondary">
+            {intl.formatMessage(messages.tournamentsViewDetails)}
+          </Button>
+        </>
+      ) : (
+        <Button href={tournamentUrl} variant="primary">
+          {intl.formatMessage(messages.tournamentsViewDetails)}
+        </Button>
+      )}
     </div>
   </footer>
 </article>
@@ -105,14 +195,10 @@ const winners = tournament.winners ?? [];
     box-shadow: 0 8px 24px color-mix(in srgb, var(--cl-color-ink-950) 30%, transparent);
   }
 
-  .cl-card-live {
-    border-color: color-mix(in srgb, var(--cl-state-live) 40%, transparent);
-  }
-
   .cl-card-featured {
-    background: linear-gradient(135deg, var(--cl-surface-chrome) 0%, var(--cl-surface-base) 100%);
-    border-color: color-mix(in srgb, var(--cl-primary) 60%, transparent);
-    box-shadow: 0 0 20px color-mix(in srgb, var(--cl-primary) 15%, transparent);
+    background: var(--cl-surface-panel);
+    border-color: var(--cl-border-muted);
+    box-shadow: none;
   }
 
   .cl-card-header {
@@ -151,36 +237,16 @@ const winners = tournament.winners ?? [];
     gap: 0.35rem;
   }
 
-  .cl-badge-live {
-    background-color: color-mix(in srgb, var(--cl-state-live) 20%, transparent);
-    color: var(--cl-state-live);
-    border: 1px solid color-mix(in srgb, var(--cl-state-live) 40%, transparent);
-  }
-
-  .cl-live-pulse {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: var(--cl-state-live);
-    box-shadow: 0 0 8px var(--cl-state-live);
-    animation: cl-pulse 1.5s infinite;
-  }
-
-  @keyframes cl-pulse {
-    0%,
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.4;
-      transform: scale(1.3);
-    }
+  .cl-badge-in-progress,
+  .cl-badge-featured {
+    background-color: var(--cl-surface-raised);
+    color: var(--cl-text-secondary);
+    border: 1px solid var(--cl-border-muted);
   }
 
   .cl-badge-upcoming {
-    background-color: color-mix(in srgb, var(--cl-primary) 20%, transparent);
-    color: var(--cl-primary);
+    background-color: var(--cl-surface-raised);
+    color: var(--cl-text-accent);
   }
 
   .cl-badge-finished {
@@ -211,6 +277,24 @@ const winners = tournament.winners ?? [];
   .cl-tournament-link:hover {
     color: var(--cl-primary-hover);
     text-decoration: underline;
+  }
+
+  .cl-tournament-card__details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cl-space-1) var(--cl-space-3);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    color: var(--cl-text-secondary);
+  }
+
+  .cl-tournament-card__details > li + li::before {
+    content: '·';
+    margin-inline-end: var(--cl-space-3);
+    color: var(--cl-text-muted);
   }
 
   .cl-card-footer {

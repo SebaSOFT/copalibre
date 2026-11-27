@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './tv-fixtures.js';
 
 test('TV launcher previews background changes and exposes pinned match controls', async ({
   page,
@@ -16,17 +16,20 @@ test('TV launcher previews background changes and exposes pinned match controls'
   }
 
   await expect(organization).toBeVisible();
-  await expect(page.getByLabel('Torneo')).toBeVisible();
-  await expect(page.getByLabel('Etapa')).toBeVisible();
-  await expect(page.getByRole('combobox', { name: 'Partido', exact: true })).toBeVisible();
+  await expect(page.locator('[data-launcher-tournament]')).toBeVisible();
+  await expect(page.locator('[data-launcher-stage]')).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Fijar un partido', exact: true })).toBeVisible();
 
   await page.getByLabel('Fondo').selectOption('court');
   await expect(page.locator('html')).toHaveAttribute('data-tv-background', 'court');
   await page.getByLabel('Fondo').selectOption('chroma');
   await expect(page.locator('html')).toHaveAttribute('data-tv-background', 'chroma');
 
-  const match = page.getByRole('combobox', { name: 'Partido', exact: true });
-  if ((await match.locator('option').count()) > 0) {
+  const match = page.getByRole('combobox', { name: 'Fijar un partido', exact: true });
+  // No match is named until the operator picks one: the first real match is picked here.
+  const firstMatch = match.locator('option[value]:not([value=""])').first();
+  if ((await firstMatch.count()) > 0) {
+    await match.selectOption((await firstMatch.getAttribute('value')) ?? '');
     const launch = page.getByRole('link', { name: 'Lanzar pantalla TV' });
     await expect(launch).toHaveAttribute(
       'href',

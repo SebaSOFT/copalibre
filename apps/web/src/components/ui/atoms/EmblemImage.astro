@@ -1,8 +1,12 @@
 ---
+import Icon from './Icon.astro';
+import { emblemMonogramStep } from '../../../lib/entrant-emblem.ts';
+import { emblemSizes, emblemSrcset } from '../../../lib/public-image-paths.ts';
+
 /**
- * An organization's or club's emblem, or a placeholder shield outline when
- * none has been uploaded (the rule: never a broken image or an empty
- * gap) — the public-web sibling of control-web's `ClubEmblemPlaceholder`.
+ * An organization's or club's emblem, the stored abbreviation tile, or a
+ * placeholder shield when no abbreviation is available. A failed image swaps
+ * to the same fallback without waiting for page hydration.
  *
  * `bare` drops the frame (background, border, chamfer and inset) and leaves only the 1:1 image:
  * the mode for an emblem that sits inline with a club's name, where a framed badge reads as a
@@ -12,41 +16,76 @@ interface Props {
   readonly src?: string;
   readonly alt: string;
   readonly placeholderAlt: string;
+  readonly abbreviation?: string;
   readonly size?: number;
   readonly bare?: boolean;
+  readonly decorative?: boolean;
+  /** Above the first screen: load at once instead of when scrolled near. */
+  readonly eager?: boolean;
 }
 
-const { src, alt, placeholderAlt, size = 48, bare = false } = Astro.props;
+const {
+  src,
+  alt,
+  placeholderAlt,
+  abbreviation,
+  size = 48,
+  bare = false,
+  decorative = false,
+  eager = false,
+} = Astro.props;
+const srcset = src ? emblemSrcset(src) : undefined;
+const monogramStep = emblemMonogramStep(abbreviation);
+const hiddenFromAssistiveTechnology = bare || decorative;
 ---
 
 <div
-  class:list={['cl-image-frame', 'cl-emblem-frame', bare && 'cl-emblem-frame--bare']}
-  style={`width: ${size}px`}
+  class:list={[
+    'cl-image-frame',
+    'cl-entrant-emblem',
+    'cl-emblem-frame',
+    size <= 32 && 'cl-entrant-emblem--small',
+    size <= 24 && 'cl-entrant-emblem--micro',
+    bare && 'cl-emblem-frame--bare',
+  ]}
+  aria-hidden={hiddenFromAssistiveTechnology ? 'true' : undefined}
+  style={`--entrant-emblem-size: ${size}px`}
 >
-  {
-    src && (
-      <img
-        src={src}
-        alt={alt}
-        onerror="this.style.display = 'none'; this.nextElementSibling.style.display = '';"
-      />
-    )
-  }
-  <svg
-    class="cl-emblem-placeholder"
-    role="img"
-    viewBox="0 0 48 48"
-    xmlns="http://www.w3.org/2000/svg"
+  {src && (
+    <img
+      src={src}
+      srcset={srcset}
+      sizes={srcset ? emblemSizes(size) : undefined}
+      width={size}
+      height={size}
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
+      alt={hiddenFromAssistiveTechnology ? '' : alt}
+      data-image-fallback
+    />
+  )}
+  <span
+    aria-label={hiddenFromAssistiveTechnology ? undefined : alt || placeholderAlt}
+    class="cl-emblem-placeholder cl-entrant-emblem__fallback"
+    role={hiddenFromAssistiveTechnology ? undefined : 'img'}
     style={src ? 'display: none' : undefined}
   >
-    <title>{placeholderAlt}</title>
-    <path
-      d="M8 6h32l-4 4v14c0 12-8 18-12 20-4-2-12-8-12-20V10z"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"></path>
-  </svg>
+    {monogramStep && abbreviation !== undefined ? (
+      <span
+        class:list={['cl-entrant-emblem__monogram', `cl-entrant-emblem__monogram--${monogramStep}`]}
+      >
+        {abbreviation}
+      </span>
+    ) : (
+      <Icon name="club" size={24} />
+    )}
+  </span>
 </div>
+
+<script>
+  import { installImageFallback } from '../../../lib/image-fallback';
+  installImageFallback();
+</script>
 
 <style>
   .cl-emblem-frame {
@@ -59,7 +98,7 @@ const { src, alt, placeholderAlt, size = 48, bare = false } = Astro.props;
   .cl-emblem-frame img {
     box-sizing: border-box;
     object-fit: contain;
-    padding: var(--cl-space-2);
+    padding: var(--cl-emblem-inset);
   }
 
   .cl-emblem-frame--bare {
@@ -74,12 +113,21 @@ const { src, alt, placeholderAlt, size = 48, bare = false } = Astro.props;
     padding: 0;
   }
 
-  .cl-emblem-frame--bare svg {
+  .cl-emblem-frame--bare .cl-emblem-placeholder {
     width: 100%;
     height: 100%;
   }
 
   .cl-emblem-placeholder {
-    color: var(--cl-text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--cl-text-on-emblem-frame);
+  }
+
+  .cl-emblem-frame--bare .cl-emblem-placeholder {
+    color: var(--cl-text-primary);
   }
 </style>

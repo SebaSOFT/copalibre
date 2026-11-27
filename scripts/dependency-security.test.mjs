@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import semver from 'semver';
 import { parse } from 'yaml';
 import {
   checkPatchedFloor,
@@ -17,7 +18,10 @@ const lockText = readFileSync(new URL('yarn.lock', root), 'utf8');
 // a numerically larger prerelease is not evidence that a security fix is present.
 const patchedFloors = {
   'brace-expansion': { 1: '1.1.21', 2: '2.1.7', 5: '5.0.12' },
-  'fast-uri': { 3: '3.1.8', 4: '4.2.1' },
+  'body-parser': { 2: '2.4.0' },
+  'fast-uri': { 3: '3.1.9', 4: '4.2.3' },
+  glob: { 14: '14.0.2' },
+  minimatch: { 11: '11.0.1' },
   qs: { 6: '6.16.0' },
   'js-yaml': { 3: '3.15.2', 4: '4.3.2', 5: '5.4.1' },
   'postcss-selector-parser': { 7: '7.1.6' },
@@ -25,22 +29,27 @@ const patchedFloors = {
   svgo: { 4: '4.1.0' },
   'smol-toml': { 1: '1.9.0' },
   'source-map-js': { 1: '1.2.2' },
-  nodemailer: { 10: '10.0.2' },
-  astro: { 7: '7.2.8' },
-  hono: { 4: '4.13.5' },
-  'ip-address': { 10: '10.7.1' },
-  undici: { 6: '6.28.1', 8: '8.10.2' },
+  nodemailer: { 10: '10.1.4' },
+  astro: { 7: '7.4.7' },
+  '@astrojs/node': { 11: '11.1.12' },
+  hono: { 4: '4.13.16' },
+  'http-cache-semantics': { 4: '4.3.0' },
+  'ip-address': { 10: '10.7.4' },
+  '@hono/node-server': { 2: '2.1.6' },
+  'basic-ftp': { 6: '6.2.4' },
+  undici: { 6: '6.29.1', 8: '8.12.2' },
   nanoid: { 3: '3.3.18', 5: '5.1.16' },
+  storybook: { 10: '10.6.2' },
+  vite: { 8: '8.1.6' },
+  zod: { 4: '4.6.7' },
 };
 
 function assertPatched(name, version, label) {
   assert.match(version, /^\d+\.\d+\.\d+$/, `${label}: expected a stable version`);
   const minimum = patchedFloors[name][version.split('.')[0]];
   assert.ok(minimum, `${label}: review security advisories for this major line`);
-  assert.ok(
-    version.localeCompare(minimum, 'en', { numeric: true }) >= 0,
-    `${label}: ${version} is below patched floor ${minimum}`,
-  );
+  // semver, not string order: 10.10.0 is above 10.9.9.
+  assert.ok(semver.gte(version, minimum), `${label}: ${version} is below patched floor ${minimum}`);
 }
 
 for (const name of Object.keys(patchedFloors)) {
@@ -64,10 +73,9 @@ for (const name of Object.keys(patchedFloors)) {
 }
 
 for (const [selector, name] of [
-  ['brace-expansion@npm:^1.1.7', 'brace-expansion'],
-  ['brace-expansion@npm:^2.0.1', 'brace-expansion'],
-  ['brace-expansion@npm:^2.0.2', 'brace-expansion'],
-  ['brace-expansion@npm:^5.0.8', 'brace-expansion'],
+  ['brace-expansion@npm:^5.0.12', 'brace-expansion'],
+  ['glob', 'glob'],
+  ['minimatch', 'minimatch'],
   ['fast-uri@npm:^3.0.0', 'fast-uri'],
   ['fast-uri@npm:^3.0.1', 'fast-uri'],
   ['fast-uri@npm:^4.0.0', 'fast-uri'],
@@ -80,7 +88,14 @@ for (const [selector, name] of [
   ['source-map-js@npm:^1.0.1', 'source-map-js'],
   ['source-map-js@npm:^1.2.1', 'source-map-js'],
   ['nanoid@npm:^3.3.16', 'nanoid'],
+  ['nodemailer', 'nodemailer'],
+  ['storybook@npm:10.6.2', 'storybook'],
+  ['vite@npm:^8.3.4', 'vite'],
+  ['http-cache-semantics@npm:^4.1.1', 'http-cache-semantics'],
+  ['hono@npm:^4.11.4', 'hono'],
   ['ip-address', 'ip-address'],
+  ['@hono/node-server', '@hono/node-server'],
+  ['basic-ftp@npm:^5.0.2', 'basic-ftp'],
   ['undici@npm:^6.25.0', 'undici'],
   ['undici@npm:^8.4.1', 'undici'],
   ['undici@npm:^8.9.0', 'undici'],
@@ -121,8 +136,7 @@ for (const advisory of Object.values(KNOWN_UNPATCHED_ADVISORIES)) {
     const nextPatch = `${major}.${minor}.${patch + 1}`;
     assert.equal(
       checkPatchedFloor(advisory.package, versions, nextPatch).length,
-      versions.filter((version) => version.localeCompare(nextPatch, 'en', { numeric: true }) < 0)
-        .length,
+      versions.filter((version) => semver.lt(version, nextPatch)).length,
       `${advisory.package}: every locked instance below an upstream fix must be reported`,
     );
     assert.deepEqual(
@@ -132,3 +146,10 @@ for (const advisory of Object.values(KNOWN_UNPATCHED_ADVISORIES)) {
     );
   });
 }
+
+test('a floor comparison orders versions numerically, not as strings', () => {
+  // A string comparison would read 10.10.0 as below 10.9.9 and 2.10.0 as below 2.9.0.
+  assert.ok(semver.gte('10.10.0', '10.9.9'));
+  assert.ok(semver.gte('2.10.0', '2.9.0'));
+  assert.ok(!semver.gte('10.7.3', '10.7.4'));
+});

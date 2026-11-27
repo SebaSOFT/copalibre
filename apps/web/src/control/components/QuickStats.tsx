@@ -1,27 +1,44 @@
 import { useIntl } from 'react-intl';
 import type { QuickStats as Stats } from '../lib/dashboard.js';
 import { messages } from '../i18n/messages.en.js';
-import { MetricStrip } from './ui/molecules/metric-strip.js';
+import { KpiStrip, type KpiStripMetric } from './ui/organisms/kpi-strip.js';
 
-const TILES = [
-  { key: 'activeTournaments', label: messages.dashboardActiveTournaments },
-  { key: 'pendingRegistrations', label: messages.dashboardPendingRegistrations },
-  { key: 'matchesToday', label: messages.dashboardMatchesToday },
-] as const;
-
-export function QuickStats({ stats }: { readonly stats: Stats }): React.JSX.Element {
+export function QuickStats({ stats }: { readonly stats: Stats }): React.JSX.Element | null {
   const intl = useIntl();
   return (
-    <MetricStrip
+    <KpiStrip
       ariaLabel={intl.formatMessage(messages.dashboardSummary)}
-      metrics={TILES.map((tile) => ({
-        key: tile.key,
-        label: intl.formatMessage(tile.label),
-        unavailableLabel: intl.formatMessage(messages.metricUnavailable),
-        ...(stats[tile.key] === undefined
-          ? {}
-          : { value: <span data-testid={tile.key}>{stats[tile.key]}</span> }),
-      }))}
+      source={stats}
+      metrics={
+        [
+          {
+            key: 'activeTournaments',
+            label: intl.formatMessage(messages.dashboardActiveTournaments),
+            sourceField: 'activeTournaments',
+            formatValue: (value) => (
+              <span data-testid="activeTournaments">{intl.formatNumber(value as number)}</span>
+            ),
+            description: intl.formatMessage(messages.dashboardActiveTournamentsContext),
+          },
+          {
+            key: 'pendingRegistrations',
+            label: intl.formatMessage(messages.dashboardPendingRegistrations),
+            sourceField: 'pendingRegistrations',
+            formatValue: (value) => (
+              <span data-testid="pendingRegistrations">{intl.formatNumber(value as number)}</span>
+            ),
+            description: intl.formatMessage(messages.dashboardPendingRegistrationsContext),
+          },
+          {
+            key: 'matchesToday',
+            label: intl.formatMessage(messages.dashboardMatchesToday),
+            sourceField: 'matchesToday',
+            formatValue: (value) => (
+              <span data-testid="matchesToday">{intl.formatNumber(value as number)}</span>
+            ),
+          },
+        ] satisfies readonly KpiStripMetric<Stats>[]
+      }
     />
   );
 }

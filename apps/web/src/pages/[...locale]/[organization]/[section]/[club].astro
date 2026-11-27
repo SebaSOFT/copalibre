@@ -1,0 +1,230 @@
+---
+import { isSupportedLanguage, resolveLabel, type SupportedLanguage } from '@copalibre/domain';
+import type { PublicOrganizationClubTournamentResponse } from '@copalibre/api/src/dto/public-tournament.dto.js';
+import PublicLayout from '../../../../layouts/PublicLayout.astro';
+import Container from '../../../../components/ui/atoms/layout/Container.astro';
+import Stack from '../../../../components/ui/atoms/layout/Stack.astro';
+import ClubIdentity from '../../../../components/ui/molecules/ClubIdentity.astro';
+import SectionHeader from '../../../../components/ui/molecules/SectionHeader.astro';
+import Breadcrumb from '../../../../components/ui/organisms/Breadcrumb.astro';
+import PageHeader from '../../../../components/ui/organisms/PageHeader.astro';
+import DataTable, {
+  type DataTableColumn,
+} from '../../../../components/ui/organisms/DataTable.astro';
+import {
+  clubPageUrl,
+  isValidClubAlias,
+  organizationClubPageUrl,
+} from '../../../../lib/club-url.ts';
+import {
+  clubHonours,
+  formatClubPlacement,
+  formatClubTournamentStatus,
+  type ClubHonour,
+} from '../../../../lib/organization-club.ts';
+import { clubEmblemUrl, fetchOrganizationClub } from '../../../../lib/public-api-client.ts';
+import { publicIntl } from '../../../../lib/i18n/public-intl.ts';
+import { messages } from '../../../../lib/i18n/public-messages.en.ts';
+import { getLocalizedNotFoundPath, resolvePathLocale } from '../../../../lib/locale.ts';
+import {
+  isPublicLocaleSegment,
+  isReservedOrganizationAlias,
+} from '../../../../lib/public-route-guards.ts';
+
+export const prerender = false;
+
+// The collection segment is a parameter, not a static `clubs/` directory, on purpose. `[...locale]`
+// can absorb several segments, so a static `clubs/[club]` here would also match a tournament club
+// path (`/{org}/tournaments/{t}/clubs/{club}`, with `{org}/tournaments` taken as the locale), and the
+// router ranks static segments alphabetically: `clubs` would outrank `tournaments`. A dynamic segment
+// ranks below every static one, so every tournament route keeps its paths, and this page answers
+// only `/{organization}/clubs/{club}`.
+const { locale, organization, section, club } = Astro.params;
+if (section !== 'clubs') {
+  Astro.response.status = 404;
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvePathLocale(Astro.url.pathname)));
+}
+if (!isPublicLocaleSegment(locale)) {
+  Astro.response.status = 404;
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvePathLocale(Astro.url.pathname)));
+}
+
+const resolvedLocale: SupportedLanguage = isSupportedLanguage(locale) ? locale : 'en';
+const intl = publicIntl(resolvedLocale);
+const localePrefix = locale ? `/${locale}` : '';
+
+if (!organization || isReservedOrganizationAlias(organization) || !isValidClubAlias(club)) {
+  Astro.response.status = 404;
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
+}
+
+let history: Awaited<ReturnType<typeof fetchOrganizationClub>>;
+try {
+  history = await fetchOrganizationClub(organization, club);
+} catch {
+  history = undefined;
+}
+if (!history) {
+  Astro.response.status = 404;
+  return Astro.rewrite(getLocalizedNotFoundPath(resolvedLocale));
+}
+
+// A link shared before the club changed its alias keeps working: the API answers a former alias with
+// the club under its current one, and the page moves there permanently, keeping language and query.
+if (history.club.alias && history.club.alias !== club) {
+  const location = `${organizationClubPageUrl({
+    organizationAlias: organization,
+    clubAlias: history.club.alias,
+    localePrefix,
+  })}${Astro.url.search}`;
+  return new Response(null, { status: 301, headers: { Location: location } });
+}
+
+const clubInfo = history.club;
+const emblemSrc = clubInfo.emblemObjectId
+  ? clubEmblemUrl(organization, clubInfo.clubId)
+  : undefined;
+const canonicalPath = organizationClubPageUrl({
+  organizationAlias: organization,
+  clubAlias: club,
+  localePrefix,
+});
+const tournamentClubHref = (tournamentAlias: string) =>
+  clubPageUrl({ organizationAlias: organization, tournamentAlias, clubAlias: club, localePrefix });
+
+const honours = clubHonours(history.tournaments);
+const honourColumns: DataTableColumn[] = [
+  {
+    key: 'place',
+    header: intl.formatMessage(messages.organizationClubPagePlaceColumn),
+    render: (row: unknown) => formatClubPlacement(row as ClubHonour, intl),
+  },
+  {
+    key: 'tournament',
+    header: intl.formatMessage(messages.organizationClubPageTournamentColumn),
+    name: true,
+    render: (row: unknown) => (row as ClubHonour).tournamentName,
+    href: (row: unknown) => tournamentClubHref((row as ClubHonour).tournamentAlias),
+  },
+];
+
+const disciplineName = (tournament: PublicOrganizationClubTournamentResponse) =>
+  tournament.discipline.localizedName
+    ? resolveLabel(tournament.discipline.localizedName, resolvedLocale)
+    : (tournament.discipline.name ?? '—');
+const tournamentColumns: DataTableColumn[] = [
+  {
+    key: 'tournament',
+    header: intl.formatMessage(messages.organizationClubPageTournamentColumn),
+    name: true,
+    render: (row: unknown) => (row as PublicOrganizationClubTournamentResponse).name,
+    href: (row: unknown) =>
+      tournamentClubHref((row as PublicOrganizationClubTournamentResponse).alias),
+  },
+  {
+    key: 'discipline',
+    header: intl.formatMessage(messages.organizationClubPageDisciplineColumn),
+    priority: 'low',
+    render: (row: unknown) => disciplineName(row as PublicOrganizationClubTournamentResponse),
+  },
+  {
+    key: 'status',
+    header: intl.formatMessage(messages.organizationClubPageStatusColumn),
+    render: (row: unknown) =>
+      formatClubTournamentStatus((row as PublicOrganizationClubTournamentResponse).status, intl),
+  },
+  {
+    key: 'place',
+    header: intl.formatMessage(messages.organizationClubPagePlaceColumn),
+    render: (row: unknown) => {
+      const placements = (row as PublicOrganizationClubTournamentResponse).placements ?? [];
+      return placements.length === 0
+        ? '—'
+        : placements.map((placement) => formatClubPlacement(placement, intl)).join(', ');
+    },
+  },
+];
+
+const organizationPath = `${localePrefix}/${encodeURIComponent(organization)}`;
+const trail = [
+  { label: history.organizationName, href: organizationPath },
+  { label: clubInfo.name },
+];
+const description = intl.formatMessage(messages.organizationClubPageDescription, {
+  club: clubInfo.name,
+  organization: history.organizationName,
+});
+const siteOrigin = Astro.site?.toString().replace(/\/$/, '') ?? '';
+const structuredData = {
+  '@type': 'SportsOrganization' as const,
+  name: clubInfo.name,
+  url: `${siteOrigin}${canonicalPath}`,
+  ...(emblemSrc ? { logo: `${siteOrigin}${emblemSrc}` } : {}),
+};
+---
+
+<PublicLayout
+  title={`${clubInfo.name} — ${history.organizationName}`}
+  description={description}
+  canonicalPath={canonicalPath}
+  intl={intl}
+  structuredData={structuredData}
+>
+  <Container variant="public">
+    <PageHeader loadingLabel={intl.formatMessage(messages.pageHeaderLoading)}>
+      <Breadcrumb
+        slot="breadcrumb"
+        items={trail}
+        ariaLabel={intl.formatMessage(messages.livePageBreadcrumb)}
+        collapsedLabel={intl.formatMessage(messages.breadcrumbCollapsed)}
+      />
+      <ClubIdentity
+        slot="identity"
+        name={clubInfo.name}
+        abbreviation={clubInfo.abbreviation}
+        emblemSrc={emblemSrc}
+        headingLevel={1}
+        size="lg"
+        placeholderAlt={intl.formatMessage(messages.orgPageEmblemPlaceholderAlt)}
+      />
+    </PageHeader>
+
+    <Stack>
+      {honours.length > 0 && (
+        <section aria-labelledby="organization-club-honours-heading">
+          <SectionHeader
+            headingId="organization-club-honours-heading"
+            heading={intl.formatMessage(messages.organizationClubPageHonoursHeading)}
+            count={honours.length}
+          />
+          <DataTable
+            ariaLabel={intl.formatMessage(messages.organizationClubPageHonoursHeading)}
+            columns={honourColumns}
+            mobileMode="priority"
+            moreColumnsLabel={intl.formatMessage(messages.standingsMoreColumns)}
+            rows={honours}
+          />
+        </section>
+      )}
+
+      <section aria-labelledby="organization-club-tournaments-heading">
+        <SectionHeader
+          headingId="organization-club-tournaments-heading"
+          heading={intl.formatMessage(messages.organizationClubPageTournamentsHeading)}
+          count={history.tournaments.length}
+        />
+        {history.tournaments.length === 0 ? (
+          <p>{intl.formatMessage(messages.organizationClubPageTournamentsEmpty)}</p>
+        ) : (
+          <DataTable
+            ariaLabel={intl.formatMessage(messages.organizationClubPageTournamentsHeading)}
+            columns={tournamentColumns}
+            mobileMode="priority"
+            moreColumnsLabel={intl.formatMessage(messages.standingsMoreColumns)}
+            rows={history.tournaments}
+          />
+        )}
+      </section>
+    </Stack>
+  </Container>
+</PublicLayout>

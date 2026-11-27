@@ -63,7 +63,7 @@ describe('Personal Access Token repository (integration)', () => {
     expect(listed[0]?.tokenId).toEqual(issued.tokenId);
   });
 
-  it('revokes a PAT so it can no longer authorize requests', async () => {
+  it('soft-deletes an unused PAT so it can be restored without authorizing while revoked', async () => {
     const tokens = new PersonalAccessTokenRepository(scratch.db);
 
     const issued = await withTransaction(scratch.db, (uow) =>
@@ -92,10 +92,20 @@ describe('Personal Access Token repository (integration)', () => {
     // After revocation, it authorizes nothing
     await expect(tokens.scopeOf(tokenHash)).resolves.toBeUndefined();
 
-    // But it still appears in the list (as revoked)
+    // The undo window hides the token from the active list.
     const listed = await tokens.listByPrincipal(principalId);
-    const found = listed.find((t) => t.tokenId === issued.tokenId);
-    expect(found?.revoked).toBe(true);
+    expect(listed.some((token) => token.tokenId === issued.tokenId)).toBe(false);
+
+    const restored = await withTransaction(scratch.db, (uow) =>
+      tokens.restore(uow, {
+        tokenId: issued.tokenId,
+        principalId,
+        actor: `user:${principalId}`,
+        authorizationContext: 'copalibre.participant',
+      }),
+    );
+    expect(restored.revoked).toBe(false);
+    await expect(tokens.scopeOf(tokenHash)).resolves.toBeDefined();
   });
 
   it('rejects revoking a token that belongs to a different principal', async () => {
@@ -184,10 +194,23 @@ describe('Personal Access Token repository (integration)', () => {
       }),
     );
 
+    await withTransaction(scratch.db, (uow) =>
+      tokens.restore(uow, {
+        tokenId: issued.tokenId,
+        principalId,
+        actor: `user:${principalId}`,
+        authorizationContext: '',
+      }),
+    );
+
     const audit = await new AuditReader(scratch.db).historyFor(
       'personal-access-token',
       issued.tokenId,
     );
-    expect(audit.map((entry) => entry.action)).toEqual(['pat.created', 'pat.revoked']);
+    expect(audit.map((entry) => entry.action)).toEqual([
+      'pat.created',
+      'pat.revoked',
+      'pat.restored',
+    ]);
   });
 });

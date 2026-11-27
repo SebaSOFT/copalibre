@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Inject, Param, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
 import { NotFoundException } from '../http/error-contract.js';
 import {
   ApiBearerAuth,
@@ -8,7 +8,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { runStatisticsRebuild } from '@copalibre/statistics-refold';
+import { previewStatisticsRebuild, runStatisticsRebuild } from '@copalibre/statistics-refold';
 import type { Database } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
 import { RequireOrganizationCapability } from '../auth/access-requirement.js';
@@ -16,6 +16,7 @@ import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { StatisticsRebuildRequest, StatisticsRebuildResponse } from '../dto/admin.dto.js';
 import { ProblemResponse } from '../dto/organization.dto.js';
 import { DATABASE } from '../database.token.js';
+import type { RequestWithSubject } from '../auth/request-context.js';
 
 /**
  * The authenticated HTTP path for `copalibre statistics-rebuild` —
@@ -46,12 +47,30 @@ export class AdminStatisticsController {
   async rebuild(
     @Param('organizationAlias') organizationAlias: string,
     @Body() body: StatisticsRebuildRequest,
+    @Req() request: RequestWithSubject,
   ): Promise<StatisticsRebuildResponse> {
     try {
-      return await runStatisticsRebuild(this.db, {
+      const options = {
         organization: organizationAlias,
         ...(body.tournamentAlias === undefined ? {} : { tournament: body.tournamentAlias }),
-      });
+      };
+      if (body.dryRun === true) {
+        return {
+          ...(await previewStatisticsRebuild(this.db, options)),
+          dryRun: true,
+        };
+      }
+      const subject = request.subject;
+      return {
+        ...(await runStatisticsRebuild(this.db, {
+          ...options,
+          audit: {
+            actor: `user:${subject?.subjectId ?? 'unknown'}`,
+            authorizationContext: (subject?.scopes ?? []).join(' '),
+          },
+        })),
+        dryRun: false,
+      };
     } catch (error) {
       // runStatisticsRebuild throws a plain Error for "no such
       // organization/tournament" — the same shape createAdmin's HTTP

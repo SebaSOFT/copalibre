@@ -1,23 +1,25 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from '../ui/atoms/alert.js';
+import { RealtimeClient } from '@copalibre/realtime';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
 import {
+  ControlApiError,
   createControlApiClient,
   type ControlApiClient,
-  type FixtureResponse,
-  type OfficialResponse,
   type ScheduleAssignmentDto,
   type ScheduleConflictDto,
-  type ScheduleDetailResponse,
-  type VenueResponse,
+  type ScheduleReasonDto,
 } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
-import { messages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
 import {
   ScheduleBuilderTemplate,
   type DraftAssignment,
 } from '../screens/ScheduleBuilderTemplate.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { useResilientRead } from './use-resilient-read.js';
+import { useStageName } from './use-stage-name.js';
+import { controlSession } from '../../session/session-store.js';
+import { PageHeaderContext } from '../ui/organisms/page-header.js';
 
 const EMPTY_DRAFT: DraftAssignment = {
   slotId: '',
@@ -52,78 +54,228 @@ export function ScheduleBuilderPage({
   readonly client?: ControlApiClient;
 }): React.JSX.Element {
   const intl = useIntl();
+  const pageHeader = useContext(PageHeaderContext);
   const { push, pushError } = useToast();
   const api = useMemo(
     () =>
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );
 
-  const [stageId, setStageId] = useState<string | undefined>(undefined);
-  const [fixtures, setFixtures] = useState<readonly FixtureResponse[]>([]);
-  const [venues, setVenues] = useState<readonly VenueResponse[]>([]);
-  const [officials, setOfficials] = useState<readonly OfficialResponse[]>([]);
-  const [schedules, setSchedules] = useState<readonly ScheduleDetailResponse[]>([]);
-  const [drafts, setDrafts] = useState<Readonly<Record<string, DraftAssignment>>>({});
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | undefined>(undefined);
+  const [draftOverride, setDrafts] = useState<Readonly<Record<string, DraftAssignment>>>();
+  const dirtyDraft = useRef(false);
   const [conflicts, setConflicts] = useState<readonly ScheduleConflictDto[]>([]);
+  const [conflictOverride, setCurrentConflicts] = useState<readonly ScheduleConflictDto[]>();
   const [affectedPublishedMatches, setAffectedPublishedMatches] = useState<readonly string[]>([]);
+  const [reasonRequiredMatches, setReasonRequiredMatches] = useState<readonly string[]>([]);
+  const [freedSlotIds, setFreedSlotIds] = useState<readonly string[]>([]);
   const [committable, setCommittable] = useState(false);
   const [previewed, setPreviewed] = useState(false);
+  const [concurrentNotice, setConcurrentNotice] = useState<string>();
+  const currentDraft = useRef<Readonly<Record<string, DraftAssignment>>>({});
+  const previewGeneration = useRef(0);
+  // The last stream-link version applied per match. It lives across reconnects, so a replayed change is not re-read.
+  const streamLinkVersions = useRef(new Map<string, number>());
 
-  const reload = useCallback(async (): Promise<void> => {
-    setLoading(true);
-    try {
-      const [fixturesResponse, loadedVenues, loadedOfficials, loadedSchedules] = await Promise.all([
+  const stageName = useStageName(api, organizationAlias, tournamentAlias, stageNumber);
+  const read = useResilientRead(
+    `control-schedule:${organizationAlias}:${tournamentAlias}:${stageNumber}`,
+    async () => {
+      const [fixturesResponse, venues, officials, schedules] = await Promise.all([
         api.getStageFixtures?.(organizationAlias, tournamentAlias, stageNumber),
         api.listVenues?.(organizationAlias) ?? Promise.resolve([]),
         api.listOfficials?.(organizationAlias) ?? Promise.resolve([]),
         api.listSchedules?.(organizationAlias) ?? Promise.resolve([]),
       ]);
-      if (!fixturesResponse) throw new Error('no fixtures client configured');
-      setStageId(fixturesResponse.stageId);
-      setFixtures(fixturesResponse.fixtures);
-      setVenues(loadedVenues);
-      setOfficials(loadedOfficials);
-      setSchedules(loadedSchedules);
-
+      if (!fixturesResponse) throw new Error('Stage fixtures are unavailable');
       const schedule = await api.getSchedule?.(
         organizationAlias,
         tournamentAlias,
         fixturesResponse.stageId,
       );
-      const nextDrafts: Record<string, DraftAssignment> = {};
-      for (const assignment of schedule?.assignments ?? []) {
-        nextDrafts[assignment.matchId] = {
-          slotId: assignment.slotId,
-          officialIds: assignment.officialIds ?? [],
-        };
-      }
-      setDrafts(nextDrafts);
-      setPreviewed(false);
-      setConflicts([]);
-      setLoadError(undefined);
-    } catch {
-      setLoadError(intl.formatMessage(messages.scheduleBuilderLoadFailed));
-    } finally {
-      setLoading(false);
-    }
-  }, [api, organizationAlias, tournamentAlias, stageNumber, intl]);
+      return {
+        stageId: fixturesResponse.stageId,
+        fixtures: fixturesResponse.fixtures,
+        venues,
+        officials,
+        schedules,
+        schedule,
+      };
+    },
+    {
+      thing: intl.formatMessage(messages.scheduleBuilderTitle),
+      onSuccess: ({ schedule }) => {
+        setCurrentConflicts(schedule?.conflicts ?? []);
+        if (dirtyDraft.current) return;
+        setDrafts(undefined);
+        setPreviewed(false);
+        setConflicts([]);
+      },
+    },
+  );
+  const assignments = read.data?.schedule?.assignments ?? [];
+  const savedDrafts = Object.fromEntries(
+    assignments.map((assignment) => [
+      assignment.matchId,
+      {
+        slotId: assignment.slotId,
+        officialIds: assignment.officialIds ?? [],
+      },
+    ]),
+  );
+  const drafts = draftOverride ?? savedDrafts;
+  const placements = Object.fromEntries(
+    assignments.map((assignment) => [assignment.matchId, assignment.slotId]),
+  );
+  const currentConflicts = conflictOverride ?? read.data?.schedule?.conflicts ?? [];
+  useEffect(() => {
+    currentDraft.current = drafts;
+  }, [drafts]);
+  const { stageId, fixtures = [], venues = [], officials = [], schedules = [] } = read.data ?? {};
+  const reload = read.refresh;
+  // The realtime handler reads the latest reload without re-connecting when the read object changes.
+  const reloadRef = useRef(reload);
+  useEffect(() => {
+    reloadRef.current = reload;
+  });
+  const conflictsRead = useResilientRead(
+    `control-schedule-conflicts:${organizationAlias}:${tournamentAlias}:${stageId}`,
+    () =>
+      stageId === undefined
+        ? Promise.resolve(undefined)
+        : (api.getSchedule?.(organizationAlias, tournamentAlias, stageId) ??
+          Promise.resolve(undefined)),
+    {
+      thing: intl.formatMessage(messages.scheduleBuilderTitle),
+      enabled: false,
+      onSuccess: (schedule) => setCurrentConflicts(schedule?.conflicts ?? []),
+    },
+  );
+  const refreshConflicts = conflictsRead.refresh;
+  const reasonsRead = useResilientRead(
+    `control-schedule-reasons:${organizationAlias}`,
+    () => api.recentScheduleReasons?.(organizationAlias) ?? Promise.resolve({ reasons: [] }),
+    {
+      thing: intl.formatMessage(messages.scheduleBuilderTitle),
+      enabled: reasonRequiredMatches.length > 0,
+    },
+  );
+  const recentReasons = reasonsRead.data?.reasons ?? [];
 
   useEffect(() => {
-    void Promise.resolve().then(() => reload());
-  }, [reload]);
+    const stream = api.controlStream?.(organizationAlias);
+    if (!stream || !stageId) return;
+    let active = true;
+    const client = new RealtimeClient(stream);
+    const versions = new Map<string, number>();
+    const repreview = async (): Promise<void> => {
+      const generation = ++previewGeneration.current;
+      setPreviewed(false);
+      setCommittable(false);
+      const batch = Object.entries(currentDraft.current).flatMap<ScheduleAssignmentDto>(
+        ([matchId, draft]) =>
+          draft.withdraw
+            ? [{ matchId, withdraw: true as const }]
+            : draft.slotId
+              ? [{ matchId, slotId: draft.slotId, officialIds: draft.officialIds }]
+              : [],
+      );
+      if (!api.previewSchedule || batch.length === 0) return;
+      try {
+        const result = await api.previewSchedule(organizationAlias, tournamentAlias, stageId, {
+          assignments: batch,
+        });
+        if (!active || generation !== previewGeneration.current) return;
+        setConflicts(result.conflicts);
+        setAffectedPublishedMatches(result.affectedPublishedMatches);
+        setReasonRequiredMatches(result.reasonRequiredMatches ?? []);
+        setFreedSlotIds(result.freedSlotIds ?? []);
+        setCommittable(result.committable);
+        setPreviewed(true);
+      } catch (error) {
+        if (active) pushError(error);
+      }
+    };
+    void client.connect({
+      onEvent: (event) => {
+        // A result resolved a side into a clash with a published placement: re-read what is real now.
+        if (event.eventType === 'schedule.conflict-arose') {
+          void refreshConflicts();
+          return;
+        }
+        // A stream link changed for a game of this stage: re-read the schedule, once per projection version.
+        if (event.eventType === 'match.stream-url-changed' && event.payload.stageId === stageId) {
+          const linkedMatchId = event.payload.matchId;
+          if (
+            typeof linkedMatchId !== 'string' ||
+            event.projectionVersion <= (streamLinkVersions.current.get(linkedMatchId) ?? 0)
+          )
+            return;
+          streamLinkVersions.current.set(linkedMatchId, event.projectionVersion);
+          void reloadRef.current();
+          return;
+        }
+        if (event.eventType !== 'match.rescheduled' || event.payload.stageId !== stageId) return;
+        const matchId = event.payload.matchId;
+        if (typeof matchId !== 'string' || event.projectionVersion <= (versions.get(matchId) ?? 0))
+          return;
+        versions.set(matchId, event.projectionVersion);
+        const actor = event.payload.actor;
+        // The session metadata names the signed-in subject; Control never reads the token.
+        const subject = controlSession.read()?.subject;
+        const ownActor = subject === undefined ? undefined : `user:${subject}`;
+        if (actor === ownActor) return;
+        const fixture = fixtures.find(
+          (entry) =>
+            entry.matchId === matchId || entry.matches?.some((match) => match.matchId === matchId),
+        );
+        if (!fixture) return;
+        const game = intl.formatMessage(messages.scheduleBuilderSeriesGame, {
+          number: fixture.matches?.find((entry) => entry.matchId === matchId)?.number ?? 1,
+          span: fixture.series?.span ?? 1,
+        });
+        const match = [
+          fixture.homeName ?? intl.formatMessage(messages.matchesViewResultStateTbd),
+          fixture.awayName ?? intl.formatMessage(messages.matchesViewResultStateTbd),
+          game,
+        ]
+          .filter(Boolean)
+          .join(' · ');
+        setConcurrentNotice(
+          intl.formatMessage(messages.scheduleConcurrentChange, {
+            match,
+            actor: String(event.payload.actorName ?? actor ?? ''),
+          }),
+        );
+        void repreview();
+      },
+      onProjectionRequired: () => void repreview(),
+    });
+    return () => {
+      active = false;
+      client.close();
+    };
+  }, [
+    api,
+    organizationAlias,
+    tournamentAlias,
+    stageId,
+    fixtures,
+    intl,
+    pushError,
+    refreshConflicts,
+  ]);
 
   function setDraft(matchId: string, patch: Partial<DraftAssignment>): void {
+    dirtyDraft.current = true;
     setDrafts((current) => ({
-      ...current,
-      [matchId]: { ...(current[matchId] ?? EMPTY_DRAFT), ...patch },
+      ...(current ?? drafts),
+      [matchId]: { ...((current ?? drafts)[matchId] ?? EMPTY_DRAFT), ...patch },
     }));
+    previewGeneration.current += 1;
     setPreviewed(false);
   }
 
@@ -136,14 +288,28 @@ export function ScheduleBuilderPage({
     });
   }
 
+  async function setStreamUrl(matchId: string, streamUrl: string | null): Promise<void> {
+    if (!api.setMatchStreamUrl || stageId === undefined) return;
+    try {
+      await api.setMatchStreamUrl(organizationAlias, tournamentAlias, stageId, matchId, streamUrl);
+      void reload();
+    } catch (error) {
+      pushError(error);
+    }
+  }
+
   async function preview(batch: readonly ScheduleAssignmentDto[]): Promise<void> {
     if (!api.previewSchedule || stageId === undefined || batch.length === 0) return;
+    const generation = ++previewGeneration.current;
     try {
       const result = await api.previewSchedule(organizationAlias, tournamentAlias, stageId, {
         assignments: batch,
       });
+      if (generation !== previewGeneration.current) return;
       setConflicts(result.conflicts);
       setAffectedPublishedMatches(result.affectedPublishedMatches);
+      setReasonRequiredMatches(result.reasonRequiredMatches ?? []);
+      setFreedSlotIds(result.freedSlotIds ?? []);
       setCommittable(result.committable);
       setPreviewed(true);
     } catch (error) {
@@ -151,44 +317,79 @@ export function ScheduleBuilderPage({
     }
   }
 
-  async function publish(batch: readonly ScheduleAssignmentDto[]): Promise<void> {
+  async function publish(
+    batch: readonly ScheduleAssignmentDto[],
+    reason?: ScheduleReasonDto,
+  ): Promise<void> {
     if (!api.publishSchedule || stageId === undefined || batch.length === 0) return;
     try {
       await api.publishSchedule(organizationAlias, tournamentAlias, stageId, {
         assignments: batch,
+        ...(reason === undefined ? {} : { reason }),
       });
       push({ severity: 'success', message: intl.formatMessage(messages.scheduleBuilderPublished) });
+      dirtyDraft.current = false;
       void reload();
     } catch (error) {
+      // Refused for conflicts that arose since the preview: list them, worded, as a preview would.
+      if (error instanceof ControlApiError && error.conflicts !== undefined) {
+        previewGeneration.current += 1;
+        setConflicts(error.conflicts);
+        setCommittable(false);
+        setPreviewed(true);
+        push({
+          severity: 'error',
+          message: intl.formatMessage(messages.scheduleBuilderPublishRefused),
+        });
+        return;
+      }
       pushError(error);
     }
   }
 
-  if (loading) {
-    return <Alert tone="info">{intl.formatMessage(messages.scheduleBuilderLoading)}</Alert>;
-  }
-  if (loadError) {
-    return <Alert tone="destructive">{loadError}</Alert>;
-  }
+  if (read.data === undefined)
+    return <ReadState {...read} title={intl.formatMessage(messages.scheduleBuilderTitle)} />;
 
   return (
-    <ScheduleBuilderTemplate
-      affectedPublishedMatches={affectedPublishedMatches}
-      committable={committable}
-      conflicts={conflicts}
-      drafts={drafts}
-      fixtures={fixtures}
-      officials={officials}
-      onPreview={(batch) => void preview(batch)}
-      onPublish={(batch) => void publish(batch)}
-      onSetDraft={setDraft}
-      onToggleOfficial={toggleOfficial}
-      organizationAlias={organizationAlias}
-      previewed={previewed}
-      schedules={schedules}
-      stageNumber={stageNumber}
-      tournamentAlias={tournamentAlias}
-      venues={venues}
-    />
+    <ReadState
+      {...read}
+      status={
+        read.status === 'stale' ||
+        conflictsRead.status === 'stale' ||
+        reasonsRead.status === 'stale'
+          ? 'stale'
+          : read.status
+      }
+      staleSince={read.staleSince ?? conflictsRead.staleSince ?? reasonsRead.staleSince}
+      title={intl.formatMessage(messages.scheduleBuilderTitle)}
+    >
+      <ScheduleBuilderTemplate
+        concurrentNotice={concurrentNotice}
+        affectedPublishedMatches={affectedPublishedMatches}
+        committable={committable}
+        conflicts={conflicts}
+        currentConflicts={currentConflicts}
+        drafts={drafts}
+        fixtures={fixtures}
+        freedSlotIds={freedSlotIds}
+        officials={officials}
+        onPreview={(batch) => void preview(batch)}
+        onPublish={(batch, reason) => void publish(batch, reason)}
+        onSetDraft={setDraft}
+        onToggleOfficial={toggleOfficial}
+        onSetStreamUrl={setStreamUrl}
+        organizationAlias={organizationAlias}
+        organizationTimeZone={pageHeader?.organizationTimeZone}
+        placements={placements}
+        previewed={previewed}
+        reasonRequiredMatches={reasonRequiredMatches}
+        recentReasons={recentReasons}
+        schedules={schedules}
+        stageName={stageName}
+        stageNumber={stageNumber}
+        tournamentAlias={tournamentAlias}
+        venues={venues}
+      />
+    </ReadState>
   );
 }

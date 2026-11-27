@@ -6,7 +6,8 @@
 [![CI](https://github.com/SebaSOFT/copalibre/actions/workflows/ci.yml/badge.svg)](https://github.com/SebaSOFT/copalibre/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/SebaSOFT/copalibre)](https://github.com/SebaSOFT/copalibre/releases)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](tsconfig.json)
-[![Discussions](https://img.shields.io/github/discussions/SebaSOFT/copalibre)](https://github.com/SebaSOFT/copalibre/discussions)
+[![Glama](https://glama.ai/mcp/servers/SebaSOFT/copalibre/badges/score.svg)](https://glama.ai/mcp/servers/SebaSOFT/copalibre)
+[![Smithery](https://smithery.ai/badge/@SebaSOFT/copalibre)](https://smithery.ai/server/@SebaSOFT/copalibre)
 
 > **Self-hosted tournament management for clubs, leagues, federations, and competitive communities.**
 
@@ -102,7 +103,8 @@ both images from the checkout root first (`docker build --target runtime -t copa
 `docker build --target web -t copalibre-web:local .`), then set `COPALIBRE_IMAGE=copalibre:local` and
 `COPALIBRE_WEB_IMAGE=copalibre-web:local` in the installation's `.env` before starting it.
 
-See [`AGENTS.md`](AGENTS.md) for the full contributor guide.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the contributor guide. [`AGENTS.md`](AGENTS.md) is the
+agent and tooling reference.
 Full walkthrough, backup/restore, and persistent-data details: [`docs/self-hosting.md`](docs/self-hosting.md).
 
 ## Features
@@ -183,8 +185,9 @@ yarn test:integration   # requires PostgreSQL via DATABASE_URL
 yarn test:e2e
 ```
 
-See [`AGENTS.md`](AGENTS.md) for the full contributor guide (conventions, testing strategy,
-authentication contract). Every change is planned and tracked as an OpenSpec proposal in
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the contributor guide. [`AGENTS.md`](AGENTS.md) is the
+agent and tooling reference (conventions, testing strategy, authentication contract). Every change
+is planned and tracked as an OpenSpec proposal in
 [`openspec/`](openspec/) before implementation — read the active change before editing.
 
 ## Documentation
@@ -201,24 +204,40 @@ authentication contract). Every change is planned and tracked as an OpenSpec pro
 - [`docs/AUTH.md`](docs/AUTH.md) — JWT/OIDC authentication contract
 - [`docs/security/dependency-remediation.md`](docs/security/dependency-remediation.md) — patched
   dependency advisories and release closure tracking
+- [`docs/security/README.md`](docs/security/README.md) — security gate: controls, findings,
+  exceptions and the release verdict
+- [`docs/security/attack-surface.md`](docs/security/attack-surface.md) — entry points, uploads,
+  outbound connections and the trust-boundary review
+- [`docs/security/reviews.md`](docs/security/reviews.md) — evidence behind the security attestations
+- [`docs/security/incident-response.md`](docs/security/incident-response.md) — security alerts and
+  how to respond
+- [`docs/security/assessment-2026-11.es.md`](docs/security/assessment-2026-11.es.md) — security
+  assessment, findings and pending actions (Spanish)
+- [`docs/release/screen-reader-checklist.md`](docs/release/screen-reader-checklist.md) — optional
+  manual accessibility pass with a results template
 - [`docs/DEPENDENCY-SECURITY-INCIDENTS.md`](docs/DEPENDENCY-SECURITY-INCIDENTS.md) — incident
   register contract and maintainer evidence workflow
 - [`docs/TESTING.md`](docs/TESTING.md) — testing conventions
 - [`docs/DEMO-DATA.md`](docs/DEMO-DATA.md) — loading a realistic demo tournament into a development
   stack with `copalibre dev demo`
+- [`docs/research/2026-operator-study/`](docs/research/2026-operator-study/) — bilingual operator
+  navigation tree, moderator script, consent note, and research results templates
 - [`docs/SCREEN-STORY-REVIEW.md`](docs/SCREEN-STORY-REVIEW.md) — operator Storybook coverage,
   fixture boundaries, responsive review evidence, and deferred UX gaps
 - [`docs/reviews/owned-control-coverage.md`](docs/reviews/owned-control-coverage.md) — recursive
   React story coverage, selected/chrome surfaces, and TV background review
 - [`docs/i18n-glossary.md`](docs/i18n-glossary.md) — domain-term glossary and content-accuracy
   review workflow for translated interface strings
+- [`docs/i18n/REVIEW-LEDGER.md`](docs/i18n/REVIEW-LEDGER.md) — human review status for each interface
+  language and catalogue area
 - [`docs/BROADCAST-TV.md`](docs/BROADCAST-TV.md) — the `/tv/` kiosk/overlay surface and
   device-token pairing
 - [`docs/reviews/`](docs/reviews/) — design system and operational surface review evidence
 - [`docs/deployment/reverse-proxy/`](docs/deployment/reverse-proxy/) — Caddy and NGINX examples
 - [`CHANGELOG.md`](CHANGELOG.md) — release history, generated from commit history
 - `/help/` and `/help/api-reference/` on a running instance — operator help and the interactive,
-  fully static OpenAPI reference (no live-API or internet dependency)
+  fully static OpenAPI reference (no live-API or internet dependency). Its Try It sends requests to
+  the same instance with a personal access token from the panel's preferences screen.
 
 ## Roadmap
 
@@ -233,7 +252,7 @@ _is_ committed and is the durable record of what has shipped.
 
 ## Contributing
 
-Issues and discussions are open for questions, bug reports, and proposals. Read
+[Issues](https://github.com/SebaSOFT/copalibre/issues) are open for questions, bug reports, and proposals. Read
 [`AGENTS.md`](AGENTS.md) first — it covers the monorepo conventions, the OpenSpec workflow, and
 what a pull request needs (tests, contract regeneration, coverage) before review.
 

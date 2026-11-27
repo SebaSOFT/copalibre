@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import type { InstalledModule } from '@copalibre/persistence';
 import { CURATED_MODULE_REPOSITORY } from './fetch.js';
 import {
@@ -25,12 +26,15 @@ function installedModule(overrides: Partial<InstalledModule> = {}): InstalledMod
 }
 
 describe('runningCopalibreVersion', () => {
-  it('reads COPALIBRE_VERSION from the given environment', () => {
+  it('uses an explicit COPALIBRE_VERSION override', () => {
     expect(runningCopalibreVersion({ COPALIBRE_VERSION: '1.2.3' })).toBe('1.2.3');
   });
 
-  it('defaults to 0.0.0 when unset', () => {
-    expect(runningCopalibreVersion({})).toBe('0.0.0');
+  it('defaults to the same package version shown by the CLI banner', () => {
+    const cliManifest = JSON.parse(
+      readFileSync(new URL('../../../apps/copalibre/package.json', import.meta.url), 'utf8'),
+    ) as { version: string };
+    expect(runningCopalibreVersion({})).toBe(cliManifest.version);
   });
 });
 

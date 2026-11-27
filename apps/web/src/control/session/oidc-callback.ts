@@ -1,5 +1,7 @@
 import { verifyCallbackState } from './pkce.js';
 import { TRANSACTION_KEY, type OidcTransaction } from './oidc-login.js';
+import { handOverOidcToken } from './oidc-handover.js';
+import type { SessionMetadata } from './session-store.js';
 
 export interface OidcCallbackBrowser {
   readonly fetch: typeof fetch;
@@ -9,14 +11,12 @@ export interface OidcCallbackBrowser {
 }
 
 export interface OidcCallbackResult {
-  readonly accessToken: string;
-  readonly expiresAtMs: number;
+  readonly session: SessionMetadata;
   readonly returnTo: string;
 }
 
 interface TokenResponse {
   readonly access_token?: unknown;
-  readonly expires_in?: unknown;
 }
 
 /**
@@ -25,6 +25,8 @@ interface TokenResponse {
  * A direct browser-to-identity-provider exchange, never routed through the
  * API: PKCE's verifier is the public-client substitute for a secret
  * specifically so the browser that started the flow can finish it itself.
+ * The resulting token is handed straight to the API, which keeps it in the
+ * `HttpOnly` session cookie; this function keeps no reference to it.
  */
 export async function completeOidcLogin(browser = currentBrowser()): Promise<OidcCallbackResult> {
   const params = new URLSearchParams(browser.search);
@@ -66,15 +68,12 @@ export async function completeOidcLogin(browser = currentBrowser()): Promise<Oid
   if (typeof body.access_token !== 'string' || body.access_token.length === 0) {
     throw new Error('Token response has no usable access token');
   }
-  if (typeof body.expires_in !== 'number' || !Number.isFinite(body.expires_in)) {
-    throw new Error('Token response has no usable expiry');
-  }
 
-  return {
-    accessToken: body.access_token,
-    expiresAtMs: Date.now() + body.expires_in * 1000,
-    returnTo: transaction.returnTo,
-  };
+  const session = await handOverOidcToken(body.access_token, browser.fetch);
+  if (session === undefined) {
+    throw new Error('The API refused the identity provider token');
+  }
+  return { session, returnTo: transaction.returnTo };
 }
 
 function currentBrowser(): OidcCallbackBrowser {

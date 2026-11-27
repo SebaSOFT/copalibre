@@ -11,7 +11,7 @@ import { expect, test } from './fixtures.js';
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
-const BASE = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+const BASE = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 const MULTI_ZONE_ROUTE = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/1`;
 const SINGLE_ZONE_ROUTE = `/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/stages/2`;
 
@@ -45,11 +45,19 @@ const goldZoneMatches = [
         kind: 'entrant',
         entrantId: 'gold-a',
         name: 'Talleres',
+        abbreviation: 'TAL',
         clubId: 'club-talleres',
         emblemObjectId: 'emblem-talleres',
         score: 2,
       },
-      { kind: 'entrant', entrantId: 'gold-b', name: 'Independiente', score: 0 },
+      {
+        kind: 'entrant',
+        entrantId: 'gold-b',
+        name: 'Independiente',
+        abbreviation: 'IND',
+        clubId: 'club-independiente',
+        score: 0,
+      },
     ],
   },
 ];
@@ -127,9 +135,11 @@ test('renders one bracket diagram per zone with a jump-list, real entrant data, 
   await expect(page.getByRole('link', { name: 'Copa de Oro' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Copa de Plata' })).toBeVisible();
 
-  // Both zone headings render.
-  await expect(page.getByRole('heading', { name: 'Copa de Oro' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Copa de Plata' })).toBeVisible();
+  // Both zone headings render (the section heading and each bracket's own zone band heading).
+  await expect(page.getByRole('heading', { name: 'Copa de Oro', level: 2 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Copa de Oro', level: 4 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Copa de Plata', level: 2 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Copa de Plata', level: 4 })).toBeVisible();
 
   // Neither zone's round-1/position-1 node collided into a TBD placeholder: both show their
   // real entrant names and scores despite sharing round/position.
@@ -145,18 +155,25 @@ test('renders one bracket diagram per zone with a jump-list, real entrant data, 
   // (`.cl-bracket-stage__node` is the wrapper `championshipMatch` marks, one level above the
   // match card itself); silver's two concurrent deepest-round crosses are an ambiguous terminal
   // round — declined, exactly the same "don't guess" rule `resolveTournamentWinners` applies — unaffected by gold's.
-  const goldNode = page.locator('.cl-bracket-stage__node', {
+  const goldNode = page.locator('.cl-bracket-stage__scroll--full .cl-bracket-stage__node', {
     has: page.locator('[data-match="1"]', { hasText: 'Talleres' }),
   });
   await expect(goldNode).toHaveClass(/cl-bracket-stage__node--championship/);
-  const silverNode = page.locator('.cl-bracket-stage__node', {
+  const silverNode = page.locator('.cl-bracket-stage__scroll--full .cl-bracket-stage__node', {
     has: page.locator('[data-match="2"]', { hasText: 'Gimnasia' }),
   });
   await expect(silverNode).not.toHaveClass(/cl-bracket-stage__node--championship/);
 
-  // The entrant with a recorded club emblem gets an <img>; the sibling with none gets only the
-  // placeholder shield (the existing onerror-fallback markup, never a broken-image icon).
-  await expect(page.locator('img[alt="Talleres emblem"]')).toHaveCount(1);
+  // The entrant with a recorded emblem gets an image; the sibling without one uses its stored
+  // abbreviation in the same fallback frame.
+  await expect(
+    page.locator('.cl-bracket-stage__canvas img[src$="/clubs/club-talleres/emblem"]'),
+  ).toHaveCount(1);
+  await expect(
+    page.locator('.cl-bracket-stage__canvas .cl-entrant-emblem__monogram').filter({
+      hasText: 'IND',
+    }),
+  ).toBeVisible();
 });
 
 test('a single-zone stage renders exactly as before: no heading, no jump-list', async ({

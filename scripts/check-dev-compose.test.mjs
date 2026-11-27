@@ -8,7 +8,7 @@ services:
   object-storage-init:
     build:
       dockerfile_inline: |
-        FROM dxflrs/garage:v1.1.0 AS garage
+        FROM dxflrs/garage:v1.3.1 AS garage
         FROM alpine:3.21
         COPY --from=garage /garage /usr/local/bin/garage
     profiles:
@@ -45,7 +45,7 @@ test('object-storage-init missing infrastructure profile fails validation', () =
   const yaml = `
 services:
   object-storage-init:
-    image: dxflrs/garage:v1.1.0
+    image: dxflrs/garage:v1.3.1
     command: tail -f /dev/null
     healthcheck:
       test: ["CMD", "true"]
@@ -94,7 +94,7 @@ test('actual docker-compose.dev.yml passes validation', () => {
 test('actual docker-compose.dev.yml uses Garage and no longer references MinIO or mc', () => {
   const filePath = new URL('../docker-compose.dev.yml', import.meta.url);
   const content = readFileSync(filePath, 'utf8');
-  assert.match(content, /dxflrs\/garage:v1\.1\.0/);
+  assert.match(content, /dxflrs\/garage:v1\.3\.1/);
   assert.doesNotMatch(content, /quay\.io\/minio/);
   assert.doesNotMatch(content, /image:\s*minio/i);
 });

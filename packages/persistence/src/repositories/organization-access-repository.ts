@@ -87,6 +87,7 @@ export interface PrincipalOrganizationMembership {
   readonly organizationId: string;
   readonly organizationAlias: string;
   readonly organizationName: string;
+  readonly timezone: string;
   readonly role: OrganizationRole;
   readonly emblemObjectId?: string;
 }
@@ -142,6 +143,7 @@ export class OrganizationAccessRepository {
         'organizations.organization_id as organization_id',
         'organizations.alias as organization_alias',
         'organizations.name as organization_name',
+        'organizations.timezone as timezone',
         'organizations.emblem_object_id as emblem_object_id',
         'organization_role_assignments.role as role',
       ])
@@ -154,6 +156,7 @@ export class OrganizationAccessRepository {
       organizationId: row.organization_id,
       organizationAlias: row.organization_alias,
       organizationName: row.organization_name,
+      timezone: row.timezone,
       role: row.role as OrganizationRole,
       ...(row.emblem_object_id ? { emblemObjectId: row.emblem_object_id } : {}),
     }));

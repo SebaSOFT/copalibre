@@ -15,6 +15,8 @@ export type { TvOverlayMode } from '../lib/tv-background.ts';
 
 interface Props {
   readonly title: string;
+  /** The language the page is written in. */
+  readonly language: string;
   /**
    * Decided on the server, never from `window`: a broadcast consumer reads the
    * first response (OBS/vMix capture the document, and a still capture may never
@@ -29,7 +31,14 @@ interface Props {
   readonly disciplineImages?: readonly PublicObjectReference[];
 }
 
-const { title, overlayMode, chromaKey, background: backgroundProp, disciplineImages } = Astro.props;
+const {
+  title,
+  language,
+  overlayMode,
+  chromaKey,
+  background: backgroundProp,
+  disciplineImages,
+} = Astro.props;
 const rootClass = overlayMode ? `tv-overlay tv-overlay--${overlayMode}` : '';
 const { background, chromaKey: safeChromaKey } = resolveTvBackground({
   searchParams: Astro.url.searchParams,
@@ -43,8 +52,9 @@ const disciplineBackdrop =
 
 <!doctype html>
 <html
-  lang="en"
+  lang={language}
   class={rootClass}
+  data-theme="dark"
   data-tv-background={background}
   data-chroma={background === 'chroma' ? '' : undefined}
   style={background === 'chroma' ? `--tv-chroma: ${safeChromaKey};` : undefined}
@@ -101,6 +111,9 @@ const disciplineBackdrop =
        * page's own html/body ground would otherwise keep the frame opaque and
        * no amount of transparency below it would show through.
        */
+      .tv-overlay--scorebug,
+      .tv-overlay--scorebug body,
+      .tv-overlay--scorebug #tv-root,
       .tv-overlay--lower,
       .tv-overlay--lower body,
       .tv-overlay--lower #tv-root {
@@ -117,13 +130,18 @@ const disciplineBackdrop =
       }
 
       /*
-       * A lower third occupies its own strip and leaves the rest of the frame
-       * to the camera feed underneath it.
+       * Every overlay keeps its graphics inside the broadcast safe area: 5 % of
+       * the frame width and height (96 px and 54 px at 1920x1080). The frame is
+       * the whole viewport, so a corner bug and a bottom band both anchor to it,
+       * and the rest of the frame stays clear for the footage underneath.
        */
-      .tv-overlay--lower #tv-root {
-        height: auto;
+      .tv-overlay--scorebug #tv-root,
+      .tv-overlay--lower #tv-root,
+      .tv-overlay--full #tv-root {
+        box-sizing: border-box;
+        height: 100vh;
         min-height: 0;
-        padding: 3vmin;
+        padding: 5vh 5vw;
       }
 
       /*
@@ -200,23 +218,19 @@ const disciplineBackdrop =
   </head>
 </html>
 <body>
-  {
-    disciplineBackdrop && (
-      <img
-        class="tv-backdrop"
-        src={disciplineBackdrop.url}
-        alt=""
-        aria-hidden="true"
-        decoding="async"
-        style={`opacity: ${disciplineBackdrop.opacity};`}
-      />
-    )
-  }
-  {
-    background === 'football' && (
-      <div aria-hidden="true" class="tv-backdrop tv-backdrop--football" />
-    )
-  }
+  {disciplineBackdrop && (
+    <img
+      class="tv-backdrop"
+      src={disciplineBackdrop.url}
+      alt=""
+      aria-hidden="true"
+      decoding="async"
+      style={`opacity: ${disciplineBackdrop.opacity};`}
+    />
+  )}
+  {background === 'football' && (
+    <div aria-hidden="true" class="tv-backdrop tv-backdrop--football" />
+  )}
   {background === 'court' && <div aria-hidden="true" class="tv-backdrop tv-backdrop--court" />}
   <div id="tv-root">
     <slot />

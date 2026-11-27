@@ -4,6 +4,7 @@ import type { PlayerRole } from '@copalibre/domain';
 import { Select } from './ui/atoms/select.js';
 import { Field } from './ui/molecules/field.js';
 import { messages } from '../i18n/messages.en.js';
+import { formatEntrant } from '../lib/presentation-formatting.js';
 
 export interface RosterMemberItem {
   readonly personId: string;
@@ -82,7 +83,7 @@ export function RosterRoleSelector({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--cl-space-2)' }}>
-            <strong>{member.displayName || member.personId}</strong>
+            <strong>{formatEntrant(intl, { displayName: member.displayName }).fullName}</strong>
             <span
               className={`cl-badge ${ROSTER_ROLE_ACCENTS[member.role] ?? 'cl-state--muted'}`}
               data-testid={`role-badge-${member.personId}`}
@@ -95,12 +96,12 @@ export function RosterRoleSelector({
             <Field
               id={`role-select-${member.personId}`}
               label={intl.formatMessage(messages.rosterRoleFieldLabel, {
-                name: member.displayName || member.personId,
+                name: formatEntrant(intl, { displayName: member.displayName }).fullName,
               })}
             >
               <Select
                 aria-label={intl.formatMessage(messages.rosterRoleFieldLabel, {
-                  name: member.displayName || member.personId,
+                  name: formatEntrant(intl, { displayName: member.displayName }).fullName,
                 })}
                 data-testid={`role-select-${member.personId}`}
                 disabled={disabled}

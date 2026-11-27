@@ -1,7 +1,12 @@
 import {
   COLOR_PRIMITIVES,
+  CHART_TOKENS,
+  FIGURE_SIZE,
   FONT_SIZE,
   FONT_WEIGHTS,
+  ICON_TOKENS,
+  LINE_HEIGHT,
+  LAYOUT_TOKENS,
   RADIUS,
   SPACING,
   TRACKING,
@@ -21,18 +26,76 @@ export function documentedTokens(): Mapping {
   ) => ({ fontFamily, fontSize, fontWeight, lineHeight, letterSpacing });
   return {
     colors: { ...COLOR_PRIMITIVES },
+    chart: {
+      ...Object.fromEntries(
+        Object.entries(CHART_TOKENS.series).flatMap(([slot, colors]) => [
+          [`${slot}-dark`, colors.dark],
+          [`${slot}-light`, colors.light],
+        ]),
+      ),
+      'other-dark': CHART_TOKENS.other.dark,
+      'other-light': CHART_TOKENS.other.light,
+    },
+    icon: {
+      size: Object.fromEntries(
+        Object.entries(ICON_TOKENS.size).map(([name, value]) => [name, `${value}px`]),
+      ),
+      stroke: `${ICON_TOKENS.stroke}`,
+      tablerOpticalScale: `${ICON_TOKENS.tablerOpticalScale}`,
+    },
     typography: {
-      display: role(TYPOGRAPHY.display, FONT_SIZE['3xl'], FONT_WEIGHTS.bold, '1.1', TRACKING.wide),
-      headline: role(TYPOGRAPHY.display, FONT_SIZE.xl, FONT_WEIGHTS.semibold, '1.2', TRACKING.wide),
-      title: role(TYPOGRAPHY.display, FONT_SIZE.lg, FONT_WEIGHTS.semibold, '1.3', TRACKING.wide),
-      body: role(TYPOGRAPHY.body, FONT_SIZE.base, FONT_WEIGHTS.regular, '1.5', TRACKING.normal),
-      label: role(TYPOGRAPHY.mono, FONT_SIZE.xs, FONT_WEIGHTS.medium, '1.4', TRACKING.wider),
+      display: role(
+        TYPOGRAPHY.display,
+        FONT_SIZE['3xl'],
+        FONT_WEIGHTS.bold,
+        LINE_HEIGHT.display,
+        TRACKING.wide,
+      ),
+      headline: role(
+        TYPOGRAPHY.display,
+        FONT_SIZE.xl,
+        FONT_WEIGHTS.semibold,
+        LINE_HEIGHT.headline,
+        TRACKING.wide,
+      ),
+      title: role(
+        TYPOGRAPHY.display,
+        FONT_SIZE.lg,
+        FONT_WEIGHTS.semibold,
+        LINE_HEIGHT.title,
+        TRACKING.wide,
+      ),
+      body: role(
+        TYPOGRAPHY.body,
+        FONT_SIZE.base,
+        FONT_WEIGHTS.regular,
+        LINE_HEIGHT.body,
+        TRACKING.normal,
+      ),
+      label: role(
+        TYPOGRAPHY.mono,
+        FONT_SIZE.xs,
+        FONT_WEIGHTS.medium,
+        LINE_HEIGHT.label,
+        TRACKING.wider,
+      ),
       figure: {
-        ...role(TYPOGRAPHY.mono, FONT_SIZE.lg, FONT_WEIGHTS.medium, '1.2', TRACKING.normal),
+        ...role(
+          TYPOGRAPHY.mono,
+          FIGURE_SIZE.lg,
+          FONT_WEIGHTS.medium,
+          LINE_HEIGHT.figure,
+          TRACKING.normal,
+        ),
         fontFeature: 'tabular-nums',
       },
     },
     rounded: { ...RADIUS },
+    layout: {
+      container: { ...LAYOUT_TOKENS.container },
+      gutter: { ...LAYOUT_TOKENS.gutter },
+      split: { ...LAYOUT_TOKENS.split },
+    },
     spacing: { ...SPACING },
   };
 }
@@ -80,16 +143,25 @@ export function readDesignTokens(document: string): Mapping {
   }
   for (const key of Object.keys(root)) {
     if (
-      !['name', 'description', 'colors', 'typography', 'rounded', 'spacing', 'components'].includes(
-        key,
-      )
+      ![
+        'name',
+        'description',
+        'colors',
+        'chart',
+        'icon',
+        'typography',
+        'rounded',
+        'layout',
+        'spacing',
+        'components',
+      ].includes(key)
     ) {
       throw new Error(`DESIGN.md: unsupported group ${key}`);
     }
   }
   return Object.fromEntries(
     Object.entries(root).filter(([key]) =>
-      ['colors', 'typography', 'rounded', 'spacing'].includes(key),
+      ['colors', 'chart', 'icon', 'typography', 'rounded', 'layout', 'spacing'].includes(key),
     ),
   );
 }
@@ -131,7 +203,16 @@ export function refreshDesignTokens(document: string): string {
     if (value === undefined) continue;
     const section = new RegExp(`^${key}:\\r?\\n(?:[ \\t].*(?:\\r?\\n|$)|\\r?\\n)*`, 'm');
     const rendered = render({ [key]: value }, 0) + '\n';
-    block = section.test(block) ? block.replace(section, rendered) : block + '\n' + rendered;
+    if (section.test(block)) {
+      block = block.replace(section, rendered);
+    } else {
+      const componentMetadata = /^components:\r?$/m.exec(block);
+      if (componentMetadata?.index !== undefined) {
+        block = `${block.slice(0, componentMetadata.index).trimEnd()}\n\n${rendered}${block.slice(componentMetadata.index)}`;
+      } else {
+        block += '\n' + rendered;
+      }
+    }
   }
   return document.replace(frontmatter(document), block.trimEnd());
 }

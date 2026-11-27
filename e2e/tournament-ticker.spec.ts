@@ -79,27 +79,41 @@ const topScorers = {
   rows: [
     {
       actorId: 'player-1',
-      entrantName: 'Nicolás Fernández',
+      actorName: 'Mateo Moreno',
+      entrantName: 'Casa de Italia',
+      entrantAbbreviation: 'CIT',
       rank: 1,
       sharedRank: false,
       cells: { rank: { formatted: '1', raw: 1 }, goals: { formatted: '11', raw: 11 } },
+    },
+    {
+      actorId: 'player-2',
+      entrantName: 'Nicolás Fernández',
+      rank: 2,
+      sharedRank: false,
+      cells: { rank: { formatted: '2', raw: 2 }, goals: { formatted: '9', raw: 9 } },
     },
   ],
 };
 
 let apiServer: Server;
+let activeOverview = overview;
+
+test.beforeEach(() => {
+  activeOverview = overview;
+});
 
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
-    const base = `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+    const base = `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
 
     if (
       path === `${base}/overview` ||
-      path === `/organizations/${ORGANIZATION}/public/tournaments/${TOURNAMENT_ALIAS}/overview`
+      path === `/api/organizations/${ORGANIZATION}/public/tournaments/${TOURNAMENT_ALIAS}/overview`
     ) {
-      res.end(JSON.stringify(overview));
+      res.end(JSON.stringify(activeOverview));
       return;
     }
     if (path === `${base}/public/tables`) {
@@ -145,8 +159,81 @@ test.describe('Tournament ticker', () => {
 
     // A top performer, read from the discipline's own declared layout and
     // ranked by that layout's `defaultSort` — the goals, not the rank column.
-    await expect(ticker.getByText('Nicolás Fernández').first()).toBeVisible();
+    await expect(ticker.getByText('Mateo Moreno').first()).toBeVisible();
     await expect(ticker.getByText('11').first()).toBeVisible();
+  });
+
+  test('performer ticker items name the ranked person with entrant abbreviation in meta and fall back to entrantName only when actorName is absent', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    const items = page.locator('[data-ticker-track] .cl-ticker__item:not([aria-hidden="true"])');
+    const namedPerformer = items.filter({ hasText: 'Mateo Moreno' });
+    await expect(namedPerformer.locator('.cl-ticker__subject')).toHaveText('Mateo Moreno');
+    await expect(namedPerformer.locator('.cl-ticker__figure')).toHaveText('11');
+    await expect(namedPerformer.locator('.cl-ticker__meta')).toHaveText('(Goals · CIT)');
+    await expect(namedPerformer).not.toContainText('Casa de Italia');
+
+    const fallbackPerformer = items.filter({ hasText: 'Nicolás Fernández' });
+    await expect(fallbackPerformer.locator('.cl-ticker__subject')).toHaveText('Nicolás Fernández');
+    await expect(fallbackPerformer.locator('.cl-ticker__figure')).toHaveText('9');
+    await expect(fallbackPerformer.locator('.cl-ticker__meta')).toHaveText('(Goals)');
+
+    // Spanish page renders localized metric alongside the entrant abbreviation.
+    await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    const esItems = page.locator('[data-ticker-track] .cl-ticker__item:not([aria-hidden="true"])');
+    const esNamedPerformer = esItems.filter({ hasText: 'Mateo Moreno' });
+    await expect(esNamedPerformer.locator('.cl-ticker__subject')).toHaveText('Mateo Moreno');
+    await expect(esNamedPerformer.locator('.cl-ticker__meta')).toHaveText('(Goles · CIT)');
+  });
+
+  test('places the live match first in the ticker with its score rather than vs', async ({
+    page,
+  }) => {
+    activeOverview = {
+      ...overview,
+      matches: [
+        {
+          matchNumber: 3,
+          stageNumber: 1,
+          homeName: 'Gimnasia',
+          awayName: 'Maipú',
+          homeScore: 2,
+          awayScore: 0,
+          status: 'finalized',
+          scheduledAt: '2026-02-28T18:00:00Z',
+        },
+        {
+          matchNumber: 2,
+          stageNumber: 1,
+          homeName: 'Godoy Cruz',
+          awayName: 'Independiente Rivadavia',
+          status: 'scheduled',
+          scheduledAt: '2026-03-01T18:00:00Z',
+        },
+        {
+          matchNumber: 1,
+          stageNumber: 1,
+          homeName: 'Talleres',
+          awayName: 'San Martín',
+          homeScore: 3,
+          awayScore: 1,
+          status: 'in-progress',
+          scheduledAt: '2026-03-01T15:00:00Z',
+        },
+      ],
+    };
+
+    await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    const firstItem = page.locator('[data-ticker-track] .cl-ticker__item').first();
+    await expect(firstItem).toBeVisible();
+    await expect(firstItem).toContainText('Live');
+    await expect(firstItem).toContainText('Talleres');
+    await expect(firstItem).toContainText('San Martín');
+    await expect(firstItem.locator('.cl-ticker__figure')).toHaveText('3 : 1');
+    await expect(firstItem.locator('.cl-ticker__figure')).not.toHaveText(/vs/i);
   });
 
   /*

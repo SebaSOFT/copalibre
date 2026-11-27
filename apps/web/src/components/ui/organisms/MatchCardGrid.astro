@@ -4,6 +4,7 @@ import { MatchCard } from './MatchCard.tsx';
 import type { OverviewModel } from '../../../lib/overview.ts';
 import type { MatchCardData } from '../../../lib/matches-view.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
+import { formatTimestamp } from '../../../lib/format-timestamp.ts';
 import { matchCardLabels } from '../../../lib/i18n/public-intl.ts';
 
 interface Props {
@@ -13,72 +14,84 @@ interface Props {
   readonly localePrefix?: string;
   /** Single-line ticker presentation; defaults to the full detailed card. */
   readonly compact?: boolean;
+  readonly referenceDate?: number;
 }
-const { model, intl, localePrefix = '', compact = false } = Astro.props;
+const { model, intl, localePrefix = '', compact = false, referenceDate = Date.now() } = Astro.props;
 const labels = matchCardLabels(intl);
-const kickoffFormatter = new Intl.DateTimeFormat(intl.locale, {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-});
+const timeZone = model.organizationTimeZone ?? 'UTC';
 ---
 
-{
-  /*
+{/*
   Rendered server-side and complete. A ticker that needs JavaScript to say the
   score is a ticker that says nothing on a venue TV behind a hotel proxy.
-*/
-}
+*/}
 <section aria-labelledby="match-grid-heading">
   <h2 id="match-grid-heading">{intl.formatMessage(messages.matchGridHeading)}</h2>
   {model.matches.length === 0 && <p>{intl.formatMessage(messages.matchGridEmpty)}</p>}
   <ul class={compact ? 'cl-match-card-grid cl-match-card-grid--compact' : 'cl-match-card-grid'}>
-    {
-      model.matches.map((match, index) => {
-        const cardMatch: MatchCardData = {
-          matchId: match.matchId ?? `${match.stageNumber}-${index}`,
-          matchNumber: match.matchNumber ?? 0,
-          stageNumber: match.stageNumber,
-          state: match.state,
-          homeName: match.home.name,
-          homeAbbreviation: match.home.abbreviation,
-          homeScore: match.home.score,
-          awayName: match.away.name,
-          awayAbbreviation: match.away.abbreviation,
-          awayScore: match.away.score,
-          ...(match.startsAt
-            ? {
-                scheduledAt: match.startsAt,
-                scheduledAtLabel: kickoffFormatter.format(new Date(match.startsAt)),
-              }
-            : {}),
-        };
-        const cardContent = (
-          <MatchCard
-            client:load
-            compact={compact}
-            match={cardMatch}
-            labels={labels}
-            locale={intl.locale}
-            band={index % 2 === 0 ? 'panel' : 'base'}
-          />
-        );
+    {model.matches.map((match, index) => {
+      const cardMatch: MatchCardData = {
+        matchId: match.matchId ?? `${match.stageNumber}-${index}`,
+        scheduleVersion: match.scheduleVersion,
+        rescheduledFrom: match.rescheduledFrom,
+        venueName: match.venueName,
+        matchNumber: match.matchNumber ?? 0,
+        stageNumber: match.stageNumber,
+        state: match.state,
+        homeName: match.home.name,
+        homeAbbreviation: match.home.abbreviation,
+        homeClubId: match.home.clubId,
+        homeClubAlias: match.home.clubAlias,
+        homeEmblemObjectId: match.home.emblemObjectId,
+        homeScore: match.home.score,
+        awayName: match.away.name,
+        awayAbbreviation: match.away.abbreviation,
+        awayClubId: match.away.clubId,
+        awayClubAlias: match.away.clubAlias,
+        awayEmblemObjectId: match.away.emblemObjectId,
+        awayScore: match.away.score,
+        ...(match.startsAt
+          ? {
+              scheduledAt: match.startsAt,
+              scheduledAtLabel: formatTimestamp(match.startsAt, {
+                locale: intl.locale,
+                timeZone,
+                referenceDate,
+              }),
+            }
+          : {}),
+      };
+      const cardContent = (
+        <MatchCard
+          client:load
+          compact={compact}
+          match={cardMatch}
+          labels={labels}
+          locale={intl.locale}
+          band={index % 2 === 0 ? 'panel' : 'base'}
+          referenceDate={referenceDate}
+          timeZone={timeZone}
+          organizationAlias={model.organizationAlias}
+          tournamentAlias={model.tournamentAlias}
+          localePrefix={localePrefix}
+        />
+      );
 
-        return (
-          <li>
-            {match.matchNumber === undefined ? (
-              cardContent
-            ) : (
-              <a
-                class="cl-match-card-link"
-                href={`${localePrefix}${model.canonicalPath}/stages/${match.stageNumber}/matches/${match.matchNumber}`}
-              >
-                {cardContent}
-              </a>
-            )}
-          </li>
-        );
-      })
-    }
+      return (
+        <li>
+          {match.matchNumber === undefined ? (
+            cardContent
+          ) : (
+            <a
+              class="cl-match-card-link"
+              href={`${localePrefix}${model.canonicalPath}/stages/${match.stageNumber}/matches/${match.matchNumber}`}
+            >
+              {cardContent}
+            </a>
+          )}
+        </li>
+      );
+    })}
   </ul>
 </section>
 
@@ -96,6 +109,6 @@ const kickoffFormatter = new Intl.DateTimeFormat(intl.locale, {
   }
 
   .cl-match-card-link:hover .cl-match-card {
-    border-color: var(--cl-primary);
+    border-color: var(--cl-border-accent);
   }
 </style>

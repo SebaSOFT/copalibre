@@ -7,8 +7,8 @@
 		}
 	}
 
-	# Microservice API endpoints (incluye rutas base y subrutas)
-	@api path /api /api/* /auth /auth/* /organizations /organizations/* /objects /objects/* /admin /admin/* /installation /installation/* /.well-known /.well-known/* /disciplines /disciplines/* /tournament-profiles /tournament-profiles/*
+	# REST API
+	@api path /api /api/*
 	handle @api {
 		reverse_proxy api:3001
 	}

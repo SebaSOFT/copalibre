@@ -63,16 +63,20 @@ jobs:
       backend_only: ${{ steps.classify.outputs.backend_only }}
       cli_only: ${{ steps.classify.outputs.cli_only }}
       docs_only: ${{ steps.classify.outputs.docs_only }}
+      # Lighthouse is expensive, so run its release gate only before merging
+      # to main or on an explicit workflow dispatch. The broader
+      # release_candidate output below still controls release-only soak gates.
+      performance_gate: ${{ (github.event_name == 'pull_request' && github.base_ref == 'main') || github.event_name == 'workflow_dispatch' }}
       # A release candidate is a PR targeting main, a push to main (a
       # develop->main PR merging — see release.yml), or a manual
       # dispatch. Everything else (routine develop-targeting PRs) is not,
       # and skips the expensive e2e/deploy-verification chain below.
       release_candidate: ${{ github.base_ref == 'main' || (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
       - id: classify
@@ -102,12 +106,12 @@ jobs:
       contents: read
       vulnerability-alerts: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: npm install -g corepack@latest
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -126,8 +130,18 @@ jobs:
         run: node --test scripts/dependency-security-incidents.test.mjs
       - run: node --test scripts/check-dependabot-alerts.test.mjs
       - run: node --test scripts/dependency-security.test.mjs
+      - name: Keep the dependency audits wired into CI and release
+        run: node --test scripts/dependency-audit-wiring.test.mjs
+      - name: Test the release source verification
+        run: node --test scripts/verify-release-source.test.mjs
+      - name: Check runtime peers that ship matching assets
+        run: node scripts/check-runtime-peers.mjs
+      - run: node --test scripts/check-runtime-peers.test.mjs
       - run: node --test apps/copalibre/scripts/build-binary.test.mjs
+      - run: node --test apps/copalibre/scripts/build-mcpb.test.mjs
       - run: node --test apps/web/scripts/serve-with-security-headers.test.mjs
+      - run: node --test apps/web/scripts/web-security-headers.test.mjs
+      - run: node --test apps/web/scripts/web-compression.test.mjs
       - run: node --test scripts/jest-integration-projects.test.mjs
       - run: node --test scripts/summarize-playwright-flaky.test.mjs
 
@@ -136,16 +150,26 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - run: yarn lint
+      - name: Check interface copy voice
+        run: node scripts/check-copy-voice.mjs
+      # Every pull request into develop lists its changed strings for review. A release pull
+      # request into main carries all of them at once, already reviewed, and their list
+      # outgrows GitHub's pull request body limit, so it is not checked again there.
+      - name: Check changed interface strings in pull request body
+        if: github.event_name == 'pull_request' && github.base_ref != 'main'
+        run: node scripts/list-changed-strings.mjs --check-body
       - run: yarn format:check
 
   typecheck:
@@ -153,11 +177,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -171,9 +195,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -191,16 +215,48 @@ jobs:
       - run: yarn workspace @copalibre/domain test --testPathPatterns 'audit-vocabulary'
       - run: yarn workspace @copalibre/persistence test --testPathPatterns 'audit-coverage'
 
+  # Mandatory on every pull request, whatever paths changed: the static
+  # security controls of docs/security/controls.json. The report is kept for
+  # failed runs too.
+  security-static:
+    name: Security gate (static)
+    runs-on: ubuntu-latest
+    needs: install
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: yarn
+      - run: yarn install --immutable
+      - name: Test the security gate
+        run: node --test scripts/security/*.test.mjs
+      - name: Run the static security controls
+        run: node scripts/security/run.mjs --mode static
+      - name: Summarize the security report
+        if: ${{ !cancelled() }}
+        run: test -f security-report/security-report.md && cat security-report/security-report.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: security-report-static
+          path: security-report/
+          retention-days: 30
+
   license-scan:
     name: License scan
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -213,7 +269,7 @@ jobs:
     name: Shellcheck install.sh
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: shellcheck apps/copalibre/install.sh
 
   # Added with the Kubernetes enterprise deployment: structurally enforces
@@ -229,25 +285,36 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
       - run: yarn install --immutable
       - run: node --test scripts/check-enterprise-readiness-docs.test.mjs
+      - name: Keep the operator cookie list equal to the cookies the API sets
+        run: node --test scripts/operator-cookie-docs.test.mjs
       - run: node scripts/check-enterprise-readiness-docs.mjs
       - run: node --test scripts/check-readme-doc-links.test.mjs
       - run: node scripts/check-readme-doc-links.mjs
+      - run: node --test scripts/check-research-kit.test.mjs
+      - run: node scripts/check-research-kit.mjs
       - run: node --test scripts/i18n-content-review.test.mjs
       - run: node --test scripts/check-help-locale-parity.test.mjs
       - run: node scripts/check-help-locale-parity.mjs
       - run: node --test scripts/check-help-coverage.test.mjs
       - run: node scripts/check-help-coverage.mjs
+      - run: node --test scripts/check-doc-routes.test.mjs
+      - run: node scripts/check-doc-routes.mjs
+      - run: node --test scripts/check-detector-exceptions.test.mjs
+      - run: node scripts/check-detector-exceptions.mjs
       # Tracked content never cites a git-ignored OpenSpec change by number.
       - run: node --test scripts/check-change-number-references.test.mjs
       - run: node scripts/check-change-number-references.mjs
+      # The accepted OpenSpec baseline passes strict validation, so a requirement that grows past
+      # the length limit or a placeholder Purpose fails here rather than joining a backlog.
+      - run: npx --yes @fission-ai/openspec@2.0.0 validate --specs --strict --no-interactive
       # Interface text that never entered a message catalogue.
       # Blocking, not informational: known findings are recorded in the script's
       # own debt register, so this only fails on a literal nobody has seen yet.
@@ -264,6 +331,10 @@ jobs:
       - run: node scripts/check-descriptor-guide-coverage.mjs
       - run: node --test scripts/check-ui-ownership.test.mjs
       - run: node scripts/check-ui-ownership.mjs
+      # Stored text reaches public pages, so no web code may add an HTML sink
+      # without a recorded reason.
+      - run: node --test scripts/check-html-sinks.test.mjs
+      - run: node scripts/check-html-sinks.mjs
       # Atomic-composition tier contract: tier membership,
       # import direction, styling/data/i18n placement, orphan resolution and
       # naming, over the resolved component graph. Known findings are
@@ -273,6 +344,11 @@ jobs:
       - run: node --test scripts/lib/component-graph.test.mjs
       - run: node --test scripts/check-atomic-composition.test.mjs
       - run: node scripts/check-atomic-composition.mjs
+      # Source file size: production source files stay within 800 lines and
+      # test files within 2000, unless the ceiling register in the script
+      # records the file with a ceiling and a reason.
+      - run: node --test scripts/check-file-size.test.mjs
+      - run: node scripts/check-file-size.mjs
       # Role manual capability lists: generated from
       # role-capabilities.ts, gated against it in both directions —
       # an undocumented grant and an over-promised claim both fail.
@@ -306,9 +382,9 @@ jobs:
       matrix:
         group: [1, 2]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -323,6 +399,9 @@ jobs:
           node --test scripts/build-identity.test.mjs
           node --test scripts/evaluate-ci-aggregate.test.mjs
           node --test scripts/classify-ci-paths.test.mjs
+          node --test scripts/check-copy-voice.test.mjs
+          node --test scripts/list-changed-strings.test.mjs
+          node --test scripts/design-review-capture.test.mjs
           yarn workspace @copalibre/domain test:coverage --maxWorkers=2
           yarn workspace @copalibre/rules test:coverage --maxWorkers=2
           yarn workspace @copalibre/tournament-engine test:coverage --maxWorkers=2
@@ -348,6 +427,7 @@ jobs:
           yarn workspace @copalibre/seed test
           yarn workspace @copalibre/seed test:sqlite
           yarn workspace @copalibre/object-storage test:coverage --maxWorkers=2
+          yarn workspace @copalibre/email-delivery test:coverage --maxWorkers=2
           yarn workspace @copalibre/worker test:coverage --maxWorkers=2
           yarn workspace @copalibre/scheduler test:coverage --maxWorkers=2
           yarn workspace @copalibre/events test:coverage --maxWorkers=2
@@ -361,61 +441,61 @@ jobs:
           # dumps every scored function (not just gate offenders) for the
           # cross-leg summary rendered by the crap-report job below.
           yarn crap:check --report=crap-report-group-2.json
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 1
         with:
           name: coverage-domain
           path: packages/domain/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 1
         with:
           name: coverage-rules
           path: packages/rules/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 1
         with:
           name: coverage-tournament-engine
           path: packages/tournament-engine/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 1
         with:
           name: coverage-module-catalogue
           path: packages/module-catalogue/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 2
         with:
           name: coverage-api
           path: apps/api/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 2
         with:
           name: coverage-worker
           path: apps/worker/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 2
         with:
           name: coverage-scheduler
           path: apps/scheduler/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 2
         with:
           name: coverage-events
           path: apps/events/coverage
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 1
         with:
           name: crap-report-group-1
           path: crap-report-group-1.json
           retention-days: 14
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.group == 2
         with:
           name: crap-report-group-2
@@ -429,9 +509,9 @@ jobs:
     needs: [install, unit-tests-group]
     if: always()
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
       - name: Verify aggregate unit test status
@@ -451,17 +531,17 @@ jobs:
     needs: [install, unit-tests-group]
     if: always()
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         continue-on-error: true
         with:
           name: crap-report-group-1
           path: crap-reports
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         continue-on-error: true
         with:
           name: crap-report-group-2
@@ -492,7 +572,7 @@ jobs:
     name: Third-party notices
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: node scripts/check-third-party-notices.mjs
 
   # Web build producer: generates tokens, copies OpenAPI/Scalar assets,
@@ -505,9 +585,9 @@ jobs:
     needs: [install, detect-changes]
     if: needs.detect-changes.outputs.backend_only != 'true'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -526,7 +606,7 @@ jobs:
             --run-attempt="${{ github.run_attempt }}" \
             --commit="${{ github.sha }}" \
             --config="production"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: web-build-dist
           path: apps/web/dist
@@ -545,14 +625,14 @@ jobs:
       needs.install.result == 'success' &&
       needs.detect-changes.outputs.backend_only != 'true'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
       - run: yarn install --immutable
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: web-build-dist
           path: apps/web/dist
@@ -566,6 +646,10 @@ jobs:
       - run: yarn workspace @copalibre/routing build
       - name: Inspect public web build output
         run: yarn workspace @copalibre/web inspect:build
+      # The budget tests load the performance fixture, which renders emblem renditions.
+      - run: yarn workspace @copalibre/object-storage build
+      - name: Check public performance budget configuration
+        run: node --test scripts/lighthouse/budgets.test.mjs
 
   # Starlight and the statically served Scalar document are inspected from
   # the single verified producer artifact, including the proof that the
@@ -579,14 +663,14 @@ jobs:
       needs.install.result == 'success' &&
       needs.detect-changes.outputs.backend_only != 'true'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
       - run: yarn install --immutable
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: web-build-dist
           path: apps/web/dist
@@ -619,14 +703,14 @@ jobs:
       matrix:
         shard: ['1/2', '2/2']
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
       - run: yarn install --immutable
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: web-build-dist
           path: apps/web/dist
@@ -642,17 +726,108 @@ jobs:
       # only web-build-producer's own checkout runs this step, and that
       # output isn't part of the web-build-dist artifact downloaded above.
       - run: yarn workspace @copalibre/design-tokens build:tokens
-      - uses: actions/cache@v6
+      # The performance fixture some specs serve renders emblem renditions with the API's own encoder.
+      - name: Build object storage package
+        run: yarn workspace @copalibre/object-storage build
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
       - run: yarn playwright install --with-deps chromium
+      - name: Install pinned Chromium 100 for TV compatibility
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          import subprocess
+          import urllib.request
+          import zipfile
+
+          revision = '965416'
+          browser_version = '100.0.4863.0'
+          cache = pathlib.Path.home() / '.cache' / 'ms-playwright'
+          browser = cache / f'chromium-{revision}'
+          archive = pathlib.Path('/tmp/playwright-chromium-100.zip')
+          cache.mkdir(parents=True, exist_ok=True)
+          urllib.request.urlretrieve(
+              f'https://playwright.azureedge.net/builds/chromium/{revision}/chromium-linux.zip',
+              archive,
+          )
+          with zipfile.ZipFile(archive) as package:
+              package.extractall(browser)
+              for member in package.infolist():
+                  mode = (member.external_attr >> 16) & 0o777
+                  target = browser / member.filename
+                  if mode and target.exists():
+                      target.chmod(mode)
+          archive.unlink()
+          executable = browser / 'chrome-linux' / 'chrome'
+          actual = subprocess.check_output([executable, '--version'], text=True).strip()
+          if actual != f'Chromium {browser_version}':
+              raise SystemExit(f'Expected Chromium {browser_version}, got {actual}')
+          print(actual)
+          PY
       - name: Run E2E test shard
-        run: PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --shard=${{ matrix.shard }}
+        run: PLAYWRIGHT_CHROMIUM_100_PATH="$HOME/.cache/ms-playwright/chromium-965416/chrome-linux/chrome" PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --grep-invert @visible-identifier-lint --shard=${{ matrix.shard }}
+      - name: Run visible-identifier lint
+        run: PLAYWRIGHT_EXISTING_BUILD=1 yarn playwright test --grep @visible-identifier-lint --shard=${{ matrix.shard }}
       # A retry that rescues a test passes the job, so list those tests where a reviewer looks.
       - name: List flaky E2E tests
         if: always()
         run: node scripts/summarize-playwright-flaky.mjs test-results/playwright-results.json "E2E shard ${{ matrix.shard }} flaky tests"
+
+  # The Lighthouse budgets run in their own job, so a budget miss fails this
+  # check by name and never skips the release image build or the deployment
+  # verification after it: `build` does not need this job. It still enforces in
+  # error mode, so a release PR to main shows the miss as a red check.
+  performance-budgets:
+    name: Public performance budgets
+    runs-on: ubuntu-latest
+    needs: [install, detect-changes, web-build-producer]
+    if: |
+      needs.detect-changes.outputs.performance_gate == 'true' &&
+      needs.detect-changes.outputs.backend_only != 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: yarn
+      - run: yarn install --immutable
+      # The fixture renders emblem renditions with the API's own encoder.
+      - name: Build object storage package
+        run: yarn workspace @copalibre/object-storage build
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: web-build-dist
+          path: apps/web/dist
+      - name: Verify build artifact identity
+        run: |
+          node scripts/build-identity.mjs verify \
+            --dist=apps/web/dist \
+            --run-id="${{ github.run_id }}" \
+            --commit="${{ github.sha }}" \
+            --config="production"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+      - run: yarn playwright install --with-deps chromium
+      # The harness serves the build through the web role's own Caddy image,
+      # pulled through Google's mirror like every Docker Hub image here.
+      - name: Check the performance harness serves what an installation serves
+        run: node --test scripts/lighthouse/harness.integration.test.mjs
+      - name: Run public performance budgets
+        env:
+          PERFORMANCE_BUDGET_ENFORCEMENT: error
+        run: node scripts/lighthouse/run.mjs
+      # The reports name the shifting element and the LCP element of each run.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: lighthouse-reports
+          path: .artifacts/lighthouseci
+          retention-days: 14
 
   # Aggregate required gate preserving the stable check name 'E2E tests'.
   # Validates all shards passed; the accelerated TV soak-test proxy step runs
@@ -666,9 +841,9 @@ jobs:
       needs.install.result == 'success' &&
       needs.detect-changes.outputs.backend_only != 'true'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -679,7 +854,7 @@ jobs:
             --check="E2E tests" \
             --required="shards" \
             --results='{"shards":"${{ needs.e2e-tests-shard.result }}"}'
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: web-build-dist
           path: apps/web/dist
@@ -711,7 +886,7 @@ jobs:
             --sample-interval-seconds=5 \
             --growth-threshold=0.25 \
             --report=tv-soak-report.json
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && needs.detect-changes.outputs.release_candidate == 'true'
         with:
           name: tv-soak-report
@@ -727,9 +902,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -747,9 +922,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: install
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -762,7 +937,9 @@ jobs:
 
   # Partitioned integration test execution across two duration-balanced groups
   # with isolated real services (bounded to max-parallel 2).
-  # Group 1: Persistence, Seed, API, Tournament Engine, Statistics Refold (PostgreSQL only).
+  # Group 1: Seed, Persistence, API (PostgreSQL only).
+  # Suites are placed by measured step durations so neither group waits long on the other:
+  # group 1 holds the longest suites, group 2 the shorter ones next to its storage suites.
   integration-tests-g1:
     name: Integration tests (group 1)
     runs-on: ubuntu-latest
@@ -770,7 +947,7 @@ jobs:
     if: needs.detect-changes.outputs.frontend_only != 'true'
     services:
       postgres:
-        image: mirror.gcr.io/library/postgres:17
+        image: mirror.gcr.io/library/postgres:18
         env:
           POSTGRES_USER: copalibre
           POSTGRES_PASSWORD: copalibre_ci_only
@@ -785,9 +962,9 @@ jobs:
     env:
       DATABASE_URL: postgres://copalibre:copalibre_ci_only@localhost:5432/copalibre
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -796,15 +973,9 @@ jobs:
       - run: yarn workspace @copalibre/seed test:integration
       - run: yarn workspace @copalibre/persistence test:integration
       - run: yarn workspace @copalibre/api test:integration
-      - run: yarn workspace @copalibre/tournament-engine test:integration
-      - run: yarn workspace @copalibre/statistics-refold test:integration
-      # Clones the curated module repository, so it needs the network: an unreachable
-      # remote fails the suite here instead of skipping it.
-      - run: yarn workspace @copalibre/module-distribution test:integration
-        env:
-          COPALIBRE_REQUIRE_NETWORK_TESTS: '1'
 
-  # Group 2: Storage, Worker, Scheduler, Events, CLI (PostgreSQL + Garage + ClamAV).
+  # Group 2: Storage, Worker, Scheduler, Events, Tournament Engine, Statistics Refold,
+  # Module Distribution, CLI (PostgreSQL + Garage + ClamAV).
   integration-tests-g2:
     name: Integration tests (group 2)
     runs-on: ubuntu-latest
@@ -812,7 +983,7 @@ jobs:
     if: needs.detect-changes.outputs.frontend_only != 'true'
     services:
       postgres:
-        image: mirror.gcr.io/library/postgres:17
+        image: mirror.gcr.io/library/postgres:18
         env:
           POSTGRES_USER: copalibre
           POSTGRES_PASSWORD: copalibre_ci_only
@@ -835,9 +1006,9 @@ jobs:
       # integration suite's endpoint fallback must be overridden here.
       COPALIBRE_OBJECT_STORAGE_URL: http://localhost:3900
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -847,7 +1018,7 @@ jobs:
           docker run -d --name garage --network host \
             -e GARAGE_RPC_SECRET=c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e \
             -v "$(pwd)/deploy/garage/garage.toml:/etc/garage.toml:ro" \
-            mirror.gcr.io/dxflrs/garage:v1.1.0
+            mirror.gcr.io/dxflrs/garage:v1.3.1
       - name: Wait for Garage and provision its bucket and key
         run: |
           for i in $(seq 1 30); do
@@ -873,6 +1044,13 @@ jobs:
       - run: yarn workspace @copalibre/worker test:integration
       - run: yarn workspace @copalibre/scheduler test:integration
       - run: yarn workspace @copalibre/events test:integration
+      - run: yarn workspace @copalibre/tournament-engine test:integration
+      - run: yarn workspace @copalibre/statistics-refold test:integration
+      # Clones the curated module repository, so it needs the network: an unreachable
+      # remote fails the suite here instead of skipping it.
+      - run: yarn workspace @copalibre/module-distribution test:integration
+        env:
+          COPALIBRE_REQUIRE_NETWORK_TESTS: '1'
       - run: yarn workspace @copalibre/copalibre build
       # module add clones the curated module repository: an unreachable remote fails, not skips.
       - run: yarn workspace @copalibre/copalibre test:integration
@@ -889,9 +1067,9 @@ jobs:
       needs.install.result == 'success' &&
       needs.detect-changes.outputs.frontend_only != 'true'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
       - name: Verify aggregate integration test status
@@ -915,11 +1093,11 @@ jobs:
     # safe here.
     if: needs.detect-changes.outputs.cli_only != 'true' && needs.detect-changes.outputs.docs_only != 'true'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # corepack must be enabled before setup-node: its yarn-cache probe invokes the
       # global yarn, which errors on the packageManager pin if it's still Yarn 1.x.
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
@@ -972,14 +1150,14 @@ jobs:
       needs.e2e-tests.result != 'failure' &&
       needs.e2e-tests.result != 'cancelled'
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # The builder image comes through the daemon's mirror; BuildKit resolves base images itself, so
       # it gets the same mirror in its own configuration.
       - name: Pull Docker Hub images through a mirror
         run: |
           echo '{"registry-mirrors":["https://mirror.gcr.io"]}' | sudo tee /etc/docker/daemon.json
           sudo systemctl restart docker
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
         with:
           buildkitd-config-inline: |
             [registry."docker.io"]
@@ -1004,7 +1182,7 @@ jobs:
             --load .
       - name: Export tested images
         run: docker save copalibre:ci copalibre-web:ci | gzip > copalibre-images.tar.gz
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: copalibre-images
           path: copalibre-images.tar.gz
@@ -1031,6 +1209,10 @@ jobs:
       COPALIBRE_IMAGE: copalibre:ci
       COPALIBRE_WEB_IMAGE: copalibre-web:ci
       POSTGRES_PASSWORD: copalibre_e2e_only
+      # Compose interpolates these for every command against docker-compose.yml, the JWKS stub
+      # included; the installation in ci-e2e-install uses the random values init writes.
+      COPALIBRE_DATABASE_OWNER_PASSWORD: copalibre_e2e_owner_only
+      COPALIBRE_DATABASE_APP_PASSWORD: copalibre_e2e_app_only
       # Compose interpolates this even when the optional object-storage profile is not started.
       GARAGE_RPC_SECRET: c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
       COPALIBRE_APP_URL: http://localhost:4321
@@ -1041,25 +1223,28 @@ jobs:
       # needs a real 200-with-`keys` response, not a bare hostname.
       COPALIBRE_JWKS_URI: http://jwks-stub/jwks.json
       COPALIBRE_JWT_ISSUER: http://jwks-stub
+      # An issuer outside the application's origin must be in web's Content Security
+      # Policy; doctor's csp-identity-origin check fails the job without it.
+      COPALIBRE_CSP_IDENTITY_ORIGIN: http://jwks-stub
       COPALIBRE_JWT_AUDIENCE: copalibre
       COPALIBRE_OIDC_CLIENT_ID: copalibre-compose-e2e
       COPALIBRE_EMAIL_PROVIDER: smtp
       COPALIBRE_EMAIL_FROM: e2e@copalibre.invalid
       COPALIBRE_SMTP_URL: smtp://host.docker.internal:1025
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 26
           cache: yarn
       - run: yarn install --immutable
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
       - run: yarn playwright install --with-deps chromium
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: copalibre-images
       # Docker Hub rate-limits anonymous pulls per runner address and GitHub's runners share a few,
@@ -1093,9 +1278,41 @@ jobs:
           done
           ../copalibre doctor
           ../copalibre start
-          ../copalibre create-admin --organization-alias integrity-league --organization-name "Integrity League" --email admin@example.test
-      - name: Verify Compose login and PKCE
+          ../copalibre create-admin --organization-alias integrity-league --organization-name "Integrity League" --email admin@example.test | tee create-admin.out
+          # The one-time setup link lets the login spec sign in natively and
+          # inspect the session cookies the gateway actually delivers.
+          echo "COPALIBRE_E2E_SETUP_URL=$(grep -o 'http[^ ]*token=[^ ]*' create-admin.out | head -n 1)" >> "$GITHUB_ENV"
+          grep -q '^COPALIBRE_SESSION_COOKIE_SECURE=true$' .env
+      - name: Verify Compose login, PKCE and session cookies
         run: yarn playwright test --config playwright.compose.config.ts e2e/deployment-login.spec.ts
+      # The shipped edge Caddyfile in front of this installation, with Caddy's
+      # internal certificate authority for localhost, then the security gate's
+      # black-box probes: HTTPS redirect and HSTS, headers on every surface,
+      # exposed files and traversal, debug endpoints, forged credentials.
+      - name: Start the TLS edge
+        run: |
+          docker run -d --name security-edge --network copalibre_default \
+            -p 127.0.0.1:8443:443 -p 127.0.0.1:8081:80 \
+            -v "$PWD/deploy/proxy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            -e COPALIBRE_APP_HOST=localhost -e COPALIBRE_API_HOST=api.localhost \
+            -e COPALIBRE_EVENTS_HOST=events.localhost -e ACME_EMAIL=ops@copalibre.invalid \
+            caddy:2.11-alpine
+          for i in $(seq 1 30); do
+            curl -skf https://localhost:8443/api/health > /dev/null && break
+            sleep 2
+          done
+      - name: Probe the deployment's security controls
+        run: >-
+          node scripts/security/runtime-probes.mjs --app-url https://localhost:8443
+          --http-url http://localhost:8081 --insecure --inspector-host 127.0.0.1
+          --doctor-command 'cd ci-e2e-install && docker compose run --rm doctor'
+          --out security-runtime
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: security-runtime-evidence
+          path: security-runtime/
+          retention-days: 30
       - name: Show container logs on failure
         if: failure()
         working-directory: ci-e2e-install
@@ -1103,7 +1320,102 @@ jobs:
       - name: Remove ephemeral installation
         if: always()
         working-directory: ci-e2e-install
-        run: docker compose down --volumes --remove-orphans
+        run: |
+          docker rm -f security-edge || true
+          docker compose down --volumes --remove-orphans
+
+  # A release candidate must take the installations that exist forward: each
+  # leg installs a published release with that release's own CLI and images,
+  # gives it an organization and its administrator, upgrades it with this
+  # revision's CLI to the images the build job made, and checks the rows, the
+  # move to PostgreSQL 18, the removal of 17 and the administrator's sign-in.
+  # 1.0.5 is the oldest release whose images are published; 1.2.6 the newest.
+  upgrade-e2e:
+    name: Upgrade from ${{ matrix.from }}
+    runs-on: ubuntu-latest
+    needs: build
+    # The same cascade-skip workaround as deployment-e2e above.
+    if: "!cancelled() && needs.build.result == 'success'"
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        from: ['1.2.6', '1.0.5']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn workspace @copalibre/copalibre build
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: copalibre-images
+      - name: Pull Docker Hub images through a mirror
+        run: |
+          echo '{"registry-mirrors":["https://mirror.gcr.io"]}' | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
+      # The upgrade names images by version and pulls only what is missing, so the
+      # candidate is tagged as a version above every published one (a backup
+      # restores only into the same or a newer version).
+      - name: Load the candidate images
+        run: |
+          gzip --decompress --stdout copalibre-images.tar.gz | docker load
+          docker tag copalibre:ci ghcr.io/sebasoft/copalibre:99.0.0-ci
+          docker tag copalibre-web:ci ghcr.io/sebasoft/copalibre-web:99.0.0-ci
+      - name: Upgrade a published ${{ matrix.from }} installation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/validate-upgrade-from-release.sh '${{ matrix.from }}' 99.0.0-ci
+
+  # Release candidates (a pull request to main, a push to main, a manual run)
+  # record the full security verdict for this exact revision, with the
+  # runtime evidence the deployment job's probes wrote. It is recorded, not
+  # enforced, until every runtime control has evidence (docs/security/README.md);
+  # release.yml blocks on the static gate either way.
+  security-release:
+    name: Security verdict (release candidate)
+    runs-on: ubuntu-latest
+    needs: [detect-changes, install, deployment-e2e]
+    if: "!cancelled() && needs.detect-changes.outputs.release_candidate == 'true'"
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: yarn
+      - run: yarn install --immutable
+      - name: Install the pinned secret scanner
+        run: |
+          scripts/security/install-gitleaks.sh "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          name: security-runtime-evidence
+          path: security-runtime
+      - name: Record the release verdict
+        continue-on-error: true
+        run: >-
+          node scripts/security/run.mjs --mode release --out security-report
+          --runtime-evidence security-runtime
+      - name: Summarize the security report
+        if: ${{ !cancelled() }}
+        run: test -f security-report/security-report.md && cat security-report/security-report.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: security-report-release-candidate
+          path: security-report/
+          retention-days: 90
 
   deploy-smoke-test:
     name: Deploy smoke test
@@ -1116,23 +1428,31 @@ jobs:
       COPALIBRE_IMAGE: copalibre:ci
       COPALIBRE_WEB_IMAGE: copalibre-web:ci
       POSTGRES_PASSWORD: copalibre_ci_only
+      COPALIBRE_DATABASE_OWNER_PASSWORD: copalibre_ci_owner_only
+      COPALIBRE_DATABASE_APP_PASSWORD: copalibre_ci_app_only
       # Compose interpolates this even when the optional object-storage profile is not started.
       GARAGE_RPC_SECRET: c0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6ec0a11b6e
       COPALIBRE_APP_URL: http://web:4321
+      # Plain HTTP on a hostname other than localhost: browsers would refuse
+      # Secure cookies there, and doctor checks the setting against the URL.
+      COPALIBRE_SESSION_COOKIE_SECURE: 'false'
       COPALIBRE_API_URL: http://api:3001
       COPALIBRE_BOOTSTRAP_TOKEN: copalibre_ci_bootstrap_only
       # See deployment-e2e's identical comment: a real JWKS-serving stub, not
       # a route `api` never implements (it's a resource server, not an IdP).
       COPALIBRE_JWKS_URI: http://jwks-stub/jwks.json
       COPALIBRE_JWT_ISSUER: http://jwks-stub
+      # An issuer outside the application's origin must be in web's Content Security
+      # Policy; doctor's csp-identity-origin check fails the job without it.
+      COPALIBRE_CSP_IDENTITY_ORIGIN: http://jwks-stub
       COPALIBRE_JWT_AUDIENCE: copalibre
       COPALIBRE_OIDC_CLIENT_ID: copalibre-ci
       COPALIBRE_EMAIL_PROVIDER: smtp
       COPALIBRE_EMAIL_FROM: noreply@copalibre.invalid
       COPALIBRE_SMTP_URL: smtp://postgres:5432
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: copalibre-images
       # Docker Hub rate-limits anonymous pulls per runner address and GitHub's runners share a few,
@@ -1150,12 +1470,25 @@ jobs:
         run: docker compose -f docker-compose.yml -f docker-compose.jwks-test.yml --profile jwks-test up --detach jwks-stub
       - name: Verify externally reachable role liveness
         run: |
-          node -e 'fetch("http://127.0.0.1:3001/health").then(async (r) => { const b = await r.json(); process.exit(r.ok && b.role === "api" ? 0 : 1); }).catch(() => process.exit(1))'
+          node -e 'fetch("http://127.0.0.1:3001/api/health").then(async (r) => { const b = await r.json(); process.exit(r.ok && b.role === "api" ? 0 : 1); }).catch(() => process.exit(1))'
           node -e 'fetch("http://127.0.0.1:3002/health").then(async (r) => { const b = await r.json(); process.exit(r.ok && b.role === "events" ? 0 : 1); }).catch(() => process.exit(1))'
           docker compose exec --no-TTY worker node -e 'fetch("http://127.0.0.1:3003/health").then(async (r) => { const b = await r.json(); process.exit(r.ok && b.role === "worker" ? 0 : 1); }).catch(() => process.exit(1))'
           docker compose exec --no-TTY scheduler node -e 'fetch("http://127.0.0.1:3004/health").then(async (r) => { const b = await r.json(); process.exit(r.ok && b.role === "scheduler" ? 0 : 1); }).catch(() => process.exit(1))'
       - name: Verify doctor role
         run: docker compose run --rm doctor
+      # The web role compresses pages and stylesheets, and never the event
+      # streams (a compressor delays live events) or authentication responses
+      # (they carry secrets beside client-sent text). The help pages are static,
+      # exist on a fresh install and link their stylesheet; Control links none.
+      - name: Verify the web role's compression
+        run: |
+          encoding() { curl -s -o /dev/null -D - -H 'Accept-Encoding: gzip' "$@" | tr -d '\r' | awk 'tolower($1) == "content-encoding:" { print $2 }'; }
+          stylesheet=$(curl -sf http://127.0.0.1:4321/help/ | grep -o '/_astro/[^"]*\.css' | head -n 1)
+          test -n "$stylesheet"
+          test "$(encoding "http://127.0.0.1:4321${stylesheet}")" = gzip
+          test "$(encoding http://127.0.0.1:4321/help/)" = gzip
+          test -z "$(encoding --max-time 5 http://127.0.0.1:4321/events/proxy-check || true)"
+          test -z "$(encoding http://127.0.0.1:4321/api/auth/session)"
       - name: Verify Caddy proxy conformance
         run: |
           docker compose -f docker-compose.yml -f docker-compose.proxy-test.yml --profile proxy-caddy-test up --detach caddy

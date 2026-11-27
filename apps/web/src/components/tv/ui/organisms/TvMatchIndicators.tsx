@@ -1,5 +1,9 @@
-import { useEffect, useState } from 'react';
 import type { LiveMatch, LiveSide } from '../../../../lib/live-state.js';
+import {
+  formatPenaltyClock,
+  penaltySnapshotKey,
+  usePenaltyCountdown,
+} from '../../../../lib/penalty-countdown.js';
 
 type ActivePenalty = NonNullable<LiveMatch['activePenalties']>[number];
 
@@ -40,45 +44,29 @@ function TickingIndicators({
   readonly sides: readonly LiveSide[];
   readonly penaltyLabel: string;
 }): React.JSX.Element | null {
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
-  useEffect(() => {
-    const startedAt = Date.now();
-    const timer = window.setInterval(() => {
-      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const activePenalties = penalties
+  const countdown = usePenaltyCountdown(penalties);
+  const activePenalties = countdown
     .map((penalty) => ({
       ...penalty,
       side: sides.find((candidate) => candidate.entrantId === penalty.entrantId),
-      remaining: Math.max(0, Math.ceil(penalty.remainingSeconds - elapsedSeconds)),
     }))
-    .filter((penalty) => penalty.side !== undefined && penalty.remaining > 0);
+    .filter((penalty) => penalty.side !== undefined);
 
   if (!possessionSide && activePenalties.length === 0) return null;
 
   return (
     <div className="tv-match-indicators" data-testid="tv-match-indicators">
       {possessionSide && <PossessionBadge label={possessionLabel} side={possessionSide} />}
-      {activePenalties.map((penalty) => {
-        const minutes = Math.floor(penalty.remaining / 60);
-        const seconds = penalty.remaining % 60;
-        return (
-          <span
-            className="tv-match-indicator tv-match-indicator--penalty cl-chamfer"
-            key={penalty.timerId}
-          >
-            <span className="tv-match-indicator__label">{penaltyLabel}</span>
-            <span title={penalty.side?.name}>
-              {penalty.side?.abbreviation ?? penalty.side?.name}
-            </span>
-            <time>{`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`}</time>
-          </span>
-        );
-      })}
+      {activePenalties.map((penalty) => (
+        <span
+          className="tv-match-indicator tv-match-indicator--penalty cl-chamfer"
+          key={penalty.timerId}
+        >
+          <span className="tv-match-indicator__label">{penaltyLabel}</span>
+          <span title={penalty.side?.name}>{penalty.side?.abbreviation ?? penalty.side?.name}</span>
+          <time>{formatPenaltyClock(penalty.remaining)}</time>
+        </span>
+      ))}
     </div>
   );
 }
@@ -104,9 +92,7 @@ export function TvMatchIndicators({
     );
   }
 
-  const penaltySnapshot = penalties
-    .map((penalty) => `${penalty.timerId}:${penalty.remainingSeconds}`)
-    .join(',');
+  const penaltySnapshot = penaltySnapshotKey(penalties);
 
   return (
     <TickingIndicators

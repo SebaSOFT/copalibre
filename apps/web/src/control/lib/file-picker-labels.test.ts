@@ -15,8 +15,9 @@ const intl = createIntl(
 describe('filePickerLabels', () => {
   it('always resolves the prompt and clear-button text', () => {
     const labels = filePickerLabels(intl);
-    expect(labels.promptText).toBe('Choose a file or drag here');
+    expect(labels.promptText).toBe('Choose a file or drag it here.');
     expect(labels.promptDraggingText).toBe('Drop file here');
+    expect(labels.clearLabel).toBe('Clear selected file');
     expect(labels.clearButtonText).toBe('Clear');
   });
 
@@ -29,6 +30,11 @@ describe('filePickerLabels', () => {
   it('resolves acceptedFormatsLabel from the declared accept string', () => {
     const labels = filePickerLabels(intl, { accept: '.csv,text/csv' });
     expect(labels.acceptedFormatsLabel).toBe('Accepted formats: .csv,text/csv');
+  });
+
+  it('names the supported image formats instead of exposing the image MIME wildcard', () => {
+    const labels = filePickerLabels(intl, { accept: 'image/*' });
+    expect(labels.acceptedFormatsLabel).toBe('PNG, JPG, SVG or WebP.');
   });
 
   it('resolves maxSizeLabel from the declared byte limit, in the same units the atom used to hardcode', () => {

@@ -1,18 +1,61 @@
 import { chmod, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { LOCAL_DEFAULTS, generateRandomSecret } from './init.js';
+import {
+  GENERATED_DATABASE_SECRETS,
+  LOCAL_DEFAULTS,
+  generateRandomSecret,
+  sessionCookieSecureSetting,
+} from './init.js';
 import { readInstallationMarker } from './installation-marker.js';
 
 export interface EnvReconciliationResult {
   readonly content: string;
   readonly addedKeys: readonly string[];
   readonly updatedKeys: readonly string[];
+  /** The `COPALIBRE_SESSION_COOKIE_SECURE` value this reconciliation added, if it added one. */
+  readonly addedSessionCookieSecure?: string;
 }
 
 export interface ComposeReconciliationResult {
   readonly content: string;
   readonly updatedImages: readonly string[];
+  /** Shipped port mappings this reconciliation moved to 127.0.0.1, e.g. `3001:3001`. */
+  readonly loopbackPorts: readonly string[];
+  /**
+   * The file has no `database-setup` service, so every role still connects as the
+   * PostgreSQL superuser. Reconciliation edits images and ports only; the operator
+   * adopts the shipped services.
+   */
+  readonly lacksDatabaseRoles: boolean;
+}
+
+/**
+ * Port mappings earlier releases published on every host interface for
+ * services that sit behind the gateway. Only these exact mappings move to
+ * 127.0.0.1; a mapping the operator changed is theirs and stays as written.
+ */
+export const SHIPPED_INTERNAL_PORT_MAPPINGS: readonly string[] = [
+  '3001:3001',
+  '3002:3002',
+  '3005:3005',
+  '4321:4321',
+  '9000:3900',
+  '3310:3310',
+];
+
+function bindShippedPortsToLoopback(content: string): { content: string; moved: string[] } {
+  const moved: string[] = [];
+  const next = content.replace(
+    /^(\s*-\s*)(['"]?)(\d+:\d+)\2(\s*)$/gm,
+    (line, prefix: string, quote: string, mapping: string, trailing: string) => {
+      if (!SHIPPED_INTERNAL_PORT_MAPPINGS.includes(mapping)) return line;
+      moved.push(mapping);
+      const q = quote || "'";
+      return `${prefix}${q}127.0.0.1:${mapping}${q}${trailing}`;
+    },
+  );
+  return { content: next, moved };
 }
 
 export interface InstallationReconciliationResult {
@@ -22,12 +65,40 @@ export interface InstallationReconciliationResult {
   readonly addedEnvKeys: readonly string[];
   readonly updatedEnvKeys: readonly string[];
   readonly updatedImages: readonly string[];
+  readonly addedSessionCookieSecure?: string;
+  readonly loopbackPorts: readonly string[];
+  readonly lacksDatabaseRoles: boolean;
+}
+
+/**
+ * Shipped defaults whose meaning changed: a key holding exactly the old shipped value gets the new
+ * one. A value the operator chose (an external identity provider's key set, say) is never one of
+ * these, so it is kept.
+ */
+export const RETIRED_ENV_DEFAULTS: readonly {
+  readonly key: string;
+  readonly from: string;
+  readonly to: string;
+}[] = [
+  // The API's key set moved under /api; /.well-known/jwks.json no longer exists.
+  {
+    key: 'COPALIBRE_JWKS_URI',
+    from: 'http://api:3001/.well-known/jwks.json',
+    to: 'http://api:3001/api/auth/jwks.json',
+  },
+];
+
+function retiredDefault(key: string, value: string): string | undefined {
+  const unquoted = value.trim().replace(/^(['"])(.*)\1$/, '$2');
+  return RETIRED_ENV_DEFAULTS.find((rule) => rule.key === key && rule.from === unquoted)?.to;
 }
 
 /**
  * Reconciles an existing `.env` file content with a new CopaLibre release version.
  * - Updates `COPALIBRE_IMAGE` and `COPALIBRE_WEB_IMAGE` tags to match `targetVersion`.
  * - Appends newly introduced variables from `defaults` without overwriting existing settings.
+ *   `COPALIBRE_SESSION_COOKIE_SECURE` is derived from the file's own `COPALIBRE_APP_URL`,
+ *   not copied from the defaults, so an existing plain-HTTP LAN install keeps working.
  * - Preserves existing comments, custom variables, and formatting.
  */
 export function reconcileEnvContent(
@@ -39,6 +110,7 @@ export function reconcileEnvContent(
   const lines = existingContent.split(/\r?\n/);
   const foundKeys = new Set<string>();
   const updatedKeys: string[] = [];
+  let appUrl: string | undefined;
 
   const updatedLines = lines.map((line) => {
     const match = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(line);
@@ -47,6 +119,13 @@ export function reconcileEnvContent(
     const key = match[1];
     const val = match[2];
     foundKeys.add(key);
+    if (key === 'COPALIBRE_APP_URL') appUrl = val.trim().replace(/^['"]|['"]$/g, '');
+
+    const replacement = retiredDefault(key, val);
+    if (replacement !== undefined) {
+      updatedKeys.push(key);
+      return `${key}=${replacement}`;
+    }
 
     if (key === 'COPALIBRE_VERSION') {
       const inlineComment = /(\s+#.*)$/.exec(val)?.[1] ?? '';
@@ -78,11 +157,22 @@ export function reconcileEnvContent(
 
   const addedKeys: string[] = [];
   const linesToAppend: string[] = [];
+  let addedSessionCookieSecure: string | undefined;
 
   for (const [key, defaultValue] of Object.entries(defaults)) {
     if (!foundKeys.has(key)) {
       addedKeys.push(key);
-      const val = key === 'GARAGE_RPC_SECRET' ? generateRandomSecret(32) : defaultValue;
+      let val =
+        key === 'GARAGE_RPC_SECRET' || isGeneratedDatabaseSecret(key)
+          ? generateRandomSecret(32)
+          : defaultValue;
+      // The shipped defaults pin the release that built this CLI; an added image follows the target.
+      if (key === 'COPALIBRE_IMAGE') val = `ghcr.io/sebasoft/copalibre:${cleanVersion}`;
+      if (key === 'COPALIBRE_WEB_IMAGE') val = `ghcr.io/sebasoft/copalibre-web:${cleanVersion}`;
+      if (key === 'COPALIBRE_SESSION_COOKIE_SECURE') {
+        val = sessionCookieSecureFromAppUrl(appUrl, defaultValue);
+        addedSessionCookieSecure = val;
+      }
       linesToAppend.push(`${key}=${val}`);
     }
   }
@@ -95,19 +185,30 @@ export function reconcileEnvContent(
     updatedLines.push(`# Added during upgrade to v${cleanVersion}`, ...linesToAppend);
   }
 
-  const lastUpdated = updatedLines[updatedLines.length - 1];
-  const trailingNewline = lastUpdated !== undefined && lastUpdated.endsWith('\n') ? '' : '\n';
+  const joined = updatedLines.join('\n');
 
   return {
-    content: updatedLines.join('\n') + trailingNewline,
+    content: joined.endsWith('\n') ? joined : `${joined}\n`,
     addedKeys,
     updatedKeys,
+    ...(addedSessionCookieSecure === undefined ? {} : { addedSessionCookieSecure }),
   };
+}
+
+function isGeneratedDatabaseSecret(key: string): boolean {
+  return (GENERATED_DATABASE_SECRETS as readonly string[]).includes(key);
+}
+
+function sessionCookieSecureFromAppUrl(appUrl: string | undefined, fallback: string): string {
+  if (!appUrl || !URL.canParse(appUrl)) return fallback;
+  return sessionCookieSecureSetting(appUrl);
 }
 
 /**
  * Reconciles `docker-compose.yml` to target images while preserving custom volume mappings,
- * ports, environment stanzas, and network overrides.
+ * ports, environment stanzas, and network overrides. The one port change: the
+ * shipped internal mappings are published on 127.0.0.1 instead of every
+ * interface, so only the gateway is reachable from the network.
  */
 export function reconcileComposeContent(
   existingContent: string,
@@ -141,9 +242,13 @@ export function reconcileComposeContent(
     return `${prefix}${cleanVersion}`;
   });
 
+  const loopback = bindShippedPortsToLoopback(updatedContent);
+
   return {
-    content: updatedContent,
+    content: loopback.content,
     updatedImages,
+    loopbackPorts: loopback.moved,
+    lacksDatabaseRoles: !/^ {2}database-setup:/m.test(loopback.content),
   };
 }
 
@@ -168,6 +273,9 @@ export async function reconcileInstallationDirectory(
   let addedEnvKeys: readonly string[] = [];
   let updatedEnvKeys: readonly string[] = [];
   let updatedImages: readonly string[] = [];
+  let loopbackPorts: readonly string[] = [];
+  let lacksDatabaseRoles = false;
+  let addedSessionCookieSecure: string | undefined;
 
   if (existsSync(envPath)) {
     const rawEnv = await readFile(envPath, 'utf8');
@@ -179,6 +287,7 @@ export async function reconcileInstallationDirectory(
     }
     addedEnvKeys = envResult.addedKeys;
     updatedEnvKeys = envResult.updatedKeys;
+    addedSessionCookieSecure = envResult.addedSessionCookieSecure;
   }
 
   if (existsSync(composePath)) {
@@ -189,6 +298,8 @@ export async function reconcileInstallationDirectory(
       composeUpdated = true;
     }
     updatedImages = composeResult.updatedImages;
+    loopbackPorts = composeResult.loopbackPorts;
+    lacksDatabaseRoles = composeResult.lacksDatabaseRoles;
   }
 
   const existingMarker = await readInstallationMarker(cwd);
@@ -213,5 +324,8 @@ export async function reconcileInstallationDirectory(
     addedEnvKeys,
     updatedEnvKeys,
     updatedImages,
+    loopbackPorts,
+    lacksDatabaseRoles,
+    ...(addedSessionCookieSecure === undefined ? {} : { addedSessionCookieSecure }),
   };
 }

@@ -73,7 +73,12 @@ export const Full: Story = {
         actions={<Button variant="primary">{intl.formatMessage(storyText.save)}</Button>}
         badge={{ label: intl.formatMessage(storyText.tournaments), state: 'state-live' }}
         metadata={[
-          { label: intl.formatMessage(storyText.venuesAndOfficials), value: '4', numeric: true },
+          {
+            href: '#venues',
+            label: intl.formatMessage(storyText.venuesAndOfficials),
+            value: '4',
+            numeric: true,
+          },
           { label: intl.formatMessage(storyText.rolesTitle), value: '18', numeric: true },
           { label: intl.formatMessage(storyText.settingsTitle), value: '2026-09-08' },
         ]}

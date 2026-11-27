@@ -555,7 +555,7 @@ describe('statistics-rebuild — organization granularity, scope, and the no-ros
     await scratch?.drop();
   });
 
-  it('recomputes organization-granularity totals across every tournament in scope (4.1)', async () => {
+  it('recomputes organization-granularity totals across every tournament in scope', async () => {
     await runStatisticsRebuild(db, { organization: organizationAlias });
 
     const organizationId = await organizationIdOf(db, organizationAlias);
@@ -578,7 +578,7 @@ describe('statistics-rebuild — organization granularity, scope, and the no-ros
     expect([...byTeam.values()].sort()).toEqual([1, 2]);
   });
 
-  it('attributes no career figure to any real person for a match with no recorded roster (4.4)', async () => {
+  it('attributes no career figure to any real person for a match with no recorded roster', async () => {
     await runStatisticsRebuild(db, { organization: organizationAlias });
 
     const organizationId = await organizationIdOf(db, organizationAlias);
@@ -610,7 +610,7 @@ describe('statistics-rebuild — organization granularity, scope, and the no-ros
     expect(careerGoalsRows.some((row) => row.actor_id === '')).toBe(true);
   });
 
-  it('leaves the other tournament untouched when scoped to one (4.3)', async () => {
+  it('leaves the other tournament untouched when scoped to one', async () => {
     // Self-contained: rebuilds the whole organization first (idempotent, so
     // this is safe regardless of what earlier tests in this file already
     // ran), records Tournament B's figures, then reruns scoped to Tournament

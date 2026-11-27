@@ -49,6 +49,14 @@ import { realtimeReplicas } from './0038-realtime-replicas.js';
 import { stageGroupConfiguration } from './0039-stage-group-configuration.js';
 import { zoneFormat } from './0040-zone-format.js';
 import { fixtureRole } from './0041-fixture-role.js';
+import { fixtureGraphSources } from './0042-fixture-graph-sources.js';
+import { scheduleIntegrity } from './0043-schedule-integrity.js';
+import { promotionPlanConfirmation } from './0044-promotion-plan-confirmation.js';
+import { personalDataPublication } from './0045-personal-data-publication.js';
+import { reversibleRemovals } from './0046-reversible-removals.js';
+import { idempotencyClaim } from './0047-idempotency-claim.js';
+import { requiredClubAlias } from './0048-required-club-alias.js';
+import { matchStreamUrl } from './0049-match-stream-url.js';
 
 /**
  * Migrations are explicit, ordered, and code-defined (no filesystem scanning),
@@ -98,6 +106,14 @@ export const MIGRATIONS: Readonly<Record<string, Migration>> = {
   '0039-stage-group-configuration': stageGroupConfiguration,
   '0040-zone-format': zoneFormat,
   '0041-fixture-role': fixtureRole,
+  '0042-fixture-graph-sources': fixtureGraphSources,
+  '0043-schedule-integrity': scheduleIntegrity,
+  '0044-promotion-plan-confirmation': promotionPlanConfirmation,
+  '0045-personal-data-publication': personalDataPublication,
+  '0046-reversible-removals': reversibleRemovals,
+  '0047-idempotency-claim': idempotencyClaim,
+  '0048-required-club-alias': requiredClubAlias,
+  '0049-match-stream-url': matchStreamUrl,
 };
 
 /** The version `apps/api`'s readiness check expects to find applied. */

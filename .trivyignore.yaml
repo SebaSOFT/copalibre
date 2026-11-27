@@ -1,0 +1,17 @@
+# Reviewed advisories in third-party binaries the release images ship but
+# CopaLibre does not build. Each entry names one advisory in one path, why it
+# cannot be reached here, and when it expires; an expired entry stops
+# suppressing and the scan fails again. Advisories in CopaLibre's own code or
+# dependencies never go here: they are fixed, or recorded in
+# docs/security/findings.json.
+vulnerabilities:
+  - id: CVE-2026-78661
+    paths:
+      - usr/bin/caddy
+    statement: >-
+      golang.org/x/net/html parser denial of service. Caddy 2.11.9, the latest
+      release on 2026-11-10, ships x/net v0.60.0; the fix is in v0.62.0. The web
+      role's Caddyfile uses no directive that parses HTML (no templates or
+      markdown), so the parser is not reached. Re-check when Caddy releases with
+      x/net >= v0.62.0.
+    expired_at: 2026-12-10

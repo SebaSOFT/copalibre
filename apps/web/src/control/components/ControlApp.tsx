@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { FormattedMessage, useIntl } from 'react-intl';
 import { parseControlPath, type ControlRoute } from '@copalibre/routing';
+import { useEffect, useState } from 'react';
+import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import {
   AnalyticsControlRoute,
   AuditTrailControlRoute,
@@ -18,9 +18,8 @@ import {
   PlatformAdministrationControlRoute,
   PreferencesControlRoute,
   PromotionPlanControlRoute,
+  QualificationControlRoute,
   RegistrationReviewControlRoute,
-  TournamentSettingsControlRoute,
-  TournamentRulesetControlRoute,
   ReportReviewControlRoute,
   RolesPermissionsControlRoute,
   ScheduleControlRoute,
@@ -29,36 +28,38 @@ import {
   StandingsControlRoute,
   TournamentAuthoringControlRoute,
   TournamentHubControlRoute,
+  TournamentRulesetControlRoute,
   TournamentsControlRoute,
+  TournamentSettingsControlRoute,
   VenueManagementControlRoute,
   ZoneGroupControlRoute,
 } from './ControlRoutes.js';
 
-import { LoginRoute, ForgotPasswordRoute, ResetPasswordRoute } from './NativeAuthRoutes.js';
-import { DashboardPage } from './pages/DashboardPage.js';
+import type { SupportedLanguage } from '../../lib/language-preference.js';
+import { activeControlLanguage, CATALOGS, ControlIntl } from '../i18n/ControlIntl.js';
+import { messages } from '../i18n/messages.en.js';
+import { createControlApiClient, type MyOrganizationResponse } from '../lib/api-client.js';
 import {
   controlLinkClick,
   loginRedirectUrl,
   navigateControl,
   useControlPath,
 } from '../lib/control-navigation.js';
-import { createControlApiClient, type MyOrganizationResponse } from '../lib/api-client.js';
 import { completeOidcLogin } from '../session/oidc-callback.js';
 import { DEFAULT_RETURN_TO } from '../session/oidc-login.js';
 import { postSilentRenewResult } from '../session/oidc-silent-renew.js';
 import { readRuntimeConfig, resolveSessionMode } from '../session/runtime-config.js';
 import { cancelScheduledRenewal, scheduleSilentRenewal } from '../session/silent-renewal.js';
 import {
-  accessTokenExpiresAtMs,
-  accessTokenHasScope,
-  controlTokenStore,
-  recordAuthMethod,
-} from '../session/token-store.js';
-import { activeControlLanguage, ControlIntl } from '../i18n/ControlIntl.js';
-import { messages } from '../i18n/messages.en.js';
-import type { SupportedLanguage } from '../../lib/language-preference.js';
+  controlSession,
+  restoreControlSession,
+  sessionHasScope,
+  type SessionMetadata,
+} from '../session/session-store.js';
+import { ForgotPasswordRoute, LoginRoute, ResetPasswordRoute } from './NativeAuthRoutes.js';
 import { ToastProvider } from './ToastProvider.js';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/atoms/card.js';
+import { Card, CardContent, CardHeader } from './ui/atoms/card.js';
+import { PageHeader } from './ui/organisms/page-header.js';
 
 /**
  * The one persistent root for every control-panel screen, now also
@@ -84,61 +85,65 @@ export function ControlApp(): React.JSX.Element | null {
     route?.screen === 'login' ||
     route?.screen === 'forgot-password' ||
     route?.screen === 'reset-password';
+  // The session cookie is HttpOnly, so after a reload Control asks the API
+  // who is signed in before rendering any protected screen.
+  const session = useControlSession(route !== undefined && !isPublicRoute);
   const isUnauthorizedPlatformRoute =
     (route?.screen === 'platformAdministration' || route?.screen === 'disciplineDocument') &&
-    !accessTokenHasScope(controlTokenStore.read(), 'copalibre.super-admin');
+    session !== 'restoring' &&
+    !sessionHasScope(session, 'copalibre.super-admin');
 
   // Guarded here, once, rather than per screen: ControlApp is every
   // authenticated screen's one mount point, so this covers all eight by
   // construction. The callback screen is exempt — it is what establishes
   // the session, not something that requires one.
   useEffect(() => {
-    if (route === undefined || isPublicRoute) return;
-    if (controlTokenStore.read() === undefined) {
+    if (route === undefined || isPublicRoute || session === 'restoring') return;
+    if (session === undefined) {
       // A real navigation: /control/login is a genuinely separate page
       // from this shell, so there is nothing in memory here to lose.
       window.location.assign(loginRedirectUrl(path));
     }
-  }, [route, path, isPublicRoute]);
+  }, [route, path, isPublicRoute, session]);
 
   useEffect(() => {
-    if (!isUnauthorizedPlatformRoute || controlTokenStore.read() === undefined) return;
+    if (!isUnauthorizedPlatformRoute || session === undefined) return;
     window.location.assign('/control/login');
-  }, [isUnauthorizedPlatformRoute]);
+  }, [isUnauthorizedPlatformRoute, session]);
 
   // Schedules background silent renewal, once, for whichever session is
   // already established when an authenticated screen mounts — covers both a
   // fresh login (CompletingLogin/LoginRoute navigate straight into one of
-  // these) and a reload that restored the token from storage. A deployment
+  // these) and a reload that restored the session from the API. A deployment
   // that opts out (or says nothing) via runtime-config gets no timer at all,
   // matching 'strict-stateless's already-documented reload behaviour.
+  const sessionEstablished = session !== 'restoring' && session !== undefined;
   useEffect(() => {
-    if (route === undefined || isPublicRoute) return;
-    const token = controlTokenStore.read();
-    if (token === undefined) return;
+    if (route === undefined || isPublicRoute || !sessionEstablished) return;
 
     let cancelled = false;
     readRuntimeConfig()
       .then((config) => {
         if (cancelled || resolveSessionMode(config) !== 'pragmatic-persistent') return;
-        const expiresAtMs = accessTokenExpiresAtMs(controlTokenStore.read());
+        const expiresAtMs = controlSession.read()?.expiresAtMs;
         if (expiresAtMs !== undefined) scheduleSilentRenewal(expiresAtMs);
       })
       .catch(() => {
-        // No runtime-config reachable: treated the same as an explicit
-        // strict-stateless deployment — no silent renewal, reload
-        // reauthenticates as it already does today.
+        // The safe default is strict-stateless: no renewal timer and a reload
+        // reauthenticates. Keep a missing deployment-provided config visible
+        // to developers instead of silently masking the fallback.
+        console.warn('CopaLibre runtime config unavailable; using strict-stateless sessions.');
       });
 
     return () => {
       cancelled = true;
       cancelScheduledRenewal();
     };
-    // Runs once per authenticated mount; re-derives everything it needs from
-    // the token store and runtime-config rather than reacting to route
+    // Runs once per established session; re-derives everything it needs from
+    // the session store and runtime-config rather than reacting to route
     // changes, since a screen-to-screen navigation never starts a new session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPublicRoute]);
+  }, [isPublicRoute, sessionEstablished]);
 
   if (route === undefined)
     return (
@@ -179,11 +184,34 @@ export function ControlApp(): React.JSX.Element | null {
     );
   // Synchronous guard for the render that happens before the effect above
   // runs — without it, a protected screen would flash unauthenticated
-  // before the redirect fires.
-  if (controlTokenStore.read() === undefined) return null;
+  // before the redirect fires, or render before the session is restored.
+  if (session === 'restoring' || session === undefined) return null;
   if (isUnauthorizedPlatformRoute) return null;
 
   return renderForScreen(route);
+}
+
+/**
+ * The signed-in session, or `'restoring'` while a reload asks the API for it.
+ * Derived on every render: ControlApp stays mounted across client-side
+ * navigation, so a login on this page load is picked up the moment it is
+ * written, and only a page that starts with nothing in memory asks the API.
+ */
+function useControlSession(required: boolean): SessionMetadata | undefined | 'restoring' {
+  const known = controlSession.read();
+  const [restore, setRestore] = useState<'pending' | 'settled'>('pending');
+  useEffect(() => {
+    if (!required || known !== undefined || restore !== 'pending') return undefined;
+    let cancelled = false;
+    void restoreControlSession().then(() => {
+      if (!cancelled) setRestore('settled');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [required, known, restore]);
+  if (known !== undefined) return known;
+  return required && restore === 'pending' ? 'restoring' : undefined;
 }
 
 /**
@@ -216,7 +244,7 @@ const ROUTE_COMPONENT_BY_SCREEN: ScreenComponents = {
   disciplineDocument: (route) => (
     <DisciplineDocumentControlRoute disciplineAlias={route.disciplineAlias} />
   ),
-  dashboard: (route) => <DashboardPage organizationAlias={route.organizationAlias} />,
+  dashboard: (route) => <TournamentsControlRoute organizationAlias={route.organizationAlias} />,
   tournaments: (route) => <TournamentsControlRoute organizationAlias={route.organizationAlias} />,
   liveConsole: (route) => <LiveConsoleControlRoute organizationAlias={route.organizationAlias} />,
   organization: (route) => <OrganizationControlRoute organizationAlias={route.organizationAlias} />,
@@ -335,6 +363,13 @@ const ROUTE_COMPONENT_BY_SCREEN: ScreenComponents = {
       tournamentAlias={route.tournamentAlias}
     />
   ),
+  qualification: (route) => (
+    <QualificationControlRoute
+      organizationAlias={route.organizationAlias}
+      stageNumber={route.stageNumber}
+      tournamentAlias={route.tournamentAlias}
+    />
+  ),
   promotionPlan: (route) => (
     <PromotionPlanControlRoute
       organizationAlias={route.organizationAlias}
@@ -371,7 +406,16 @@ function renderForScreen(route: ControlRoute): React.JSX.Element {
  * control route at hydration the last time this file reached for it (see the
  * comment in `../lib/api-client.ts` recording the same finding). A real
  * per-locale catalogue for document titles is separate work.
+ *
+ * The auth screens are the exception, because a visitor meets them before
+ * anything else: their titles are plain catalogue text with no arguments, so
+ * `authTitle` reads the active catalogue directly and needs no formatter.
  */
+function authTitle(message: MessageDescriptor): string {
+  const translated = CATALOGS[activeControlLanguage()]?.[String(message.id)];
+  return `${translated ?? String(message.defaultMessage)} — CopaLibre`;
+}
+
 /**
  * One entry per `ControlRoute['screen']`, typed so TypeScript's own exhaustiveness
  * check — not a `switch`'s `default` fallback — catches a screen added without a
@@ -412,10 +456,11 @@ const TITLE_BY_SCREEN: TitleByScreen = {
   standings: (route) => `Standings — ${route.tournamentAlias}`,
   zoneGroups: (route) => `Zones and groups — ${route.tournamentAlias}`,
   promotionPlan: (route) => `Promotion plan — ${route.tournamentAlias}`,
+  qualification: (route) => `Qualification — ${route.tournamentAlias}`,
   schedule: (route) => `Schedule — ${route.tournamentAlias}`,
-  login: () => 'Sign in — CopaLibre',
-  'forgot-password': () => 'Recover password — CopaLibre',
-  'reset-password': () => 'Reset password — CopaLibre',
+  login: () => authTitle(messages.authLoginSubmit),
+  'forgot-password': () => authTitle(messages.authForgotTitle),
+  'reset-password': () => authTitle(messages.authResetSubmit),
   platformAdministration: () => 'Platform administration — CopaLibre',
   disciplineDocument: (route) => `Discipline — ${route.disciplineAlias}`,
   preferences: () => 'Personal preferences — CopaLibre',
@@ -430,9 +475,7 @@ function titleFor(route: ReturnType<typeof parseControlPath>): string {
 function NotFound({ path }: { readonly path: string }): React.JSX.Element {
   return (
     <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
-      <h1>
-        <FormattedMessage {...messages.notFoundTitle} />
-      </h1>
+      <PageHeader title={<FormattedMessage {...messages.notFoundTitle} />} />
       <p>
         <FormattedMessage {...messages.notFoundBody} values={{ path }} />
       </p>
@@ -450,12 +493,11 @@ function RootLandingRoute(): React.JSX.Element {
   const [state, setState] = useState<LandingState>({ kind: 'pending' });
 
   useEffect(() => {
-    const token = controlTokenStore.read();
-    if (!token) return;
+    const session = controlSession.read();
+    if (!session) return;
 
     createControlApiClient({
       fetch: globalThis.fetch.bind(globalThis),
-      accessToken: () => controlTokenStore.read(),
     })
       .listMyOrganizations()
       .then((organizations) => {
@@ -463,7 +505,7 @@ function RootLandingRoute(): React.JSX.Element {
           navigateControl(`/control/${organizations[0].organizationAlias}`);
           return;
         }
-        if (organizations.length === 0 && accessTokenHasScope(token, 'copalibre.super-admin')) {
+        if (organizations.length === 0 && sessionHasScope(session, 'copalibre.super-admin')) {
           navigateControl('/control/platform');
           return;
         }
@@ -484,9 +526,7 @@ function RootLandingRoute(): React.JSX.Element {
   if (state.kind === 'error') {
     return (
       <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
-        <h1>
-          <FormattedMessage {...messages.landingErrorTitle} />
-        </h1>
+        <PageHeader title={<FormattedMessage {...messages.landingErrorTitle} />} />
         <p>{state.message}</p>
         <a href="/control/login">
           <FormattedMessage {...messages.landingBackToLogin} />
@@ -501,6 +541,7 @@ function RootLandingRoute(): React.JSX.Element {
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
+      <PageHeader loadingLabel={intl.formatMessage(messages.pageHeaderLoading)} title={null} />
       <p>
         <FormattedMessage {...messages.landingLoading} />
       </p>
@@ -509,9 +550,9 @@ function RootLandingRoute(): React.JSX.Element {
 }
 
 /**
- * The `/control/callback` screen: completes the PKCE exchange, writes
- * the session, then hands off to `returnTo` via `navigateControl` — never a
- * real navigation, which would discard the token just written.
+ * The `/control/callback` screen: completes the PKCE exchange, hands the
+ * token to the API, records the session metadata, then hands off to
+ * `returnTo` via `navigateControl`.
  *
  * A guard-redirected login (a real `returnTo`, set by `ControlApp`'s own
  * guard) is handled by navigating straight there, with no
@@ -527,15 +568,13 @@ function CompletingLogin(): React.JSX.Element {
   useEffect(() => {
     completeOidcLogin()
       .then(async (result) => {
-        controlTokenStore.write(result.accessToken, result.expiresAtMs);
-        recordAuthMethod('oidc');
+        controlSession.write(result.session);
         if (result.returnTo !== DEFAULT_RETURN_TO) {
           navigateControl(result.returnTo);
           return;
         }
         const organizations = await createControlApiClient({
           fetch: globalThis.fetch.bind(globalThis),
-          accessToken: () => controlTokenStore.read(),
         }).listMyOrganizations();
         if (organizations.length === 1) {
           navigateControl(`/control/${organizations[0]?.organizationAlias}`);
@@ -560,9 +599,7 @@ function CompletingLogin(): React.JSX.Element {
   if (state.kind === 'error') {
     return (
       <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
-        <h1>
-          <FormattedMessage {...messages.callbackErrorTitle} />
-        </h1>
+        <PageHeader title={<FormattedMessage {...messages.callbackErrorTitle} />} />
         <p>{state.message}</p>
         <a href="/control/">
           <FormattedMessage {...messages.callbackBackHome} />
@@ -577,6 +614,7 @@ function CompletingLogin(): React.JSX.Element {
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
+      <PageHeader loadingLabel={intl.formatMessage(messages.pageHeaderLoading)} title={null} />
       <p>
         <FormattedMessage {...messages.callbackLoading} />
       </p>
@@ -636,9 +674,7 @@ function LoginLandingBody({
       <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
         <Card variant="inverse">
           <CardHeader>
-            <CardTitle>
-              <FormattedMessage {...messages.landingEmptyTitle} />
-            </CardTitle>
+            <PageHeader title={<FormattedMessage {...messages.landingEmptyTitle} />} />
           </CardHeader>
           <CardContent>
             <p>
@@ -652,9 +688,7 @@ function LoginLandingBody({
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'var(--cl-font-body)' }}>
-      <h1>
-        <FormattedMessage {...messages.landingPickerTitle} />
-      </h1>
+      <PageHeader title={<FormattedMessage {...messages.landingPickerTitle} />} />
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '0.5rem' }}>
         {organizations.map((organization) => (
           <li key={organization.organizationId}>

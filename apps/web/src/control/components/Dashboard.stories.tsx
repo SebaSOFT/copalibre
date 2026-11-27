@@ -12,10 +12,24 @@ const client = storyClient<ControlApiClient>({
       organizationId: ids.organization,
       organizationAlias: ORG,
       organizationName: 'Liga San Juan',
+      timezone: 'America/Argentina/Buenos_Aires',
       role: 'admin',
     },
   ],
   listDisplayTokens: async () => [],
+  fetchTournamentSettings: async () => ({
+    name: TITLE,
+    featured: false,
+    includesMinors: true,
+    showYouthProfiles: false,
+  }),
+  publishTournament: async () => ({
+    tournamentId: ids.tournament,
+    organizationId: ids.organization,
+    alias: TOURNAMENT,
+    name: TITLE,
+    status: 'published',
+  }),
 });
 const model = buildDashboard({
   organizationId: ids.organization,
@@ -25,9 +39,22 @@ const model = buildDashboard({
       organizationId: ids.organization,
       alias: TOURNAMENT,
       name: TITLE,
-      lifecycle: 'live',
-      matchesToday: 8,
+      lifecycle: 'in-progress',
       pendingRegistrations: 12,
+    },
+  ],
+  activity: auditRecords,
+});
+const draftModel = buildDashboard({
+  organizationId: ids.organization,
+  tournaments: [
+    {
+      tournamentId: ids.tournament,
+      organizationId: ids.organization,
+      alias: TOURNAMENT,
+      name: TITLE,
+      lifecycle: 'draft',
+      pendingRegistrations: 0,
     },
   ],
   activity: auditRecords,
@@ -38,8 +65,14 @@ const meta = {
   args: {
     canCreateTournament: true,
     canManageDisplayTokens: true,
+    canManageTournamentLifecycle: true,
+    failed: false,
+    loading: false,
     model,
+    onRetry: () => undefined,
+    onPublishComplete: () => undefined,
     organizationAlias: ORG,
+    staleSince: undefined,
     client,
   },
   render: function Render(args) {
@@ -51,6 +84,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Loaded: Story = {};
+export const DraftReadyToPublish: Story = { args: { model: draftModel } };
 export const Empty: Story = {
   args: {
     model: buildDashboard({ organizationId: ids.organization, tournaments: [], activity: [] }),

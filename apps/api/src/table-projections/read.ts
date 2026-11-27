@@ -14,6 +14,7 @@ import {
   effectiveFormat,
   isImplicitZone,
   findTableLayout,
+  primaryScoreOf,
   producesStandingsTable,
   resolveEffectiveTableLayouts,
   type ActorGranularity,
@@ -29,12 +30,14 @@ import {
   CompetitionRepository,
   EnrollmentRepository,
   StageReadModel,
+  stageMatchOrdinals,
   StatisticRepository,
   TournamentRepository,
   type Database,
 } from '@copalibre/persistence';
 import { standingsPipeline } from '../standings/pipeline.js';
 import { readStageSeries } from '../controllers/stage-series.js';
+import { entrantVisibilityById, type PublicPersonVisibility } from '../public-person-visibility.js';
 import { describeColumns } from './column-descriptions.js';
 
 export interface TableProjectionScope {
@@ -47,13 +50,23 @@ export interface TableProjectionScope {
   readonly stageId?: string;
   /** Optional pool within a stage; its fixture membership is the read boundary. */
   readonly groupId?: string;
+  /** Optional club filter by alias within `organizationId`; takes precedence over `clubId`. */
+  readonly clubAlias?: string;
   /** Optional club filter: only include rows for entrants belonging to this club. */
   readonly clubId?: string;
 }
 
+export type TableProjectionRow = TableRow & {
+  readonly clubId?: string;
+  readonly clubAlias?: string;
+  readonly emblemObjectId?: string;
+  readonly hiddenAtRequest?: boolean;
+  readonly publicProfileAvailable?: boolean;
+};
+
 export interface TableProjectionResult {
   readonly layout: TableLayoutDefinition;
-  readonly rows: readonly TableRow[];
+  readonly rows: readonly TableProjectionRow[];
   readonly projectionVersion: number;
   /**
    * The accounting grain in force for this layout's stage, when the layout
@@ -88,7 +101,7 @@ export interface TableProjectionSegment {
   readonly groupName?: string;
   /** The zone the group belongs to; absent for a stage that has only its implicit zone. */
   readonly zoneName?: string;
-  readonly rows: readonly TableRow[];
+  readonly rows: readonly TableProjectionRow[];
 }
 
 export interface SegmentedTableProjectionResult extends TableProjectionResult {
@@ -219,14 +232,27 @@ export async function readTableProjection(
     layout.entityGranularity === 'team'
       ? await teamActors(db, figures)
       : layout.entityGranularity === 'person'
-        ? await personActors(db, matchIds, figures)
+        ? await personActors(db, matchIds, figures, {
+            organizationId: scope.organizationId,
+            tournamentId: scope.tournament.tournamentId,
+          })
         : [];
 
   const projection = projectTableLayout(figures, layout, { actors });
   const projectionVersion = await maxStatisticProjectionVersion(db, matchIds);
 
   let rows = projection.rows;
-  if (scope.clubId !== undefined) {
+  if (scope.clubAlias !== undefined) {
+    const matchingEntrantIds = await resolveClubAliasEntrantIds(
+      db,
+      scope.organizationId,
+      scope.tournament.tournamentId,
+      scope.clubAlias,
+    );
+    rows = rows.filter(
+      (row) => row.entrantId !== undefined && matchingEntrantIds.has(row.entrantId),
+    );
+  } else if (scope.clubId !== undefined) {
     const matchingEntrantIds = await resolveClubEntrantIds(
       db,
       scope.tournament.tournamentId,
@@ -236,6 +262,20 @@ export async function readTableProjection(
       (row) => row.entrantId !== undefined && matchingEntrantIds.has(row.entrantId),
     );
   }
+
+  const entrantIds = [...new Set(rows.flatMap((row) => (row.entrantId ? [row.entrantId] : [])))];
+  const entrantDetails = await new EnrollmentRepository(db).resolveEntrantPodiumDetails(entrantIds);
+  rows = rows.map((row) => {
+    const details = row.entrantId ? entrantDetails.get(row.entrantId) : undefined;
+    return {
+      ...row,
+      ...(details?.clubId === undefined ? {} : { clubId: details.clubId }),
+      ...(details?.clubAlias === undefined || details.clubAlias === ''
+        ? {}
+        : { clubAlias: details.clubAlias }),
+      ...(details?.emblemObjectId === undefined ? {} : { emblemObjectId: details.emblemObjectId }),
+    };
+  });
 
   // The column whose value is a `count`-aggregated statistic — the one whose
   // unit the declared grain actually changes. `played`/`heats`/`rounds` are
@@ -267,6 +307,13 @@ export interface PlayerStatisticsMatchIdentity {
 
 export interface PlayerMatchStatisticsRow {
   readonly match: PlayerStatisticsMatchIdentity;
+  readonly scheduledAt?: string;
+  readonly side: 'home' | 'away';
+  readonly opponentName: string;
+  readonly opponentAbbreviation?: string;
+  readonly opponentClubAlias?: string;
+  readonly ownScore?: number;
+  readonly opponentScore?: number;
   readonly cells: Readonly<Record<string, TableCell>>;
 }
 
@@ -297,6 +344,8 @@ export async function readPlayerStatisticsDrilldown(
     readonly tournament: {
       readonly tournamentId: string;
       readonly disciplineRef: { readonly descriptorId: string; readonly version: string };
+      readonly includesMinors?: boolean;
+      readonly showYouthProfiles?: boolean;
     };
   },
   personId: string,
@@ -331,7 +380,18 @@ export async function readPlayerStatisticsDrilldown(
     organizationId: scope.organizationId,
     tournamentId: scope.tournament.tournamentId,
   });
-  const identities = await matchPublicIdentities(db, scope.tournament.tournamentId, matchIds);
+  if (matchIds.length === 0) {
+    return {
+      layout,
+      ...(totalRow === undefined ? {} : { tournamentTotal: totalRow.cells }),
+      matches: [],
+    };
+  }
+
+  const [identities, matchContexts] = await Promise.all([
+    matchPublicIdentities(db, scope.tournament.tournamentId, matchIds),
+    loadDrilldownMatchContexts(db, scope.tournament, matchIds, personId),
+  ]);
 
   const matchLayout: TableLayoutDefinition = {
     ...layout,
@@ -345,7 +405,8 @@ export async function readPlayerStatisticsDrilldown(
   const matches: PlayerMatchStatisticsRow[] = [];
   for (const matchId of matchIds) {
     const identity = identities.get(matchId);
-    if (!identity) continue;
+    const context = matchContexts.byMatchId.get(matchId);
+    if (!identity || !context) continue;
 
     const figures = await figuresForCollectors(db, {
       organizationId: scope.organizationId,
@@ -356,13 +417,20 @@ export async function readPlayerStatisticsDrilldown(
       competitionId: matchId,
       matchIds: [matchId],
     });
-    const actors = await personActors(db, [matchId], figures);
-    if (!actors.some((actor) => actor.actorId === personId)) continue;
-
-    const projection = projectTableLayout(figures, matchLayout, { actors });
+    const projection = projectTableLayout(figures, matchLayout, { actors: [context.actor] });
     const row = projection.rows.find((one) => one.actorId === personId);
     if (!row) continue;
-    matches.push({ match: identity, cells: row.cells });
+
+    matches.push({
+      match: identity,
+      ...summarizeDrilldownMatch(
+        context,
+        descriptor,
+        matchContexts.entrantDetails,
+        matchContexts.entrantVisibility,
+      ),
+      cells: row.cells,
+    });
   }
 
   matches.sort(
@@ -374,6 +442,149 @@ export async function readPlayerStatisticsDrilldown(
     layout,
     ...(totalRow === undefined ? {} : { tournamentTotal: totalRow.cells }),
     matches,
+  };
+}
+
+interface DrilldownMatchContext {
+  readonly actor: TableProjectionActor;
+  readonly side: 'home' | 'away';
+  readonly opponentEntrantId?: string;
+  readonly scheduledAt?: string;
+  readonly result: unknown;
+}
+
+async function loadDrilldownMatchContexts(
+  db: Kysely<Database>,
+  tournament: {
+    readonly tournamentId: string;
+    readonly includesMinors?: boolean;
+    readonly showYouthProfiles?: boolean;
+  },
+  matchIds: readonly string[],
+  personId: string,
+): Promise<{
+  readonly byMatchId: ReadonlyMap<string, DrilldownMatchContext>;
+  readonly entrantDetails: Awaited<ReturnType<EnrollmentRepository['resolveEntrantPodiumDetails']>>;
+  readonly entrantVisibility: ReadonlyMap<string, PublicPersonVisibility>;
+}> {
+  const [matchRows, rosterRows] = await Promise.all([
+    db
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .leftJoin('match_schedule_assignments', (join) =>
+        join
+          .onRef('match_schedule_assignments.match_id', '=', 'matches.match_id')
+          .on('match_schedule_assignments.published', '=', true),
+      )
+      .leftJoin('schedule_slots', 'schedule_slots.slot_id', 'match_schedule_assignments.slot_id')
+      .select([
+        'matches.match_id',
+        'matches.result',
+        'fixtures.home_entrant_id',
+        'fixtures.away_entrant_id',
+        'schedule_slots.starts_at',
+      ])
+      .where('matches.match_id', 'in', matchIds)
+      .execute(),
+    db
+      .selectFrom('match_rosters')
+      .select(['match_id', 'entrant_id', 'roster_members'])
+      .where('match_id', 'in', matchIds)
+      .execute(),
+  ]);
+
+  const rosterByMatch = new Map<
+    string,
+    {
+      readonly entrantId: string;
+      readonly member: {
+        readonly personId: string;
+        readonly number?: number | string;
+        readonly name: string;
+        readonly nationality?: string;
+        readonly roles?: readonly string[];
+      };
+    }
+  >();
+  for (const row of rosterRows) {
+    const member = row.roster_members.find((one) => one.personId === personId);
+    if (member) rosterByMatch.set(row.match_id, { entrantId: row.entrant_id, member });
+  }
+
+  const byMatchId = new Map<string, DrilldownMatchContext>();
+  const opponentEntrantIds = new Set<string>();
+  for (const row of matchRows) {
+    const rostered = rosterByMatch.get(row.match_id);
+    if (!rostered) continue;
+    const side =
+      rostered.entrantId === row.home_entrant_id
+        ? 'home'
+        : rostered.entrantId === row.away_entrant_id
+          ? 'away'
+          : undefined;
+    if (!side) continue;
+
+    const opponentEntrantId =
+      (side === 'home' ? row.away_entrant_id : row.home_entrant_id) ?? undefined;
+    if (opponentEntrantId) opponentEntrantIds.add(opponentEntrantId);
+
+    const { member } = rostered;
+    byMatchId.set(row.match_id, {
+      actor: {
+        actorId: personId,
+        entrantId: rostered.entrantId,
+        name: member.name,
+        ...(member.roles && member.roles.length > 0 ? { roles: [...member.roles] } : {}),
+        ...(member.nationality === undefined ? {} : { nationality: member.nationality }),
+      },
+      side,
+      opponentEntrantId,
+      scheduledAt:
+        row.starts_at === null ? undefined : new Date(Number(row.starts_at)).toISOString(),
+      result: row.result,
+    });
+  }
+
+  const ids = [...opponentEntrantIds];
+  const [entrantDetails, entrantVisibility] = await Promise.all([
+    new EnrollmentRepository(db).resolveEntrantPodiumDetails(ids),
+    entrantVisibilityById(db, tournament, ids),
+  ]);
+
+  return { byMatchId, entrantDetails, entrantVisibility };
+}
+
+function summarizeDrilldownMatch(
+  context: DrilldownMatchContext,
+  descriptor: DisciplineDescriptor,
+  entrantDetails: Awaited<ReturnType<EnrollmentRepository['resolveEntrantPodiumDetails']>>,
+  entrantVisibility: ReadonlyMap<string, PublicPersonVisibility>,
+): Omit<PlayerMatchStatisticsRow, 'match' | 'cells'> {
+  const opponentId = context.opponentEntrantId;
+  const details = opponentId ? entrantDetails.get(opponentId) : undefined;
+  const visibility = opponentId ? entrantVisibility.get(opponentId) : undefined;
+  const hidden = visibility?.hiddenAtRequest === true;
+  const profileAvailable = visibility?.publicProfileAvailable !== false;
+
+  const result = context.result as {
+    readonly sides?: readonly { readonly statistics?: Record<string, number> }[];
+  } | null;
+  const scores = result?.sides?.map((side) => primaryScoreOf(side.statistics, descriptor));
+  const ownIndex = context.side === 'home' ? 0 : 1;
+  const opponentIndex = context.side === 'home' ? 1 : 0;
+  const ownScore = scores?.[ownIndex];
+  const opponentScore = scores?.[opponentIndex];
+
+  return {
+    ...(context.scheduledAt === undefined ? {} : { scheduledAt: context.scheduledAt }),
+    side: context.side,
+    opponentName: hidden ? '' : (details?.name ?? 'Unknown'),
+    ...(hidden || !profileAvailable || details?.abbreviation === undefined
+      ? {}
+      : { opponentAbbreviation: details.abbreviation }),
+    ...(hidden || details?.clubAlias === undefined ? {} : { opponentClubAlias: details.clubAlias }),
+    ...(ownScore === undefined ? {} : { ownScore }),
+    ...(opponentScore === undefined ? {} : { opponentScore }),
   };
 }
 
@@ -480,34 +691,160 @@ function collectorCodesReferencedBy(layout: TableLayoutDefinition): ReadonlySet<
 }
 
 /**
+ * The stage ordinal of every match of a tournament, keyed by match id: the same 1-based position
+ * the public match route and the matches view address a match by, taken from each stage's full,
+ * unscoped match list. `matches.number` cannot stand in for it, being a per-fixture series index.
+ */
+export async function stageOrdinalsOf(
+  db: Kysely<Database>,
+  tournamentId: string,
+): Promise<ReadonlyMap<string, number>> {
+  const stages = await new CompetitionRepository(db).listStagesOfTournament(tournamentId);
+  const readModel = new StageReadModel(db);
+  const perStage = await Promise.all(
+    stages.map(async (stage) => {
+      const records = await readModel.matches(stage.stageId);
+      const ordinals = stageMatchOrdinals(records);
+      const byMatchId = new Map(ordinals);
+      for (const record of records) {
+        const ordinal = ordinals.get(record.matchId);
+        if (ordinal === undefined) continue;
+        for (const game of record.games) {
+          if (!byMatchId.has(game.matchId)) byMatchId.set(game.matchId, ordinal);
+        }
+      }
+      return byMatchId;
+    }),
+  );
+  return new Map(perStage.flatMap((ordinals) => [...ordinals]));
+}
+
+/**
  * Maps each given `matchId` to the public identity its match report is
  * reachable at — `(stageNumber, matchNumber)`, never the internal `matchId`
  * itself, per the "a public read never receives a natural key" boundary.
  */
-async function matchPublicIdentities(
+export async function matchPublicIdentities(
   db: Kysely<Database>,
   tournamentId: string,
   matchIds: readonly string[],
 ): Promise<ReadonlyMap<string, PlayerStatisticsMatchIdentity>> {
   if (matchIds.length === 0) return new Map();
 
-  const stages = await new CompetitionRepository(db).listStagesOfTournament(tournamentId);
+  const [stages, ordinalsByMatchId, rows] = await Promise.all([
+    new CompetitionRepository(db).listStagesOfTournament(tournamentId),
+    stageOrdinalsOf(db, tournamentId),
+    db
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .select(['matches.match_id', 'fixtures.stage_id'])
+      .where('matches.match_id', 'in', matchIds)
+      .execute(),
+  ]);
   const stageNumberById = new Map(stages.map((stage) => [stage.stageId, stage.number]));
-
-  const rows = await db
-    .selectFrom('matches')
-    .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
-    .select(['matches.match_id', 'matches.number', 'fixtures.stage_id'])
-    .where('matches.match_id', 'in', matchIds)
-    .execute();
 
   const result = new Map<string, PlayerStatisticsMatchIdentity>();
   for (const row of rows) {
     const stageNumber = stageNumberById.get(row.stage_id);
-    if (stageNumber === undefined) continue;
-    result.set(row.match_id, { stageNumber, matchNumber: row.number });
+    const matchNumber = ordinalsByMatchId.get(row.match_id);
+    if (stageNumber === undefined || matchNumber === undefined) continue;
+    result.set(row.match_id, { stageNumber, matchNumber });
   }
   return result;
+}
+
+/**
+ * Resolves each person's shirt number from their most recent finalized match roster in a
+ * tournament, ordered by published `scheduled_at DESC` (nulls last), then `stageNumber DESC`,
+ * then stage ordinal `DESC`. Empty/blank numbers are ignored.
+ */
+export async function latestFinalizedShirtNumbers(
+  db: Kysely<Database>,
+  input: {
+    readonly organizationId: string;
+    readonly tournamentId: string;
+    readonly personIds?: readonly string[];
+  },
+): Promise<ReadonlyMap<string, number | string>> {
+  const finalizedMatchIds = await new CompetitionRepository(db).listFinalizedMatches({
+    organizationId: input.organizationId,
+    tournamentId: input.tournamentId,
+  });
+  if (finalizedMatchIds.length === 0) return new Map();
+
+  const filterIds = input.personIds ? new Set(input.personIds) : undefined;
+  if (filterIds && filterIds.size === 0) return new Map();
+
+  const [ordinalsByMatchId, matchRows, rosterRows] = await Promise.all([
+    stageOrdinalsOf(db, input.tournamentId),
+    db
+      .selectFrom('matches')
+      .innerJoin('fixtures', 'fixtures.fixture_id', 'matches.fixture_id')
+      .innerJoin('stages', 'stages.stage_id', 'fixtures.stage_id')
+      .leftJoin('match_schedule_assignments', (join) =>
+        join
+          .onRef('match_schedule_assignments.match_id', '=', 'matches.match_id')
+          .on('match_schedule_assignments.published', '=', true),
+      )
+      .leftJoin('schedule_slots', 'schedule_slots.slot_id', 'match_schedule_assignments.slot_id')
+      .select(['matches.match_id', 'stages.number as stage_number', 'schedule_slots.starts_at'])
+      .where('matches.match_id', 'in', finalizedMatchIds)
+      .execute(),
+    db
+      .selectFrom('match_rosters')
+      .select(['match_id', 'roster_members'])
+      .where('match_id', 'in', finalizedMatchIds)
+      .execute(),
+  ]);
+
+  const rostersByMatch = new Map<string, typeof rosterRows>();
+  for (const row of rosterRows) {
+    rostersByMatch.set(row.match_id, [...(rostersByMatch.get(row.match_id) ?? []), row]);
+  }
+
+  const sortedMatches = [...matchRows].sort((a, b) =>
+    compareMatchesLatestFirst(a, b, ordinalsByMatchId),
+  );
+
+  const result = new Map<string, number | string>();
+  for (const match of sortedMatches) {
+    for (const roster of rostersByMatch.get(match.match_id) ?? []) {
+      for (const member of roster.roster_members) {
+        if (filterIds && !filterIds.has(member.personId)) continue;
+        if (result.has(member.personId) || !hasShirtNumber(member.number)) continue;
+        result.set(member.personId, member.number);
+      }
+    }
+  }
+  return result;
+}
+
+function compareMatchesLatestFirst(
+  a: {
+    readonly match_id: string;
+    readonly stage_number: number;
+    readonly starts_at: string | null;
+  },
+  b: {
+    readonly match_id: string;
+    readonly stage_number: number;
+    readonly starts_at: string | null;
+  },
+  ordinalsByMatchId: ReadonlyMap<string, number>,
+): number {
+  const aTime = a.starts_at === null ? undefined : Number(a.starts_at);
+  const bTime = b.starts_at === null ? undefined : Number(b.starts_at);
+  if (aTime !== undefined && bTime !== undefined && aTime !== bTime) return bTime - aTime;
+  if (aTime !== undefined && bTime === undefined) return -1;
+  if (aTime === undefined && bTime !== undefined) return 1;
+  if (a.stage_number !== b.stage_number) return b.stage_number - a.stage_number;
+  return (ordinalsByMatchId.get(b.match_id) ?? 0) - (ordinalsByMatchId.get(a.match_id) ?? 0);
+}
+
+function hasShirtNumber(value: number | string | undefined | null): value is number | string {
+  if (value === undefined || value === null) return false;
+  if (typeof value === 'string') return value.trim().length > 0;
+  return Number.isFinite(value);
 }
 
 async function figuresForCollectors(
@@ -687,6 +1024,7 @@ async function personActors(
   db: Kysely<Database>,
   matchIds: readonly string[],
   figures: readonly CollectedFigure[],
+  tournamentScope?: { readonly organizationId: string; readonly tournamentId: string },
 ): Promise<readonly TableProjectionActor[]> {
   const candidateIds = new Set(figures.map((figure) => figure.actorId));
   if (candidateIds.size === 0 || matchIds.length === 0) return [];
@@ -716,12 +1054,22 @@ async function personActors(
   }
 
   const entrantIds = [...new Set(entrantOf.values())];
-  const entrantNames = await new EnrollmentRepository(db).resolveEntrantNames(entrantIds);
+  const [entrantNames, shirtNumbers] = await Promise.all([
+    new EnrollmentRepository(db).resolveEntrantNames(entrantIds),
+    tournamentScope === undefined
+      ? Promise.resolve(new Map<string, number | string>())
+      : latestFinalizedShirtNumbers(db, {
+          organizationId: tournamentScope.organizationId,
+          tournamentId: tournamentScope.tournamentId,
+          personIds: [...candidateIds],
+        }),
+  ]);
 
   return [...candidateIds].map((personId) => {
     const entrantId = entrantOf.get(personId);
     const entry = entrantId ? entrantNames.get(entrantId) : undefined;
     const roles = rolesOf.get(personId);
+    const shirtNumber = shirtNumbers.get(personId);
     return {
       actorId: personId,
       ...(entrantId === undefined ? {} : { entrantId }),
@@ -733,8 +1081,29 @@ async function personActors(
       ...(entry?.abbreviation === undefined ? {} : { entrantAbbreviation: entry.abbreviation }),
       ...(roles && roles.size > 0 ? { roles: [...roles] } : {}),
       ...(nationalityOf.has(personId) ? { nationality: nationalityOf.get(personId) } : {}),
+      ...(shirtNumber === undefined ? {} : { shirtNumber }),
     };
   });
+}
+
+async function resolveClubAliasEntrantIds(
+  db: Kysely<Database>,
+  organizationId: string,
+  tournamentId: string,
+  clubAlias: string,
+): Promise<ReadonlySet<string>> {
+  const trimmed = clubAlias.trim();
+  if (trimmed.length === 0) return new Set();
+
+  const club = await db
+    .selectFrom('clubs')
+    .select('club_id')
+    .where('organization_id', '=', organizationId)
+    .where('alias', '=', trimmed)
+    .executeTakeFirst();
+  if (!club) return new Set();
+
+  return resolveClubEntrantIds(db, tournamentId, club.club_id);
 }
 
 async function resolveClubEntrantIds(

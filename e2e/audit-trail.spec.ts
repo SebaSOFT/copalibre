@@ -1,14 +1,15 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectNoVisibleIdentifiers, FIXTURE_ALIASES } from './support/visible-identifiers.js';
 
 // The audit trail's control-panel surface.
 // The correction-history view has no control-web UI to click
 // through yet — GET .../corrections is API-only — so that scenario is
 // covered at the integration level instead (series-operations.integration.test.ts).
 
-const organizationsPath = '/organizations?mine=true';
-const apiAuditTrailPath = '/organizations/liga-mendocina/audit-trail';
-const apiRolesPath = '/organizations/liga-mendocina/roles';
+const organizationsPath = '/api/organizations?mine=true';
+const apiAuditTrailPath = '/api/organizations/liga-mendocina/audit-trail';
+const apiRolesPath = '/api/organizations/liga-mendocina/roles';
 const controlAuditTrailPath = '/control/liga-mendocina/audit-trail';
 
 async function mockAuditTrailApi(page: Page, role: string): Promise<void> {
@@ -59,9 +60,9 @@ async function mockAuditTrailApi(page: Page, role: string): Promise<void> {
             records: [
               {
                 auditId: '01890000-0000-7000-8000-00000000a001',
-                entityType: 'organization',
-                entityId: 'org-1',
-                action: 'organization.settings_updated',
+                entityType: 'schedule',
+                entityId: 'schedule-1',
+                action: 'schedule.published',
                 actor: 'user:alice',
                 authorizationContext: 'copalibre.control',
                 occurredAt: '2026-08-30T12:00:00.000Z',
@@ -97,7 +98,7 @@ async function mockAuditTrailApi(page: Page, role: string): Promise<void> {
   );
 }
 
-test('an administrator opens the audit surface and sees applied and refused actions (7.1)', async ({
+test('an administrator opens the audit surface and sees applied and refused actions @visible-identifier-lint', async ({
   page,
 }) => {
   await mockAuditTrailApi(page, 'admin');
@@ -108,19 +109,22 @@ test('an administrator opens the audit surface and sees applied and refused acti
 
   await page.getByRole('link', { name: 'Registro de auditoría', exact: true }).click();
   await page.waitForURL(`**${controlAuditTrailPath}`);
+  await expectNoVisibleIdentifiers(page, FIXTURE_ALIASES);
 
   await expect(page.getByText('alice@copalibre.test')).toBeVisible();
   await expect(page.getByText('bob@copalibre.test')).toBeVisible();
-  await expect(page.getByText('Aplicado')).toBeVisible();
-  await expect(page.getByText('Rechazado')).toBeVisible();
+  const trail = page.getByRole('table');
+  await expect(trail.getByText('Aplicado')).toBeVisible();
+  await expect(trail.getByText('Rechazado')).toBeVisible();
+  // Every recorded action reads as a name, never the generic fallback.
+  await expect(trail.getByText('Programación publicada')).toBeVisible();
+  await expect(page.getByText('Otra actividad')).toHaveCount(0);
   await expect(
     page.getByText('El rol en la organización no está autorizado para esta ruta'),
   ).toBeVisible();
 });
 
-test('a role without the audit capability does not see the navigation entry (7.2)', async ({
-  page,
-}) => {
+test('a role without the audit capability does not see the navigation entry', async ({ page }) => {
   await mockAuditTrailApi(page, 'referee');
   const target = '/control/liga-mendocina';
   await seedLoginTransaction(page, target);
@@ -132,14 +136,13 @@ test('a role without the audit capability does not see the navigation entry (7.2
   );
 });
 
-test('a role without the audit capability is refused the surface directly (7.2)', async ({
-  page,
-}) => {
+test('a role without the audit capability is refused the surface directly', async ({ page }) => {
   await mockAuditTrailApi(page, 'referee');
   await seedLoginTransaction(page, controlAuditTrailPath);
   await page.goto(loginCallbackUrl());
   await page.waitForURL(`**${controlAuditTrailPath}`);
 
-  await expect(page.getByRole('alert')).toContainText('not authorized');
+  await expect(page.getByRole('alert')).toContainText('No se pudo cargar Registro de auditoría');
+  await expect(page.getByRole('alert').getByRole('button', { name: 'Reintentar' })).toBeVisible();
   await expect(page.getByText('user:alice')).toHaveCount(0);
 });

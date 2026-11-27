@@ -4,6 +4,7 @@ import {
   AuditReader,
   CompetitionRepository,
   EnrollmentRepository,
+  OutboxReader,
   TournamentProfileRepository,
   TournamentRepository,
   withTransaction,
@@ -107,7 +108,7 @@ describe('organization-scoped tournament routes', () => {
     });
     const createdResponse = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-export-multi',
@@ -147,19 +148,19 @@ describe('organization-scoped tournament routes', () => {
 
     const noToken = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/copa-export-multi/export',
+      url: '/api/organizations/liga-orbital/tournaments/copa-export-multi/export',
     });
     expect(noToken.statusCode).toBe(401);
     const foreign = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/copa-export-multi/export',
+      url: '/api/organizations/liga-orbital/tournaments/copa-export-multi/export',
       token: 'organizer-org2',
     });
     expect(foreign.statusCode).toBe(403);
 
     const response = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/copa-export-multi/export',
+      url: '/api/organizations/liga-orbital/tournaments/copa-export-multi/export',
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
@@ -229,7 +230,7 @@ describe('organization-scoped tournament routes', () => {
     });
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${tournament.alias}/export`,
+      url: `/api/organizations/liga-orbital/tournaments/${tournament.alias}/export`,
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
@@ -320,7 +321,7 @@ describe('organization-scoped tournament routes', () => {
     );
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${seeded.tournament.alias}/export`,
+      url: `/api/organizations/liga-orbital/tournaments/${seeded.tournament.alias}/export`,
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
@@ -339,20 +340,20 @@ describe('organization-scoped tournament routes', () => {
   it('exposes the exact authorized hook-script vocabulary', async () => {
     const noToken = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/custom-script-vocabulary',
+      url: '/api/organizations/liga-orbital/tournaments/custom-script-vocabulary',
     });
     expect(noToken.statusCode).toBe(401);
 
     const foreignOrganization = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/custom-script-vocabulary',
+      url: '/api/organizations/liga-orbital/tournaments/custom-script-vocabulary',
       token: 'organizer-org2',
     });
     expect(foreignOrganization.statusCode).toBe(403);
 
     const response = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/custom-script-vocabulary',
+      url: '/api/organizations/liga-orbital/tournaments/custom-script-vocabulary',
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
@@ -400,7 +401,7 @@ describe('organization-scoped tournament routes', () => {
 
     const createdResponse = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-custom-scripts',
@@ -418,7 +419,7 @@ describe('organization-scoped tournament routes', () => {
 
     const read = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
+      url: '/api/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
       token: 'organizer-org1',
     });
     expect(read.statusCode).toBe(200);
@@ -426,7 +427,7 @@ describe('organization-scoped tournament routes', () => {
 
     const foreignUpdate = await request({
       method: 'PUT',
-      url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
+      url: '/api/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
       token: 'organizer-org2',
       payload: { customScripts: [] },
     });
@@ -435,7 +436,7 @@ describe('organization-scoped tournament routes', () => {
     const updatedAttachment = notifyAttachment('Updated event message');
     const updated = await request({
       method: 'PUT',
-      url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
+      url: '/api/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
       token: 'organizer-org1',
       payload: { customScripts: [updatedAttachment] },
     });
@@ -447,7 +448,7 @@ describe('organization-scoped tournament routes', () => {
   it('400s a custom-scripts replacement without a customScripts array, before reaching the controller', async () => {
     const response = await request({
       method: 'PUT',
-      url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
+      url: '/api/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
       token: 'organizer-org1',
       payload: {},
     });
@@ -457,7 +458,7 @@ describe('organization-scoped tournament routes', () => {
   it('rejects an extra undocumented property with 400 when replacing custom scripts', async () => {
     const updated = await request({
       method: 'PUT',
-      url: '/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
+      url: '/api/organizations/liga-orbital/tournaments/copa-custom-scripts/custom-scripts',
       token: 'organizer-org1',
       payload: { customScripts: [], unexpectedField: 'dropped' },
     });
@@ -488,7 +489,7 @@ describe('organization-scoped tournament routes', () => {
     invalidAction.type = 'launch-fireworks';
     const refused = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-invalid-script',
@@ -518,7 +519,7 @@ describe('organization-scoped tournament routes', () => {
     message.options = { expression: true };
     const unpublishedRefusal = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-unpublished-expression',
@@ -590,7 +591,7 @@ describe('organization-scoped tournament routes', () => {
 
     const blocked = await request({
       method: 'PUT',
-      url: '/organizations/liga-orbital/tournaments/copa-script-lock/custom-scripts',
+      url: '/api/organizations/liga-orbital/tournaments/copa-script-lock/custom-scripts',
       token: 'organizer-org1',
       payload: { customScripts: [] },
     });
@@ -601,7 +602,7 @@ describe('organization-scoped tournament routes', () => {
   it('404s a tournament alias that exists in no organization', async () => {
     const response = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/no-such-copa',
+      url: '/api/organizations/liga-orbital/tournaments/no-such-copa',
     });
     expect(response.statusCode).toBe(404);
   });
@@ -628,7 +629,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${draftTournament.alias}`,
+      url: `/api/organizations/liga-orbital/tournaments/${draftTournament.alias}`,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -667,7 +668,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${publishedTournament.alias}`,
+      url: `/api/organizations/liga-orbital/tournaments/${publishedTournament.alias}`,
     });
     expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.payload as string).alias).toBe(publishedTournament.alias);
@@ -694,7 +695,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/tournaments/${draft.alias}`,
+      url: `/api/organizations/liga-orbital/tournaments/${draft.alias}`,
     });
     expect(response.statusCode).toBe(404);
   });
@@ -739,13 +740,13 @@ describe('organization-scoped tournament routes', () => {
 
     const noToken = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
     });
     expect(noToken.statusCode).toBe(401);
 
     const response = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
     });
     expect(response.statusCode).toBe(200);
@@ -769,7 +770,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-completa',
@@ -813,7 +814,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-overrides',
@@ -848,7 +849,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-rejected-override',
@@ -884,7 +885,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-multi-fase',
@@ -957,7 +958,7 @@ describe('organization-scoped tournament routes', () => {
     ) {
       return request({
         method: 'POST',
-        url: '/organizations/liga-orbital/tournaments',
+        url: '/api/organizations/liga-orbital/tournaments',
         token: 'organizer-org1',
         payload: {
           alias,
@@ -1095,7 +1096,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'copa-with-profile',
@@ -1178,6 +1179,67 @@ describe('organization-scoped tournament routes', () => {
     expect(entry?.previousState).toMatchObject({ featured: false });
     expect(entry?.resultingState).toMatchObject({ featured: true });
     expect(entry?.actor).toBe('user:organizer');
+  });
+
+  it('audits tournament publication-privacy settings and writes a projection event', async () => {
+    const tournaments = new TournamentRepository(scratch.db);
+    const descriptor = footballDescriptor();
+    const created = await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
+      await tournaments.saveDescriptor(uow, descriptor, {
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      const tournament = await tournaments.create(uow, {
+        organizationId,
+        alias: 'copa-privacy-settings',
+        name: 'Copa Privacy Settings',
+        descriptor,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      await tournaments.createRuleset(uow, {
+        tournamentId: tournament.tournamentId,
+        organizationId,
+        descriptor,
+        overrides: {},
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      });
+      return tournament;
+    });
+
+    const response = await request({
+      method: 'PUT',
+      url: `/api/organizations/liga-orbital/tournaments/${created.alias}/settings`,
+      token: 'organizer-org1',
+      payload: { includesMinors: true },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ includesMinors: true, showYouthProfiles: false });
+    const history = await new AuditReader(scratch.db).historyFor(
+      'tournament',
+      created.tournamentId,
+    );
+    const privacyChange = history.find(
+      (entry) => entry.action === 'tournament.publication-privacy-updated',
+    );
+    expect(privacyChange).toMatchObject({
+      actor: expect.stringMatching(/^user:/),
+      previousState: { includesMinors: false, showYouthProfiles: false },
+      resultingState: { includesMinors: true, showYouthProfiles: false },
+    });
+    const event = (await new OutboxReader(scratch.db).pending(10_000)).find(
+      (entry) =>
+        entry.entityId === created.tournamentId &&
+        entry.eventType === 'tournament.publication-privacy-updated',
+    );
+    expect(event?.payload).toMatchObject({
+      tournamentId: created.tournamentId,
+      includesMinors: true,
+      showYouthProfiles: false,
+    });
   });
 
   it('rejects capacity reduction below current accepted entrant count', async () => {
@@ -1296,7 +1358,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'GET',
-      url: `/tournament-profiles/compatible?descriptorId=${descriptor.descriptorId}&descriptorVersion=${descriptor.version}&format=single-elimination`,
+      url: `/api/tournament-profiles/compatible?descriptorId=${descriptor.descriptorId}&descriptorVersion=${descriptor.version}&format=single-elimination`,
     });
 
     expect(response.statusCode).toBe(200);
@@ -1321,7 +1383,7 @@ describe('organization-scoped tournament routes', () => {
 
     const response = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload,
     });
@@ -1341,6 +1403,7 @@ describe('organization-scoped tournament routes', () => {
 
   it('applies visibility rules to GET completion: allows public access for published, requires auth for draft', async () => {
     const tournaments = new TournamentRepository(scratch.db as Kysely<Database>);
+    const competition = new CompetitionRepository(scratch.db as Kysely<Database>);
     const descriptor = footballDescriptor();
     await withTransaction(scratch.db as Kysely<Database>, async (uow) => {
       await tournaments.saveDescriptor(uow, descriptor, {
@@ -1352,7 +1415,7 @@ describe('organization-scoped tournament routes', () => {
 
     const createdResponse = await request({
       method: 'POST',
-      url: '/organizations/liga-orbital/tournaments',
+      url: '/api/organizations/liga-orbital/tournaments',
       token: 'organizer-org1',
       payload: {
         alias: 'completion-visibility-test',
@@ -1369,10 +1432,50 @@ describe('organization-scoped tournament routes', () => {
     const created = JSON.parse(createdResponse.payload as string);
     const tournamentId = created.tournamentId;
 
+    const [stage] = await competition.listStagesOfTournament(tournamentId);
+    if (!stage) throw new Error('Expected tournament stage');
+    const [fixture] = await withTransaction(scratch.db as Kysely<Database>, (uow) =>
+      competition.createFixtures(uow, {
+        stageId: stage.stageId,
+        fixtures: [{ round: 1 }],
+        organizationId,
+        actor: 'user:seed',
+        authorizationContext: 'seed',
+      }),
+    );
+    if (!fixture) throw new Error('Expected fixture');
+    const [finalizedMatch, scheduledMatch] = await withTransaction(
+      scratch.db as Kysely<Database>,
+      async (uow) => {
+        const finalized = await competition.createMatch(uow, {
+          fixtureId: fixture.fixtureId,
+          number: 1,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const scheduled = await competition.createMatch(uow, {
+          fixtureId: fixture.fixtureId,
+          number: 2,
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        const completed = await competition.recordResult(uow, {
+          matchId: finalized.matchId,
+          result: { sides: [], recordedAt: new Date().toISOString() },
+          organizationId,
+          actor: 'user:seed',
+          authorizationContext: 'seed',
+        });
+        return [completed, scheduled] as const;
+      },
+    );
+
     // 1. Unpublished (draft) tournament requested publicly (anonymous) -> 404
     const anonDraftResponse = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+      url: '/api/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
     });
     expect(anonDraftResponse.statusCode).toBe(404);
     const anonDraftBody = JSON.parse(anonDraftResponse.payload as string);
@@ -1381,13 +1484,26 @@ describe('organization-scoped tournament routes', () => {
     // 2. Unpublished (draft) tournament requested by authorized organizer -> 200
     const authDraftResponse = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+      url: '/api/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
       token: 'organizer-org1',
     });
     expect(authDraftResponse.statusCode).toBe(200);
     const authDraftBody = JSON.parse(authDraftResponse.payload as string);
-    expect(authDraftBody.totalMatches).toBe(0);
+    expect(authDraftBody).toMatchObject({
+      totalMatches: 2,
+      resolvedMatches: 1,
+      scheduledMatches: 1,
+      finalizedMatches: 1,
+    });
     expect(authDraftBody.stages).toHaveLength(1);
+    expect(authDraftBody.stages[0]).toMatchObject({
+      totalMatches: 2,
+      resolvedMatches: 1,
+      scheduledMatches: 1,
+      finalizedMatches: 1,
+    });
+    expect(finalizedMatch.status).toBe('finalized');
+    expect(scheduledMatch.status).toBe('scheduled');
 
     // Publish the tournament
     await (scratch.db as Kysely<Database>)
@@ -1399,22 +1515,38 @@ describe('organization-scoped tournament routes', () => {
     // 3. Published tournament requested publicly (anonymous) -> 200
     const anonPubResponse = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+      url: '/api/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
     });
     expect(anonPubResponse.statusCode).toBe(200);
     const anonPubBody = JSON.parse(anonPubResponse.payload as string);
-    expect(anonPubBody.totalMatches).toBe(0);
+    expect(anonPubBody).toMatchObject({
+      totalMatches: 2,
+      resolvedMatches: 1,
+      scheduledMatches: 1,
+      finalizedMatches: 1,
+    });
     expect(anonPubBody.stages).toHaveLength(1);
+    expect(anonPubBody.stages[0]).toMatchObject({
+      totalMatches: 2,
+      resolvedMatches: 1,
+      scheduledMatches: 1,
+      finalizedMatches: 1,
+    });
 
     // 4. Published tournament requested by authorized organizer -> 200
     const authPubResponse = await request({
       method: 'GET',
-      url: '/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
+      url: '/api/organizations/liga-orbital/tournaments/completion-visibility-test/completion',
       token: 'organizer-org1',
     });
     expect(authPubResponse.statusCode).toBe(200);
     const authPubBody = JSON.parse(authPubResponse.payload as string);
-    expect(authPubBody.totalMatches).toBe(0);
+    expect(authPubBody).toMatchObject({
+      totalMatches: 2,
+      resolvedMatches: 1,
+      scheduledMatches: 1,
+      finalizedMatches: 1,
+    });
   });
 });
 

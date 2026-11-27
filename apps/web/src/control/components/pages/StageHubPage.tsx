@@ -1,17 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from '../ui/atoms/alert.js';
+import { useMemo, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
 import {
   createControlApiClient,
   type ControlApiClient,
-  type StageResponse,
+  type StageDeletionResponse,
   type ZoneResponse,
 } from '../../lib/api-client.js';
-import { controlTokenStore } from '../../session/token-store.js';
 import { navigateControl } from '../../lib/control-navigation.js';
-import { messages } from '../../i18n/messages.en.js';
 import { useToast } from '../ToastProvider.js';
 import { StageHubTemplate, type RoundZone } from '../screens/StageHubTemplate.js';
+import { ReadState } from '../ui/layouts/read-state.js';
+import { EmptyState } from '../ui/molecules/empty-state.js';
+import { useResilientRead } from './use-resilient-read.js';
 
 /**
  * Moved from `SeedingBuilderPage.tsx`'s local `pageMessages` — ids renamed from `control.seedingBuilder.*` to `control.stageHub.*`
@@ -19,6 +20,10 @@ import { StageHubTemplate, type RoundZone } from '../screens/StageHubTemplate.js
  */
 const pageMessages = defineMessages({
   stageDeleted: { id: 'control.stageHub.stageDeleted', defaultMessage: 'Stage deleted.' },
+  stageDeleteUnavailable: {
+    id: 'control.stageSettings.deleteUnavailable',
+    defaultMessage: 'Stage removal is unavailable.',
+  },
   stageRenamed: { id: 'control.stageHub.stageRenamed', defaultMessage: 'Stage renamed.' },
 });
 
@@ -59,69 +64,37 @@ export function StageHubPage({
       client ??
       createControlApiClient({
         fetch: globalThis.fetch.bind(globalThis),
-        accessToken: () => controlTokenStore.read(),
       }),
     [client],
   );
 
-  const [stage, setStage] = useState<StageResponse | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | undefined>(undefined);
-  const [zones, setZones] = useState<readonly ZoneResponse[]>([]);
-
-  const applyStages = useCallback(
-    (stages: readonly StageResponse[]): void => {
-      const found = stages.find((candidate) => candidate.number === stageNumber);
-      if (found) {
-        setStage(found);
-        setLoadError(undefined);
-      } else {
-        setLoadError(intl.formatMessage(messages.stageHubNotFound, { number: stageNumber }));
-      }
-    },
-    [stageNumber, intl],
+  const title = intl.formatMessage(messages.stageHubTitle, { number: stageNumber });
+  const [deletePreview, setDeletePreview] = useState<StageDeletionResponse | undefined>();
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const tournamentRead = useResilientRead(
+    `control-stage-hub-name:${organizationAlias}:${tournamentAlias}`,
+    () =>
+      api.fetchTournamentSettings?.(organizationAlias, tournamentAlias) ??
+      Promise.resolve(undefined),
+    { thing: intl.formatMessage(messages.tournamentHubTitle) },
   );
-
-  const reload = useCallback(async (): Promise<void> => {
-    const stages = await (api.listStages?.(organizationAlias, tournamentAlias) ??
-      Promise.resolve([]));
-    applyStages(stages);
-  }, [api, organizationAlias, tournamentAlias, applyStages]);
-
-  const seeded = stage?.seeded ?? false;
-  useEffect(() => {
-    if (!seeded || api.listZones === undefined) return undefined;
-    let live = true;
-    api
-      .listZones(organizationAlias, tournamentAlias, stageNumber)
-      .then((listed) => {
-        if (live) setZones(listed);
-      })
-      .catch(() => {
-        // Zones only decide whether the rounds section shows; the hub works without it.
-        if (live) setZones([]);
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias, tournamentAlias, stageNumber, seeded]);
-
-  useEffect(() => {
-    let live = true;
-    (api.listStages?.(organizationAlias, tournamentAlias) ?? Promise.resolve([]))
-      .then((stages) => {
-        if (live) applyStages(stages);
-      })
-      .catch(() => {
-        if (live) setLoadError(intl.formatMessage(messages.stageHubLoadFailed));
-      })
-      .finally(() => {
-        if (live) setLoading(false);
-      });
-    return () => {
-      live = false;
-    };
-  }, [api, organizationAlias, tournamentAlias, applyStages, intl]);
+  const read = useResilientRead(
+    `control-stage-hub:${organizationAlias}:${tournamentAlias}:${stageNumber}`,
+    async () => {
+      const stages = await (api.listStages?.(organizationAlias, tournamentAlias) ??
+        Promise.resolve([]));
+      const stage = stages.find((candidate) => candidate.number === stageNumber);
+      const zones = stage?.seeded
+        ? await (api.listZones?.(organizationAlias, tournamentAlias, stageNumber) ??
+            Promise.resolve([]))
+        : [];
+      return { stage, zones };
+    },
+    { thing: title, isEmpty: (data) => data.stage === undefined },
+  );
+  const stage = read.data?.stage;
+  const zones = read.data?.zones ?? [];
+  const reload = read.retry;
 
   async function onRename(name: string): Promise<void> {
     try {
@@ -159,37 +132,79 @@ export function StageHubPage({
 
   async function onDelete(): Promise<void> {
     try {
-      await api.deleteStage?.(organizationAlias, tournamentAlias, stageNumber);
-      push({ severity: 'success', message: intl.formatMessage(pageMessages.stageDeleted) });
-      navigateControl(`/control/${organizationAlias}/tournaments/${tournamentAlias}`);
+      if (!api.previewDeleteStage) {
+        throw new Error(intl.formatMessage(pageMessages.stageDeleteUnavailable));
+      }
+      setDeletePreview(
+        await api.previewDeleteStage(organizationAlias, tournamentAlias, stageNumber),
+      );
     } catch (error) {
       pushError(error);
     }
   }
 
-  if (loading) {
-    return <Alert tone="info">{intl.formatMessage(messages.stageHubLoading)}</Alert>;
+  async function onConfirmDelete(): Promise<void> {
+    if (!deletePreview) return;
+    setDeleteBusy(true);
+    try {
+      if (!api.deleteStage) {
+        throw new Error(intl.formatMessage(pageMessages.stageDeleteUnavailable));
+      }
+      await api.deleteStage(
+        organizationAlias,
+        tournamentAlias,
+        stageNumber,
+        deletePreview.stageName,
+      );
+      setDeletePreview(undefined);
+      push({ severity: 'success', message: intl.formatMessage(pageMessages.stageDeleted) });
+      navigateControl(`/control/${organizationAlias}/tournaments/${tournamentAlias}`);
+    } catch (error) {
+      pushError(error);
+    } finally {
+      setDeleteBusy(false);
+    }
   }
 
-  if (loadError || !stage) {
-    return <Alert tone="destructive">{loadError}</Alert>;
-  }
+  if (read.data === undefined) return <ReadState {...read} title={title} />;
+  if (!stage)
+    return (
+      <EmptyState
+        icon="trophy"
+        heading={title}
+        description={intl.formatMessage(messages.stageHubNotFound, { number: stageNumber })}
+        action={{
+          label: intl.formatMessage(messages.navDashboard),
+          onClick: () =>
+            navigateControl(`/control/${organizationAlias}/tournaments/${tournamentAlias}`),
+        }}
+      />
+    );
 
   return (
-    <StageHubTemplate
-      availableFormats={stage.availableFormats ?? []}
-      formatDescriptions={stage.formatDescriptions}
-      onChangeFormat={onChangeFormat}
-      onDelete={onDelete}
-      onGenerateNextRound={onGenerateNextRound}
-      onRename={onRename}
-      organizationAlias={organizationAlias}
-      roundZones={roundZonesOf(zones, stage.format)}
-      seeded={stage.seeded ?? false}
-      stageFormat={stage.format}
-      stageName={stage.name}
-      stageNumber={stageNumber}
-      tournamentAlias={tournamentAlias}
-    />
+    <ReadState {...read} title={title}>
+      <StageHubTemplate
+        availableFormats={stage.availableFormats ?? []}
+        deleteBusy={deleteBusy}
+        deletePreview={deletePreview}
+        formatDescriptions={stage.formatDescriptions}
+        onChangeFormat={onChangeFormat}
+        onDelete={onDelete}
+        onDeletePreviewOpenChange={(open) => {
+          if (!open) setDeletePreview(undefined);
+        }}
+        onConfirmDelete={onConfirmDelete}
+        onGenerateNextRound={onGenerateNextRound}
+        onRename={onRename}
+        organizationAlias={organizationAlias}
+        roundZones={roundZonesOf(zones, stage.format)}
+        seeded={stage.seeded ?? false}
+        stageFormat={stage.format}
+        stageName={stage.name}
+        stageNumber={stageNumber}
+        tournamentName={tournamentRead.data?.name}
+        tournamentAlias={tournamentAlias}
+      />
+    </ReadState>
   );
 }

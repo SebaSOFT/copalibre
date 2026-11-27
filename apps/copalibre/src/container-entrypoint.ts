@@ -6,6 +6,7 @@ const roleCommands: Record<ProductRole, readonly string[]> = {
   events: ['apps/events/dist/main.js'],
   worker: ['apps/worker/dist/main.js'],
   scheduler: ['apps/scheduler/dist/main.js'],
+  'database-setup': ['apps/migrate/dist/setup-roles.js'],
   migrate: ['apps/migrate/dist/main.js'],
   doctor: ['apps/copalibre/dist/main.js', 'doctor'],
   'upgrade-check': ['apps/copalibre/dist/main.js', 'upgrade-check'],

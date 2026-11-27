@@ -1,658 +1,701 @@
 ---
-import type { IntlShape } from 'react-intl';
-import type {
-  TableLayoutSummaryResponse,
-  TableProjectionResponse,
-  TableColumnResponse,
-  TableRowResponse,
-} from '@copalibre/api/src/dto/table-projections.dto.js';
-import { localizedText } from '../../../lib/localized-label.ts';
+import { publicTableLayoutLabel } from '../../../lib/public-table-layout-label.ts';
 import { messages } from '../../../lib/i18n/public-messages.en.ts';
+import { API_PATH_PREFIX } from '../../../lib/api-path.ts';
+import { optionalClubPageUrl } from '../../../lib/club-url.ts';
 import { clubEmblemUrl } from '../../../lib/public-api-client.ts';
-import type { ClubView, StandingsRowView } from '../../../lib/overview.ts';
-import { columnHint } from '../../../lib/column-hints.ts';
 import Button from '../atoms/Button.astro';
+import Icon from '../atoms/Icon.astro';
+import SearchInput from '../atoms/SearchInput.astro';
+import SortIndicator from '../atoms/SortIndicator.astro';
 import ClubFilterChip from '../molecules/ClubFilterChip.astro';
 import { EntrantName } from '../atoms/EntrantName.tsx';
+import EmblemImage from '../atoms/EmblemImage.astro';
+import { Popover } from '../atoms/Popover.tsx';
 import { ResponsivePlayerName } from '../atoms/ResponsivePlayerName.tsx';
+import { deriveStandingsView, type StandingsTableProps } from './standings-table-model.ts';
 
-interface Props {
-  /** The declared layouts for building the tab strip. */
-  readonly layouts?: readonly TableLayoutSummaryResponse[];
-  /** The declared layout this projection came from — its own label replaces the generic heading. */
-  readonly layout?: TableLayoutSummaryResponse;
-  readonly projection?: TableProjectionResponse;
-  /** The tournament overview's compact rows, before a table projection exists. */
-  readonly previewRows?: readonly StandingsRowView[];
-  readonly previewGrain?: 'series' | 'match';
-  readonly headingText?: string;
-  readonly activeLayoutCode?: string;
-  readonly activeClubId?: string;
-  readonly clubs?: readonly ClubView[];
-  readonly intl: IntlShape;
-  readonly canonicalPath?: string;
-  readonly organizationAlias?: string;
-  readonly tournamentAlias?: string;
-}
+type Props = StandingsTableProps;
+
 const {
   layouts = [],
-  layout,
-  projection,
   previewRows,
-  previewGrain,
-  headingText,
-  activeLayoutCode,
+  showControls = true,
+  renderPart = 'all',
+  entrantCount,
+  tiebreakLine,
+  omitHeading = false,
+  activeClubAlias,
   activeClubId,
+  highlightClubAlias,
   clubs = [],
   intl,
   canonicalPath = '',
+  sectionId,
+  teamAnchorId,
   organizationAlias,
   tournamentAlias,
+  csvHref,
 } = Astro.props;
 
-const effectiveLayoutCode = activeLayoutCode ?? layout?.code;
-const heading =
-  headingText ??
-  (layout
-    ? localizedText(layout.label, intl.locale)
-    : intl.formatMessage(messages.standingsHeading));
-const rawColumns: readonly TableColumnResponse[] =
-  previewRows === undefined
-    ? (projection?.columns ?? [])
-    : [
-        { code: 'rank', header: '#', format: 'number' },
-        { code: 'name', header: intl.formatMessage(messages.standingsTeam), format: 'text' },
-        {
-          code: 'points',
-          header: intl.formatMessage(messages.standingsPoints),
-          format: 'number',
-        },
-      ];
-type DisplayRow = Pick<TableRowResponse, 'actorName' | 'cells'> &
-  Partial<
-    Pick<TableRowResponse, 'actorId' | 'entrantName' | 'entrantAbbreviation' | 'nationality'>
-  >;
-const rows: readonly DisplayRow[] =
-  previewRows === undefined
-    ? (projection?.rows ?? [])
-    : previewRows.map((row) => ({
-        actorName: row.name,
-        entrantName: row.name,
-        entrantAbbreviation: row.abbreviation,
-        cells: {
-          rank: { raw: row.position, formatted: String(row.position) },
-          name: { formatted: row.name },
-          points: { raw: row.points, formatted: String(row.points) },
-        },
-      }));
-const grain = projection?.grain ?? previewGrain;
-// Relabelled only under series grain — match grain keeps the discipline's own
-// wording for the column, which already reads as counting matches.
-const columns =
-  projection?.grain === 'series' && projection.countColumnCode !== undefined
-    ? rawColumns.map((column) =>
-        column.code === projection.countColumnCode
-          ? {
-              ...column,
-              header: intl.formatMessage(messages.standingsColumnSeriesLabel),
-              shortHeader: intl.formatMessage(messages.standingsColumnSeriesShortLabel),
-            }
-          : column,
-      )
-    : rawColumns;
-const hints = columns.map((column) => columnHint(column, intl.locale));
-const legend = hints.filter((one) => one.hint !== undefined);
-const isPlayerRanking =
-  layout?.target === 'player-ranking' ||
-  layout?.entityGranularity === 'person' ||
-  layout?.entityGranularity === 'player';
-
-// The player quick-view dialog's body is built by the inline `<script>` below,
-// client-side, after a fetch this SSR pass cannot await — so its localized
-// strings are resolved here and handed across as a JSON data island (the same
-// mechanism BracketView.astro uses for `data-journey-matches`), not called as
-// `intl.formatMessage` from within the script itself.
-const playerDialogLabels = {
-  fallbackTitle: intl.formatMessage(messages.playerProfileHeading),
-  loadingPlaceholder: intl.formatMessage(messages.standingsPlayerDialogLoadingPlaceholder),
-  loadingFetch: intl.formatMessage(messages.standingsPlayerDialogLoadingFetch),
-  careerStatisticsHeading: intl.formatMessage(messages.playerProfileCareerStatsHeading),
-  competitionHistoryHeading: intl.formatMessage(messages.playerProfileHistoryHeading),
-  columnTournament: intl.formatMessage(messages.standingsPlayerDialogColumnTournament),
-  columnTeam: intl.formatMessage(messages.standingsPlayerDialogColumnTeam),
-  columnRole: intl.formatMessage(messages.standingsPlayerDialogColumnRole),
-  noCareerStatistics: intl.formatMessage(messages.playerProfileNoStats),
-  noCompetitionHistory: intl.formatMessage(messages.playerProfileNoHistory),
-  loadError: intl.formatMessage(messages.standingsPlayerDialogLoadError),
-};
+const {
+  isTableOnly,
+  showHeader,
+  showTable,
+  showFooter,
+  groupHeading,
+  idPrefix,
+  effectiveLayoutCode,
+  heading,
+  localePrefix,
+  activeClubQuery,
+  resolveRowClubAlias,
+  isPlayerRanking,
+  showSearch,
+  effectiveSearchQuery,
+  rows,
+  tieBreaks,
+  rowClassNames,
+  grain,
+  promotionBands,
+  promotionOrderHint,
+  displayColumns,
+  isSortableColumn,
+  initialSortColumnCode,
+  hints,
+  moreColumnsLabel,
+  priorityOf,
+  lowColumnIndexes,
+  hostColumnIndex,
+  fillColumnIndex,
+  legend,
+  playerDialogLabels,
+  Wrapper,
+} = deriveStandingsView(Astro.props);
 ---
 
-<section aria-labelledby="standings-heading" class="cl-standings-section">
-  <h2 id="standings-heading">{heading}</h2>
-
-  {
-    grain !== undefined && (
-      <p class="cl-standings-grain">
-        {intl.formatMessage(
-          grain === 'series' ? messages.standingsGrainSeries : messages.standingsGrainMatch,
+<Wrapper
+  id={Wrapper === 'section' ? sectionId : undefined}
+  aria-labelledby={Wrapper === 'section' && !omitHeading ? 'standings-heading' : undefined}
+  class={
+    Wrapper === 'section' ? 'cl-standings-section' : isTableOnly ? 'cl-standings-group' : undefined
+  }
+>
+  {showHeader && (
+    <>
+      <div class="cl-standings-header">
+        {!omitHeading && <h2 id="standings-heading">{heading}</h2>}
+        {renderPart === 'all' && showControls && csvHref && (
+          <Button href={csvHref} variant="secondary">
+            {intl.formatMessage(messages.standingsCsvExport)}
+          </Button>
         )}
-      </p>
-    )
-  }
-
-  {
-    layouts.length > 1 && (
-      <nav class="cl-table-tabs" aria-label={intl.formatMessage(messages.standingsTableLayouts)}>
-        <ul role="tablist">
-          {layouts.map((l) => {
-            const isActive = l.code === effectiveLayoutCode;
-            const tabUrl = `${canonicalPath}?tab=${encodeURIComponent(l.code)}${activeClubId ? `&clubId=${encodeURIComponent(activeClubId)}` : ''}`;
-            return (
-              <li role="presentation">
-                <a
-                  role="tab"
-                  aria-selected={isActive ? 'true' : 'false'}
-                  class={`cl-table-tab ${isActive ? 'cl-table-tab--active' : ''}`}
-                  href={tabUrl}
-                  data-layout-code={l.code}
-                >
-                  {localizedText(l.label, intl.locale)}
-                </a>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-    )
-  }
-
-  {
-    clubs.length > 0 && (
-      <div
-        class="cl-club-filter"
-        role="group"
-        aria-label={intl.formatMessage(messages.standingsFilterByClub)}
-      >
-        <span class="cl-club-filter__label">
-          {intl.formatMessage(messages.standingsFilterClubLabel)}
-        </span>
-        <ClubFilterChip
-          href={`${canonicalPath}${effectiveLayoutCode ? `?tab=${encodeURIComponent(effectiveLayoutCode)}` : ''}`}
-          label={intl.formatMessage(messages.matchesViewFilterAll)}
-          active={!activeClubId}
-          filter="all"
-        />
-        {clubs.map((club) => (
-          <ClubFilterChip
-            href={`${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}clubId=${encodeURIComponent(club.clubId)}`}
-            label={club.name}
-            active={club.clubId === activeClubId}
-            filter={club.clubId}
-            club
-            emblemSrc={
-              organizationAlias && club.emblemObjectId
-                ? clubEmblemUrl(organizationAlias, club.clubId)
-                : undefined
-            }
-          />
-        ))}
       </div>
-    )
-  }
 
-  <div class="cl-table-container cl-table-scroll">
-    {rows.length === 0 && <p>{intl.formatMessage(messages.standingsEmpty)}</p>}
-    {
-      rows.length > 0 && (
-        <table class="cl-table" data-sortable-table={previewRows === undefined ? true : undefined}>
-          <thead>
-            <tr>
-              {columns.map((column, columnIndex) => {
-                const { label, hint } = hints[columnIndex] ?? { label: '' };
-                const bubbleId = `column-hint-${column.code}`;
-                return (
-                  <th scope="col" aria-sort="none">
-                    {previewRows !== undefined ? (
-                      label
-                    ) : hint === undefined ? (
-                      <Button
-                        type="button"
-                        class="cl-table__sort"
-                        data-table-sort-button
-                        data-column-code={column.code}
+      {(entrantCount !== undefined || tiebreakLine !== undefined) && (
+        <p class="cl-standings-meta">
+          {entrantCount !== undefined && (
+            <span>
+              {intl.formatMessage(messages.standingsEntrantCount, { count: entrantCount })}
+            </span>
+          )}
+          {tiebreakLine !== undefined && <span>{tiebreakLine}</span>}
+        </p>
+      )}
+
+      {grain !== undefined && (
+        <p class="cl-standings-grain">
+          {intl.formatMessage(
+            grain === 'series' ? messages.standingsGrainSeries : messages.standingsGrainMatch,
+          )}
+        </p>
+      )}
+
+      {showControls && layouts.length > 1 && (
+        <nav class="cl-table-tabs" aria-label={intl.formatMessage(messages.standingsTableLayouts)}>
+          <ul role="tablist">
+            {layouts.map((l) => {
+              const isActive = l.code === effectiveLayoutCode;
+              const tabUrl = `${canonicalPath}?tab=${encodeURIComponent(l.code)}${activeClubQuery ? `&${activeClubQuery}` : ''}`;
+              return (
+                <li role="presentation">
+                  <a
+                    role="tab"
+                    aria-selected={isActive ? 'true' : 'false'}
+                    class={`cl-table-tab ${isActive ? 'cl-table-tab--active' : ''}`}
+                    href={tabUrl}
+                    data-layout-code={l.code}
+                  >
+                    {publicTableLayoutLabel(l, intl)}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      )}
+    </>
+  )}
+
+  {!isTableOnly && renderPart === 'all' && showControls && clubs.length > 0 && (
+    <div
+      class="cl-club-filter"
+      role="group"
+      aria-label={intl.formatMessage(messages.standingsFilterByClub)}
+    >
+      <span class="cl-club-filter__label">
+        {intl.formatMessage(messages.standingsFilterClubLabel)}
+      </span>
+      <ClubFilterChip
+        href={`${canonicalPath}${effectiveLayoutCode ? `?tab=${encodeURIComponent(effectiveLayoutCode)}` : ''}`}
+        label={intl.formatMessage(messages.matchesViewFilterAll)}
+        active={!activeClubAlias && !activeClubId}
+        filter="all"
+      />
+      {clubs.map((club) => (
+        <ClubFilterChip
+          href={`${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}club=${encodeURIComponent(club.alias)}`}
+          label={club.name}
+          abbreviation={club.abbreviation}
+          active={club.alias === activeClubAlias || club.clubId === activeClubId}
+          filter={club.alias}
+          club
+          emblemSrc={
+            organizationAlias && club.emblemObjectId
+              ? clubEmblemUrl(organizationAlias, club.clubId)
+              : undefined
+          }
+        />
+      ))}
+    </div>
+  )}
+
+  {showTable && (
+    <>
+      {groupHeading !== undefined && <h3 class="cl-standings-group-heading">{groupHeading}</h3>}
+      {showSearch && (
+        <div class="cl-standings-search">
+          <SearchInput
+            action={canonicalPath}
+            id={`${idPrefix}-player-search`}
+            value={effectiveSearchQuery}
+            label={intl.formatMessage(messages.standingsTableSearchLabel)}
+            placeholder={intl.formatMessage(messages.standingsTableSearchPlaceholder)}
+            hiddenParams={[
+              ...(effectiveLayoutCode ? [{ name: 'tab', value: effectiveLayoutCode }] : []),
+              ...(activeClubAlias
+                ? [{ name: 'club', value: activeClubAlias }]
+                : activeClubId
+                  ? [{ name: 'clubId', value: activeClubId }]
+                  : []),
+            ]}
+            inputDataAttr="data-table-search-input"
+            formDataAttr="data-table-search-form"
+            serverFiltered={effectiveSearchQuery.trim().length > 0}
+          />
+        </div>
+      )}
+      <div id={isTableOnly ? undefined : teamAnchorId} class="cl-table-container cl-table-scroll">
+        {rows.length === 0 && (
+          <p data-standings-empty>{intl.formatMessage(messages.standingsEmpty)}</p>
+        )}
+        {rows.length > 0 && (
+          <>
+            {showControls && previewRows === undefined && (
+              <div class="cl-visually-hidden" aria-live="polite" data-table-sort-announcement />
+            )}
+            <table
+              class:list={[
+                'cl-table cl-table--priority',
+                { 'cl-table--fill': fillColumnIndex >= 0 },
+              ]}
+              data-sortable-table={showControls && previewRows === undefined ? true : undefined}
+              data-sorted-asc-label={intl.formatMessage(messages.standingsTableSortedAscending)}
+              data-sorted-desc-label={intl.formatMessage(messages.standingsTableSortedDescending)}
+            >
+              <thead>
+                <tr>
+                  {displayColumns.map((column, columnIndex) => {
+                    const { label, hint } = hints[columnIndex] ?? { label: '' };
+                    const bubbleId = `column-hint-${idPrefix}-${column.code}`;
+                    const columnAriaSort = isSortableColumn(column.code)
+                      ? column.code === initialSortColumnCode
+                        ? 'ascending'
+                        : 'none'
+                      : undefined;
+                    const sortIndicatorDirection =
+                      column.code === initialSortColumnCode ? 'ascending' : 'none';
+                    return (
+                      <th
+                        scope="col"
+                        aria-sort={columnAriaSort}
+                        class={columnIndex === fillColumnIndex ? 'cl-table__fill' : undefined}
+                        data-priority={priorityOf(column.code)}
+                        title={column.code === '__promotionOrder' ? hint : undefined}
                       >
-                        {label}
-                      </Button>
-                    ) : (
-                      <span class="cl-column-header-tooltip">
-                        <Button
-                          type="button"
-                          class="cl-table__sort cl-column-header-tooltip__trigger"
-                          data-table-sort-button
-                          data-column-code={column.code}
-                          aria-describedby={bubbleId}
-                        >
-                          {label}
-                        </Button>
-                        <span
-                          class="cl-column-header-tooltip__bubble cl-table__hint"
-                          id={bubbleId}
-                          role="tooltip"
-                        >
-                          {hint}
-                        </span>
-                      </span>
-                    )}
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, index) => (
-              <tr
-                class={
-                  previewRows === undefined ? undefined : index % 2 === 0 ? 'cl-row' : 'cl-row--alt'
-                }
-              >
-                {columns.map((column) => {
-                  const isPlayerNameCell =
-                    isPlayerRanking &&
-                    (column.code === 'person' ||
-                      column.code === 'player' ||
-                      column.code === 'entrant' ||
-                      column.code === 'name');
-                  const isNameCell =
-                    column.code === 'name' || column.code === 'entrant' || column.code === 'team';
-                  const cellFormatted = row.cells[column.code]?.formatted ?? '—';
-                  const cellRaw = row.cells[column.code]?.raw;
-                  const cellMissing = cellRaw === undefined;
-                  const playerPageUrl = `${canonicalPath}/players/${row.actorId}${
-                    isPlayerRanking && effectiveLayoutCode
-                      ? `?layout=${encodeURIComponent(effectiveLayoutCode)}`
-                      : ''
-                  }`;
-                  const apiProfileUrl =
-                    organizationAlias && tournamentAlias && row.actorId
-                      ? `/api/player-profile?organization=${encodeURIComponent(organizationAlias)}&tournament=${encodeURIComponent(tournamentAlias)}&personId=${encodeURIComponent(row.actorId)}`
-                      : playerPageUrl;
-
+                        {column.code === '__promotion' ||
+                        previewRows !== undefined ||
+                        !showControls ? (
+                          label
+                        ) : hint === undefined ? (
+                          <Button
+                            type="button"
+                            class="cl-table__sort"
+                            data-table-sort-button
+                            data-column-code={column.code}
+                          >
+                            <span>{label}</span>
+                            <SortIndicator direction={sortIndicatorDirection} />
+                          </Button>
+                        ) : (
+                          <span class="cl-column-header-tooltip">
+                            <Button
+                              type="button"
+                              class="cl-table__sort"
+                              data-table-sort-button
+                              data-column-code={column.code}
+                              aria-describedby={bubbleId}
+                            >
+                              <span>{label}</span>
+                              <SortIndicator direction={sortIndicatorDirection} />
+                            </Button>
+                            <span class="cl-visually-hidden" id={bubbleId}>
+                              {hint}
+                            </span>
+                            <Popover
+                              client:after-paint
+                              openOnHover
+                              triggerLabel={intl.formatMessage(messages.standingsColumnInfo, {
+                                column: label,
+                              })}
+                            >
+                              {hint}
+                            </Popover>
+                          </span>
+                        )}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => {
+                  const rowClubAlias = resolveRowClubAlias(row);
+                  const isHighlighted =
+                    highlightClubAlias !== undefined && rowClubAlias === highlightClubAlias;
+                  const clubHref = optionalClubPageUrl({
+                    organizationAlias,
+                    tournamentAlias,
+                    clubAlias: rowClubAlias,
+                    localePrefix,
+                  });
+                  const emblemFilterHref =
+                    showControls && rowClubAlias !== undefined && canonicalPath
+                      ? `${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}club=${encodeURIComponent(rowClubAlias)}`
+                      : undefined;
                   return (
-                    <td
-                      class={
-                        isPlayerNameCell || isNameCell
-                          ? undefined
-                          : column.format === 'text'
-                            ? 'cl-table__num'
-                            : 'cl-table__num cl-tabular-nums'
-                      }
-                      data-sort-value={cellMissing ? undefined : String(cellRaw)}
-                      data-sort-type={typeof cellRaw === 'number' ? 'number' : 'text'}
-                      data-sort-missing={cellMissing ? 'true' : undefined}
+                    <tr
+                      class={rowClassNames[index]}
+                      data-promotion-band-index={row.promotionBandIndex}
+                      data-player-name={isPlayerRanking ? row.actorName : undefined}
+                      data-club-highlighted={isHighlighted ? 'true' : undefined}
                     >
-                      {isPlayerNameCell && row.actorId ? (
-                        <a
-                          href={playerPageUrl}
-                          class="cl-player-link"
-                          data-player-id={row.actorId}
-                          data-profile-url={apiProfileUrl}
-                        >
-                          <ResponsivePlayerName
-                            client:load
-                            fullName={row.actorName ?? cellFormatted}
-                            nationalityCode={row.nationality}
-                          />
-                        </a>
-                      ) : isPlayerNameCell ? (
-                        cellFormatted
-                      ) : column.code === 'name' ||
-                        column.code === 'entrant' ||
-                        column.code === 'team' ? (
-                        <EntrantName
-                          abbreviation={row.entrantAbbreviation}
-                          client:load
-                          fullName={row.entrantName ?? cellFormatted}
-                        />
-                      ) : (
-                        cellFormatted
-                      )}
-                    </td>
+                      {displayColumns.map((column, columnIndex) => {
+                        if (column.code === '__promotion') {
+                          return (
+                            <td class="cl-standings-qualification-cell" data-priority="low">
+                              <span
+                                class="cl-standings-qualification-tag"
+                                data-promotion-band-index={row.promotionBandIndex}
+                              >
+                                {row.promotionBandLabel}
+                              </span>
+                              {row.promotionSeed !== undefined && (
+                                <span
+                                  class="cl-standings-qualification-seed"
+                                  title={promotionOrderHint}
+                                >
+                                  {intl.formatMessage(messages.standingsSeedTag, {
+                                    seed: row.promotionSeed,
+                                  })}
+                                </span>
+                              )}
+                            </td>
+                          );
+                        }
+                        const isOrderColumn = column.code === '__promotionOrder';
+                        const isNumberColumn = column.code === '__shirtNumber';
+                        const isPlayerNameCell =
+                          isPlayerRanking &&
+                          (column.code === 'person' ||
+                            column.code === 'player' ||
+                            column.code === 'entrant' ||
+                            column.code === 'name');
+                        const isNameCell =
+                          column.code === 'name' ||
+                          column.code === 'entrant' ||
+                          column.code === 'team';
+                        const cellFormatted = isOrderColumn
+                          ? row.promotionSeed !== undefined
+                            ? String(row.promotionSeed)
+                            : ''
+                          : isNumberColumn
+                            ? row.shirtNumber !== undefined
+                              ? String(row.shirtNumber)
+                              : ''
+                            : (row.cells[column.code]?.formatted ?? '—');
+                        const cellRaw = isOrderColumn
+                          ? row.promotionSeed
+                          : isNumberColumn
+                            ? row.shirtNumber
+                            : row.cells[column.code]?.raw;
+                        const cellMissing = cellRaw === undefined;
+                        const isNumericSort =
+                          typeof cellRaw === 'number' ||
+                          (isNumberColumn &&
+                            cellRaw !== undefined &&
+                            /^\d+$/.test(String(cellRaw)));
+                        const playerPageUrl = `${canonicalPath}/players/${row.actorId}${
+                          isPlayerRanking && effectiveLayoutCode
+                            ? `?layout=${encodeURIComponent(effectiveLayoutCode)}`
+                            : ''
+                        }`;
+                        const apiProfileUrl =
+                          organizationAlias && tournamentAlias && row.actorId
+                            ? `${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(row.actorId)}/public/profile`
+                            : playerPageUrl;
+                        const apiStatisticsUrl =
+                          organizationAlias && tournamentAlias && row.actorId && effectiveLayoutCode
+                            ? `${API_PATH_PREFIX}/organizations/${encodeURIComponent(organizationAlias)}/tournaments/${encodeURIComponent(tournamentAlias)}/persons/${encodeURIComponent(row.actorId)}/public/statistics?layout=${encodeURIComponent(effectiveLayoutCode)}`
+                            : undefined;
+
+                        const cellBody = (
+                          <>
+                            {isPlayerNameCell && row.hiddenAtRequest ? (
+                              intl.formatMessage(messages.personHiddenAtRequest)
+                            ) : isPlayerNameCell &&
+                              row.actorId &&
+                              row.publicProfileAvailable !== false ? (
+                              <a
+                                href={playerPageUrl}
+                                class="cl-player-link"
+                                data-player-id={row.actorId}
+                                data-profile-url={apiProfileUrl}
+                                data-profile-href={playerPageUrl}
+                                data-statistics-url={apiStatisticsUrl}
+                                data-tournament-alias={tournamentAlias}
+                              >
+                                <ResponsivePlayerName
+                                  client:after-paint
+                                  fullName={row.actorName ?? cellFormatted}
+                                  nationalityCode={row.nationality}
+                                />
+                              </a>
+                            ) : isPlayerNameCell ? (
+                              <ResponsivePlayerName
+                                client:after-paint
+                                fullName={row.actorName ?? cellFormatted}
+                                nationalityCode={row.nationality}
+                              />
+                            ) : column.code === 'name' ||
+                              column.code === 'entrant' ||
+                              column.code === 'team' ? (
+                              <span class="cl-standings-entrant">
+                                {(previewRows !== undefined || row.entrantId !== undefined) &&
+                                  (emblemFilterHref ? (
+                                    <a
+                                      href={emblemFilterHref}
+                                      data-club-filter={rowClubAlias}
+                                      class="cl-standings-entrant__emblem-link cl-focusable"
+                                      aria-label={`${intl.formatMessage(messages.standingsFilterByClub)}: ${row.entrantName ?? cellFormatted}`}
+                                    >
+                                      <EmblemImage
+                                        abbreviation={row.entrantAbbreviation}
+                                        alt={row.entrantName ?? cellFormatted}
+                                        decorative
+                                        placeholderAlt={intl.formatMessage(
+                                          messages.orgPageEmblemPlaceholderAlt,
+                                        )}
+                                        size={32}
+                                        src={
+                                          organizationAlias && row.clubId && row.emblemObjectId
+                                            ? clubEmblemUrl(organizationAlias, row.clubId)
+                                            : undefined
+                                        }
+                                      />
+                                    </a>
+                                  ) : (
+                                    <EmblemImage
+                                      abbreviation={row.entrantAbbreviation}
+                                      alt={row.entrantName ?? cellFormatted}
+                                      decorative
+                                      placeholderAlt={intl.formatMessage(
+                                        messages.orgPageEmblemPlaceholderAlt,
+                                      )}
+                                      size={32}
+                                      src={
+                                        organizationAlias && row.clubId && row.emblemObjectId
+                                          ? clubEmblemUrl(organizationAlias, row.clubId)
+                                          : undefined
+                                      }
+                                    />
+                                  ))}
+                                {clubHref ? (
+                                  <a
+                                    href={clubHref}
+                                    class="cl-standings-entrant__link cl-focusable"
+                                  >
+                                    <EntrantName
+                                      abbreviation={row.entrantAbbreviation}
+                                      client:after-paint
+                                      fullName={row.entrantName ?? cellFormatted}
+                                    />
+                                  </a>
+                                ) : (
+                                  <EntrantName
+                                    abbreviation={row.entrantAbbreviation}
+                                    client:after-paint
+                                    fullName={row.entrantName ?? cellFormatted}
+                                  />
+                                )}
+                              </span>
+                            ) : (
+                              cellFormatted
+                            )}
+                          </>
+                        );
+                        return (
+                          <td
+                            class={
+                              isPlayerNameCell || isNameCell
+                                ? 'cl-cell-name'
+                                : column.format === 'text'
+                                  ? 'cl-table__num'
+                                  : 'cl-table__num cl-tabular-nums'
+                            }
+                            data-priority={priorityOf(column.code)}
+                            data-sort-value={cellMissing ? undefined : String(cellRaw)}
+                            data-sort-type={isNumericSort ? 'number' : 'text'}
+                            data-sort-missing={cellMissing ? 'true' : undefined}
+                          >
+                            {isPlayerNameCell || isNameCell ? (
+                              <span class="cl-cell-name__row">
+                                <span class="cl-cell-name__text">{cellBody}</span>
+                              </span>
+                            ) : (
+                              cellBody
+                            )}
+                            {columnIndex === hostColumnIndex && lowColumnIndexes.length > 0 && (
+                              <details class="cl-more">
+                                <summary>
+                                  <span class="cl-visually-hidden">
+                                    {`${moreColumnsLabel}: ${row.entrantName ?? row.actorName ?? cellFormatted}`}
+                                  </span>
+                                </summary>
+                                <dl class="cl-more__list">
+                                  {lowColumnIndexes.map((index) => (
+                                    <>
+                                      <dt>{hints[index]?.label}</dt>
+                                      <dd>
+                                        {displayColumns[index]?.code === '__promotion'
+                                          ? (row.promotionBandLabel ?? '—')
+                                          : displayColumns[index]?.code === '__promotionOrder'
+                                            ? row.promotionSeed !== undefined
+                                              ? String(row.promotionSeed)
+                                              : ''
+                                            : displayColumns[index]?.code === '__shirtNumber'
+                                              ? row.shirtNumber !== undefined
+                                                ? String(row.shirtNumber)
+                                                : ''
+                                              : (row.cells[displayColumns[index]?.code ?? '']
+                                                  ?.formatted ?? '—')}
+                                      </dd>
+                                    </>
+                                  ))}
+                                </dl>
+                              </details>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
                   );
                 })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )
-    }
-  </div>
+              </tbody>
+            </table>
+            <p class="cl-standings-empty" data-standings-empty hidden>
+              {intl.formatMessage(messages.standingsEmpty)}
+            </p>
+            {tieBreaks.length > 0 && (
+              <div
+                class="cl-standings-tie-breaks"
+                role="group"
+                aria-label={intl.formatMessage(messages.standingsTieBreaksHeading)}
+              >
+                <p class="cl-standings-tie-breaks__heading">
+                  {intl.formatMessage(messages.standingsTieBreaksHeading)}
+                </p>
+                <ul class="cl-standings-tie-breaks__list">
+                  {tieBreaks.map((tieBreak) => (
+                    <li>{intl.formatMessage(messages.standingsTieBreakLine, { ...tieBreak })}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </>
+  )}
 
-  {
-    legend.length > 0 && (
-      <dl
-        class="cl-table-legend"
-        role="group"
-        aria-label={intl.formatMessage(messages.standingsColumnLegend)}
-      >
-        {legend.map((one) => (
-          <div class="cl-table-legend__item">
-            <dt>{one.label}</dt>
-            <dd>{one.hint}</dd>
-          </div>
-        ))}
-      </dl>
-    )
-  }
+  {showFooter && (
+    <>
+      {renderPart === 'footer' && showControls && csvHref && (
+        <div class="cl-standings-footer-actions">
+          <Button href={csvHref} variant="secondary">
+            {intl.formatMessage(messages.standingsCsvExport)}
+          </Button>
+        </div>
+      )}
 
-  <dialog id="cl-player-dialog" class="cl-player-dialog" aria-labelledby="cl-player-dialog-title">
-    <div class="cl-player-dialog__content">
-      <div class="cl-player-dialog__header">
-        <h3 id="cl-player-dialog-title" class="cl-player-dialog__title">
-          {intl.formatMessage(messages.playerProfileHeading)}
-        </h3>
-        <button
-          type="button"
-          class="cl-player-dialog__close"
-          aria-label={intl.formatMessage(messages.standingsCloseDialog)}
-          data-close-dialog>✕</button
+      {renderPart === 'footer' && showControls && clubs.length > 0 && (
+        <div
+          class="cl-club-filter"
+          role="group"
+          aria-label={intl.formatMessage(messages.standingsFilterByClub)}
         >
-      </div>
-      <div id="cl-player-dialog-body" class="cl-player-dialog__body" aria-live="polite">
-        <p class="cl-player-dialog__loading">
-          {intl.formatMessage(messages.standingsPlayerDialogLoadingPlaceholder)}
-        </p>
-      </div>
-    </div>
-  </dialog>
-  <script
-    is:inline
-    type="application/json"
-    data-player-dialog-labels
-    set:html={JSON.stringify(playerDialogLabels).replace(/</g, '\\u003c')}
-  />
-</section>
+          <span class="cl-club-filter__label">
+            {intl.formatMessage(messages.standingsFilterClubLabel)}
+          </span>
+          <ClubFilterChip
+            href={`${canonicalPath}${effectiveLayoutCode ? `?tab=${encodeURIComponent(effectiveLayoutCode)}` : ''}`}
+            label={intl.formatMessage(messages.matchesViewFilterAll)}
+            active={!activeClubAlias && !activeClubId}
+            filter="all"
+          />
+          {clubs.map((club) => (
+            <ClubFilterChip
+              href={`${canonicalPath}?${effectiveLayoutCode ? `tab=${encodeURIComponent(effectiveLayoutCode)}&` : ''}club=${encodeURIComponent(club.alias)}`}
+              label={club.name}
+              abbreviation={club.abbreviation}
+              active={club.alias === activeClubAlias || club.clubId === activeClubId}
+              filter={club.alias}
+              club
+              emblemSrc={
+                organizationAlias && club.emblemObjectId
+                  ? clubEmblemUrl(organizationAlias, club.clubId)
+                  : undefined
+              }
+            />
+          ))}
+        </div>
+      )}
+
+      {promotionBands.length > 0 && (
+        <div role="group" aria-label={intl.formatMessage(messages.standingsPromotionLegend)}>
+          <dl class="cl-standings-promotion-legend">
+            {promotionBands.map((band) => (
+              <div class="cl-standings-promotion-legend__item">
+                <dt>
+                  <span
+                    class="cl-standings-promotion-legend__rail"
+                    data-promotion-band-index={band.index}
+                    aria-hidden="true"
+                  />
+                  {band.label}
+                </dt>
+                <dd>
+                  {intl.formatMessage(messages.standingsPromotionBandOrderRange, {
+                    first: band.firstSeed,
+                    last: band.lastSeed,
+                  })}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+
+      {legend.length > 0 && (
+        <div role="group" aria-label={intl.formatMessage(messages.standingsColumnLegend)}>
+          <dl class="cl-table-legend">
+            {legend.map((one) => (
+              <div class="cl-table-legend__item">
+                <dt>{one.label}</dt>
+                <dd>{one.hint}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+
+      <dialog
+        id="cl-player-dialog"
+        class="cl-player-dialog"
+        aria-labelledby="cl-player-dialog-title"
+      >
+        <div class="cl-player-dialog__content">
+          <div class="cl-player-dialog__header">
+            <h3 id="cl-player-dialog-title" class="cl-player-dialog__title">
+              {intl.formatMessage(messages.playerProfileHeading)}
+            </h3>
+            <Button
+              type="button"
+              variant="secondary"
+              class="cl-player-dialog__close"
+              aria-label={intl.formatMessage(messages.standingsCloseDialog)}
+              data-close-dialog
+            >
+              <Icon name="close" size={16} />
+            </Button>
+          </div>
+          <div id="cl-player-dialog-body" class="cl-player-dialog__body" aria-live="polite">
+            <p class="cl-player-dialog__loading">
+              {intl.formatMessage(messages.standingsPlayerDialogLoadingPlaceholder)}
+            </p>
+          </div>
+        </div>
+      </dialog>
+      <script
+        is:inline
+        type="application/json"
+        data-player-dialog-labels
+        set:html={JSON.stringify(playerDialogLabels).replace(/</g, '\\u003c')}
+      />
+    </>
+  )}
+</Wrapper>
 
 <script>
-  function initTableSorting(root: ParentNode = document) {
-    root.querySelectorAll<HTMLTableElement>('[data-sortable-table]').forEach((table) => {
-      const body = table.tBodies.item(0);
-      if (!body) return;
-
-      let activeColumn: string | undefined;
-      let direction: 'ascending' | 'descending' = 'ascending';
-      const headers = Array.from(table.querySelectorAll<HTMLTableCellElement>('thead th'));
-
-      for (const button of table.querySelectorAll<HTMLButtonElement>('[data-table-sort-button]')) {
-        button.addEventListener('click', () => {
-          const columnCode = button.dataset.columnCode;
-          if (!columnCode) return;
-          direction =
-            activeColumn === columnCode && direction === 'ascending' ? 'descending' : 'ascending';
-          activeColumn = columnCode;
-
-          const columnIndex = headers.findIndex(
-            (header) =>
-              header.querySelector<HTMLButtonElement>('[data-table-sort-button]')?.dataset
-                .columnCode === columnCode,
-          );
-          if (columnIndex < 0) return;
-
-          const rows = Array.from(body.rows);
-          rows.sort((left, right) => {
-            const leftCell = left.cells.item(columnIndex);
-            const rightCell = right.cells.item(columnIndex);
-            const leftMissing = leftCell?.dataset.sortMissing === 'true';
-            const rightMissing = rightCell?.dataset.sortMissing === 'true';
-            if (leftMissing && rightMissing) return 0;
-            if (leftMissing) return 1;
-            if (rightMissing) return -1;
-
-            const leftValue = leftCell?.dataset.sortValue ?? '';
-            const rightValue = rightCell?.dataset.sortValue ?? '';
-            const numeric =
-              leftCell?.dataset.sortType === 'number' && rightCell?.dataset.sortType === 'number';
-            const comparison = numeric
-              ? Number(leftValue) - Number(rightValue)
-              : leftValue.localeCompare(rightValue);
-            return direction === 'ascending' ? comparison : -comparison;
-          });
-          body.append(...rows);
-
-          headers.forEach((header, index) => {
-            header.setAttribute('aria-sort', index === columnIndex ? direction : 'none');
-          });
-        });
-      }
-    });
-  }
-
-  interface PlayerDialogLabels {
-    fallbackTitle: string;
-    loadingPlaceholder: string;
-    loadingFetch: string;
-    careerStatisticsHeading: string;
-    competitionHistoryHeading: string;
-    columnTournament: string;
-    columnTeam: string;
-    columnRole: string;
-    noCareerStatistics: string;
-    noCompetitionHistory: string;
-    loadError: string;
-  }
-
-  function readPlayerDialogLabels(root: ParentNode): PlayerDialogLabels {
-    const fallback: PlayerDialogLabels = {
-      fallbackTitle: 'Player Profile',
-      loadingPlaceholder: 'Loading player details...',
-      loadingFetch: 'Loading...',
-      careerStatisticsHeading: 'Career Statistics',
-      competitionHistoryHeading: 'Competition History',
-      columnTournament: 'Tournament',
-      columnTeam: 'Team',
-      columnRole: 'Role',
-      noCareerStatistics: 'No career statistics recorded.',
-      noCompetitionHistory: 'No competition history recorded.',
-      loadError: 'Unable to load player details.',
-    };
-    const payload = root.querySelector('[data-player-dialog-labels]');
-    if (!payload?.textContent) return fallback;
-    try {
-      return { ...fallback, ...(JSON.parse(payload.textContent) as Partial<PlayerDialogLabels>) };
-    } catch {
-      return fallback;
-    }
-  }
-
-  function initPlayerDialog(root: ParentNode = document) {
-    const dialog = root.querySelector<HTMLDialogElement>('#cl-player-dialog');
-    if (!dialog) return;
-
-    const labels = readPlayerDialogLabels(root);
-    const body = dialog.querySelector('#cl-player-dialog-body');
-    const title = dialog.querySelector('#cl-player-dialog-title');
-    const closeBtn = dialog.querySelector('[data-close-dialog]');
-
-    closeBtn?.addEventListener('click', () => dialog.close());
-    dialog.addEventListener('click', (e) => {
-      if (e.target === dialog) dialog.close();
-    });
-
-    root.querySelectorAll<HTMLAnchorElement>('.cl-player-link').forEach((link) => {
-      link.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const profileUrl = link.dataset.profileUrl || link.href;
-        if (body)
-          body.innerHTML = `<p class="cl-player-dialog__loading">${labels.loadingFetch}</p>`;
-        if (typeof dialog.showModal === 'function') {
-          dialog.showModal();
-        }
-
-        try {
-          interface HistoryItem {
-            tournamentName: string;
-            teamName: string;
-            role: string;
-            entrantAbbreviation?: string;
-          }
-          interface StatItem {
-            label: string;
-            value: number;
-          }
-          interface DisciplineTotals {
-            statistics?: StatItem[];
-          }
-          interface ProfileData {
-            displayName?: string;
-            nationality?: string;
-            age?: number;
-            careerStatistics?: DisciplineTotals[];
-            competitionHistory?: HistoryItem[];
-          }
-
-          const res = await fetch(profileUrl);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data: ProfileData = await res.json();
-          if (title) title.textContent = data.displayName || labels.fallbackTitle;
-          if (body) {
-            const metaTags = [
-              data.nationality
-                ? `<span class="cl-player-profile__tag">${data.nationality}</span>`
-                : '',
-              data.age !== undefined
-                ? `<span class="cl-player-profile__tag">Age: ${data.age}</span>`
-                : '',
-            ]
-              .filter(Boolean)
-              .join(' ');
-
-            const statsItems = (data.careerStatistics || [])
-              .flatMap((d: DisciplineTotals) =>
-                (d.statistics || []).map(
-                  (s: StatItem) => `
-                  <div class="cl-stat-item">
-                    <span class="cl-stat-label">${s.label}</span>
-                    <strong class="cl-stat-val">${s.value}</strong>
-                  </div>
-                `,
-                ),
-              )
-              .join('');
-
-            const historyRows = (data.competitionHistory || [])
-              .map(
-                (h: HistoryItem) => `
-                <tr>
-                  <td><strong>${h.tournamentName}</strong></td>
-                  <td>${h.teamName}${h.entrantAbbreviation ? ` (${h.entrantAbbreviation})` : ''}</td>
-                  <td>${h.role}</td>
-                </tr>
-              `,
-              )
-              .join('');
-
-            // An absence is stated, never rendered as zero — a person
-            // with no recorded roster history gets an explicit "none
-            // recorded" line, the same wording PlayerProfileView.astro (the
-            // standalone profile page) already used for this.
-            body.innerHTML = `
-              <div class="cl-modal-profile">
-                ${metaTags ? `<div class="cl-modal-meta">${metaTags}</div>` : ''}
-                <h4 class="cl-modal-section-title">${labels.careerStatisticsHeading}</h4>
-                ${statsItems ? `<div class="cl-modal-stats-grid">${statsItems}</div>` : `<p class="cl-modal-empty">${labels.noCareerStatistics}</p>`}
-                <h4 class="cl-modal-section-title">${labels.competitionHistoryHeading}</h4>
-                ${historyRows ? `<table class="cl-modal-history-table"><thead><tr><th>${labels.columnTournament}</th><th>${labels.columnTeam}</th><th>${labels.columnRole}</th></tr></thead><tbody>${historyRows}</tbody></table>` : `<p class="cl-modal-empty">${labels.noCompetitionHistory}</p>`}
-              </div>
-            `;
-          }
-        } catch {
-          if (body) {
-            body.innerHTML = `<p class="cl-inline-alert">${labels.loadError}</p>`;
-          }
-        }
-      });
-    });
-  }
-
-  /*
-    A tab or a club chip changes the table, not the page: the choice is fetched as the
-    same server-rendered page, the standings section is swapped in place, and the query
-    string is recorded with `replaceState`. The scroll position and the focused control
-    survive the swap. Without this script every control is still a link to the same page
-    in that state, and a failed fetch falls back to following it.
-  */
-  const CONTROL = 'a.cl-table-tab, a[data-club-filter]';
-  let pending: AbortController | undefined;
-
-  function controlKey(control: Element): string {
-    return control.matches('.cl-table-tab')
-      ? `tab:${control.getAttribute('data-layout-code') ?? ''}`
-      : `club:${control.getAttribute('data-club-filter') ?? ''}`;
-  }
-
-  async function swapStandings(link: HTMLAnchorElement): Promise<void> {
-    const section = link.closest<HTMLElement>('.cl-standings-section');
-    if (!section) return;
-    const sections = Array.from(document.querySelectorAll('.cl-standings-section'));
-    const index = sections.indexOf(section);
-    const key = controlKey(link);
-    const scrollX = window.scrollX;
-    const scrollY = window.scrollY;
-
-    pending?.abort();
-    pending = new AbortController();
-    section.setAttribute('aria-busy', 'true');
-    try {
-      const response = await fetch(link.href, {
-        signal: pending.signal,
-        headers: { accept: 'text/html' },
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const parsed = new DOMParser().parseFromString(await response.text(), 'text/html');
-      const next = parsed.querySelectorAll('.cl-standings-section').item(index);
-      if (!next) throw new Error('no standings section');
-
-      const fresh = document.importNode(next, true) as HTMLElement;
-      section.replaceWith(fresh);
-      history.replaceState(history.state, '', link.href);
-      initTableSorting(fresh);
-      initPlayerDialog(fresh);
-      window.scrollTo(scrollX, scrollY);
-      const same = Array.from(fresh.querySelectorAll<HTMLElement>(CONTROL)).find(
-        (control) => controlKey(control) === key,
-      );
-      same?.focus({ preventScroll: true });
-    } catch (error) {
-      if ((error as { name?: string }).name === 'AbortError') return;
-      section.removeAttribute('aria-busy');
-      window.location.href = link.href;
-    }
-  }
-
-  function initStandingsControls() {
-    document.addEventListener('click', (event) => {
-      if (event.defaultPrevented || event.button !== 0) return;
-      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      const link = (event.target as Element | null)?.closest<HTMLAnchorElement>(CONTROL);
-      if (!link || !link.closest('.cl-standings-section')) return;
-      event.preventDefault();
-      void swapStandings(link);
-    });
-  }
-
-  function init() {
-    initTableSorting();
-    initPlayerDialog();
-    initStandingsControls();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  import './standings-table-client.ts';
 </script>
 
 <style>
+  .cl-standings-entrant {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+    min-width: 0;
+    max-width: 100%;
+  }
+  .cl-standings-entrant__link {
+    color: inherit;
+    text-decoration: none;
+    min-width: 0;
+  }
+  .cl-standings-entrant__link:hover {
+    color: var(--cl-text-accent);
+    text-decoration: underline;
+  }
+  .cl-standings-entrant__emblem-link {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .cl-standings-row--highlighted > td {
+    background: color-mix(in srgb, var(--cl-text-accent) 10%, transparent);
+    font-weight: var(--cl-weight-semibold);
+  }
   .cl-table-tabs ul {
     display: flex;
     gap: 8px;
@@ -663,7 +706,10 @@ const playerDialogLabels = {
     overflow-x: auto;
   }
   .cl-table-tab {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+    min-height: var(--cl-touch-target);
     padding: 8px 16px;
     text-decoration: none;
     color: inherit;
@@ -671,8 +717,41 @@ const playerDialogLabels = {
     border-bottom: 2px solid transparent;
   }
   .cl-table-tab--active {
-    border-bottom-color: var(--cl-primary);
-    color: var(--cl-primary);
+    border-bottom-color: var(--cl-border-accent);
+    color: var(--cl-text-accent);
+  }
+  /*
+   * Every column but the name is as narrow as its content, so the space the table has beyond
+   * its figures goes to the name. A fixed width, not a percentage: a percentage column makes a
+   * max-content table ask for unbounded width.
+   */
+  .cl-table--fill th:not(.cl-table__fill) {
+    width: 1px;
+  }
+  .cl-table--fill :is(th, td) {
+    white-space: nowrap;
+  }
+  .cl-standings-meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cl-space-1);
+    margin: var(--cl-space-1) 0 var(--cl-space-3);
+    font-family: var(--cl-font-mono);
+    font-size: var(--cl-font-size-xs);
+    color: var(--cl-text-secondary);
+  }
+  /* One line with a separator where it fits; stacked on phones, so no line starts with the dot. */
+  @media (min-width: 768px) {
+    .cl-standings-meta {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: var(--cl-space-1) var(--cl-space-3);
+    }
+    .cl-standings-meta > span + span::before {
+      content: '·';
+      margin-inline-end: var(--cl-space-3);
+      color: var(--cl-text-muted);
+    }
   }
   .cl-standings-grain {
     margin: 0 0 12px 0;
@@ -685,6 +764,21 @@ const playerDialogLabels = {
     gap: 8px;
     margin-bottom: 16px;
     flex-wrap: wrap;
+  }
+  .cl-standings-tie-breaks {
+    margin: var(--cl-space-3) 0 0 0;
+    font-size: var(--cl-font-size-xs);
+    color: var(--cl-text-muted);
+  }
+  .cl-standings-tie-breaks__heading {
+    margin: 0;
+    font-weight: var(--cl-weight-semibold);
+    color: var(--cl-text-secondary);
+  }
+  .cl-standings-tie-breaks__list {
+    margin: var(--cl-space-1) 0 0 0;
+    padding: 0;
+    list-style: none;
   }
   .cl-table-legend {
     display: flex;
@@ -708,24 +802,13 @@ const playerDialogLabels = {
   .cl-table-legend dd {
     margin: 0;
   }
-  /* The bubble opens under the header: the table's own scroll box would clip one opening above it. */
-  .cl-table__hint {
-    bottom: auto;
-    top: calc(100% + var(--cl-space-2));
-    left: 0;
-    transform: none;
-  }
-  th:last-child .cl-table__hint {
-    left: auto;
-    right: 0;
-  }
   .cl-club-filter__label {
     font-size: var(--cl-font-size-sm);
     font-weight: 600;
     color: var(--cl-text-muted);
   }
   .cl-player-link {
-    color: var(--cl-primary);
+    color: var(--cl-text-accent);
     text-decoration: none;
     font-weight: 600;
   }
@@ -734,12 +817,28 @@ const playerDialogLabels = {
   }
   .cl-table__sort {
     appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cl-space-1);
     background: transparent;
     border: 0;
     color: inherit;
     cursor: pointer;
     font: inherit;
     padding: 0;
+  }
+  .cl-standings-search {
+    margin-block-end: var(--cl-space-3);
+  }
+  .cl-modal-tournament-totals__line {
+    margin: 0;
+    color: var(--cl-text-secondary);
+    font-size: var(--cl-font-size-sm);
+  }
+  .cl-modal-actions {
+    margin-top: var(--cl-space-4);
+    display: flex;
+    justify-content: flex-end;
   }
   .cl-table__sort:focus-visible {
     outline: 2px solid var(--cl-focus-ring);
@@ -833,7 +932,7 @@ const playerDialogLabels = {
     color: var(--cl-text-muted);
   }
   .cl-stat-val {
-    font-size: var(--cl-font-size-lg);
+    font-size: var(--cl-font-size-figure-lg);
     font-weight: 700;
   }
   .cl-modal-history-table {
@@ -849,5 +948,118 @@ const playerDialogLabels = {
   }
   .cl-modal-history-table th {
     background: var(--cl-surface-chrome);
+  }
+  .cl-standings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--cl-space-3);
+  }
+  .cl-standings-header h2 {
+    margin: 0;
+  }
+  .cl-standings-group-heading {
+    margin: 0 0 var(--cl-space-2);
+    font-size: var(--cl-font-size-md);
+  }
+  .cl-standings-footer-actions {
+    margin-block: var(--cl-space-3);
+  }
+  .cl-standings-row--promotion > td:first-child {
+    border-inline-start: var(--cl-space-1) solid var(--cl-border-accent);
+  }
+  .cl-standings-row--promotion[data-promotion-band-index] > td:first-child {
+    border-inline-start-color: var(--cl-chart-other);
+  }
+  .cl-standings-row--promotion[data-promotion-band-index='0'] > td:first-child {
+    border-inline-start-color: var(--cl-chart-1);
+  }
+  .cl-standings-row--promotion[data-promotion-band-index='1'] > td:first-child {
+    border-inline-start-color: var(--cl-chart-2);
+  }
+  .cl-standings-row--promotion[data-promotion-band-index='2'] > td:first-child {
+    border-inline-start-color: var(--cl-chart-3);
+  }
+  .cl-standings-row--promotion[data-promotion-band-index='3'] > td:first-child {
+    border-inline-start-color: var(--cl-chart-4);
+  }
+  .cl-standings-row--promotion[data-promotion-band-index='4'] > td:first-child {
+    border-inline-start-color: var(--cl-chart-5);
+  }
+  .cl-standings-qualification-tag,
+  .cl-standings-qualification-seed {
+    display: block;
+  }
+  .cl-standings-qualification-tag {
+    color: var(--cl-text-primary);
+    font-weight: var(--cl-weight-bold);
+    border-inline-start: var(--cl-space-1) solid var(--cl-border-accent);
+    padding-inline-start: var(--cl-space-2);
+  }
+  .cl-standings-qualification-tag[data-promotion-band-index] {
+    border-inline-start-color: var(--cl-chart-other);
+  }
+  .cl-standings-qualification-tag[data-promotion-band-index='0'] {
+    border-inline-start-color: var(--cl-chart-1);
+  }
+  .cl-standings-qualification-tag[data-promotion-band-index='1'] {
+    border-inline-start-color: var(--cl-chart-2);
+  }
+  .cl-standings-qualification-tag[data-promotion-band-index='2'] {
+    border-inline-start-color: var(--cl-chart-3);
+  }
+  .cl-standings-qualification-tag[data-promotion-band-index='3'] {
+    border-inline-start-color: var(--cl-chart-4);
+  }
+  .cl-standings-qualification-tag[data-promotion-band-index='4'] {
+    border-inline-start-color: var(--cl-chart-5);
+  }
+  .cl-standings-qualification-seed {
+    color: var(--cl-text-secondary);
+    font-size: var(--cl-font-size-xs);
+  }
+  .cl-standings-promotion-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cl-space-3);
+    margin-block: var(--cl-space-3);
+  }
+  .cl-standings-promotion-legend__item,
+  .cl-standings-promotion-legend dt {
+    display: flex;
+    align-items: center;
+    gap: var(--cl-space-2);
+  }
+  .cl-standings-promotion-legend dt {
+    font-weight: var(--cl-weight-bold);
+  }
+  .cl-standings-promotion-legend dd {
+    margin: 0;
+    color: var(--cl-text-secondary);
+  }
+  .cl-standings-promotion-legend__rail {
+    display: inline-block;
+    inline-size: var(--cl-space-1);
+    block-size: var(--cl-space-4);
+    background: var(--cl-border-accent);
+  }
+  .cl-standings-promotion-legend__rail[data-promotion-band-index] {
+    background: var(--cl-chart-other);
+  }
+  .cl-standings-promotion-legend__rail[data-promotion-band-index='0'] {
+    background: var(--cl-chart-1);
+  }
+  .cl-standings-promotion-legend__rail[data-promotion-band-index='1'] {
+    background: var(--cl-chart-2);
+  }
+  .cl-standings-promotion-legend__rail[data-promotion-band-index='2'] {
+    background: var(--cl-chart-3);
+  }
+  .cl-standings-promotion-legend__rail[data-promotion-band-index='3'] {
+    background: var(--cl-chart-4);
+  }
+  .cl-standings-promotion-legend__rail[data-promotion-band-index='4'] {
+    background: var(--cl-chart-5);
   }
 </style>

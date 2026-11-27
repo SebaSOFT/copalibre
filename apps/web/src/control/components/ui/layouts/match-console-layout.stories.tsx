@@ -27,7 +27,7 @@ export const Live: Story = {
     return (
       <MatchConsoleLayout
         alerts={<p className="cl-inline-alert">{intl.formatMessage(storyText.saved)}</p>}
-        breadcrumb={intl.formatMessage(storyText.platformTitle)}
+        breadcrumbs={[{ label: intl.formatMessage(storyText.platformTitle) }]}
         primary={
           <Card>
             <CardHeader>

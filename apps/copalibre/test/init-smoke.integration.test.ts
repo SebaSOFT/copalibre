@@ -105,7 +105,7 @@ describe('copalibre init smoke & lifecycle (integration)', () => {
         DATABASE_URL: 'postgres://copalibre:test@localhost:5432/copalibre',
         COPALIBRE_APP_URL: 'http://localhost:8080',
         COPALIBRE_BOOTSTRAP_TOKEN: 'token',
-        COPALIBRE_JWKS_URI: 'http://localhost:8080/.well-known/jwks.json',
+        COPALIBRE_JWKS_URI: 'http://localhost:8080/api/auth/jwks.json',
         COPALIBRE_JWT_ISSUER: 'http://localhost:8080',
         COPALIBRE_JWT_AUDIENCE: 'copalibre',
         COPALIBRE_OIDC_CLIENT_ID: 'client',

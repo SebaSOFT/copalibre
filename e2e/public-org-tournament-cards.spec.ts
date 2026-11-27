@@ -1,5 +1,7 @@
+import AxeBuilder from '@axe-core/playwright';
 import { createServer, type Server } from 'node:http';
 import { expect, test } from './fixtures.js';
+import { expectCenteredPageContainer } from './support/public-layout-widths.js';
 
 const organization = 'org-cards-fixture';
 const id = (n: number) => `00000000-0000-7000-8000-${String(n).padStart(12, '0')}`;
@@ -23,6 +25,42 @@ const tournament = {
   winners: [zone('Copa Oro', 10), zone('Copa Plata', 20), zone('Copa Bronce', 30)],
   featured: false,
 };
+const inProgressTournament = {
+  tournamentId: id(2),
+  alias: 'apertura-2026',
+  name: 'Apertura 2026',
+  status: 'live',
+  discipline: { name: 'Rink Hockey' },
+  featured: false,
+};
+const scheduledInProgressTournament = {
+  tournamentId: id(3),
+  alias: 'panamericano-clubes-2025',
+  name: 'Panamericano de Clubes 2025',
+  status: 'live',
+  discipline: { name: 'Rink Hockey' },
+  featured: false,
+  schedule: {
+    // 2026-11-19T01:00Z is 2026-11-18 22:00 in America/Argentina/Mendoza (UTC-3).
+    firstKickoffAt: '2026-11-19T01:00:00.000Z',
+    lastKickoffAt: '2026-11-24T22:00:00.000Z',
+  },
+  venueCount: 7,
+  progress: {
+    currentStageNumber: 2,
+    currentStageName: 'Copas',
+    resolvedMatches: 48,
+    totalMatches: 72,
+  },
+};
+const unscheduledTournament = {
+  tournamentId: id(4),
+  alias: 'sin-programacion',
+  name: 'Torneo Sin Programación',
+  status: 'upcoming',
+  discipline: { name: 'Rink Hockey' },
+  featured: false,
+};
 
 let apiServer: Server;
 
@@ -30,12 +68,31 @@ test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     const path = (req.url ?? '').split('?')[0] ?? '';
-    if (path === `/organizations/${organization}/public/tournaments`) {
+    if (path === '/api/organizations') {
+      res.end(
+        JSON.stringify([
+          {
+            organizationId: id(99),
+            alias: organization,
+            name: 'Org Cards Fixture',
+            primaryLanguage: 'es',
+            timezone: 'America/Argentina/Mendoza',
+          },
+        ]),
+      );
+      return;
+    }
+    if (path === `/api/organizations/${organization}/public/tournaments`) {
       res.end(
         JSON.stringify({
           organizationAlias: organization,
           organizationName: 'Org Cards Fixture',
-          tournaments: [tournament],
+          tournaments: [
+            tournament,
+            inProgressTournament,
+            scheduledInProgressTournament,
+            unscheduledTournament,
+          ],
           clubs: [],
         }),
       );
@@ -52,6 +109,44 @@ test.afterAll(async () => {
 });
 
 test.describe('organization page tournament cards', () => {
+  test('a tournament in progress without a live match has a neutral status badge', async ({
+    page,
+    workerPort,
+  }) => {
+    await page.setExtraHTTPHeaders({ 'x-copalibre-api-port': String(workerPort) });
+    await page.goto(`/${organization}`);
+
+    const section = page.locator('section[aria-labelledby="heading-live"]');
+    await expect(section.getByRole('heading', { name: 'In progress' })).toBeVisible();
+    await expect(
+      section.locator('[data-tournament-alias="apertura-2026"] .cl-badge-in-progress'),
+    ).toHaveText('In progress');
+    await expect(section.locator('.cl-badge-live, .cl-live-pulse')).toHaveCount(0);
+  });
+
+  for (const colorScheme of ['dark', 'light'] as const) {
+    test(`the in-progress badge meets AA contrast in the ${colorScheme} theme`, async ({
+      page,
+      workerPort,
+    }) => {
+      await page.emulateMedia({ colorScheme });
+      await page.setExtraHTTPHeaders({ 'x-copalibre-api-port': String(workerPort) });
+      await page.goto(`/${organization}`);
+      await expect(page.locator('.cl-badge-in-progress').first()).toBeVisible();
+
+      const { violations } = await new AxeBuilder({ page })
+        .include('.cl-badge-in-progress')
+        .withRules(['color-contrast'])
+        .analyze();
+      expect(violations.map(({ nodes }) => nodes.map(({ target }) => target))).toEqual([]);
+    });
+  }
+
+  test('uses the centered public container at reference widths', async ({ page, workerPort }) => {
+    await page.setExtraHTTPHeaders({ 'x-copalibre-api-port': String(workerPort) });
+    await expectCenteredPageContainer(page, `/${organization}`);
+  });
+
   test('a lone finished card is at most half the content area and stacks its winners', async ({
     page,
     workerPort,
@@ -115,5 +210,26 @@ test.describe('organization page tournament cards', () => {
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
+  });
+
+  test('displays schedule window in organization timezone, venue count, current stage and match progress, and omits them when absent', async ({
+    page,
+    workerPort,
+  }) => {
+    await page.setExtraHTTPHeaders({ 'x-copalibre-api-port': String(workerPort) });
+    await page.goto(`/es/${organization}`);
+
+    const detailedCard = page.locator('[data-tournament-alias="panamericano-clubes-2025"]');
+    const details = detailedCard.locator('.cl-tournament-card__details li');
+    await expect(details).toHaveCount(4);
+    await expect(details.nth(0)).toContainText('18');
+    await expect(details.nth(0)).toContainText('24');
+    await expect(details.nth(1)).toHaveText('Copas');
+    await expect(details.nth(2)).toHaveText('48 de 72 partidos');
+    await expect(details.nth(3)).toHaveText('7 sedes');
+
+    const unscheduledCard = page.locator('[data-tournament-alias="sin-programacion"]');
+    await expect(unscheduledCard).toBeVisible();
+    await expect(unscheduledCard.locator('.cl-tournament-card__details')).toHaveCount(0);
   });
 });

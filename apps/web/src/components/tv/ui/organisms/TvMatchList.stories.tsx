@@ -1,7 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { TvMatchList } from './TvMatchList.js';
 import { publicIntl, tvDashboardLabels } from '../../../../lib/i18n/public-intl.js';
-import { pageTvMatches, type TvMatchEntry } from '../../../../lib/tv-match-list.js';
+import {
+  pageTvMatches,
+  tvMatchEntriesOf,
+  type TvMatchEntry,
+} from '../../../../lib/tv-match-list.js';
+import { referenceUndecidedMatches } from '../../../../lib/reference-fixtures.js';
 
 const CLUBS = [
   ['LOM', 'Lomas de Rivadavia'],
@@ -18,6 +23,7 @@ const ENTRIES: readonly TvMatchEntry[] = Array.from({ length: 30 }, (_, index) =
   return {
     key: `story-${index}`,
     scope: `Grupo A · Ronda ${Math.floor(index / 6) + 1}`,
+    state: 'final' as const,
     stateLabel: 'Finalizado',
     home: { label: home[0], name: home[1], score: (index * 3) % 7 },
     away: { label: away[0], name: away[1], score: (index * 5) % 6 },
@@ -42,3 +48,16 @@ export const FirstPage: Story = {};
 
 /** The last page holds what is left, and the pager says so. */
 export const LastPage: Story = { args: { page: 1 } };
+
+/** Undecided sides read their compact source over every TV background, never a dash. */
+export const UndecidedSides: Story = {
+  args: {
+    pages: pageTvMatches(
+      tvMatchEntriesOf(referenceUndecidedMatches(), {
+        state: tvDashboardLabels(publicIntl('es')).resultState,
+        round: tvDashboardLabels(publicIntl('es')).bracketRound,
+        sideSource: tvDashboardLabels(publicIntl('es')).sideSource,
+      }),
+    ),
+  },
+};

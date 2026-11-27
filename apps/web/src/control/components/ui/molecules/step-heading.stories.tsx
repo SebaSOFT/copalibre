@@ -8,6 +8,7 @@ const meta = {
   component: StepHeading,
   argTypes: {
     step: { control: { type: 'number', min: 1 } },
+    totalSteps: { control: { type: 'number', min: 1 } },
     title: { control: 'text' },
     level: { control: 'inline-radio', options: [2, 3, 4] },
   },
@@ -17,7 +18,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Playground: Story = {
-  args: { step: 1, title: 'Create the tournament' },
+  args: { step: 1, title: 'Create the tournament', totalSteps: 8 },
 };
 
 /** A sequence, which is the only way to see that the markers align down the page. */
@@ -27,10 +28,10 @@ export const Matrix: Story = {
     const intl = useIntl();
     return (
       <div style={{ display: 'grid', gap: 'var(--cl-space-5)' }}>
-        <StepHeading step={1} title={intl.formatMessage(storyText.tournaments)} />
-        <StepHeading step={2} title={intl.formatMessage(storyText.settingsTitle)} />
-        <StepHeading step={3} title={intl.formatMessage(storyText.rolesTitle)} />
-        <StepHeading step={10} title={intl.formatMessage(storyText.reportTitle)} />
+        <StepHeading step={1} title={intl.formatMessage(storyText.tournaments)} totalSteps={10} />
+        <StepHeading step={2} title={intl.formatMessage(storyText.settingsTitle)} totalSteps={10} />
+        <StepHeading step={3} title={intl.formatMessage(storyText.rolesTitle)} totalSteps={10} />
+        <StepHeading step={10} title={intl.formatMessage(storyText.reportTitle)} totalSteps={10} />
       </div>
     );
   },
@@ -49,7 +50,11 @@ export const LongTitleAtNarrowFloor: Story = {
     const intl = useIntl();
     return (
       <div style={{ maxWidth: '188px' }}>
-        <StepHeading step={3} title={intl.formatMessage(storyText.savePromotionPlan)} />
+        <StepHeading
+          step={3}
+          title={intl.formatMessage(storyText.savePromotionPlan)}
+          totalSteps={8}
+        />
       </div>
     );
   },

@@ -1,7 +1,13 @@
-import { readFileSync } from 'node:fs';
-import { expect, test } from '@playwright/test';
+import { readdirSync, readFileSync } from 'node:fs';
+import { expect, test } from './csp-guard.js';
 
 const css = readFileSync('packages/design-tokens/generated/copalibre.css', 'utf8');
+// The stylesheet is split into ordered slices; joined in name order they are its rules, as the facade imports them.
+const controlCss = readdirSync('apps/web/src/styles/control')
+  .filter((name) => name.endsWith('.css'))
+  .sort()
+  .map((name) => readFileSync(`apps/web/src/styles/control/${name}`, 'utf8'))
+  .join('');
 
 test('calibrated hover fills are not brightened again by the generic button rule', async ({
   page,
@@ -28,22 +34,114 @@ test('calibrated hover fills are not brightened again by the generic button rule
 test('blocked font delivery preserves readable labels and focus at the zoom floor', async ({
   page,
 }) => {
-  await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) => route.abort());
+  await page.route(/\.woff2?(?:\?|$)/, (route) => route.abort());
   await page.setViewportSize({ width: 188, height: 900 });
   await page.goto('/control/login');
   await page.evaluate(() => document.fonts.ready);
-  await expect(page.getByLabel('Email', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
-  const input = page.getByLabel('Email', { exact: true });
+  await expect(page.getByLabel('Correo electrónico', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Contraseña', { exact: true })).toBeVisible();
+  const input = page.getByLabel('Correo electrónico', { exact: true });
   await input.focus();
   await expect(input).toBeFocused();
   expect(await input.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe('none');
   expect(await page.evaluate(() => document.body.scrollWidth <= innerWidth)).toBe(true);
+  // No delivered face loaded; the metric-matched fallbacks are local system faces, and loading
+  // them is what keeps the labels readable here.
   expect(
     await page.evaluate(
-      () => [...document.fonts].filter((font) => font.status === 'loaded').length,
+      () =>
+        [...document.fonts].filter(
+          (font) =>
+            font.status === 'loaded' && !font.family.replace(/["']/g, '').endsWith(' Fallback'),
+        ).length,
     ),
   ).toBe(0);
+});
+
+test('Cyrillic and Chinese script fallbacks measure differently from the system face', async ({
+  page,
+}) => {
+  await page.goto('/control/login');
+
+  const measurements = await page.evaluate(async () => {
+    const samples = [
+      {
+        language: 'ru',
+        family: 'Roboto Condensed Variable',
+        weight: 700,
+        text: 'ФИНАЛЬНЫЙ МАТЧ МЕЖДУНАРОДНОГО ТУРНИРА',
+      },
+      {
+        language: 'zh',
+        family: 'Noto Sans SC Variable',
+        weight: 700,
+        text: '国际锦标赛 INTERNATIONAL 2026',
+      },
+    ];
+    const results = [];
+
+    for (const sample of samples) {
+      const probe = document.createElement('h1');
+      probe.lang = sample.language;
+      probe.textContent = sample.text;
+      probe.style.cssText =
+        'position:fixed;left:-10000px;top:0;display:inline-block;white-space:nowrap;margin:0;font-size:48px;font-weight:700;font-family:var(--cl-font-display);';
+      document.body.append(probe);
+
+      const fontFaces = await document.fonts.load(
+        `${sample.weight} 48px "${sample.family}"`,
+        sample.text,
+      );
+      await document.fonts.ready;
+      const tracking = getComputedStyle(probe).getPropertyValue('--cl-tracking-wide').trim();
+      probe.style.letterSpacing = 'normal';
+      const stackWidth = probe.getBoundingClientRect().width;
+      probe.style.fontFamily = 'system-ui, sans-serif';
+      const systemWidth = probe.getBoundingClientRect().width;
+      const faceLoaded = fontFaces.some(
+        (face) => face.family.replaceAll(/["']/g, '') === sample.family,
+      );
+
+      results.push({ language: sample.language, stackWidth, systemWidth, tracking, faceLoaded });
+      probe.remove();
+    }
+
+    return results;
+  });
+
+  expect(measurements).toHaveLength(2);
+  for (const measurement of measurements) {
+    expect(measurement.faceLoaded).toBe(true);
+    expect(Math.abs(measurement.stackWidth - measurement.systemWidth)).toBeGreaterThan(0.5);
+  }
+  expect(measurements.find((measurement) => measurement.language === 'zh')?.tracking).toBe(
+    'normal',
+  );
+});
+
+test('an English page does not request Cyrillic or CJK font files', async ({ page }) => {
+  // Each face is split by unicode-range into files named after their subset: `-cyrillic-`,
+  // `-greek-` and numbered CJK chunks such as `noto-sans-sc-42-`. A Latin page must fetch only
+  // the Latin ones.
+  const requestedFontFiles: string[] = [];
+  page.on('request', (request) => {
+    if (request.resourceType() === 'font') requestedFontFiles.push(request.url());
+  });
+
+  await page.goto('/control/login');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  // The form renders after hydration; wait for a face to load before reading the requests.
+  await page.waitForFunction(() =>
+    [...document.fonts].some((face) => face.family === 'Barlow' && face.status === 'loaded'),
+  );
+  await page.evaluate(() => document.fonts.ready);
+
+  const fileNames = requestedFontFiles.map((url) => new URL(url).pathname.split('/').pop() ?? '');
+  expect(fileNames.length).toBeGreaterThan(0);
+  expect(fileNames.filter((name) => /-latin-/.test(name)).length).toBeGreaterThan(0);
+  expect(
+    fileNames.filter((name) => /-(cyrillic|greek)(-ext)?-|noto-sans-sc-\d+-/.test(name)),
+  ).toEqual([]);
 });
 
 test('content alternates through wrappers and chrome stays lifted at every depth', async ({
@@ -98,6 +196,60 @@ test('content alternates through wrappers and chrome stays lifted at every depth
       expect(value.border).toBe('1px');
     }
   }
+});
+
+test('a card header strip reaches the card edge and keeps its title on the body edge', async ({
+  page,
+}) => {
+  await page.setContent(
+    `<main style="width: 480px"><div class="cl-control-screen"><section class="cl-card cl-card--live cl-chamfer cl-chamfer--control">
+      <header class="cl-card__header"><h3 class="cl-card__title">Title</h3></header>
+      <div class="cl-card__content">Body</div>
+    </section></div></main>`,
+  );
+  await page.addStyleTag({ content: css });
+  await page.addStyleTag({ content: controlCss });
+  const geometry = await page.locator('.cl-card').evaluate((card) => {
+    const header = card.querySelector('.cl-card__header') as HTMLElement;
+    const title = card.querySelector('.cl-card__title') as HTMLElement;
+    const body = card.querySelector('.cl-card__content') as HTMLElement;
+    const box = card.getBoundingClientRect();
+    const strip = header.getBoundingClientRect();
+    const rail = parseFloat(getComputedStyle(card).borderLeftWidth);
+    const style = getComputedStyle(header);
+    return {
+      left: strip.left - box.left,
+      top: strip.top - box.top,
+      right: box.right - strip.right,
+      rail,
+      titleToBody: title.getBoundingClientRect().left - body.getBoundingClientRect().left,
+      titleInset: title.getBoundingClientRect().top - strip.top - parseFloat(style.borderTopWidth),
+      paddings: [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft],
+      cut: style.borderTopRightRadius,
+    };
+  });
+  expect(geometry.left).toBe(geometry.rail);
+  expect(geometry.top).toBe(0);
+  expect(geometry.right).toBe(0);
+  expect(geometry.titleToBody).toBe(0);
+  expect(geometry.titleInset).toBe(16);
+  expect(geometry.paddings).toEqual(['16px', '16px', '16px', '16px']);
+  expect(geometry.cut).not.toBe('0px');
+});
+
+test('a card header below other content stays inside the card padding', async ({ page }) => {
+  await page.setContent(
+    `<main style="width: 480px"><section class="cl-card">
+      <p>Lead</p>
+      <header class="cl-card__header">Header</header>
+    </section></main>`,
+  );
+  await page.addStyleTag({ content: css });
+  const offset = await page.locator('.cl-card').evaluate((card) => {
+    const strip = (card.querySelector('.cl-card__header') as HTMLElement).getBoundingClientRect();
+    return card.getBoundingClientRect().right - strip.right;
+  });
+  expect(offset).toBe(17);
 });
 
 test('single chamfers and badge reset unused corners in the longhand-only tier', async ({
@@ -158,9 +310,9 @@ test('ControlApp hydrates without a bundling-crash console error', async ({ page
   });
 
   await page.goto('/control/login');
-  await expect(page.getByLabel('Email', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+  await expect(page.getByLabel('Correo electrónico', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Contraseña', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Iniciar sesión' })).toBeVisible();
 
   const bundlingErrors = errors.filter((text) => /node:/i.test(text) || /externalized/i.test(text));
   expect(bundlingErrors).toEqual([]);

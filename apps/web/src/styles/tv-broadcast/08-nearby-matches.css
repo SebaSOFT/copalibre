@@ -1,0 +1,48 @@
+/* Nearby Matches on Pinned Screen */
+.tv-nearby {
+  margin-top: 2vmin;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5vmin;
+}
+
+.tv-nearby__title {
+  font-family: var(--cl-font-mono);
+  font-size: clamp(var(--cl-font-size-xs), 1.8vmin, var(--cl-font-size-sm));
+  color: var(--cl-primary);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.tv-nearby__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(30vmin, 1fr));
+  gap: 2vmin;
+}
+
+.tv-match--spotlight {
+  border-inline-start-width: 1.5vmin;
+  box-shadow: 0 8px 32px var(--cl-surface-base);
+}
+
+@keyframes tvPulseGlow {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.15;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.3;
+  }
+}
+
+@keyframes tvPulseDot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}

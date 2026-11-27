@@ -25,7 +25,7 @@ describe('winnerZonesOf', () => {
 
     expect(zones.map((zone) => zone.zoneName)).toEqual(['Copa Oro', 'Copa Plata']);
     expect(zones[0]?.champions[0]?.emblemUrl).toBe(
-      '/organizations/panamericano-demo/clubs/club-1/emblem',
+      '/api/organizations/panamericano-demo/clubs/club-1/emblem',
     );
     expect(zones[1]?.champions[0]?.emblemUrl).toBeUndefined();
   });

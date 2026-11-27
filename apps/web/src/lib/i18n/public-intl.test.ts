@@ -1,10 +1,24 @@
 import {
+  bracketBranchLabel,
+  bracketRoleLabel,
+  formatClubStatus,
+  knockoutRoundLabel,
   matchCardLabels,
+  formatActor,
+  formatDateTime,
+  formatEntrant,
+  formatEnum,
+  formatMatchRef,
   publicIntl,
+  PUBLIC_ENUM_VALUES,
   resultReasonLabels,
   resultStateLabels,
+  rulesetBriefingRows,
   seriesStateBarLabels,
+  standingsTiebreakLine,
 } from './public-intl.js';
+import { buildOverview } from '../overview.js';
+import { sampleOverview } from '../sample-data.js';
 import { messages } from './public-messages.en.js';
 import { messages as esMessages } from './public-messages.es.js';
 import { messages as frMessages } from './public-messages.fr.js';
@@ -103,37 +117,63 @@ describe('publicIntl formats real translated text, not an English fallback', () 
 
   it('interpolates a value into an ICU template in the resolved language', () => {
     const es = publicIntl('es');
-    expect(es.formatMessage(messages.heroLiveCount, { count: 3 })).toBe('3 EN VIVO');
+    expect(es.formatMessage(messages.heroLiveCount, { count: 3 })).toBe('3 en vivo');
 
     const en = publicIntl('en');
-    expect(en.formatMessage(messages.heroLiveCount, { count: 3 })).toBe('3 LIVE');
+    expect(en.formatMessage(messages.heroLiveCount, { count: 3 })).toBe('3 live');
 
     const de = publicIntl('de');
-    expect(de.formatMessage(messages.heroLiveCount, { count: 3 })).toBe('3 LIVE');
+    expect(de.formatMessage(messages.heroLiveCount, { count: 3 })).toBe('3 live');
+  });
+
+  it('formats live matchups with a localized separator and spaces', () => {
+    const cases = [
+      ['en', 'Centro Valenciano vs Casa de Italia'],
+      ['es', 'Centro Valenciano vs Casa de Italia'],
+      ['pt', 'Centro Valenciano vs Casa de Italia'],
+      ['fr', 'Centro Valenciano contre Casa de Italia'],
+      ['it', 'Centro Valenciano contro Casa de Italia'],
+      ['de', 'Centro Valenciano gegen Casa de Italia'],
+      ['ru', 'Centro Valenciano против Casa de Italia'],
+      ['zh', 'Centro Valenciano 对阵 Casa de Italia'],
+    ] as const;
+
+    for (const [language, expected] of cases) {
+      expect(
+        publicIntl(language).formatMessage(messages.livePageMatchup, {
+          home: 'Centro Valenciano',
+          away: 'Casa de Italia',
+        }),
+      ).toBe(expected);
+    }
   });
 
   it('resolves every result-state label at once', () => {
     const labels = resultStateLabels(publicIntl('es'));
-    expect(labels.live).toBe('EN VIVO');
-    expect(labels.upcoming).toBe('PROGRAMADO');
-    expect(labels.final).toBe('FINALIZADO');
-    expect(labels.disputed).toBe('EN DISPUTA');
-    expect(labels.winner).toBe('GANÓ');
-    expect(labels.loser).toBe('PERDIÓ');
-    expect(labels.tbd).toBe('A DEFINIR');
-    expect(labels.cancelled).toBe('CANCELADO');
+    expect(labels.live).toBe('En vivo');
+    expect(labels.upcoming).toBe('Programado');
+    expect(labels.final).toBe('Finalizado');
+    expect(labels.disputed).toBe('En disputa');
+    expect(labels.winner).toBe('Ganó');
+    expect(labels.loser).toBe('Perdió');
+    expect(labels.tbd).toBe('A definir');
+    expect(labels.cancelled).toBe('Cancelado');
+
+    const englishLabels = resultStateLabels(publicIntl('en'));
+    expect(englishLabels.live).toBe('Live');
+    expect(englishLabels.final).toBe('Final');
   });
 
   it('resolves every non-played result-reason label at once', () => {
     const labels = resultReasonLabels(publicIntl('es'));
-    expect(labels.walkover).toBe('W/O');
-    expect(labels.disqualified).toBe('DESCALIFICADO');
-    expect(labels['administrative-loss']).toBe('DERROTA ADM.');
-    expect(labels['forfeit-abandonment']).toBe('ABANDONO');
-    expect(labels['did-not-finish']).toBe('NO TERMINÓ');
+    expect(labels.walkover).toBe('Victoria por incomparecencia');
+    expect(labels.disqualified).toBe('Descalificado');
+    expect(labels['administrative-loss']).toBe('Derrota administrativa');
+    expect(labels['forfeit-abandonment']).toBe('Abandono');
+    expect(labels['did-not-finish']).toBe('No terminó');
 
     const en = resultReasonLabels(publicIntl('en'));
-    expect(en.walkover).toBe('W/O');
+    expect(en.walkover).toBe('Walkover');
   });
 
   it('resolves matches-view labels as unfilled {placeholder} templates, not formatted values', () => {
@@ -142,10 +182,68 @@ describe('publicIntl formats real translated text, not an English fallback', () 
     // props, which a function does not survive.
     const labels = matchCardLabels(publicIntl('es'));
     expect(labels.clockAriaLabel).toBe('Tiempo transcurrido: {time}');
-    expect(labels.decidedBy).toBe('Decidido por: {factor}');
     expect(labels.seriesAriaLabel).toBe('Serie al mejor de {bestOf}: {home} a {away}');
     expect(labels.filters.live).toBe('En vivo');
-    expect(labels.state.final).toBe('FINALIZADO');
+    expect(labels.state.final).toBe('Finalizado');
+  });
+});
+
+describe('public presentation formatters', () => {
+  const locales = ['en', 'es', 'pt', 'fr', 'it', 'de', 'ru', 'zh'] as const;
+
+  it.each(locales)('%s labels every known public enum and hides unknown keys', (locale) => {
+    const intl = publicIntl(locale);
+    for (const kind of Object.keys(PUBLIC_ENUM_VALUES) as (keyof typeof PUBLIC_ENUM_VALUES)[]) {
+      for (const value of PUBLIC_ENUM_VALUES[kind]) {
+        const label = formatEnum(intl, kind, value);
+        expect(label).toBeTruthy();
+        expect(label).not.toBe(value);
+        expect(label).not.toBe(intl.formatMessage(messages.rulesetValueUnknown));
+      }
+      const unknown = formatEnum(intl, kind, 'future-machine-code');
+      expect(unknown).toBe(intl.formatMessage(messages.rulesetValueUnknown));
+      expect(unknown).not.toContain('future-machine-code');
+    }
+  });
+
+  it.each(locales)(
+    '%s resolves unnamed entrants and technical actors to translated labels',
+    (locale) => {
+      const intl = publicIntl(locale);
+      const entrant = formatEntrant(intl, {});
+      expect(entrant.fullName).toBe(intl.formatMessage(messages.presentationEntrantUnknown));
+      expect(formatActor(intl, 'system:demo-dataset')).toBe(
+        intl.formatMessage(messages.presentationActorDemoDataset),
+      );
+      expect(formatActor(intl, '01935bd3-7b4a-7a19-9c20-5a1a44600001')).toBe(
+        intl.formatMessage(messages.presentationActorUser),
+      );
+      expect(formatMatchRef(intl, 'SE-R3-M1', 4)).not.toBe('SE-R3-M1');
+    },
+  );
+
+  it('formats the same instant in the organization time zone', () => {
+    const intl = publicIntl('en');
+    const value = '2026-10-21T22:00:00.000Z';
+    const buenosAires = formatDateTime(intl, value, 'America/Argentina/Buenos_Aires');
+    const utc = formatDateTime(intl, value, 'UTC');
+
+    expect(buenosAires).toContain('7:00 PM');
+    expect(buenosAires).not.toBe(utc);
+    expect(formatDateTime(intl, 'not-a-date', 'UTC')).toBe(
+      intl.formatMessage(messages.rulesetValueUnknown),
+    );
+  });
+});
+
+describe('bracketBranchLabel', () => {
+  it.each([
+    ['winner', 'Cuadro principal'],
+    ['winners', 'Cuadro principal'],
+    ['loser', 'Cuadro de perdedores'],
+    ['losers', 'Cuadro de perdedores'],
+  ])('maps the %s branch code to a localized display label', (branch, expected) => {
+    expect(bracketBranchLabel(publicIntl('es'), branch)).toBe(expected);
   });
 });
 
@@ -166,7 +264,13 @@ describe('seriesStateBarLabels', () => {
       'upcoming',
       'not-required',
     ]);
-    expect(labels.segments.map((segment) => segment.mark)).toEqual(['▲', '▼', '●', '·', '×']);
+    expect(labels.segments.map((segment) => segment.mark)).toEqual([
+      'winner',
+      'winner-away',
+      'live',
+      'calendar',
+      'close',
+    ]);
     expect(labels.homeScore).toBe(1);
     expect(labels.awayScore).toBe(1);
   });
@@ -230,5 +334,175 @@ describe('seriesStateBarLabels', () => {
       { winner: 'home', aggregateScores: [4] },
     );
     expect(labels.aggregateText).toBe('On aggregate 4–0');
+  });
+});
+
+describe('standingsTiebreakLine', () => {
+  const ruleset = (value: string) => ({
+    ruleset: [{ dotPath: 'tiebreakers', label: 'Tiebreakers', value }],
+  });
+
+  it('names the first three tiebreakers in order, then trails off', () => {
+    expect(
+      standingsTiebreakLine(
+        publicIntl('es'),
+        ruleset('points,score-difference,goal-average,goals-for,goals-against'),
+      ),
+    ).toBe(
+      `Desempate: ${[
+        formatEnum(publicIntl('es'), 'tiebreaker', 'points'),
+        formatEnum(publicIntl('es'), 'tiebreaker', 'score-difference'),
+        formatEnum(publicIntl('es'), 'tiebreaker', 'goal-average'),
+      ].join(' › ')} …`,
+    );
+  });
+
+  it('shows every tiebreaker when there are three or fewer, and nothing when none', () => {
+    expect(standingsTiebreakLine(publicIntl('en'), ruleset('points, head-to-head'))).toBe(
+      'Tiebreakers: Points › Head-to-head',
+    );
+    expect(standingsTiebreakLine(publicIntl('en'), ruleset(''))).toBeUndefined();
+    expect(standingsTiebreakLine(publicIntl('en'), { ruleset: [] })).toBeUndefined();
+  });
+});
+
+describe('rulesetBriefingRows', () => {
+  const baseOverview = buildOverview({
+    ...sampleOverview('liga-mendocina', 'apertura-2026'),
+    ruleset: [{ dotPath: 'format', label: 'Formato', value: 'round-robin' }],
+  });
+
+  it('names each stage format for two stages and keeps mixed zones separate', () => {
+    const model = {
+      ...baseOverview,
+      stages: [
+        { stageNumber: 1, stageName: 'Fase de grupos', format: 'round-robin' },
+        { stageNumber: 2, stageName: 'Copas', format: 'single-elimination' },
+      ],
+    };
+
+    const rows = rulesetBriefingRows(publicIntl('es'), model);
+    expect(rows).toEqual([
+      {
+        label: 'Formato',
+        value: 'Fase de grupos: todos contra todos y Copas: eliminación simple',
+      },
+    ]);
+
+    const mixedModel = {
+      ...baseOverview,
+      stages: [
+        {
+          stageNumber: 1,
+          stageName: 'Fase de grupos',
+          format: 'round-robin',
+          zones: [{ zoneName: 'Copa Repechaje', format: 'single-elimination' }],
+        },
+        { stageNumber: 2, stageName: 'Finales', format: 'single-elimination' },
+      ],
+    };
+    const mixedRows = rulesetBriefingRows(publicIntl('en'), mixedModel);
+    expect(mixedRows[0]?.value).toContain('Fase de grupos: round robin');
+    expect(mixedRows[0]?.value).toContain('Fase de grupos (Copa Repechaje): single elimination');
+    expect(mixedRows[0]?.value).toContain('Finales: single elimination');
+  });
+
+  it('keeps a single format entry for a one-stage tournament', () => {
+    const model = {
+      ...baseOverview,
+      stages: [{ stageNumber: 1, stageName: 'Liga', format: 'round-robin' }],
+    };
+
+    expect(rulesetBriefingRows(publicIntl('es'), model)).toEqual([
+      { label: 'Formato', value: 'Todos contra todos' },
+    ]);
+    expect(rulesetBriefingRows(publicIntl('es'), baseOverview)).toEqual([
+      { label: 'Formato', value: 'Todos contra todos' },
+    ]);
+  });
+});
+
+describe('bracketRoleLabel', () => {
+  it('appends the overall place suffix when overallPlaceOffset is given for a single place', () => {
+    expect(bracketRoleLabel(publicIntl('en'), 'place-5', 16)).toBe('5th place · 21st overall');
+    expect(bracketRoleLabel(publicIntl('en'), 'place-5', 0)).toBe('5th place · 5th overall');
+    expect(bracketRoleLabel(publicIntl('es'), 'place-5', 16)).toBe('5º puesto · 21.º general');
+    expect(bracketRoleLabel(publicIntl('en'), 'place-5')).toBe('5th place');
+    expect(bracketRoleLabel(publicIntl('en'), 'places-5-8', 16)).toBe('5th–8th place');
+  });
+});
+
+describe('knockoutRoundLabel and formatClubStatus', () => {
+  it('keeps the zone in the status only when no band badge is shown beside it', () => {
+    const intl = publicIntl('en');
+    const inCompetition = {
+      kind: 'inCompetition' as const,
+      zone: 'Gold Cup',
+      roundKind: 'semiFinal' as const,
+      roundNumber: 2,
+    };
+    const eliminated = {
+      kind: 'eliminated' as const,
+      zone: 'Silver Cup',
+      roundKind: 'quarterFinal' as const,
+      roundNumber: 1,
+    };
+    expect(formatClubStatus(intl, inCompetition, { withBand: true })).toBe(
+      'In competition: Semi-finals',
+    );
+    expect(formatClubStatus(intl, eliminated, { withBand: true })).toBe(
+      'Eliminated in Quarter-finals',
+    );
+    expect(formatClubStatus(intl, eliminated, { withBand: false })).toBe(
+      'Eliminated in Quarter-finals of Silver Cup',
+    );
+    expect(formatClubStatus(intl, { kind: 'champion', zone: 'Gold Cup' }, { withBand: true })).toBe(
+      'Champion',
+    );
+  });
+
+  it('formats knockout round labels across round kinds', () => {
+    const intl = publicIntl('en');
+    expect(knockoutRoundLabel(intl, 'final')).toBe('Final');
+    expect(knockoutRoundLabel(intl, 'semiFinal')).toBe('Semi-finals');
+    expect(knockoutRoundLabel(intl, 'quarterFinal')).toBe('Quarter-finals');
+    expect(knockoutRoundLabel(intl, 'round', 2)).toBe('Round 2');
+    expect(knockoutRoundLabel(intl, 'round')).toBe('Round 1');
+  });
+
+  it('formats all club tournament status variants', () => {
+    const intl = publicIntl('en');
+    expect(formatClubStatus(intl, undefined)).toBeUndefined();
+    expect(formatClubStatus(intl, { kind: 'groupStage' })).toBe('Group stage');
+    expect(
+      formatClubStatus(intl, {
+        kind: 'inCompetition',
+        zone: 'Gold Cup',
+        roundKind: 'semiFinal',
+        roundNumber: 2,
+      }),
+    ).toBe('In competition: Gold Cup, Semi-finals');
+    expect(
+      formatClubStatus(intl, {
+        kind: 'inCompetition',
+        roundKind: 'final',
+        roundNumber: 3,
+      }),
+    ).toBe('In competition: Final');
+    expect(
+      formatClubStatus(intl, {
+        kind: 'eliminated',
+        zone: 'Silver Cup',
+        roundKind: 'quarterFinal',
+        roundNumber: 1,
+      }),
+    ).toBe('Eliminated in Quarter-finals of Silver Cup');
+    expect(
+      formatClubStatus(intl, {
+        kind: 'eliminated',
+        roundKind: 'round',
+        roundNumber: 1,
+      }),
+    ).toBe('Eliminated in Round 1');
   });
 });

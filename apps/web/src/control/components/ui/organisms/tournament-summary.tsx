@@ -14,6 +14,7 @@ import { Stack } from '../atoms/layout/stack.js';
 import { messages } from '../../../i18n/messages.en.js';
 import { DisciplineSummary, type DisciplineSummarySection } from './discipline-summary.js';
 import type { DisciplineSummaryData } from '../../../lib/discipline-summary.js';
+import { formatEnum } from '../../../lib/presentation-formatting.js';
 
 export interface TournamentSummaryStage {
   readonly name: string;
@@ -37,6 +38,8 @@ export interface TournamentSummaryFacts {
   readonly checkInClosesAt?: string;
   readonly region?: string;
   readonly capacity?: number;
+  /** Minimum minutes between an entrant's matches, checked when matches are scheduled. */
+  readonly minimumRestMinutes?: number;
 }
 
 export interface TournamentSummaryProps {
@@ -45,6 +48,9 @@ export interface TournamentSummaryProps {
   /** Forwarded to `DisciplineSummary`; defaults to every section. */
   readonly sections?: readonly DisciplineSummarySection[];
   readonly className?: string;
+  readonly headingLevel?: 2 | 3;
+  /** Folds the discipline sections behind a disclosure, so a long rules list does not push the page's own controls out of view. */
+  readonly collapseRules?: boolean;
 }
 
 export function TournamentSummary({
@@ -52,6 +58,8 @@ export function TournamentSummary({
   discipline,
   sections,
   className = '',
+  headingLevel = 3,
+  collapseRules = false,
 }: TournamentSummaryProps): React.JSX.Element {
   const intl = useIntl();
 
@@ -59,7 +67,7 @@ export function TournamentSummary({
     <Stack className={`cl-tournament-summary ${className}`.trim()} gap="4">
       <Card>
         <CardHeader>
-          <CardTitle>
+          <CardTitle level={headingLevel}>
             {intl.formatMessage(messages.tournamentSummaryFactsHeading, { name: facts.name })}
           </CardTitle>
         </CardHeader>
@@ -76,14 +84,17 @@ export function TournamentSummary({
                       <p>
                         {intl.formatMessage(messages.tournamentSummaryStageLine, {
                           name: stage.name,
-                          format: stage.format,
+                          format: formatEnum(intl, 'format', stage.format),
                         })}
                       </p>
                       {stage.zones !== undefined && stage.zones.length > 0 && (
                         <p>
                           {intl.formatMessage(messages.tournamentSummaryStageZonesLine, {
                             zones: intl.formatList(
-                              stage.zones.map((zone) => `${zone.name} (${zone.format})`),
+                              stage.zones.map(
+                                (zone) =>
+                                  `${zone.name} (${formatEnum(intl, 'format', zone.format)})`,
+                              ),
                               { type: 'unit' },
                             ),
                           })}
@@ -132,11 +143,27 @@ export function TournamentSummary({
                 })}
               </p>
             )}
+            {facts.minimumRestMinutes !== undefined && (
+              <p>
+                {intl.formatMessage(messages.tournamentSummaryMinimumRest, {
+                  minutes: facts.minimumRestMinutes,
+                })}
+              </p>
+            )}
           </Stack>
         </CardContent>
       </Card>
 
-      <DisciplineSummary data={discipline} sections={sections} />
+      {collapseRules ? (
+        <details className="cl-tournament-summary__rules">
+          <summary className="cl-focusable">
+            <FormattedMessage {...messages.tournamentSummaryFullRules} />
+          </summary>
+          <DisciplineSummary data={discipline} headingLevel={headingLevel} sections={sections} />
+        </details>
+      ) : (
+        <DisciplineSummary data={discipline} headingLevel={headingLevel} sections={sections} />
+      )}
     </Stack>
   );
 }

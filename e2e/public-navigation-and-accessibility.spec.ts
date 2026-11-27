@@ -1,6 +1,10 @@
 import { createServer, type Server } from 'node:http';
+import type { Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { resolveSemantic } from '@copalibre/design-tokens';
 import { expect, test } from './fixtures.js';
-import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
+import { expectNoSeriousSemanticViolations } from './support/semantic-axe.js';
+import { STAGED_TABLE_LAYOUTS, stagedBracket, withStages } from './support/staged-tournament.js';
 
 /**
  * End-to-end tests for public navigation and accessibility hardening:
@@ -11,6 +15,12 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
 
 const ORGANIZATION = 'liga-mendocina';
 const TOURNAMENT_ALIAS = 'apertura-2026';
+
+const cssColor = (hex: string): string => {
+  const channels = hex.slice(1).match(/.{2}/g);
+  if (!channels || channels.length !== 3) throw new Error('Expected a six-digit design token.');
+  return `rgb(${channels.map((channel) => Number.parseInt(channel, 16)).join(', ')})`;
+};
 
 const organizationsList = [
   {
@@ -61,31 +71,47 @@ const overview = {
 };
 
 let apiServer: Server;
+// Set by the tournament section tests only: the overview then lists a group stage and a cup.
+let stagedTournament = false;
 
 test.beforeAll(async ({ workerPort }) => {
   apiServer = createServer((req, res) => {
     res.setHeader('content-type', 'application/json');
     const [path] = (req.url ?? '').split('?');
 
-    if (path === '/organizations') {
+    if (path === '/api/organizations') {
       res.end(JSON.stringify(organizationsList));
       return;
     }
 
-    if (path === `/organizations/${ORGANIZATION}/public/tournaments`) {
+    if (path === `/api/organizations/${ORGANIZATION}/public/tournaments`) {
       res.end(JSON.stringify(organizationTournaments));
       return;
     }
 
     if (
-      path === `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/overview` ||
-      path === `/organizations/${ORGANIZATION}/public/tournaments/${TOURNAMENT_ALIAS}/overview`
+      path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/overview` ||
+      path === `/api/organizations/${ORGANIZATION}/public/tournaments/${TOURNAMENT_ALIAS}/overview`
     ) {
-      res.end(JSON.stringify(overview));
+      res.end(JSON.stringify(stagedTournament ? withStages(overview) : overview));
       return;
     }
 
-    if (path === `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/live`) {
+    const bracketMatch =
+      /^\/api\/organizations\/[^/]+\/tournaments\/[^/]+\/stages\/(\d+)\/bracket$/.exec(path);
+    if (stagedTournament && bracketMatch) {
+      res.end(JSON.stringify(stagedBracket(Number(bracketMatch[1]))));
+      return;
+    }
+
+    if (
+      path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/public/tables`
+    ) {
+      res.end(JSON.stringify(stagedTournament ? STAGED_TABLE_LAYOUTS : { layouts: [] }));
+      return;
+    }
+
+    if (path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/live`) {
       res.end(
         JSON.stringify({
           organizationAlias: ORGANIZATION,
@@ -96,7 +122,7 @@ test.beforeAll(async ({ workerPort }) => {
       return;
     }
 
-    if (path === `/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/tables`) {
+    if (path === `/api/organizations/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}/tables`) {
       res.end(JSON.stringify({ layouts: [] }));
       return;
     }
@@ -110,6 +136,75 @@ test.beforeAll(async ({ workerPort }) => {
 
 test.afterAll(async () => {
   await new Promise<void>((resolve) => apiServer.close(() => resolve()));
+});
+
+test.describe('public tournament section tabs', () => {
+  const TOURNAMENT = `/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`;
+  const navigation = (page: Page) => page.getByRole('navigation', { name: 'Torneo' });
+
+  test.beforeEach(() => {
+    stagedTournament = true;
+  });
+  test.afterEach(() => {
+    stagedTournament = false;
+  });
+
+  test('Posiciones and Cuadros open distinct pages, neither an overview anchor', async ({
+    page,
+  }) => {
+    await page.goto(TOURNAMENT);
+    const standings = navigation(page).getByRole('link', { name: 'Posiciones', exact: true });
+    const brackets = navigation(page).getByRole('link', { name: 'Cuadros', exact: true });
+    await expect(standings).toHaveAttribute('href', /\?tab=group-standings-default$/);
+    await expect(brackets).toHaveAttribute('href', `${TOURNAMENT}/stages/2`);
+
+    await standings.click();
+    await expect(page).toHaveURL(/\?tab=group-standings-default$/);
+    await brackets.click();
+    await expect(page).toHaveURL(new RegExp(`${TOURNAMENT}/stages/2$`));
+    await expect(brackets).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('the live page marks En vivo', async ({ page }) => {
+    await page.goto(`${TOURNAMENT}/live`);
+    await expect(
+      navigation(page).getByRole('link', { name: 'En vivo', exact: true }),
+    ).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('a group stage lists both stages in its switcher and links on to the cups', async ({
+    page,
+  }) => {
+    await page.goto(`${TOURNAMENT}/stages/1`);
+    const switcher = page.getByRole('navigation', { name: 'Fases del torneo' });
+    await expect(switcher.getByRole('link')).toHaveCount(2);
+    await expect(switcher.locator('[aria-current="page"]')).toHaveCount(1);
+    await expect(page.locator('p.cl-stage-next a')).toHaveAttribute(
+      'href',
+      `${TOURNAMENT}/stages/2`,
+    );
+  });
+
+  test('the header labels the TV launcher as screens and keeps Control secondary', async ({
+    page,
+  }) => {
+    await page.goto(TOURNAMENT);
+    await expect(page.getByRole('link', { name: 'Pantallas TV', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Panel de control' })).toHaveClass(
+      /cl-btn--secondary/,
+    );
+  });
+
+  test('the group stage marks Posiciones and the cup stage marks Cuadros', async ({ page }) => {
+    await page.goto(`${TOURNAMENT}/stages/1`);
+    await expect(
+      navigation(page).getByRole('link', { name: 'Posiciones', exact: true }),
+    ).toHaveAttribute('aria-current', 'page');
+    await page.goto(`${TOURNAMENT}/stages/2`);
+    await expect(
+      navigation(page).getByRole('link', { name: 'Cuadros', exact: true }),
+    ).toHaveAttribute('aria-current', 'page');
+  });
 });
 
 test.describe('Public Navigation & Accessibility Hardening', () => {
@@ -135,10 +230,11 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     const languageTrigger = page.locator('.cl-public-header__locale summary');
     await expect(languageTrigger).toBeVisible();
     await expect(languageTrigger).toHaveClass(/cl-chamfer--control/);
-    const translationMark = languageTrigger.locator('.cl-public-header__translation-mark');
-    expect(
-      await translationMark.evaluate((element) => getComputedStyle(element, '::before').content),
-    ).toBe('"文A"');
+    await expect(
+      languageTrigger.locator('svg.cl-icon:not(.cl-public-header__caret)'),
+    ).toBeVisible();
+    // The disclosure caret is a registry icon too, not a text character.
+    await expect(languageTrigger.locator('svg.cl-public-header__caret')).toBeVisible();
     await expect(languageTrigger).toContainText('ES');
     await languageTrigger.click();
     const languagePopover = page.locator('.cl-public-header__locale-list');
@@ -150,21 +246,139 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     expect(missingRouteResponse?.status()).toBe(404);
   });
 
+  test('the home page passes the semantic accessibility rules', async ({ page }) => {
+    await page.goto('/es');
+    await expect(page.locator('.cl-home-hero__badges > li')).toHaveCount(3);
+
+    await expectNoSeriousSemanticViolations(page);
+  });
+
   test('the main menu links to the TV display launcher in the page’s language', async ({
     page,
   }) => {
     await page.goto('/es');
-    const spanish = page.locator('#cl-public-nav').getByRole('link', { name: 'TV Streaming' });
+    const spanish = page.locator('#cl-public-nav').getByRole('link', { name: 'Pantallas TV' });
     await expect(spanish).toHaveAttribute('href', '/tv?lang=es');
 
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
-    const english = page.locator('#cl-public-nav').getByRole('link', { name: 'TV Streaming' });
+    const english = page.locator('#cl-public-nav').getByRole('link', { name: 'TV screens' });
     await expect(english).toHaveAttribute('href', '/tv?lang=en');
     await english.click();
     await expect(page).toHaveURL(/\/tv\?lang=en/);
   });
 
-  test('8.1: from a /es/ tournament page, brand link navigates to /es/ root', async ({ page }) => {
+  test('mobile public navigation separates global and tournament groups; desktop keeps one primary row', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+
+    const toggle = page.locator('[data-public-nav-toggle]');
+    const globalNav = page.locator('#cl-public-nav');
+    const tournamentNav = page.locator('#cl-public-tournament-nav nav');
+    await expect(globalNav).toHaveAttribute('aria-label', 'Principal');
+    await expect(tournamentNav).toHaveAttribute('aria-label', 'Torneo');
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-controls', 'cl-public-nav cl-public-tournament-nav');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(globalNav).toBeHidden();
+    await expect(tournamentNav).toBeHidden();
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(globalNav).toBeVisible();
+    await expect(tournamentNav).toBeVisible();
+    await expect(page.locator('.cl-public-header__global-label')).toHaveText('Plataforma');
+    await expect(page.locator('.cl-public-header__context-label')).toHaveText('Torneo');
+    await expect(globalNav.getByRole('link', { name: 'Inicio' })).toBeVisible();
+    await expect(tournamentNav.getByRole('link', { name: 'Resumen' })).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth),
+    ).toBe(true);
+
+    await page.keyboard.press('Escape');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(toggle).toBeFocused();
+    await expect(globalNav).toBeHidden();
+    await expect(tournamentNav).toBeHidden();
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await expect(toggle).toBeHidden();
+    await expect(globalNav).toBeVisible();
+    await expect(tournamentNav).toBeVisible();
+    const geometry = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Missing header element: ${selector}`);
+        return element.getBoundingClientRect();
+      };
+      const row = rect('.cl-public-header__row');
+      const brand = rect('.cl-public-header__brand');
+      const global = rect('.cl-public-header__nav');
+      const actions = rect('.cl-public-header__actions');
+      const context = rect('.cl-public-header__context-band');
+      return {
+        rowHeight: row.height,
+        primaryCenterSpread:
+          Math.max(
+            brand.top + brand.height / 2,
+            global.top + global.height / 2,
+            actions.top + actions.height / 2,
+          ) -
+          Math.min(
+            brand.top + brand.height / 2,
+            global.top + global.height / 2,
+            actions.top + actions.height / 2,
+          ),
+        primaryBottom: row.bottom,
+        contextTop: context.top,
+      };
+    });
+    expect(geometry.rowHeight).toBeLessThan(80);
+    expect(geometry.primaryCenterSpread).toBeLessThan(1);
+    expect(geometry.contextTop).toBeGreaterThanOrEqual(geometry.primaryBottom);
+  });
+
+  test('the public light theme follows the device, persists selection, and passes contrast checks', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.goto('/es');
+    await expect(page.locator('body')).toHaveCSS(
+      'background-color',
+      cssColor(resolveSemantic('surface-base', 'light')),
+    );
+
+    const themePicker = page.locator('[data-public-theme-picker]');
+    await expect(themePicker).toBeVisible();
+    await themePicker.locator('summary').click();
+    await themePicker.getByRole('button', { name: 'Claro' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    expect(await page.evaluate(() => localStorage.getItem('cl-theme'))).toBe('light');
+
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(page.locator('body')).toHaveCSS(
+      'background-color',
+      cssColor(resolveSemantic('surface-base', 'light')),
+    );
+    const { violations } = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
+    expect(violations).toEqual([]);
+  });
+
+  test('TV layouts remain dark when the device prefers light', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.goto('/tv?bg=neutral');
+
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
+    await expect(page.locator('body')).toHaveCSS(
+      'background-color',
+      cssColor(resolveSemantic('surface-base')),
+    );
+  });
+
+  test('from a /es/ tournament page, brand link navigates to /es/ root', async ({ page }) => {
     await page.goto(`/es/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
     await expect(page.locator('a.cl-logo')).toHaveAttribute('href', '/es/');
 
@@ -173,7 +387,7 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     expect(page.url()).toMatch(/\/es\/?$/);
   });
 
-  test('8.1 (baseline): from an unprefixed tournament page, brand link navigates to / root', async ({
+  test('from an unprefixed tournament page, brand link navigates to / root, as the baseline', async ({
     page,
   }) => {
     await page.goto(`/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
@@ -206,7 +420,7 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     await expect(cta).toHaveCSS('text-decoration-line', 'none');
   });
 
-  test('8.2: 404 page resolves requested Spanish locale and renders Spanish copy with link', async ({
+  test('404 page resolves requested Spanish locale and renders Spanish copy with link', async ({
     page,
   }) => {
     const response = await page.goto('/es/some-missing-page');
@@ -218,7 +432,41 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     await expect(brandLink).toHaveAttribute('href', '/es/');
   });
 
-  test('8.2 (baseline): 404 page for unprefixed missing route renders English copy with link', async ({
+  test('a deep unknown path shows the page-not-found composition, not the organization message', async ({
+    page,
+  }) => {
+    for (const path of ['/es/a/b/c', '/es/a/b/c/d/e']) {
+      const response = await page.goto(path);
+      expect(response?.status()).toBe(404);
+
+      await expect(page.locator('html')).toHaveAttribute('lang', 'es');
+      await expect(page.locator('#static-not-found h1')).toHaveText('Página no encontrada');
+      await expect(page.getByRole('link', { name: 'Volver a los torneos' })).toHaveAttribute(
+        'href',
+        '/es/',
+      );
+      await expect(page.getByRole('link', { name: 'Ver partidos en vivo' })).toHaveAttribute(
+        'href',
+        '/tv?lang=es&view=dashboard',
+      );
+      await expect(page.getByText('Organización no encontrada')).toHaveCount(0);
+    }
+  });
+
+  test('an unknown segment before a real tournament path is not a locale', async ({ page }) => {
+    const response = await page.goto(`/es/nope/${ORGANIZATION}/tournaments/${TOURNAMENT_ALIAS}`);
+    expect(response?.status()).toBe(404);
+    await expect(page.locator('#static-not-found h1')).toHaveText('Página no encontrada');
+  });
+
+  test('a single unknown segment still says the organization was not found', async ({ page }) => {
+    const response = await page.goto('/es/nope');
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Organización no encontrada');
+    await expect(page.locator('#static-not-found')).toHaveCount(0);
+  });
+
+  test('404 page for unprefixed missing route renders English copy with link, as the baseline', async ({
     page,
   }) => {
     const response = await page.goto('/some-missing-page');
@@ -230,79 +478,15 @@ test.describe('Public Navigation & Accessibility Hardening', () => {
     await expect(brandLink).toHaveAttribute('href', '/');
   });
 
-  test('8.2 (fallback): static 404 template renders not-found markup with return home link', async ({
+  test('static 404 template renders not-found markup with return home link, as the fallback', async ({
     page,
   }) => {
     await page.goto('/404');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.locator('#static-not-found h1')).toHaveText('Page not found');
-    await expect(page.locator('#static-not-found a')).toHaveAttribute('href', '/');
-  });
-
-  test('8.3: Modal close control exposes accessible name in accessibility tree', async ({
-    page,
-  }) => {
-    const rolesPath = `/organizations/${ORGANIZATION}/roles`;
-    const invitationPath = `/organizations/${ORGANIZATION}/invitations`;
-
-    await page.addInitScript(
-      ({ rolesPath, invitationPath, tokenEndpoint }) => {
-        window.fetch = async (input, init) => {
-          const url = String(input);
-          const method = init?.method ?? 'GET';
-
-          if (url === tokenEndpoint) {
-            return Response.json({ access_token: 'e2e-access-token', expires_in: 3600 });
-          }
-
-          if (url === rolesPath && method === 'GET') {
-            return Response.json([
-              {
-                assignmentId: '01800000-0000-7000-8000-000000000002',
-                principalId: '01800000-0000-7000-8000-000000000001',
-                email: 'admin@example.test',
-                role: 'tournament-admin',
-                status: 'active',
-              },
-            ]);
-          }
-
-          if (url === invitationPath && method === 'GET') {
-            return Response.json([]);
-          }
-
-          return Response.json({});
-        };
-      },
-      { rolesPath, invitationPath, tokenEndpoint: TOKEN_ENDPOINT },
+    await expect(page.getByRole('link', { name: 'Return to tournaments' })).toHaveAttribute(
+      'href',
+      '/',
     );
-
-    const targetUrl = `/control/${ORGANIZATION}/roles`;
-    await seedLoginTransaction(page, targetUrl);
-    await page.goto(loginCallbackUrl());
-    await page.waitForURL(`**${targetUrl}`);
-
-    // Click "Añadir destinatario" / "Invitar usuario" button to open the Modal
-    const inviteButton = page.getByRole('button', {
-      name: /añadir destinatario|add recipient|invitar usuario|invite user/i,
-    });
-    await expect(inviteButton).toBeVisible();
-    await inviteButton.click();
-
-    // Verify modal is open
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible();
-
-    // The close control has an accessible name, in the interface language.
-    // It was the literal "Close" for every viewer until it became a required
-    // prop sourced from the caller's catalogue, so this asserts the name exists
-    // and is translated rather than asserting one hardcoded English word.
-    const closeButton = dialog.getByRole('button', { name: /cerrar|close/i });
-    await expect(closeButton).toBeVisible();
-    await expect(closeButton).toHaveAttribute('aria-label', /cerrar|close/i);
-
-    // Click close button and confirm modal dismisses
-    await closeButton.click();
-    await expect(dialog).not.toBeVisible();
   });
 });

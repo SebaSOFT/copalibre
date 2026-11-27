@@ -24,6 +24,7 @@ import type { AuthenticatedSubject } from '../auth/request-context.js';
 import { TokenVerifier } from '../auth/token-verifier.js';
 import { DATABASE } from '../database.token.js';
 import { AdminStatisticsController } from './admin-statistics.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 const AUDIT = { actor: 'user:admin-statistics-test', authorizationContext: 'scope:test' };
 
@@ -208,6 +209,7 @@ describe('AdminStatisticsController (integration)', () => {
       imports: [AdminStatisticsTestModule],
     }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    applyApiPathPrefix(app);
     await app.init();
     await (app as NestFastifyApplication).getHttpAdapter().getInstance().ready();
   });
@@ -217,25 +219,66 @@ describe('AdminStatisticsController (integration)', () => {
     await scratch?.drop();
   });
 
-  function rebuild(token: string) {
+  function rebuild(token: string, dryRun?: boolean) {
     return (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: '/organizations/liga-admin-http/statistics/rebuild',
+      url: '/api/organizations/liga-admin-http/statistics/rebuild',
       headers: { authorization: `Bearer ${token}` },
-      payload: {},
+      payload: dryRun === undefined ? {} : { dryRun },
     });
   }
 
-  it('rebuilds statistics for an organization admin, matching the direct-database path shape', async () => {
+  it('previews without writes, then rebuilds and audits the recomputed figures', async () => {
+    const before = await scratch.db
+      .selectFrom('statistic_totals')
+      .select('source_match_id')
+      .execute();
+    expect(before).toEqual([]);
+
+    const preview = await rebuild('admin', true);
+    expect(preview.statusCode).toBe(200);
+    expect(preview.json()).toEqual({
+      dryRun: true,
+      organizationAlias: 'liga-admin-http',
+      matches: 1,
+      figures: 1,
+    });
+    await expect(
+      scratch.db.selectFrom('statistic_totals').select('source_match_id').execute(),
+    ).resolves.toEqual([]);
+
     const response = await rebuild('admin');
     expect(response.statusCode).toBe(200);
-    const body = response.json();
+    const body = response.json() as {
+      readonly dryRun: boolean;
+      readonly organizationAlias: string;
+      readonly matches: number;
+      readonly figures: number;
+    };
     expect(body).toEqual({
+      dryRun: false,
       organizationAlias: 'liga-admin-http',
       matches: 1,
       figures: expect.any(Number),
     });
     expect(body.figures).toBeGreaterThan(0);
+
+    const audit = await scratch.db
+      .selectFrom('audit_log')
+      .select(['action', 'actor', 'resulting_state'])
+      .where('action', '=', 'statistics.rebuilt')
+      .executeTakeFirstOrThrow();
+    expect(audit).toMatchObject({
+      action: 'statistics.rebuilt',
+      actor: 'user:oidc-admin',
+      resulting_state: { figures: body.figures },
+    });
+    const event = await scratch.db
+      .selectFrom('outbox_events')
+      .select(['event_type', 'payload'])
+      .where('event_type', '=', 'statistics.rebuilt')
+      .executeTakeFirstOrThrow();
+    expect(event.payload).toMatchObject({ matchId: expect.any(String), figures: body.figures });
   });
 
   it('refuses a non-admin organization role', async () => {
@@ -246,7 +289,7 @@ describe('AdminStatisticsController (integration)', () => {
   it('refuses with no bearer token at all', async () => {
     const response = await (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: '/organizations/liga-admin-http/statistics/rebuild',
+      url: '/api/organizations/liga-admin-http/statistics/rebuild',
       payload: {},
     });
     expect(response.statusCode).toBe(401);
@@ -255,7 +298,7 @@ describe('AdminStatisticsController (integration)', () => {
   it('404s an unknown organization alias', async () => {
     const response = await (app as NestFastifyApplication).inject({
       method: 'POST',
-      url: '/organizations/no-such-organization/statistics/rebuild',
+      url: '/api/organizations/no-such-organization/statistics/rebuild',
       headers: { authorization: 'Bearer admin' },
       payload: {},
     });

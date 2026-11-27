@@ -18,11 +18,38 @@ describe('resolveTvBackground', () => {
     ).toBe('transparent');
   });
 
+  it('defaults scorebug overlays to transparent output, like lower thirds', () => {
+    expect(
+      resolveTvBackground({
+        searchParams: new URLSearchParams('mode=overlay'),
+        overlayMode: 'scorebug',
+      }).background,
+    ).toBe('transparent');
+  });
+
+  it('keeps full overlays on the discipline background by default', () => {
+    expect(
+      resolveTvBackground({
+        searchParams: new URLSearchParams('mode=overlay-full'),
+        overlayMode: 'full',
+      }).background,
+    ).toBe('discipline');
+  });
+
   it('keeps the legacy lower-overlay chroma query working', () => {
     expect(
       resolveTvBackground({
         searchParams: new URLSearchParams('mode=overlay&chroma=%2300b140'),
         overlayMode: 'lower',
+      }).background,
+    ).toBe('chroma');
+  });
+
+  it('applies the legacy chroma query to scorebug overlays as well', () => {
+    expect(
+      resolveTvBackground({
+        searchParams: new URLSearchParams('mode=overlay&chroma=%2300b140'),
+        overlayMode: 'scorebug',
       }).background,
     ).toBe('chroma');
   });
@@ -58,4 +85,35 @@ describe('resolveTvBackground', () => {
       }).chromaKey,
     ).toBe(DEFAULT_CHROMA_KEY);
   });
+
+  /* eslint-disable no-restricted-syntax -- fixtures: the chroma colours a request names, not app styling */
+  it('accepts a six-digit chroma color with or without its leading hash, in lowercase', () => {
+    for (const chroma of ['00ff00', '#00FF00', '%2300ff00', '%2300FF00']) {
+      expect(
+        resolveTvBackground({
+          searchParams: new URLSearchParams(`bg=chroma&chroma=${chroma}`),
+        }).chromaKey,
+      ).toBe('#00ff00');
+    }
+  });
+
+  it('rejects shorthand, alpha, named and other malformed chroma values', () => {
+    for (const chroma of ['0f0', '#00ff00ff', 'green', '00ff0', 'gg00ff']) {
+      expect(
+        resolveTvBackground({
+          searchParams: new URLSearchParams(`bg=chroma&chroma=${chroma}`),
+        }).chromaKey,
+      ).toBe(DEFAULT_CHROMA_KEY);
+    }
+  });
+
+  it('selects the chroma background for a bare hex overlay chroma', () => {
+    expect(
+      resolveTvBackground({
+        overlayMode: 'lower',
+        searchParams: new URLSearchParams('mode=overlay&chroma=00ff00'),
+      }),
+    ).toEqual({ background: 'chroma', chromaKey: '#00ff00' });
+  });
+  /* eslint-enable no-restricted-syntax */
 });

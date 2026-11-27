@@ -1,104 +1,71 @@
 import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Inject,
-  Logger,
-  Param,
-  Post,
-  Put,
-  Query,
-  Req,
-} from '@nestjs/common';
-import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-} from '../http/error-contract.js';
-import {
+  ApiTags,
   ApiBearerAuth,
-  ApiBadRequestResponse,
-  ApiConflictResponse,
-  ApiCreatedResponse,
+  ApiOperation,
+  ApiOkResponse,
+  ApiUnauthorizedResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-  ApiUnauthorizedResponse,
+  ApiCreatedResponse,
+  ApiBadRequestResponse,
+  ApiConflictResponse,
 } from '@nestjs/swagger';
 import {
-  CompetitionRecordRepository,
-  CompetitionRepository,
-  EnrollmentRepository,
-  InvariantViolationError,
-  OrganizationRepository,
-  PublicOverviewReadModel,
-  TournamentProfileRepository,
-  TournamentRepository,
-  recordAuditRefusal,
-  withTransaction,
-  type Database,
-} from '@copalibre/persistence';
-import {
-  SUPPORTED_FORMATS,
-  TOURNAMENT_CUSTOM_SCRIPT_HOOKS,
-  compileEffectiveRuleset,
-  compileProfile,
-  evaluateMutation,
-  isPlacementFormat,
-  validateAllocation,
-  validateHookScriptAttachment,
-  validateSeriesDeclaration,
-  validateStageGroupConfiguration,
-  validateZoneFormat,
-  type HookScriptAttachment,
-  type StageAllocation,
-  type StageGroupConfiguration,
-  type TournamentFormat,
-  type TournamentProfile,
-} from '@copalibre/domain';
-import {
-  createHookScriptRegistry,
-  traceForEntrant,
-  traceLines,
-  validateHookScriptDocument,
-  type RuleScript,
-} from '@copalibre/rules';
+  Controller,
+  Logger,
+  Inject,
+  Get,
+  Param,
+  Req,
+  Query,
+  Post,
+  Body,
+  HttpCode,
+  Put,
+} from '@nestjs/common';
+import { DATABASE } from '../database.token.js';
 import type { Kysely } from 'kysely';
-import type { RequestWithSubject } from '../auth/request-context.js';
+import type { Database } from '@copalibre/persistence';
 import { SecurityPlaneTag } from '../auth/security-plane.js';
 import { RequireOrganizationCapability } from '../auth/access-requirement.js';
 import {
-  CreateTournamentRequest,
-  type CreateTournamentStageRequest,
-  EntrantAttributeKeysResponse,
   HookScriptVocabularyResponse,
   ProblemResponse,
-  RulesetOverridesRequest,
-  RulesetOverridesResponse,
-  SeriesMutationFieldPreview,
-  SeriesMutationPreviewResponse,
-  TournamentCustomScriptsResponse,
   TournamentResponse,
-  TournamentSettingsRequest,
+  EntrantAttributeKeysResponse,
+  CreateTournamentRequest,
   TournamentSettingsResponse,
+  SeriesMutationPreviewResponse,
+  TournamentSettingsRequest,
+  RulesetOverridesResponse,
+  RulesetOverridesRequest,
+  TournamentCustomScriptsResponse,
 } from '../dto/organization.dto.js';
-import { TournamentConfigurationExportResponse } from '../dto/tournament-configuration-export.dto.js';
-import { TournamentCompletionResponse } from '../dto/tournament-completion.dto.js';
-import { ControlMatchesViewResponse } from '../dto/matches-view.dto.js';
-import { enforcePolicy } from '../policy/resource-policy.js';
-import { recordSensitiveRead } from '../http/sensitive-read-audit.js';
-import { DATABASE } from '../database.token.js';
+import type { RequestWithSubject } from '../auth/request-context.js';
 import {
-  exportTournamentConfiguration,
-  type TournamentConfigurationExportDocument,
-} from '../tournament-configuration-export.js';
-import { readMatchesView, type MatchesViewRow } from '../matches-view/read.js';
-import { seriesResponseOf } from './public-projections.controller.js';
-import { assertAllocationRequestComplete } from './stages.controller.js';
-import { zoneSeriesOverrides } from './stage-series.js';
+  customScriptVocabulary,
+  customScripts,
+  updateCustomScripts,
+} from '../tournaments/custom-scripts.js';
+import {
+  findByScopedAlias,
+  completion,
+  exportConfiguration,
+  matchesView,
+  entrantAttributeKeys,
+} from '../tournaments/reads.js';
+import { TournamentCompletionResponse } from '../dto/tournament-completion.dto.js';
+import { TournamentConfigurationExportResponse } from '../dto/tournament-configuration-export.dto.js';
+import type { TournamentConfigurationExportDocument } from '../tournament-configuration-export.js';
+import { ControlMatchesViewResponse } from '../dto/matches-view.dto.js';
+import { create } from '../tournaments/create-tournament.js';
+import { settings, previewSettingsMutation, updateSettings } from '../tournaments/settings.js';
+import {
+  rulesetOverrides,
+  previewRulesetOverrides,
+  updateRulesetOverrides,
+} from '../tournaments/ruleset-overrides.js';
+import { publish, archive, listActive } from '../tournaments/lifecycle.js';
 
 /**
  * Organization-scoped tournament routes. The path shape mirrors the URL contract
@@ -125,40 +92,7 @@ export class TournamentsController {
     @Param('organizationAlias') organizationAlias: string,
     @Req() request: RequestWithSubject,
   ): Promise<HookScriptVocabularyResponse> {
-    const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
-    if (!organization) {
-      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    enforcePolicy({
-      plane: 'admin-control',
-      subject: request.subject,
-      resource: { organizationId: organization.organizationId },
-    });
-
-    return {
-      hooks: [...TOURNAMENT_CUSTOM_SCRIPT_HOOKS],
-      entries: createHookScriptRegistry()
-        .list()
-        .map((entry) => ({
-          ...entry,
-          ...(entry.authoring
-            ? {
-                authoring: {
-                  ...entry.authoring,
-                  ...(entry.authoring.parameters
-                    ? {
-                        parameters: entry.authoring.parameters.map((parameter) => ({
-                          ...parameter,
-                        })),
-                      }
-                    : {}),
-                },
-              }
-            : {}),
-        })),
-    };
+    return customScriptVocabulary(this.db, organizationAlias, request);
   }
 
   @Get(':tournamentAlias')
@@ -173,21 +107,7 @@ export class TournamentsController {
     @Param('organizationAlias') organizationAlias: string,
     @Param('tournamentAlias') tournamentAlias: string,
   ): Promise<TournamentResponse> {
-    const tournament = await new TournamentRepository(this.db).findByScopedAlias(
-      organizationAlias,
-      tournamentAlias,
-    );
-    if (!tournament || tournament.status === 'draft') {
-      throw new NotFoundException(
-        `No tournament "${tournamentAlias}" in organization "${organizationAlias}"`,
-        { errorCode: 'tournament-not-found' },
-      );
-    }
-    enforcePolicy({
-      plane: 'public-read',
-      resource: { organizationId: tournament.organizationId },
-    });
-    return tournament;
+    return findByScopedAlias(this.db, organizationAlias, tournamentAlias);
   }
 
   @Get(':tournamentAlias/completion')
@@ -203,56 +123,7 @@ export class TournamentsController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Req() request: RequestWithSubject,
   ): Promise<TournamentCompletionResponse> {
-    const tournament = await new TournamentRepository(this.db).findByScopedAlias(
-      organizationAlias,
-      tournamentAlias,
-    );
-    if (!tournament) {
-      throw new NotFoundException(
-        `No tournament "${tournamentAlias}" in organization "${organizationAlias}"`,
-        { errorCode: 'tournament-not-found' },
-      );
-    }
-
-    const isControlRequest = Boolean(
-      request.subject && request.subject.organizationId === tournament.organizationId,
-    );
-
-    if (tournament.status === 'draft') {
-      if (!isControlRequest || !request.subject) {
-        throw new NotFoundException(
-          `No tournament "${tournamentAlias}" in organization "${organizationAlias}"`,
-          { errorCode: 'tournament-not-found' },
-        );
-      }
-      enforcePolicy({
-        plane: 'admin-control',
-        subject: request.subject,
-        resource: {
-          organizationId: tournament.organizationId,
-          ownerTournamentId: tournament.tournamentId,
-        },
-      });
-    } else {
-      if (isControlRequest && request.subject) {
-        enforcePolicy({
-          plane: 'admin-control',
-          subject: request.subject,
-          resource: {
-            organizationId: tournament.organizationId,
-            ownerTournamentId: tournament.tournamentId,
-          },
-        });
-      } else {
-        enforcePolicy({
-          plane: 'public-read',
-          resource: { organizationId: tournament.organizationId },
-        });
-      }
-    }
-
-    const competition = new CompetitionRepository(this.db);
-    return competition.getTournamentCompletion(tournament.tournamentId);
+    return completion(this.db, organizationAlias, tournamentAlias, request);
   }
 
   @Get(':tournamentAlias/export')
@@ -268,29 +139,7 @@ export class TournamentsController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Req() request: RequestWithSubject,
   ): Promise<TournamentConfigurationExportDocument> {
-    const tournament = await new TournamentRepository(this.db).findByScopedAlias(
-      organizationAlias,
-      tournamentAlias,
-    );
-    if (!tournament) {
-      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    enforcePolicy({
-      plane: 'admin-control',
-      subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
-    });
-    const exported = await exportTournamentConfiguration(this.db, tournament);
-    await recordSensitiveRead(this.db, {
-      organizationId: tournament.organizationId,
-      entityType: 'tournament',
-      entityId: tournament.tournamentId,
-      action: 'tournament.configuration-exported',
-      subject: request.subject,
-    });
-    return exported;
+    return exportConfiguration(this.db, organizationAlias, tournamentAlias, request);
   }
 
   /**
@@ -319,33 +168,15 @@ export class TournamentsController {
     @Query('state') state: 'all' | 'live' | 'upcoming' | 'final' | undefined,
     @Req() request: RequestWithSubject,
   ): Promise<ControlMatchesViewResponse> {
-    const tournament = await new TournamentRepository(this.db).findByScopedAlias(
+    return matchesView(
+      this.db,
       organizationAlias,
       tournamentAlias,
+      stageNumberValue,
+      groupId,
+      state,
+      request,
     );
-    if (!tournament) {
-      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    enforcePolicy({
-      plane: 'admin-control',
-      subject: request.subject,
-      resource: {
-        organizationId: tournament.organizationId,
-        ownerTournamentId: tournament.tournamentId,
-      },
-    });
-
-    const stageNumber = stageNumberValue === undefined ? undefined : Number(stageNumberValue);
-    if (stageNumber !== undefined && (!Number.isSafeInteger(stageNumber) || stageNumber < 1)) {
-      throw new BadRequestException(`Invalid stage number "${stageNumberValue}"`, {
-        errorCode: 'tournament-bad-request',
-      });
-    }
-
-    const rows = await readMatchesView(this.db, tournament, { stageNumber, groupId, state });
-    return { matches: rows.map(controlMatchResponseOf) };
   }
 
   /**
@@ -367,33 +198,7 @@ export class TournamentsController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Req() request: RequestWithSubject,
   ): Promise<EntrantAttributeKeysResponse> {
-    const tournament = await new TournamentRepository(this.db).findByScopedAlias(
-      organizationAlias,
-      tournamentAlias,
-    );
-    if (!tournament) {
-      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    enforcePolicy({
-      plane: 'admin-control',
-      subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
-    });
-
-    const byEntrant = await new EnrollmentRepository(this.db).listTournamentAttributes(
-      tournament.tournamentId,
-    );
-    const keys = new Set<string>();
-    for (const attributes of byEntrant.values()) {
-      for (const attribute of attributes) {
-        // Weighted allocation ranks on a numeric value; a categorical attribute
-        // (e.g. "region") has nothing to sort by.
-        if (attribute.kind === 'numeric') keys.add(attribute.key);
-      }
-    }
-    return { keys: [...keys].sort() };
+    return entrantAttributeKeys(this.db, organizationAlias, tournamentAlias, request);
   }
 
   @Post()
@@ -413,267 +218,7 @@ export class TournamentsController {
     @Body() body: CreateTournamentRequest,
     @Req() request: RequestWithSubject,
   ): Promise<TournamentResponse> {
-    const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
-    if (!organization) {
-      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-
-    const subject = request.subject;
-    enforcePolicy({
-      plane: 'admin-control',
-      subject,
-      resource: { organizationId: organization.organizationId },
-    });
-
-    const tournaments = new TournamentRepository(this.db);
-    const descriptor = await tournaments.findDescriptor(body.descriptorId, body.descriptorVersion);
-    if (!descriptor) {
-      throw new BadRequestException(
-        `Unknown discipline descriptor ${body.descriptorId}@${body.descriptorVersion}`,
-        { errorCode: 'tournament-bad-request' },
-      );
-    }
-
-    if (!Array.isArray(body.stages) || body.stages.length === 0) {
-      throw new BadRequestException('A tournament needs at least one declared stage', {
-        errorCode: 'tournament-bad-request',
-      });
-    }
-
-    const available = new Set<string>(descriptor.availableFormats);
-    const stageNumbers = new Set<number>();
-    body.stages.forEach((stage, index) => {
-      const format = stage.format;
-      if (!(SUPPORTED_FORMATS as readonly string[]).includes(format) || !available.has(format)) {
-        throw new BadRequestException(
-          `Discipline descriptor ${body.descriptorId}@${body.descriptorVersion} does not support ${format}`,
-          { errorCode: 'tournament-bad-request' },
-        );
-      }
-      const number = stage.number ?? index + 1;
-      if (stageNumbers.has(number)) {
-        throw new BadRequestException(`Stage number ${number} is declared more than once`, {
-          errorCode: 'tournament-bad-request',
-        });
-      }
-      stageNumbers.add(number);
-
-      if (stage.series !== undefined) {
-        // A placement format produces an ordering, not two sides that could contest
-        // a series — refused before anything is stored, so the wizard surfaces it as
-        // a configuration refusal rather than the operator meeting it at generation.
-        if (isPlacementFormat(format as TournamentFormat)) {
-          throw new BadRequestException(
-            `Stage ${number} format "${format}" produces an ordering rather than two sides, so it cannot declare a series`,
-            { errorCode: 'tournament-bad-request' },
-          );
-        }
-        const validated = validateSeriesDeclaration(stage.series);
-        if (!validated.ok) {
-          throw new BadRequestException(validated.error.message, {
-            errorCode: 'tournament-bad-request',
-          });
-        }
-      }
-
-      if (stage.allocation !== undefined) {
-        assertAllocationRequestComplete(stage.allocation);
-        const validated = validateAllocation(stage.allocation as StageAllocation);
-        if (!validated.ok) {
-          throw new BadRequestException(validated.error.message, {
-            errorCode: 'tournament-bad-request',
-          });
-        }
-      }
-      if (stage.groupConfiguration !== undefined) {
-        const groupError = validateStageGroupConfiguration(stage.groupConfiguration);
-        if (groupError) {
-          throw new BadRequestException(groupError, { errorCode: 'tournament-bad-request' });
-        }
-      }
-      assertZonePlanValid(
-        number,
-        format as TournamentFormat,
-        stage.zones,
-        descriptor.availableFormats,
-      );
-    });
-
-    const customScripts = validateCustomScripts(body.customScripts ?? []);
-
-    let profileToBind: TournamentProfile | undefined;
-    if (body.profileId !== undefined && body.profileVersion !== undefined) {
-      const profileRepo = new TournamentProfileRepository(this.db);
-      const profile = await profileRepo.find(body.profileId, body.profileVersion);
-      if (!profile) {
-        throw new BadRequestException(
-          `Unknown tournament profile ${body.profileId}@${body.profileVersion}`,
-          { errorCode: 'tournament-bad-request' },
-        );
-      }
-      const compilation = compileProfile(descriptor, profile);
-      if (!compilation.ok) {
-        throw new BadRequestException(
-          `Profile cannot be applied to descriptor: ${compilation.error.message}`,
-          { errorCode: 'tournament-bad-request' },
-        );
-      }
-      profileToBind = profile;
-    }
-
-    try {
-      return await withTransaction(this.db, async (uow) => {
-        const tournament = await tournaments.create(uow, {
-          organizationId: organization.organizationId,
-          alias: body.alias,
-          name: body.name,
-          descriptor,
-          ...(profileToBind
-            ? { profile: { profileId: profileToBind.profileId, version: profileToBind.version } }
-            : {}),
-          actor: `user:${subject?.subjectId ?? 'unknown'}`,
-          authorizationContext: (subject?.scopes ?? []).join(' '),
-        });
-        // Already validated non-empty above, before the transaction opened.
-        const [firstStage] = body.stages;
-        if (!firstStage) {
-          throw new InvariantViolationError('A tournament needs at least one declared stage', {});
-        }
-        const { ruleset, effective } = await tournaments.createRuleset(uow, {
-          tournamentId: tournament.tournamentId,
-          organizationId: organization.organizationId,
-          descriptor,
-          overrides: {
-            // Organizer-supplied overrides for any other discipline-declared field
-            // go first, so the wizard's own dedicated fields below —
-            // which already exclude these paths from their generic control list —
-            // still win if one somehow collides.
-            ...(body.ruleOverrides ?? {}),
-            // A stage added later with no explicit format defaults to this — see
-            // `StagesController.resolveFormat`. The first declared stage's format
-            // is the closest analogue to the single top-level `format` this
-            // replaced.
-            format: firstStage.format,
-            'registration.publicOpen': body.publicRegistration,
-            'registration.requiresCheckIn': body.requiresCheckIn,
-            ...(body.checkInClosesAt === undefined
-              ? {}
-              : { 'registration.checkInClosesAt': body.checkInClosesAt }),
-            ...(body.region === undefined ? {} : { 'registration.region': body.region }),
-            ...(body.capacity === undefined ? {} : { 'registration.capacity': body.capacity }),
-          },
-          customScripts,
-          actor: `user:${subject?.subjectId ?? 'unknown'}`,
-          authorizationContext: (subject?.scopes ?? []).join(' '),
-        });
-        await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
-          tournamentId: tournament.tournamentId,
-          ruleset: effective,
-          organizationId: organization.organizationId,
-          actor: `user:${subject?.subjectId ?? 'unknown'}`,
-          authorizationContext: (subject?.scopes ?? []).join(' '),
-        });
-
-        const competition = new CompetitionRepository(this.db);
-        for (const [index, stage] of body.stages.entries()) {
-          const number = stage.number ?? index + 1;
-          const name = stage.name ?? `Stage ${number}`;
-          const profileDefault = profileToBind?.stages.find(
-            (candidate) => candidate.number === number,
-          );
-          const groupConfiguration = (stage.groupConfiguration ??
-            profileDefault?.groupConfiguration) as StageGroupConfiguration | undefined;
-
-          const createdStage = await competition.createStageInTournament(uow, {
-            organizationId: organization.organizationId,
-            tournamentId: tournament.tournamentId,
-            name,
-            number,
-            format: stage.format as TournamentFormat,
-            actor: `user:${subject?.subjectId ?? 'unknown'}`,
-            authorizationContext: (subject?.scopes ?? []).join(' '),
-          });
-
-          // The declared zones are created now so their ids can key the zone-scoped series
-          // entries below, the same keys the zone management endpoint writes.
-          const zoneSeries: Record<string, unknown> = {};
-          for (const [zoneIndex, zone] of (stage.zones ?? []).entries()) {
-            const createdZone = await competition.createZone(uow, {
-              stageId: createdStage.stageId,
-              number: zoneIndex + 1,
-              name: zone.name.trim(),
-              ...(zone.format === undefined ? {} : { format: zone.format as TournamentFormat }),
-              organizationId: organization.organizationId,
-              actor: `user:${subject?.subjectId ?? 'unknown'}`,
-              authorizationContext: (subject?.scopes ?? []).join(' '),
-            });
-            if (zone.series !== undefined) {
-              Object.assign(zoneSeries, zoneSeriesOverrides(createdZone.zoneId, zone.series));
-            }
-          }
-
-          const overrides = {
-            ...(profileDefault?.overrides ?? {}),
-            ...zoneSeries,
-            ...(stage.series === undefined
-              ? {}
-              : {
-                  'series.span': stage.series.span,
-                  ...(stage.series.resolutionClass === undefined
-                    ? {}
-                    : { 'series.resolutionClass': stage.series.resolutionClass }),
-                  ...(stage.series.neutralGround === undefined
-                    ? {}
-                    : { 'series.neutralGround': stage.series.neutralGround }),
-                  ...(stage.series.standingsAccounting === undefined
-                    ? {}
-                    : { 'series.standingsAccounting': stage.series.standingsAccounting }),
-                }),
-          };
-          // The operator's own declaration overrides the profile's stage default,
-          // per "a tournament instance may override it per-stage".
-          const allocation = (stage.allocation ?? profileDefault?.allocation) as
-            StageAllocation | undefined;
-
-          if (
-            Object.keys(overrides).length > 0 ||
-            allocation !== undefined ||
-            groupConfiguration !== undefined
-          ) {
-            const stageConfiguration = await tournaments.createStageConfiguration(uow, {
-              organizationId: organization.organizationId,
-              stageId: createdStage.stageId,
-              rulesetId: ruleset.rulesetId,
-              overrides,
-              ...(allocation === undefined ? {} : { allocation }),
-              ...(groupConfiguration === undefined ? {} : { groupConfiguration }),
-              actor: `user:${subject?.subjectId ?? 'unknown'}`,
-              authorizationContext: (subject?.scopes ?? []).join(' '),
-            });
-            const compiledStage = compileEffectiveRuleset(descriptor, ruleset, stageConfiguration);
-            if (compiledStage.ok) {
-              await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
-                tournamentId: tournament.tournamentId,
-                stageId: createdStage.stageId,
-                ruleset: compiledStage.value,
-                organizationId: organization.organizationId,
-                actor: `user:${subject?.subjectId ?? 'unknown'}`,
-                authorizationContext: (subject?.scopes ?? []).join(' '),
-              });
-            }
-          }
-        }
-
-        return { ...tournament, rulesetId: ruleset.rulesetId };
-      });
-    } catch (error) {
-      if (error instanceof InvariantViolationError) {
-        throw new BadRequestException(error.message, { errorCode: 'tournament-bad-request' });
-      }
-      throw error;
-    }
+    return create(this.db, organizationAlias, body, request);
   }
 
   @Get(':tournamentAlias/settings')
@@ -690,26 +235,7 @@ export class TournamentsController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Req() request: RequestWithSubject,
   ): Promise<TournamentSettingsResponse> {
-    const tournaments = new TournamentRepository(this.db);
-    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
-    if (!tournament) {
-      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    enforcePolicy({
-      plane: 'admin-control',
-      subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
-    });
-
-    const ruleset = await tournaments.findLatestRuleset(tournament.tournamentId);
-    return this.settingsResponseOf(
-      tournament.name,
-      ruleset?.overrides ?? {},
-      tournament.featured,
-      tournament.emblemObjectId,
-    );
+    return settings(this.db, organizationAlias, tournamentAlias, request);
   }
 
   @Post(':tournamentAlias/settings/preview')
@@ -735,63 +261,7 @@ export class TournamentsController {
     @Body() body: TournamentSettingsRequest,
     @Req() request: RequestWithSubject,
   ): Promise<SeriesMutationPreviewResponse> {
-    const tournaments = new TournamentRepository(this.db);
-    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
-    if (!tournament) {
-      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    enforcePolicy({
-      plane: 'admin-control',
-      subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
-    });
-
-    const current = await tournaments.findLatestRuleset(tournament.tournamentId);
-    if (!current) {
-      throw new NotFoundException(`Tournament "${tournamentAlias}" has no ruleset`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    const descriptor = await tournaments.findDescriptor(
-      current.descriptorRef.descriptorId,
-      current.descriptorRef.version,
-    );
-    if (!descriptor) {
-      throw new NotFoundException('Tournament discipline descriptor is unavailable', {
-        errorCode: 'tournament-not-found',
-      });
-    }
-
-    const { hasRecordedResults, acceptedEntrantCount } = await tournaments.settingsMutationContext(
-      tournament.tournamentId,
-    );
-
-    const fields: SeriesMutationFieldPreview[] = [];
-    if (body.name !== undefined) {
-      fields.push({ field: 'name', mutationClass: 'safe' });
-    }
-    for (const [field, nextValue] of this.proposedRegistrationFields(body)) {
-      const decision = evaluateMutation(descriptor.fieldPolicies, field, {
-        hasRecordedResults,
-        previousValue: current.overrides[field],
-        nextValue,
-        acceptedEntrantCount,
-      });
-      if (!decision.ok) {
-        fields.push({ field, blocked: true, reason: decision.error.message });
-        continue;
-      }
-      fields.push({
-        field,
-        mutationClass: decision.value.mutationClass,
-        ...(decision.value.mutationClass === 'requires_rebuild'
-          ? { invalidatedFixtureCount: decision.value.invalidates.length }
-          : {}),
-      });
-    }
-    return { fields };
+    return previewSettingsMutation(this.db, organizationAlias, tournamentAlias, body, request);
   }
 
   @Put(':tournamentAlias/settings')
@@ -807,6 +277,7 @@ export class TournamentsController {
       'the whole edit rather than applying part of it.',
   })
   @ApiOkResponse({ type: TournamentSettingsResponse })
+  @ApiBadRequestResponse({ type: ProblemResponse })
   @ApiConflictResponse({ type: ProblemResponse })
   @ApiUnauthorizedResponse({ type: ProblemResponse })
   @ApiForbiddenResponse({ type: ProblemResponse })
@@ -817,165 +288,7 @@ export class TournamentsController {
     @Body() body: TournamentSettingsRequest,
     @Req() request: RequestWithSubject,
   ): Promise<TournamentSettingsResponse> {
-    const tournaments = new TournamentRepository(this.db);
-    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
-    if (!tournament) {
-      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    const subject = request.subject;
-    enforcePolicy({
-      plane: 'admin-control',
-      subject,
-      resource: { organizationId: tournament.organizationId },
-    });
-
-    const current = await tournaments.findLatestRuleset(tournament.tournamentId);
-    if (!current) {
-      throw new NotFoundException(`Tournament "${tournamentAlias}" has no ruleset`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    const descriptor = await tournaments.findDescriptor(
-      current.descriptorRef.descriptorId,
-      current.descriptorRef.version,
-    );
-    if (!descriptor) {
-      throw new NotFoundException('Tournament discipline descriptor is unavailable', {
-        errorCode: 'tournament-not-found',
-      });
-    }
-
-    const { hasRecordedResults, acceptedEntrantCount } = await tournaments.settingsMutationContext(
-      tournament.tournamentId,
-    );
-    const actor = `user:${subject?.subjectId ?? 'unknown'}`;
-    const authorizationContext = (subject?.scopes ?? []).join(' ');
-    const proposedFields = this.proposedRegistrationFields(body);
-    const nextOverrides: Record<string, unknown> = { ...current.overrides };
-
-    for (const [field, nextValue] of proposedFields) {
-      const decision = evaluateMutation(descriptor.fieldPolicies, field, {
-        hasRecordedResults,
-        previousValue: current.overrides[field],
-        nextValue,
-        acceptedEntrantCount,
-      });
-      if (!decision.ok) {
-        await recordAuditRefusal(
-          this.db,
-          {
-            organizationId: tournament.organizationId,
-            entityType: 'tournament',
-            entityId: tournament.tournamentId,
-            action: 'mutation.refused',
-            actor,
-            authorizationContext,
-            reason: decision.error.message,
-            previousState: { field, nextValue },
-          },
-          (error) => this.logger.error('Failed to record a refusal audit entry', error as Error),
-        );
-        throw new ConflictException(decision.error.message, {
-          errorCode: 'tournament-settings-conflict',
-        });
-      }
-      nextOverrides[field] = nextValue;
-    }
-
-    const finalName = body.name ?? tournament.name;
-    // A record field, applied directly like the name beside it — never routed
-    // through the descriptor's field policies, which classify ruleset overrides
-    // and have no opinion about a portal presentation flag.
-    const finalFeatured = body.featured ?? tournament.featured;
-    try {
-      return await withTransaction(this.db, async (uow) => {
-        if (body.name !== undefined) {
-          await tournaments.renameTournament(uow, {
-            tournamentId: tournament.tournamentId,
-            organizationId: tournament.organizationId,
-            name: body.name,
-            actor,
-            authorizationContext,
-          });
-        }
-        if (body.featured !== undefined && body.featured !== tournament.featured) {
-          await tournaments.setFeatured(uow, {
-            tournamentId: tournament.tournamentId,
-            organizationId: tournament.organizationId,
-            featured: body.featured,
-            actor,
-            authorizationContext,
-          });
-        }
-        if (proposedFields.length > 0) {
-          const { effective } = await tournaments.createRuleset(uow, {
-            tournamentId: tournament.tournamentId,
-            organizationId: tournament.organizationId,
-            descriptor,
-            overrides: nextOverrides,
-            customScripts: current.customScripts,
-            actor,
-            authorizationContext,
-            reason: 'Organizer edited tournament settings',
-          });
-          await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
-            tournamentId: tournament.tournamentId,
-            ruleset: effective,
-            organizationId: tournament.organizationId,
-            actor,
-            authorizationContext,
-          });
-        }
-        return this.settingsResponseOf(
-          finalName,
-          nextOverrides,
-          finalFeatured,
-          tournament.emblemObjectId,
-        );
-      });
-    } catch (error) {
-      if (error instanceof InvariantViolationError) {
-        throw new ConflictException(error.message, { errorCode: 'tournament-settings-conflict' });
-      }
-      throw error;
-    }
-  }
-
-  /** `region`/`capacity`/`checkInClosesAt` fields the operator actually proposed to change, as `registration.*` dot-paths. */
-  private proposedRegistrationFields(
-    body: TournamentSettingsRequest,
-  ): readonly (readonly [string, unknown])[] {
-    const proposed: [string, unknown][] = [];
-    if (body.region !== undefined) proposed.push(['registration.region', body.region]);
-    if (body.capacity !== undefined) proposed.push(['registration.capacity', body.capacity]);
-    if (body.checkInClosesAt !== undefined) {
-      proposed.push(['registration.checkInClosesAt', body.checkInClosesAt]);
-    }
-    return proposed;
-  }
-
-  private settingsResponseOf(
-    name: string,
-    overrides: Readonly<Record<string, unknown>>,
-    featured: boolean,
-    emblemObjectId?: string,
-  ): TournamentSettingsResponse {
-    return {
-      name,
-      featured,
-      ...(typeof overrides['registration.region'] === 'string'
-        ? { region: overrides['registration.region'] }
-        : {}),
-      ...(typeof overrides['registration.capacity'] === 'number'
-        ? { capacity: overrides['registration.capacity'] }
-        : {}),
-      ...(typeof overrides['registration.checkInClosesAt'] === 'string'
-        ? { checkInClosesAt: overrides['registration.checkInClosesAt'] }
-        : {}),
-      ...(emblemObjectId !== undefined ? { emblemObjectId } : {}),
-    };
+    return updateSettings(this.db, this.logger, organizationAlias, tournamentAlias, body, request);
   }
 
   @Get(':tournamentAlias/ruleset-overrides')
@@ -992,39 +305,7 @@ export class TournamentsController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Req() request: RequestWithSubject,
   ): Promise<RulesetOverridesResponse> {
-    const tournaments = new TournamentRepository(this.db);
-    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
-    if (!tournament) {
-      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    enforcePolicy({
-      plane: 'admin-control',
-      subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
-    });
-
-    const ruleset = await tournaments.findLatestRuleset(tournament.tournamentId);
-    if (!ruleset) {
-      throw new NotFoundException(`Tournament "${tournamentAlias}" has no ruleset`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    const descriptor = await tournaments.findDescriptor(
-      ruleset.descriptorRef.descriptorId,
-      ruleset.descriptorRef.version,
-    );
-    if (!descriptor) {
-      throw new NotFoundException('Tournament discipline descriptor is unavailable', {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    return {
-      overrides: { ...ruleset.overrides },
-      fieldPolicies: descriptor.fieldPolicies,
-      disciplineDefaults: descriptor.defaults,
-    };
+    return rulesetOverrides(this.db, organizationAlias, tournamentAlias, request);
   }
 
   @Post(':tournamentAlias/ruleset-overrides/preview')
@@ -1050,58 +331,7 @@ export class TournamentsController {
     @Body() body: RulesetOverridesRequest,
     @Req() request: RequestWithSubject,
   ): Promise<SeriesMutationPreviewResponse> {
-    const tournaments = new TournamentRepository(this.db);
-    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
-    if (!tournament) {
-      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    enforcePolicy({
-      plane: 'admin-control',
-      subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
-    });
-
-    const current = await tournaments.findLatestRuleset(tournament.tournamentId);
-    if (!current) {
-      throw new NotFoundException(`Tournament "${tournamentAlias}" has no ruleset`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    const descriptor = await tournaments.findDescriptor(
-      current.descriptorRef.descriptorId,
-      current.descriptorRef.version,
-    );
-    if (!descriptor) {
-      throw new NotFoundException('Tournament discipline descriptor is unavailable', {
-        errorCode: 'tournament-not-found',
-      });
-    }
-
-    const fieldNames = this.dedicatedRouteFieldsOf(body.overrides);
-    const { hasRecordedResults, acceptedEntrantCount } = await tournaments.settingsMutationContext(
-      tournament.tournamentId,
-    );
-
-    const fields: SeriesMutationFieldPreview[] = fieldNames.map((field) => {
-      const nextValue = body.overrides[field];
-      const decision = evaluateMutation(descriptor.fieldPolicies, field, {
-        hasRecordedResults,
-        previousValue: current.overrides[field],
-        nextValue,
-        acceptedEntrantCount,
-      });
-      if (!decision.ok) return { field, blocked: true, reason: decision.error.message };
-      return {
-        field,
-        mutationClass: decision.value.mutationClass,
-        ...(decision.value.mutationClass === 'requires_rebuild'
-          ? { invalidatedFixtureCount: decision.value.invalidates.length }
-          : {}),
-      };
-    });
-    return { fields };
+    return previewRulesetOverrides(this.db, organizationAlias, tournamentAlias, body, request);
   }
 
   @Put(':tournamentAlias/ruleset-overrides')
@@ -1129,122 +359,14 @@ export class TournamentsController {
     @Body() body: RulesetOverridesRequest,
     @Req() request: RequestWithSubject,
   ): Promise<RulesetOverridesResponse> {
-    const tournaments = new TournamentRepository(this.db);
-    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
-    if (!tournament) {
-      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    const subject = request.subject;
-    enforcePolicy({
-      plane: 'admin-control',
-      subject,
-      resource: { organizationId: tournament.organizationId },
-    });
-
-    const current = await tournaments.findLatestRuleset(tournament.tournamentId);
-    if (!current) {
-      throw new NotFoundException(`Tournament "${tournamentAlias}" has no ruleset`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    const descriptor = await tournaments.findDescriptor(
-      current.descriptorRef.descriptorId,
-      current.descriptorRef.version,
+    return updateRulesetOverrides(
+      this.db,
+      this.logger,
+      organizationAlias,
+      tournamentAlias,
+      body,
+      request,
     );
-    if (!descriptor) {
-      throw new NotFoundException('Tournament discipline descriptor is unavailable', {
-        errorCode: 'tournament-not-found',
-      });
-    }
-
-    const fieldNames = this.dedicatedRouteFieldsOf(body.overrides);
-    const { hasRecordedResults, acceptedEntrantCount } = await tournaments.settingsMutationContext(
-      tournament.tournamentId,
-    );
-    const actor = `user:${subject?.subjectId ?? 'unknown'}`;
-    const authorizationContext = (subject?.scopes ?? []).join(' ');
-    const nextOverrides: Record<string, unknown> = { ...current.overrides };
-
-    for (const field of fieldNames) {
-      const nextValue = body.overrides[field];
-      const decision = evaluateMutation(descriptor.fieldPolicies, field, {
-        hasRecordedResults,
-        previousValue: current.overrides[field],
-        nextValue,
-        acceptedEntrantCount,
-      });
-      if (!decision.ok) {
-        await recordAuditRefusal(
-          this.db,
-          {
-            organizationId: tournament.organizationId,
-            entityType: 'tournament-ruleset',
-            entityId: current.rulesetId,
-            action: 'mutation.refused',
-            actor,
-            authorizationContext,
-            reason: decision.error.message,
-            previousState: { field, nextValue },
-          },
-          (error) => this.logger.error('Failed to record a refusal audit entry', error as Error),
-        );
-        throw new ConflictException(decision.error.message, {
-          errorCode: 'tournament-ruleset-conflict',
-        });
-      }
-      nextOverrides[field] = nextValue;
-    }
-
-    try {
-      return await withTransaction(this.db, async (uow) => {
-        if (fieldNames.length > 0) {
-          const { effective } = await tournaments.createRuleset(uow, {
-            tournamentId: tournament.tournamentId,
-            organizationId: tournament.organizationId,
-            descriptor,
-            overrides: nextOverrides,
-            customScripts: current.customScripts,
-            actor,
-            authorizationContext,
-            reason: 'Organizer edited ruleset overrides',
-          });
-          await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
-            tournamentId: tournament.tournamentId,
-            ruleset: effective,
-            organizationId: tournament.organizationId,
-            actor,
-            authorizationContext,
-          });
-        }
-        return {
-          overrides: nextOverrides,
-          fieldPolicies: descriptor.fieldPolicies,
-          disciplineDefaults: descriptor.defaults,
-        };
-      });
-    } catch (error) {
-      if (error instanceof InvariantViolationError) {
-        throw new ConflictException(error.message, { errorCode: 'tournament-ruleset-conflict' });
-      }
-      throw error;
-    }
-  }
-
-  /** Field names from the request, refusing `customScripts`/`registration.capacity` — each keeps its own dedicated route. */
-  private dedicatedRouteFieldsOf(overrides: Readonly<Record<string, unknown>>): readonly string[] {
-    const fields = Object.keys(overrides);
-    const misrouted = fields.filter(
-      (field) => field === 'customScripts' || field === 'registration.capacity',
-    );
-    if (misrouted.length > 0) {
-      throw new BadRequestException(
-        `Field(s) ${misrouted.join(', ')} must be edited through their own dedicated route`,
-        { errorCode: 'tournament-bad-request' },
-      );
-    }
-    return fields;
   }
 
   @Get(':tournamentAlias/custom-scripts')
@@ -1260,20 +382,7 @@ export class TournamentsController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Req() request: RequestWithSubject,
   ): Promise<TournamentCustomScriptsResponse> {
-    const tournaments = new TournamentRepository(this.db);
-    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
-    if (!tournament) {
-      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    enforcePolicy({
-      plane: 'admin-control',
-      subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
-    });
-    const ruleset = await tournaments.findLatestRuleset(tournament.tournamentId);
-    return { customScripts: [...(ruleset?.customScripts ?? [])] };
+    return customScripts(this.db, organizationAlias, tournamentAlias, request);
   }
 
   @Put(':tournamentAlias/custom-scripts')
@@ -1291,65 +400,7 @@ export class TournamentsController {
     @Body() body: TournamentCustomScriptsResponse,
     @Req() request: RequestWithSubject,
   ): Promise<TournamentCustomScriptsResponse> {
-    const tournaments = new TournamentRepository(this.db);
-    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
-    if (!tournament) {
-      throw new NotFoundException(`No tournament "${tournamentAlias}"`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    enforcePolicy({
-      plane: 'admin-control',
-      subject: request.subject,
-      resource: { organizationId: tournament.organizationId },
-    });
-
-    const current = await tournaments.findLatestRuleset(tournament.tournamentId);
-    if (!current) {
-      throw new NotFoundException(`Tournament "${tournamentAlias}" has no ruleset`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    const descriptor = await tournaments.findDescriptor(
-      current.descriptorRef.descriptorId,
-      current.descriptorRef.version,
-    );
-    if (!descriptor) {
-      throw new NotFoundException('Tournament discipline descriptor is unavailable', {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    const customScripts = validateCustomScripts(body.customScripts ?? []);
-    const subject = request.subject;
-
-    try {
-      const updated = await withTransaction(this.db, async (uow) => {
-        const result = await tournaments.createRuleset(uow, {
-          tournamentId: tournament.tournamentId,
-          organizationId: tournament.organizationId,
-          descriptor,
-          overrides: current.overrides,
-          customScripts,
-          actor: `user:${subject?.subjectId ?? 'unknown'}`,
-          authorizationContext: (subject?.scopes ?? []).join(' '),
-          reason: 'Organizer updated custom event rules',
-        });
-        await new CompetitionRecordRepository(this.db).saveCompiledRuleset(uow, {
-          tournamentId: tournament.tournamentId,
-          ruleset: result.effective,
-          organizationId: tournament.organizationId,
-          actor: `user:${subject?.subjectId ?? 'unknown'}`,
-          authorizationContext: (subject?.scopes ?? []).join(' '),
-        });
-        return result;
-      });
-      return { customScripts: [...updated.ruleset.customScripts] };
-    } catch (error) {
-      if (error instanceof InvariantViolationError) {
-        throw new ConflictException(error.message, { errorCode: 'tournament-conflict' });
-      }
-      throw error;
-    }
+    return updateCustomScripts(this.db, organizationAlias, tournamentAlias, body, request);
   }
 
   @Post(':tournamentAlias/publish')
@@ -1370,30 +421,7 @@ export class TournamentsController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Req() request: RequestWithSubject,
   ): Promise<TournamentResponse> {
-    const tournaments = new TournamentRepository(this.db);
-    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
-    if (!tournament) {
-      throw new NotFoundException(
-        `No tournament "${tournamentAlias}" in organization "${organizationAlias}"`,
-        { errorCode: 'tournament-not-found' },
-      );
-    }
-
-    const subject = request.subject;
-    enforcePolicy({
-      plane: 'admin-control',
-      subject,
-      resource: { organizationId: tournament.organizationId },
-    });
-
-    return withTransaction(this.db, (uow) =>
-      tournaments.publish(uow, {
-        tournamentId: tournament.tournamentId,
-        organizationId: tournament.organizationId,
-        actor: `user:${subject?.subjectId ?? 'unknown'}`,
-        authorizationContext: (subject?.scopes ?? []).join(' '),
-      }),
-    );
+    return publish(this.db, organizationAlias, tournamentAlias, request);
   }
 
   @Post(':tournamentAlias/archive')
@@ -1416,39 +444,7 @@ export class TournamentsController {
     @Param('tournamentAlias') tournamentAlias: string,
     @Req() request: RequestWithSubject,
   ): Promise<TournamentResponse> {
-    const tournaments = new TournamentRepository(this.db);
-    const tournament = await tournaments.findByScopedAlias(organizationAlias, tournamentAlias);
-    if (!tournament) {
-      throw new NotFoundException(
-        `No tournament "${tournamentAlias}" in organization "${organizationAlias}"`,
-        { errorCode: 'tournament-not-found' },
-      );
-    }
-
-    const subject = request.subject;
-    enforcePolicy({
-      plane: 'admin-control',
-      subject,
-      resource: { organizationId: tournament.organizationId },
-    });
-
-    try {
-      return await withTransaction(this.db, (uow) =>
-        tournaments.archive(uow, {
-          tournamentId: tournament.tournamentId,
-          organizationId: tournament.organizationId,
-          actor: `user:${subject?.subjectId ?? 'unknown'}`,
-          authorizationContext: (subject?.scopes ?? []).join(' '),
-        }),
-      );
-    } catch (error) {
-      // An illegal transition is a state conflict, not a malformed request —
-      // matches the existing InvariantViolationError -> 409 convention
-      // (installation-bootstrap.controller.ts, seeding.controller.ts).
-      if (error instanceof InvariantViolationError)
-        throw new ConflictException(error.message, { errorCode: 'tournament-conflict' });
-      throw error;
-    }
+    return archive(this.db, organizationAlias, tournamentAlias, request);
   }
 
   @Get()
@@ -1466,153 +462,6 @@ export class TournamentsController {
     @Param('organizationAlias') organizationAlias: string,
     @Req() request: RequestWithSubject,
   ): Promise<readonly TournamentResponse[]> {
-    const organization = await new OrganizationRepository(this.db).findByAlias(organizationAlias);
-    if (!organization) {
-      throw new NotFoundException(`No organization with alias "${organizationAlias}"`, {
-        errorCode: 'tournament-not-found',
-      });
-    }
-    enforcePolicy({
-      plane: 'admin-control',
-      subject: request.subject,
-      resource: { organizationId: organization.organizationId },
-    });
-
-    const tournaments = await new TournamentRepository(this.db).listActiveByOrganization(
-      organization.organizationId,
-    );
-    const overviewReadModel = new PublicOverviewReadModel(this.db);
-
-    return Promise.all(
-      tournaments.map(async (t) => {
-        if (t.status === 'finished' || t.status === 'archived' || t.status === 'draft') {
-          return t;
-        }
-        const matches = await overviewReadModel.matchesForTournament(t.tournamentId);
-        if (matches.length > 0 && matches.every((m) => m.status === 'finalized')) {
-          return { ...t, status: 'finished' as const };
-        }
-        if (matches.some((m) => m.status === 'in-progress' || m.status === 'finalized')) {
-          return { ...t, status: 'started' as const };
-        }
-        return t;
-      }),
-    );
+    return listActive(this.db, organizationAlias, request);
   }
-}
-
-/**
- * Every card that resolved a tiebreak gets its full trace unconditionally:
- * reaching this route at all already required `org.view-internal-standings`
- * for this tournament, so there is no further per-match narrowing to apply.
- */
-function controlMatchResponseOf(
-  row: MatchesViewRow,
-): ControlMatchesViewResponse['matches'][number] {
-  const homeTrace =
-    row.homeEntrantId === undefined || row.rawTrace === undefined
-      ? []
-      : traceLines(traceForEntrant(row.rawTrace, row.homeEntrantId));
-  const awayTrace =
-    row.awayEntrantId === undefined || row.rawTrace === undefined
-      ? []
-      : traceLines(traceForEntrant(row.rawTrace, row.awayEntrantId));
-
-  return {
-    matchId: row.matchId,
-    stageNumber: row.stageNumber,
-    matchNumber: row.matchNumber,
-    round: row.round,
-    status: row.status,
-    ...(row.homeEntrantId === undefined ? {} : { homeEntrantId: row.homeEntrantId }),
-    ...(row.homeName === undefined ? {} : { homeName: row.homeName }),
-    ...(row.homeAbbreviation === undefined ? {} : { homeAbbreviation: row.homeAbbreviation }),
-    ...(row.awayEntrantId === undefined ? {} : { awayEntrantId: row.awayEntrantId }),
-    ...(row.awayName === undefined ? {} : { awayName: row.awayName }),
-    ...(row.awayAbbreviation === undefined ? {} : { awayAbbreviation: row.awayAbbreviation }),
-    ...(row.homeScore === undefined ? {} : { homeScore: row.homeScore }),
-    ...(row.awayScore === undefined ? {} : { awayScore: row.awayScore }),
-    ...(row.clockSeconds === undefined ? {} : { clockSeconds: row.clockSeconds }),
-    ...(row.venueName === undefined ? {} : { venueName: row.venueName }),
-    ...(row.latestEvent === undefined ? {} : { latestEvent: row.latestEvent }),
-    ...(row.zoneName === undefined ? {} : { zoneName: row.zoneName }),
-    ...(row.groupName === undefined ? {} : { groupName: row.groupName }),
-    ...(row.homePosition === undefined ? {} : { homePosition: row.homePosition }),
-    ...(row.awayPosition === undefined ? {} : { awayPosition: row.awayPosition }),
-    ...(row.series === undefined ? {} : { series: seriesResponseOf(row.series) }),
-    ...(row.decidingFactor === undefined ? {} : { decidingFactor: row.decidingFactor }),
-    ...(homeTrace.length === 0 ? {} : { homeTrace: [...homeTrace] }),
-    ...(awayTrace.length === 0 ? {} : { awayTrace: [...awayTrace] }),
-  };
-}
-
-/**
- * Refuses, before anything is stored, a zone plan the zone management endpoint would refuse: a
- * format the discipline does not offer, a series on a placement format, an invalid series, an
- * empty name or two zones of one stage sharing one.
- */
-function assertZonePlanValid(
-  stageNumber: number,
-  stageFormat: TournamentFormat,
-  zones: CreateTournamentStageRequest['zones'],
-  availableFormats: readonly TournamentFormat[],
-): void {
-  const refuse = (message: string): never => {
-    throw new BadRequestException(message, { errorCode: 'tournament-bad-request' });
-  };
-  const names = new Set<string>();
-  for (const zone of zones ?? []) {
-    const name = zone.name.trim();
-    if (name === '') refuse(`Stage ${stageNumber} declares a zone without a name`);
-    if (names.has(name)) refuse(`Stage ${stageNumber} declares the zone "${name}" more than once`);
-    names.add(name);
-
-    if (zone.format !== undefined) {
-      if (!(SUPPORTED_FORMATS as readonly string[]).includes(zone.format)) {
-        refuse(
-          `Zone "${name}" of stage ${stageNumber} declares an unsupported format "${zone.format}"`,
-        );
-      }
-      const valid = validateZoneFormat(
-        { zoneId: name },
-        zone.format as TournamentFormat,
-        availableFormats,
-      );
-      if (!valid.ok) refuse(`Zone "${name}" of stage ${stageNumber}: ${valid.error.message}`);
-    }
-
-    if (zone.series !== undefined) {
-      const effective = (zone.format ?? stageFormat) as TournamentFormat;
-      if (isPlacementFormat(effective)) {
-        refuse(
-          `Zone "${name}" of stage ${stageNumber} plays "${effective}", which produces an ordering rather than two sides, so it cannot declare a series`,
-        );
-      }
-      const validated = validateSeriesDeclaration(zone.series);
-      if (!validated.ok) refuse(validated.error.message);
-    }
-  }
-}
-
-function validateCustomScripts(
-  input: readonly HookScriptAttachment[],
-): readonly HookScriptAttachment[] {
-  const registry = createHookScriptRegistry();
-  for (const attachment of input) {
-    const hook = validateHookScriptAttachment(attachment);
-    if (!hook.ok) {
-      throw new BadRequestException(hook.error.message, { errorCode: 'tournament-bad-request' });
-    }
-    const references = validateHookScriptDocument(
-      registry,
-      'event.recorded',
-      attachment.script as unknown as RuleScript,
-    );
-    if (!references.ok) {
-      throw new BadRequestException(references.error.message, {
-        errorCode: 'tournament-bad-request',
-      });
-    }
-  }
-  return input;
 }

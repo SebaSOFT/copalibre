@@ -62,15 +62,16 @@ venue line entirely — never a placeholder — when none is assigned.
 - **THEN** its card shows no venue line, not an empty or placeholder one
 
 ### Requirement: A match card shows its latest recorded event generically
-A card for a match with at least one recorded event SHALL show that latest event's description and
-the moment it occurred, whatever discipline event type it is — the card SHALL NOT special-case any
-specific event code, so a discipline that declares a new event type appears correctly with no card
-change required. A card for a match with no recorded event SHALL show no event line at all.
+A card for a match with at least one recorded event SHALL show that latest event's description, in the page language through the discipline-label fallback chain, and the moment it occurred, whatever discipline event type it is. The card SHALL NOT special-case any specific event code, so a discipline that declares a new event type appears correctly with no card change required. A card for a match with no recorded event SHALL show no event line at all.
 
 #### Scenario: The latest event is shown regardless of its type
 - **WHEN** a match's most recently recorded event is any event type its discipline declares
 - **THEN** the card shows that event's description and timing, without the card needing to know that
   specific event code in advance
+
+#### Scenario: The latest event is in the page language
+- **WHEN** a Spanish page shows a card whose latest event is a goal whose descriptor labels it "Gol" in Spanish
+- **THEN** the card reads "Gol", not "Goal"
 
 #### Scenario: A match with no events shows no event line
 - **WHEN** a match has no recorded events yet
@@ -90,26 +91,6 @@ rendering rules — never both a bare position and series state on the same card
 - **WHEN** a card represents a cross settled by a series
 - **THEN** the card shows the series' progress and, where resolved, its aggregate state, and shows no
   standings position
-
-### Requirement: A finalized match states its deciding factor without exposing the full trace
-A card for a finalized match whose result required a tiebreak comparator to separate two standings
-rows SHALL show one line naming the deciding factor (for example, "decided by head-to-head goal
-difference"). It SHALL NOT expose the full internal comparator trace, its intermediate values, or any
-line beyond the single deciding-factor statement. A card for a finalized match whose result required
-no tiebreak comparison SHALL show no deciding-factor line.
-
-#### Scenario: A tiebreak-decided match names its deciding factor
-- **WHEN** a finalized match's outcome caused a tiebreak comparator to separate two standings rows
-- **THEN** its card states the deciding factor in one line
-
-#### Scenario: A match with no tiebreak involved shows no deciding-factor line
-- **WHEN** a finalized match's outcome required no tiebreak comparison
-- **THEN** its card shows no deciding-factor line
-
-#### Scenario: The deciding-factor line never carries the full trace
-- **WHEN** a card's deciding-factor line is rendered
-- **THEN** it contains only the single stated factor, none of the internal trace's other steps or
-  intermediate values
 
 ### Requirement: The matches view respects tournament and stage publication state
 An anonymous visitor requesting the matches view for an unpublished tournament, or scoped to a stage
@@ -181,11 +162,12 @@ concatenated inline text.
 - **THEN** that option shows a visible active state distinct from the unselected options
 
 ### Requirement: Generic Hierarchical Match Schedule Filtering
+
 The public match schedule component SHALL dynamically inspect the tournament's structural hierarchy
 and provide multi-level filtering controls across arbitrary numbers of stages, zones, groups, and
-rounds, keeping vertical scroll bounded regardless of match volume. This filter bar SHALL replace, not
-duplicate, any prior flat state-only filter for the same view, and every selection SHALL be carried in
-the page's URL query string so a filtered view is linkable and server-renders with scripting off.
+rounds. This filter bar SHALL replace, not duplicate, any prior flat state-only filter for the same
+view, and every selection SHALL be carried in the page's URL query string so a filtered view is
+linkable and server-renders with scripting off.
 
 #### Scenario: Stage with multiple zones and groups
 - **WHEN** a stage defines more than one zone and/or more than one group
@@ -201,6 +183,11 @@ the page's URL query string so a filtered view is linkable and server-renders wi
 - **WHEN** matches are scheduled across distinct rounds
 - **THEN** matches are grouped under round section headers, each match showing its own venue and
   localized kickoff time
+
+#### Scenario: Scroll stays bounded however many matches there are
+
+- **WHEN** a tournament holds a large number of matches
+- **THEN** the filtering keeps the schedule's vertical scroll bounded
 
 ### Requirement: Match timestamps render identically on server and client
 Every timestamp `MatchCard` renders SHALL resolve its locale from the page's active locale — the same
@@ -313,3 +300,306 @@ The tournament overview SHALL show the same grouped schedule with each stage col
 #### Scenario: Nothing opens when everything is played
 - **WHEN** every match is final
 - **THEN** every stage is collapsed and opens with one click, so the standings stay within reach
+
+### Requirement: A rescheduled match states its previous placement until it starts
+
+A match whose published placement changed SHALL show its current start and venue, and a "rescheduled"
+statement naming its previous start, and its previous venue when that changed, until the match starts.
+The statement SHALL render without JavaScript, SHALL be in the organization's language, and SHALL NOT rely
+on color alone.
+
+#### Scenario: A moved match says where it was
+
+- **WHEN** a spectator opens the matches view after a match moved from 14:30 to 18:00
+- **THEN** the card shows 18:00 and reads that it was rescheduled from 14:30
+
+#### Scenario: A venue change is named too
+
+- **WHEN** a match moved from Court 1 to Court 2 at the same time
+- **THEN** the card names Court 2 and reads that it was moved from Court 1
+
+#### Scenario: The statement ends when the match starts
+
+- **WHEN** the rescheduled match starts
+- **THEN** its card no longer shows the rescheduled statement
+
+#### Scenario: A first placement is not a reschedule
+
+- **WHEN** a match is placed for the first time
+- **THEN** its card shows no rescheduled statement
+
+### Requirement: An undecided side names its source
+
+A match card SHALL show an undecided side as its source, in the organization's language: the winner or loser of a named match, or a placement label. It SHALL NOT be blank or a generic placeholder, and its two sides SHALL NOT read the same while their sources differ. Both sides SHALL use the same long or short form. A decided side SHALL show its entrant. The wording SHALL be discipline-agnostic, SHALL NOT rely on color alone, and SHALL render without JavaScript.
+
+#### Scenario: An undecided semi-final names its feeders
+
+- **WHEN** a spectator views a published semi-final whose quarter-finals are unplayed
+- **THEN** its card reads "Winner of Quarter-final 1" against "Winner of Quarter-final 2" in the
+  organization's language, with the slot's date, time and venue
+
+#### Scenario: A resolved side shows the entrant
+
+- **WHEN** one feeder of a semi-final is decided
+- **THEN** that side shows the winning entrant and the other side still names its source
+
+#### Scenario: A placement game names what it settles
+
+- **WHEN** a spectator views an unplayed third-place game whose semi-finals are unplayed
+- **THEN** the card is labelled third place and its sides read "Loser of Semi-final 1" and "Loser of
+  Semi-final 2"
+
+#### Scenario: Two placement feeders are told apart
+
+- **WHEN** a spectator views an unplayed 5th-place game fed by the winners of the two 5th-to-8th placement semi-finals
+- **THEN** its sides read "Ganador de 5º al 8º puesto (1)" and "Ganador de 5º al 8º puesto (2)", not the same text twice
+
+#### Scenario: Both sides share one form
+
+- **WHEN** a final's two sources are both undecided
+- **THEN** both sides use the long form, or both the short form, never one of each
+
+#### Scenario: The source renders without JavaScript
+
+- **WHEN** the matches view is loaded with JavaScript disabled
+- **THEN** every undecided side shows its source text
+
+### Requirement: A qualifier side names its position
+
+A match card SHALL show an undecided qualifier-sourced side by its position's label, in the
+organization's language: a rank and a group, a cohort rank and order, or a qualifier number. It SHALL
+render without JavaScript, and SHALL NOT rely on color alone.
+
+#### Scenario: A qualifier side names its group position
+
+- **WHEN** a spectator views a cup quarter-final generated ahead from a group-then-rank plan
+- **THEN** its sides read, for example, "1st Group A" and "2nd Group B"
+
+#### Scenario: A ranked qualifier names its cohort
+
+- **WHEN** a spectator views a cup quarter-final whose side is the second-best runner-up of a ranked plan
+- **THEN** that side reads "2nd best runner-up" in the organization's language
+
+### Requirement: Public match cards name their group or round
+
+A public match card SHALL be titled by its group, else by its round name, and SHALL show the match's stage ordinal as secondary text. The public overview's match data SHALL carry each match's zone and group names, omitting implicit ones, and its stage ordinal.
+
+#### Scenario: Three matches in Now
+
+- **WHEN** the overview's Now strip shows three matches from different groups
+- **THEN** each card is titled by its group name and shows its distinct stage ordinal as secondary text
+
+#### Scenario: A knockout match names its round
+
+- **WHEN** a card shows a single-elimination semifinal with no group
+- **THEN** the card is titled with the semifinal's name, not only a match number
+
+#### Scenario: A match with neither group nor round
+
+- **WHEN** a card's match has no group and no round
+- **THEN** the card is titled with its match number alone
+
+### Requirement: A live match shows a numeric score on every public surface
+
+A public match card, a schedule row, the match report hero and a bracket node SHALL show 0 for a side of a live match with no recorded score, as TV does, and SHALL keep the dash for a match that has not started.
+
+#### Scenario: Live at 0–0
+
+- **WHEN** a match is in progress and no score is recorded yet
+- **THEN** its card, its schedule row, its report hero and its bracket node show 0 and 0
+
+#### Scenario: Not started
+
+- **WHEN** a match has not started
+- **THEN** its full card and bracket node show no numeric score
+
+### Requirement: The schedule features the live match ahead of an undecided one
+
+The Matches page SHALL feature the earliest live match; with none live, the earliest upcoming match whose two sides are decided; with neither, the highest stage's finished final.
+
+#### Scenario: Featured choice
+
+- **WHEN** one match is live and an undecided final exists
+- **THEN** the live match is featured
+
+#### Scenario: Nothing live
+
+- **WHEN** no match is live, the final's sides are undecided, and a decided match is scheduled
+- **THEN** the earliest decided upcoming match is featured, not the final
+
+### Requirement: Long public match lists group by day on phones
+
+Below the 768px breakpoint, Matches and the stage page SHALL list matches by day in the organization's time zone, each day a native disclosure that works without JavaScript, with one compact row per match. The open day SHALL be the earliest live match's day, else the next match's day, else the last day. Wider layouts SHALL not change.
+
+#### Scenario: Matches at 375px during a tournament
+
+- **WHEN** a spectator opens Matches at 375px while a match is live
+- **THEN** the live match's day is open, every other day is one closed row naming the day and its match count, and each listed match is a two-line row linking to its report
+
+#### Scenario: Without JavaScript
+
+- **WHEN** JavaScript is off and a spectator opens a closed day
+- **THEN** its matches are listed
+
+#### Scenario: Desktop
+
+- **WHEN** a spectator opens Matches at 1440px
+- **THEN** the stage, zone, group and round tables show as before and no day list is visible
+
+### Requirement: Live lists the next five matches
+
+The Live page SHALL list its live matches, then its delayed matches, then the next 5 upcoming matches whose kickoff has not passed, in kickoff order, then a link to the upcoming matches on Matches. Each listed match SHALL link to its own match report.
+
+#### Scenario: Many upcoming matches
+
+- **WHEN** 64 matches are upcoming
+- **THEN** Live lists 5 of them, the earliest first, each linking to a different report, followed by a link to Matches
+
+#### Scenario: A delayed match is not upcoming
+
+- **WHEN** a match is still scheduled 20 minutes after its kickoff
+- **THEN** Live lists it after the live matches as delayed and not among the 5 upcoming matches
+
+### Requirement: Every public match card reads its time in the organization's time zone
+
+Every public surface that renders a match card, including the stage page, SHALL format its date and time in the organization's time zone, so the same match shows the same date and time on every public page.
+
+#### Scenario: Stage page and matches page agree
+
+- **WHEN** an organization in America/Argentina/Buenos_Aires has a match at 19:00 local time and a spectator opens its stage page and the matches page
+- **THEN** both show the match at 19:00 on the same day
+
+#### Scenario: A late match keeps its day
+
+- **WHEN** a match starts at 21:15 local time in a zone three hours behind UTC
+- **THEN** the stage page shows it on its local day at 21:15, not on the next day
+
+### Requirement: A placement label counts places within its zone
+
+A placement game's label SHALL count the places it settles among the games of its own zone only, SHALL use one wording family on cards and in brackets, and SHALL name its zone when it appears outside that zone's own section in a stage with more than one zone.
+
+#### Scenario: Three cups with placement semi-finals
+
+- **WHEN** each of three cups has two 5th-to-8th placement semi-finals
+- **THEN** each of those games reads "5º al 8º puesto", not "Puestos 5–16"
+
+#### Scenario: A placement game in the Now strip
+
+- **WHEN** a Copa Plata 5th-place game appears in a list that mixes zones
+- **THEN** it reads "Copa Plata · 5º puesto"
+
+### Requirement: Bracket nodes show their schedule and the zone they belong to
+
+A bracket SHALL be titled by its zone's name when the stage has explicit zones. A node of a scheduled match SHALL show its date and time in the organization's time zone and its venue when published. A decided slot filled from a qualifier position SHALL keep that position's label as secondary text.
+
+#### Scenario: A scheduled semi-final node
+
+- **WHEN** a semi-final is scheduled for 23 November at 18:00 at Aldo Cantoni
+- **THEN** its bracket node shows that date, time and venue, not only a scheduled badge
+
+#### Scenario: A cup bracket heading
+
+- **WHEN** a stage has the zones Copa Oro, Copa Plata and Copa Bronce
+- **THEN** each main bracket is titled with its zone name
+
+#### Scenario: A qualified slot keeps its origin
+
+- **WHEN** the entrant ranked first in Grupo C fills a quarter-final slot
+- **THEN** the slot shows the entrant and, as secondary text, "1.° Grupo C"
+
+### Requirement: Placement games are listed in one order in every zone
+
+A zone's placement games SHALL be listed by the best place each settles, then by round, then by position, and every zone of a stage SHALL use that same order.
+
+#### Scenario: Copa Oro and Copa Plata placement lists
+
+- **WHEN** both cups have a 3rd-place game, two 5th-to-8th semi-finals, a 5th-place and a 7th-place game
+- **THEN** both list 3rd place, the two 5th-to-8th semi-finals, 5th place, then 7th place
+
+### Requirement: The schedule filters by match day
+
+Matches SHALL offer a day filter with an all-days choice, today and tomorrow when those days have matches, and one choice per match day, each a calendar day in the organization's time zone. The selected day SHALL be kept in the URL as `day=YYYY-MM-DD`, SHALL combine with the other filters, and SHALL work without JavaScript.
+
+#### Scenario: Tomorrow's matches
+
+- **WHEN** a spectator chooses tomorrow on Matches at 1440px
+- **THEN** only matches whose kickoff falls on the next calendar day in the organization's time zone are listed and the URL carries that date
+
+### Requirement: A scheduled match past its kickoff reads as delayed
+
+A public surface SHALL label a scheduled match as delayed once 15 minutes have passed since its kickoff without it going live or final, SHALL NOT list it among upcoming matches, and SHALL NOT convey the state by colour alone. The state is derived at render time and never stored.
+
+#### Scenario: Unstarted after kickoff
+
+- **WHEN** a match scheduled for 08:30 is still scheduled at 08:50
+- **THEN** its card reads delayed and the overview's upcoming list does not include it
+
+### Requirement: The schedule can be filtered to one club
+
+The public matches page SHALL offer a club filter, carried as `club={clubAlias}` in its query string,
+applied by the server, combinable with the stage, zone, group and state filters, and listing only
+clubs of the tournament that have an alias.
+
+#### Scenario: One club's matches
+- **WHEN** a visitor selects Club Hispano in the club filter
+- **THEN** the URL carries `club=club-hispano` and the schedule lists only matches in which Club
+  Hispano is home or away
+
+#### Scenario: Scripts off
+- **WHEN** a visitor with scripts off opens the matches page with `club=club-hispano`
+- **THEN** the server renders only that club's matches
+
+#### Scenario: Unknown or blank club
+- **WHEN** the query names an alias that is not a club of the tournament, is malformed, or is blank
+- **THEN** the club is ignored: the schedule is unfiltered by club and the filter disclosure does not
+  open on its account
+
+#### Scenario: Repeated club parameter
+- **WHEN** the query repeats `club`
+- **THEN** the first non-blank value decides and the page answers without an error
+
+### Requirement: Matches view rows carry club aliases
+
+Each public matches-view row SHALL carry the home and away clubs' aliases when those clubs have one.
+
+#### Scenario: Aliased clubs
+- **WHEN** a client reads a matches-view row between two clubs with aliases
+- **THEN** the row carries `homeClubAlias` and `awayClubAlias`
+
+### Requirement: Matches view rows name the winner of a finished match
+
+Each finished public matches-view row with a winner SHALL carry `winnerEntrantId`: the series winner
+when a series settles the match, otherwise the higher score, otherwise the side the standings rank first
+when a deciding factor settled a level match. A level match without a deciding factor, and any
+undecided or live match, carries none.
+
+#### Scenario: Level match settled by a deciding factor
+- **WHEN** a finished match is level on score and a deciding factor ranks one side first
+- **THEN** the row carries that side's entrant id as `winnerEntrantId`, and the club's result on the
+  club page reads as won or lost, never as drawn
+
+#### Scenario: Level group match
+- **WHEN** a finished group match is level on score with no deciding factor
+- **THEN** the row carries no `winnerEntrantId`
+
+### Requirement: Schedule presentation choices are offered only where they change the view
+The schedule SHALL offer the view choice (table or cards) and the density choice (detailed or compact) only when the selected scope holds at least one match outside a zone drawn as a bracket. A request carrying either choice for a scope drawn entirely as brackets SHALL render the brackets and SHALL NOT show the choices.
+
+#### Scenario: A cup scope offers no view toggle
+- **WHEN** a visitor filters the schedule to one cup zone drawn as a bracket
+- **THEN** no view or density choice is shown, and the bracket is rendered
+
+#### Scenario: A small group scope still offers cards
+- **WHEN** a visitor filters the schedule to one group of six matches
+- **THEN** the view choice is shown, and choosing cards changes the rendered presentation
+
+### Requirement: Schedule filter rows stay consistent with each other
+Choosing a zone or a group in the schedule filter SHALL select the stage that contains it in the stage row, and choosing a group SHALL select its zone. Resetting a higher row to all SHALL clear the rows beneath it. The URL SHALL carry the consistent selection.
+
+#### Scenario: Choosing a cup selects its stage
+- **WHEN** a visitor with no stage selected chooses the zone Copa Oro
+- **THEN** the stage row shows the stage that contains Copa Oro as selected, and the URL carries that stage number
+
+#### Scenario: Resetting the stage clears the zone
+- **WHEN** a visitor viewing Copa Oro sets the stage row back to all
+- **THEN** the zone and group rows return to all

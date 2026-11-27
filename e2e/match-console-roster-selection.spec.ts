@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from './csp-guard.js';
 import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './support/control-login.js';
 
 /**
@@ -11,7 +11,7 @@ import { loginCallbackUrl, seedLoginTransaction, TOKEN_ENDPOINT } from './suppor
  */
 
 const matchId = '00000000-0000-7000-8000-000000000004';
-const orgPath = `/organizations/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
+const orgPath = `/api/organizations/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
 const controlPath = `/control/liga-mendocina/tournaments/apertura-2026/matches/${matchId}`;
 
 interface CapturedRequest {
@@ -57,6 +57,7 @@ function projection(rosters: readonly unknown[] = []) {
     rosters,
     rosterRoles: [{ code: 'captain', label: 'Captain', badge: 'C' }],
     eligibleStaffIds: [],
+    segmentPlan: { addable: [] },
     entrants: [
       { entrantId: 'entrant-a', name: 'Club Atlético Norte', abbreviation: 'CAN' },
       { entrantId: 'entrant-b', name: 'Deportivo Cuyo', abbreviation: 'DCU' },

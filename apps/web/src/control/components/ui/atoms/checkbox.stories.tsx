@@ -55,3 +55,37 @@ export const Matrix: Story = {
     );
   },
 };
+
+/** The ring follows the visible box, not the 44px target around it. */
+export const Focused: Story = {
+  args: { checked: false },
+  render: function Render(args) {
+    const intl = useIntl();
+    return <Checkbox {...args} aria-label={intl.formatMessage(storyText.tournaments)} />;
+  },
+  play: ({ canvasElement }) => {
+    canvasElement.querySelector<HTMLElement>('[role="checkbox"]')?.focus();
+  },
+};
+
+/** Beside a label the box lines up with the column and the target overhangs it. */
+export const BesideALabel: Story = {
+  args: { checked: true },
+  render: function Render(args) {
+    const [checked, setChecked] = useState(args.checked);
+    const intl = useIntl();
+    return (
+      <div style={{ borderInlineStart: '1px solid var(--cl-state-live)' }}>
+        <Label className="cl-toggle" htmlFor="story-checkbox-row">
+          <Checkbox
+            {...args}
+            checked={checked}
+            id="story-checkbox-row"
+            onCheckedChange={setChecked}
+          />
+          <span>{intl.formatMessage(storyText.tournaments)}</span>
+        </Label>
+      </div>
+    );
+  },
+};

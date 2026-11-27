@@ -48,6 +48,8 @@ export interface Person {
   readonly photoObjectId?: string;
   /** The club this person is affiliated with; absent for a person with no club affiliation. */
   readonly clubId?: string;
+  /** Person-level public-page opt-out; changing it is `safe` and leaves results untouched. */
+  readonly hiddenFromPublic?: boolean;
 }
 
 export const PLAYER_ROLES = ['player', 'substitute', 'coach', 'staff'] as const;

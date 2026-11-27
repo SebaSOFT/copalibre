@@ -1,6 +1,7 @@
 import { authorizationUrl, createPkcePair, verifyCallbackState } from './pkce.js';
 import { readRuntimeConfig } from './runtime-config.js';
 import type { SilentRenewalOutcome } from './renewal-outcome.js';
+import { handOverOidcToken } from './oidc-handover.js';
 
 export const SILENT_TRANSACTION_KEY = 'copalibre.oidc.silentTransaction';
 const SILENT_RENEW_TIMEOUT_MS = 10_000;
@@ -23,7 +24,6 @@ export interface SilentTransaction {
 
 interface TokenResponse {
   readonly access_token?: unknown;
-  readonly expires_in?: unknown;
 }
 
 /** Posted by `/control/silent-renew-callback` back to the window that opened it. */
@@ -45,7 +45,8 @@ function isSilentRenewMessage(data: unknown): data is SilentRenewMessage {
 /**
  * Exchanges a silently-obtained code for tokens — the same PKCE exchange
  * `completeOidcLogin` performs against the same transaction shape, just
- * never reached by navigating anywhere.
+ * never reached by navigating anywhere — and hands the fresh token straight
+ * to the API, which replaces the session cookie. The token is never kept.
  */
 export async function exchangeSilentCode(
   transaction: SilentTransaction,
@@ -67,9 +68,9 @@ export async function exchangeSilentCode(
 
   const body = (await response.json()) as TokenResponse;
   if (typeof body.access_token !== 'string' || body.access_token.length === 0) return undefined;
-  if (typeof body.expires_in !== 'number' || !Number.isFinite(body.expires_in)) return undefined;
 
-  return { accessToken: body.access_token, expiresAtMs: Date.now() + body.expires_in * 1000 };
+  const session = await handOverOidcToken(body.access_token, fetchImpl);
+  return session === undefined ? undefined : { session };
 }
 
 export interface OidcSilentRenewBrowser {

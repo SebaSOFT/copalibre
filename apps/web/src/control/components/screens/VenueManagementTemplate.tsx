@@ -5,6 +5,7 @@ import type {
   OfficialResponse,
   OfficialRole,
   ScheduleDetailResponse,
+  ScheduleDeletionResponse,
   VenueResponse,
 } from '../../lib/api-client.js';
 import { Badge } from '../ui/atoms/badge.js';
@@ -16,8 +17,12 @@ import { Label } from '../ui/atoms/label.js';
 import { Inline } from '../ui/atoms/layout/inline.js';
 import { Field } from '../ui/molecules/field.js';
 import { FieldSet } from '../ui/molecules/field-set.js';
+import { ConsequenceDialog } from '../ui/organisms/consequence-dialog.js';
 import { messages } from '../../i18n/messages.en.js';
-import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
+import { ListWithRailTemplate } from './ListWithRailTemplate.js';
+import { KpiStrip } from '../ui/organisms/kpi-strip.js';
+import { EntityIdentityCell } from '../ui/molecules/entity-identity-cell.js';
+import { formatDateTimeInputHint } from '../../lib/presentation-formatting.js';
 
 const OFFICIAL_ROLES: readonly OfficialRole[] = [
   'referee',
@@ -40,10 +45,11 @@ export function VenueManagementTemplate({
   onCreateSchedule,
   onCreateVenue,
   onDeleteSchedule,
+  onDeleteVenue,
+  onPreviewDeleteSchedule,
   onSaveOfficial,
   onSaveSchedule,
   onSaveVenue,
-  organizationAlias,
   schedules,
   venues,
 }: {
@@ -59,7 +65,11 @@ export function VenueManagementTemplate({
     venueIds: readonly string[],
   ) => Promise<boolean>;
   readonly onCreateVenue: (name: string, alias: string, capacity: string) => Promise<boolean>;
-  readonly onDeleteSchedule: (scheduleId: string) => Promise<boolean>;
+  readonly onDeleteSchedule: (scheduleId: string, confirmationName: string) => Promise<boolean>;
+  readonly onDeleteVenue: (venueId: string) => Promise<boolean>;
+  readonly onPreviewDeleteSchedule: (
+    scheduleId: string,
+  ) => Promise<ScheduleDeletionResponse | undefined>;
   readonly onSaveOfficial: (
     officialId: string,
     name: string,
@@ -73,7 +83,6 @@ export function VenueManagementTemplate({
     address: string,
     details: readonly { readonly key: string; readonly value: string }[],
   ) => Promise<void>;
-  readonly organizationAlias: string;
   readonly schedules: readonly ScheduleDetailResponse[];
   readonly venues: readonly VenueResponse[];
 }): React.JSX.Element {
@@ -107,6 +116,12 @@ export function VenueManagementTemplate({
 
   const [selectedScheduleId, setSelectedScheduleId] = useState<string>();
   const [editScheduleName, setEditScheduleName] = useState('');
+  const [pendingScheduleDelete, setPendingScheduleDelete] = useState<{
+    readonly scheduleId: string;
+    readonly name: string;
+    readonly preview: ScheduleDeletionResponse;
+  }>();
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const selectVenue = (venue: VenueResponse): void => {
     setSelectedVenueId(venue.venueId);
@@ -164,6 +179,11 @@ export function VenueManagementTemplate({
     );
   }
 
+  async function deleteVenue(): Promise<void> {
+    if (selectedVenueId === undefined) return;
+    if (await onDeleteVenue(selectedVenueId)) setSelectedVenueId(undefined);
+  }
+
   async function createOfficial(): Promise<void> {
     if (await onCreateOfficial(newOfficialName, newOfficialRoles)) {
       setNewOfficialName('');
@@ -198,9 +218,33 @@ export function VenueManagementTemplate({
     await onSaveSchedule(selectedScheduleId, editScheduleName);
   }
 
-  async function deleteSchedule(scheduleId: string): Promise<void> {
-    if (await onDeleteSchedule(scheduleId)) {
-      if (selectedScheduleId === scheduleId) setSelectedScheduleId(undefined);
+  async function previewScheduleDeletion(schedule: ScheduleDetailResponse): Promise<void> {
+    setDeleteBusy(true);
+    try {
+      const preview = await onPreviewDeleteSchedule(schedule.scheduleId);
+      if (preview?.dryRun) {
+        setPendingScheduleDelete({
+          scheduleId: schedule.scheduleId,
+          name: schedule.name,
+          preview,
+        });
+      }
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
+
+  async function confirmScheduleDeletion(): Promise<void> {
+    if (!pendingScheduleDelete) return;
+    setDeleteBusy(true);
+    try {
+      if (await onDeleteSchedule(pendingScheduleDelete.scheduleId, pendingScheduleDelete.name)) {
+        if (selectedScheduleId === pendingScheduleDelete.scheduleId)
+          setSelectedScheduleId(undefined);
+        setPendingScheduleDelete(undefined);
+      }
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
@@ -217,7 +261,17 @@ export function VenueManagementTemplate({
     }
   };
 
-  const breadcrumbNode = <span>{organizationAlias}</span>;
+  const venueMeta = (venue: VenueResponse): string =>
+    [
+      venue.concurrentCapacity
+        ? intl.formatMessage(messages.resourceManagementVenueMeta, {
+            count: venue.concurrentCapacity,
+          })
+        : undefined,
+      venue.address,
+    ]
+      .filter((part): part is string => part !== undefined && part !== '')
+      .join(' · ');
   const titleNode = <FormattedMessage {...messages.resourceManagementTitle} />;
 
   const selectedVenue = venues.find((venue) => venue.venueId === selectedVenueId);
@@ -225,83 +279,118 @@ export function VenueManagementTemplate({
   const selectedSchedule = schedules.find((s) => s.scheduleId === selectedScheduleId);
 
   const listingNode = (
-    <div className="cl-screen-sections">
-      {/* Venues */}
-      <Card
-        aria-label={intl.formatMessage(messages.resourceManagementVenuesHeading)}
-        className="cl-chamfer cl-chamfer--control"
-      >
-        <header className="cl-card__header">
-          <h2 className="cl-card__title">
-            <FormattedMessage {...messages.resourceManagementVenuesHeading} />
-          </h2>
-        </header>
-        <div className="cl-card__content">
-          <ul>
-            {venues.map((venue) => (
-              <li key={venue.venueId} className="cl-role-user">
-                <span>{venue.name}</span>
-                <Button onClick={() => selectVenue(venue)} type="button" variant="secondary">
-                  <FormattedMessage {...messages.resourceManagementEdit} />
-                </Button>
-              </li>
-            ))}
-          </ul>
-          {venues.length === 0 && (
-            <p className="cl-card__description">
-              <FormattedMessage {...messages.resourceManagementVenuesEmpty} />
-            </p>
-          )}
-
-          {api.createVenue && (
-            <div className="cl-platform-form-grid">
-              <Field
-                id="new-venue-name"
-                label={intl.formatMessage(messages.resourceManagementNewVenueName)}
-              >
-                <Input
-                  aria-label={intl.formatMessage(messages.resourceManagementNewVenueName)}
-                  id="new-venue-name"
-                  onChange={(event) => setNewVenueName(event.target.value)}
-                  value={newVenueName}
-                />
-              </Field>
-              <Field
-                id="new-venue-alias"
-                label={intl.formatMessage(messages.resourceManagementNewVenueAlias)}
-              >
-                <Input
-                  aria-label={intl.formatMessage(messages.resourceManagementNewVenueAlias)}
-                  id="new-venue-alias"
-                  onChange={(event) => setNewVenueAlias(event.target.value)}
-                  value={newVenueAlias}
-                />
-              </Field>
-              <Field
-                id="new-venue-capacity"
-                label={intl.formatMessage(messages.resourceManagementNewVenueCapacity)}
-              >
-                <Input
-                  aria-label={intl.formatMessage(messages.resourceManagementNewVenueCapacity)}
-                  id="new-venue-capacity"
-                  min={1}
-                  onChange={(event) => setNewVenueCapacity(event.target.value)}
-                  type="number"
-                  value={newVenueCapacity}
-                />
-              </Field>
-              <Button onClick={() => void createVenue()} type="button">
-                <FormattedMessage {...messages.resourceManagementAddVenue} />
+    <div className="cl-operations__listing">
+      <section className="cl-operations__section">
+        <h2 className="cl-card__title">
+          <FormattedMessage {...messages.resourceManagementVenuesHeading} />
+        </h2>
+        <ul className="cl-operations__rows">
+          {venues.map((venue) => (
+            <li key={venue.venueId} className="cl-operations__row">
+              <EntityIdentityCell meta={venueMeta(venue)} name={venue.name} />
+              <Button onClick={() => selectVenue(venue)} type="button" variant="secondary">
+                <FormattedMessage {...messages.resourceManagementEditVenue} />
               </Button>
-            </div>
-          )}
-        </div>
-      </Card>
+            </li>
+          ))}
+        </ul>
+        {venues.length === 0 && (
+          <p className="cl-card__description">
+            <FormattedMessage {...messages.resourceManagementVenuesEmpty} />
+          </p>
+        )}
+      </section>
+      <section className="cl-operations__section">
+        <h2 className="cl-card__title">
+          <FormattedMessage {...messages.resourceManagementSchedulesHeading} />
+        </h2>
+        <ul className="cl-operations__rows">
+          {schedules.map((schedule) => (
+            <li key={schedule.scheduleId} className="cl-operations__row">
+              <span>
+                <strong>{schedule.name}</strong> —{' '}
+                <FormattedMessage
+                  {...messages.resourceManagementScheduleSlotsCount}
+                  values={{ count: schedule.slots.length }}
+                />
+              </span>
+              <Inline gap="2">
+                <Button onClick={() => selectSchedule(schedule)} type="button" variant="secondary">
+                  <FormattedMessage {...messages.resourceManagementEditSchedule} />
+                </Button>
+                <Button
+                  disabled={deleteBusy}
+                  onClick={() => void previewScheduleDeletion(schedule)}
+                  type="button"
+                  variant="secondary"
+                >
+                  <FormattedMessage {...messages.resourceManagementDeleteSchedule} />
+                </Button>
+              </Inline>
+            </li>
+          ))}
+        </ul>
+        {schedules.length === 0 && (
+          <p className="cl-card__description">
+            <FormattedMessage {...messages.resourceManagementSchedulesEmpty} />
+          </p>
+        )}
+      </section>
+      <section className="cl-operations__section">
+        <h2 className="cl-card__title">
+          <FormattedMessage {...messages.resourceManagementOfficialsHeading} />
+        </h2>
+        <KpiStrip
+          ariaLabel={intl.formatMessage(messages.resourceManagementOfficialsKpiLabel)}
+          metrics={[
+            {
+              key: 'officials',
+              label: intl.formatMessage(messages.resourceManagementOfficialsHeading),
+              sourceField: 'officials',
+              formatValue: (value) => String(value),
+            },
+            {
+              key: 'referees',
+              label: intl.formatMessage(messages.resourceManagementKpiReferees),
+              sourceField: 'referees',
+              formatValue: (value) => String(value),
+            },
+          ]}
+          source={{
+            officials: officials.length,
+            referees: officials.filter((official) => official.roles.includes('referee')).length,
+          }}
+        />
+        <ul className="cl-operations__rows">
+          {officials.map((official) => (
+            <li key={official.officialId} className="cl-operations__row">
+              <Inline align="center" gap="2" wrap>
+                <EntityIdentityCell name={official.displayName} />
+                {official.roles.map((role) => (
+                  <Badge key={role} label={roleLabel(role)} variant="section" />
+                ))}
+              </Inline>
+              <Button onClick={() => selectOfficial(official)} type="button" variant="secondary">
+                <FormattedMessage {...messages.resourceManagementEditOfficial} />
+              </Button>
+            </li>
+          ))}
+        </ul>
+        {officials.length === 0 && (
+          <p className="cl-card__description">
+            <FormattedMessage {...messages.resourceManagementOfficialsEmpty} />
+          </p>
+        )}
+      </section>
+    </div>
+  );
 
+  const railNode = (
+    <div className="cl-operations__rail-stack">
       {selectedVenue && (
         <Card
           aria-label={intl.formatMessage(messages.resourceManagementEditVenueHeading)}
-          className="cl-chamfer cl-chamfer--control"
+          className="cl-chamfer cl-chamfer--control cl-operations__rail-card"
         >
           <header className="cl-card__header">
             <h2 className="cl-card__title">
@@ -398,57 +487,113 @@ export function VenueManagementTemplate({
               <Button onClick={() => void saveVenue()} type="button">
                 <FormattedMessage {...messages.resourceManagementSaveVenueChanges} />
               </Button>
+              <Button
+                onClick={() => void deleteVenue()}
+                type="button"
+                variant="destructive-outline"
+              >
+                <FormattedMessage {...messages.resourceManagementDeleteVenue} />
+              </Button>
             </div>
           </div>
         </Card>
       )}
 
-      {/* Schedules */}
       <Card
-        aria-label={intl.formatMessage(messages.resourceManagementSchedulesHeading)}
-        className="cl-chamfer cl-chamfer--control"
+        aria-label={intl.formatMessage(messages.resourceManagementRegisterVenueHeading)}
+        className="cl-chamfer cl-chamfer--control cl-operations__rail-card"
       >
         <header className="cl-card__header">
           <h2 className="cl-card__title">
-            <FormattedMessage {...messages.resourceManagementSchedulesHeading} />
+            <FormattedMessage {...messages.resourceManagementRegisterVenueHeading} />
           </h2>
         </header>
         <div className="cl-card__content">
-          <ul>
-            {schedules.map((schedule) => (
-              <li key={schedule.scheduleId} className="cl-role-user">
-                <span>
-                  <strong>{schedule.name}</strong> —{' '}
-                  <FormattedMessage
-                    {...messages.resourceManagementScheduleSlotsCount}
-                    values={{ count: schedule.slots.length }}
-                  />
-                </span>
-                <Inline gap="2">
-                  <Button
-                    onClick={() => selectSchedule(schedule)}
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage {...messages.resourceManagementEdit} />
-                  </Button>
-                  <Button
-                    onClick={() => void deleteSchedule(schedule.scheduleId)}
-                    type="button"
-                    variant="secondary"
-                  >
-                    <FormattedMessage {...messages.resourceManagementDeleteSchedule} />
-                  </Button>
-                </Inline>
-              </li>
-            ))}
-          </ul>
-          {schedules.length === 0 && (
-            <p className="cl-card__description">
-              <FormattedMessage {...messages.resourceManagementSchedulesEmpty} />
-            </p>
+          {api.createVenue && (
+            <div className="cl-platform-form-grid">
+              <Field
+                id="new-venue-name"
+                label={intl.formatMessage(messages.resourceManagementNewVenueName)}
+              >
+                <Input
+                  aria-label={intl.formatMessage(messages.resourceManagementNewVenueName)}
+                  id="new-venue-name"
+                  onChange={(event) => setNewVenueName(event.target.value)}
+                  value={newVenueName}
+                />
+              </Field>
+              <Field
+                id="new-venue-alias"
+                label={intl.formatMessage(messages.resourceManagementNewVenueAlias)}
+              >
+                <Input
+                  aria-label={intl.formatMessage(messages.resourceManagementNewVenueAlias)}
+                  id="new-venue-alias"
+                  onChange={(event) => setNewVenueAlias(event.target.value)}
+                  value={newVenueAlias}
+                />
+              </Field>
+              <Field
+                id="new-venue-capacity"
+                label={intl.formatMessage(messages.resourceManagementNewVenueCapacity)}
+              >
+                <Input
+                  aria-label={intl.formatMessage(messages.resourceManagementNewVenueCapacity)}
+                  id="new-venue-capacity"
+                  min={1}
+                  onChange={(event) => setNewVenueCapacity(event.target.value)}
+                  type="number"
+                  value={newVenueCapacity}
+                />
+              </Field>
+              <Button onClick={() => void createVenue()} type="button">
+                <FormattedMessage {...messages.resourceManagementAddVenue} />
+              </Button>
+            </div>
           )}
+        </div>
+      </Card>
+      {selectedSchedule && (
+        <Card
+          aria-label={intl.formatMessage(messages.resourceManagementEditScheduleHeading)}
+          className="cl-chamfer cl-chamfer--control cl-operations__rail-card"
+        >
+          <header className="cl-card__header">
+            <h2 className="cl-card__title">
+              <FormattedMessage {...messages.resourceManagementEditScheduleHeading} />
+            </h2>
+          </header>
+          <div className="cl-card__content">
+            <div className="cl-platform-form-grid">
+              <Field
+                id="edit-schedule-name"
+                label={intl.formatMessage(messages.resourceManagementNewScheduleName)}
+              >
+                <Input
+                  aria-label={intl.formatMessage(messages.resourceManagementNewScheduleName)}
+                  id="edit-schedule-name"
+                  onChange={(event) => setEditScheduleName(event.target.value)}
+                  value={editScheduleName}
+                />
+              </Field>
+              <Button onClick={() => void saveSchedule()} type="button">
+                <FormattedMessage {...messages.resourceManagementSaveScheduleChanges} />
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
+      <Card
+        aria-label={intl.formatMessage(messages.resourceManagementNewScheduleHeading)}
+        className="cl-chamfer cl-chamfer--control cl-operations__rail-card"
+      >
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.resourceManagementNewScheduleHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
           {api.createSchedule && (
             <div className="cl-platform-form-grid">
               <Field
@@ -463,24 +608,30 @@ export function VenueManagementTemplate({
                 />
               </Field>
               <Field
+                helpText={formatDateTimeInputHint(intl)}
                 id="new-schedule-starts-at"
                 label={intl.formatMessage(messages.resourceManagementNewScheduleStartsAt)}
               >
                 <Input
                   aria-label={intl.formatMessage(messages.resourceManagementNewScheduleStartsAt)}
+                  aria-describedby="new-schedule-starts-at-help"
                   id="new-schedule-starts-at"
+                  lang={intl.locale}
                   onChange={(event) => setNewScheduleStartsAt(event.target.value)}
                   type="datetime-local"
                   value={newScheduleStartsAt}
                 />
               </Field>
               <Field
+                helpText={formatDateTimeInputHint(intl)}
                 id="new-schedule-ends-at"
                 label={intl.formatMessage(messages.resourceManagementNewScheduleEndsAt)}
               >
                 <Input
                   aria-label={intl.formatMessage(messages.resourceManagementNewScheduleEndsAt)}
+                  aria-describedby="new-schedule-ends-at-help"
                   id="new-schedule-ends-at"
+                  lang={intl.locale}
                   onChange={(event) => setNewScheduleEndsAt(event.target.value)}
                   type="datetime-local"
                   value={newScheduleEndsAt}
@@ -529,119 +680,17 @@ export function VenueManagementTemplate({
                   </Label>
                 ))}
               </FieldSet>
-              <Button onClick={() => void createSchedule()} type="button">
+              <Button onClick={() => void createSchedule()} type="button" variant="secondary">
                 <FormattedMessage {...messages.resourceManagementAddSchedule} />
               </Button>
             </div>
           )}
         </div>
       </Card>
-
-      {selectedSchedule && (
-        <Card
-          aria-label={intl.formatMessage(messages.resourceManagementEditScheduleHeading)}
-          className="cl-chamfer cl-chamfer--control"
-        >
-          <header className="cl-card__header">
-            <h2 className="cl-card__title">
-              <FormattedMessage {...messages.resourceManagementEditScheduleHeading} />
-            </h2>
-          </header>
-          <div className="cl-card__content">
-            <div className="cl-platform-form-grid">
-              <Field
-                id="edit-schedule-name"
-                label={intl.formatMessage(messages.resourceManagementNewScheduleName)}
-              >
-                <Input
-                  aria-label={intl.formatMessage(messages.resourceManagementNewScheduleName)}
-                  id="edit-schedule-name"
-                  onChange={(event) => setEditScheduleName(event.target.value)}
-                  value={editScheduleName}
-                />
-              </Field>
-              <Button onClick={() => void saveSchedule()} type="button">
-                <FormattedMessage {...messages.resourceManagementSaveScheduleChanges} />
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Officials */}
-      <Card
-        aria-label={intl.formatMessage(messages.resourceManagementOfficialsHeading)}
-        className="cl-chamfer cl-chamfer--control"
-      >
-        <header className="cl-card__header">
-          <h2 className="cl-card__title">
-            <FormattedMessage {...messages.resourceManagementOfficialsHeading} />
-          </h2>
-        </header>
-        <div className="cl-card__content">
-          <ul>
-            {officials.map((official) => (
-              <li key={official.officialId} className="cl-role-user">
-                <Inline align="center" gap="2" wrap>
-                  <span>{official.displayName}</span>
-                  {official.roles.map((role) => (
-                    <Badge key={role} label={roleLabel(role)} variant="section" />
-                  ))}
-                </Inline>
-                <Button onClick={() => selectOfficial(official)} type="button" variant="secondary">
-                  <FormattedMessage {...messages.resourceManagementEdit} />
-                </Button>
-              </li>
-            ))}
-          </ul>
-          {officials.length === 0 && (
-            <p className="cl-card__description">
-              <FormattedMessage {...messages.resourceManagementOfficialsEmpty} />
-            </p>
-          )}
-
-          {api.createOfficial && (
-            <div className="cl-platform-form-grid">
-              <Field
-                id="new-official-name"
-                label={intl.formatMessage(messages.resourceManagementNewOfficialName)}
-              >
-                <Input
-                  aria-label={intl.formatMessage(messages.resourceManagementNewOfficialName)}
-                  id="new-official-name"
-                  onChange={(event) => setNewOfficialName(event.target.value)}
-                  value={newOfficialName}
-                />
-              </Field>
-              <FieldSet
-                className="cl-role-user"
-                legend={intl.formatMessage(messages.resourceManagementOfficialRoles)}
-              >
-                {OFFICIAL_ROLES.map((role) => (
-                  <Label key={role} className="cl-toggle cl-focusable">
-                    <Checkbox
-                      aria-label={roleLabel(role)}
-                      checked={newOfficialRoles.includes(role)}
-                      onCheckedChange={() =>
-                        toggleRole(newOfficialRoles, role, setNewOfficialRoles)
-                      }
-                    />
-                    <span>{roleLabel(role)}</span>
-                  </Label>
-                ))}
-              </FieldSet>
-              <Button onClick={() => void createOfficial()} type="button">
-                <FormattedMessage {...messages.resourceManagementAddOfficial} />
-              </Button>
-            </div>
-          )}
-        </div>
-      </Card>
-
       {selectedOfficial && (
         <Card
           aria-label={intl.formatMessage(messages.resourceManagementEditOfficialHeading)}
-          className="cl-chamfer cl-chamfer--control"
+          className="cl-chamfer cl-chamfer--control cl-operations__rail-card"
         >
           <header className="cl-card__header">
             <h2 className="cl-card__title">
@@ -685,8 +734,98 @@ export function VenueManagementTemplate({
           </div>
         </Card>
       )}
+      <Card
+        aria-label={intl.formatMessage(messages.resourceManagementAddOfficialHeading)}
+        className="cl-chamfer cl-chamfer--control cl-operations__rail-card"
+      >
+        <header className="cl-card__header">
+          <h2 className="cl-card__title">
+            <FormattedMessage {...messages.resourceManagementAddOfficialHeading} />
+          </h2>
+        </header>
+        <div className="cl-card__content">
+          {api.createOfficial && (
+            <div className="cl-platform-form-grid">
+              <Field
+                id="new-official-name"
+                label={intl.formatMessage(messages.resourceManagementNewOfficialName)}
+              >
+                <Input
+                  aria-label={intl.formatMessage(messages.resourceManagementNewOfficialName)}
+                  id="new-official-name"
+                  onChange={(event) => setNewOfficialName(event.target.value)}
+                  value={newOfficialName}
+                />
+              </Field>
+              <FieldSet
+                className="cl-role-user"
+                legend={intl.formatMessage(messages.resourceManagementOfficialRoles)}
+              >
+                {OFFICIAL_ROLES.map((role) => (
+                  <Label key={role} className="cl-toggle cl-focusable">
+                    <Checkbox
+                      aria-label={roleLabel(role)}
+                      checked={newOfficialRoles.includes(role)}
+                      onCheckedChange={() =>
+                        toggleRole(newOfficialRoles, role, setNewOfficialRoles)
+                      }
+                    />
+                    <span>{roleLabel(role)}</span>
+                  </Label>
+                ))}
+              </FieldSet>
+              <Button onClick={() => void createOfficial()} type="button" variant="secondary">
+                <FormattedMessage {...messages.resourceManagementAddOfficial} />
+              </Button>
+            </div>
+          )}
+        </div>
+      </Card>
     </div>
   );
 
-  return <ListScreenLayout breadcrumb={breadcrumbNode} listing={listingNode} title={titleNode} />;
+  return (
+    <>
+      <ListWithRailTemplate
+        description={<FormattedMessage {...messages.resourceManagementDescription} />}
+        listLabel={intl.formatMessage(messages.resourceManagementTitle)}
+        listing={listingNode}
+        rail={railNode}
+        railLabel={intl.formatMessage(messages.resourceManagementRailLabel)}
+        title={titleNode}
+      />
+      <ConsequenceDialog
+        busy={deleteBusy}
+        cancelLabel={intl.formatMessage(messages.registrationModalClose)}
+        closeLabel={intl.formatMessage(messages.registrationModalClose)}
+        confirmLabel={intl.formatMessage(messages.resourceManagementDeleteSchedule)}
+        counts={
+          pendingScheduleDelete === undefined
+            ? []
+            : [
+                {
+                  label: intl.formatMessage(messages.consequenceDialogSlotsDeleted),
+                  value: pendingScheduleDelete.preview.slots,
+                },
+                {
+                  label: intl.formatMessage(messages.consequenceDialogMatchesUnassigned),
+                  value: pendingScheduleDelete.preview.matchesUnassigned,
+                },
+              ]
+        }
+        description={intl.formatMessage(messages.resourceManagementDeleteScheduleConsequences, {
+          slots: intl.formatNumber(pendingScheduleDelete?.preview.slots ?? 0),
+          matches: intl.formatNumber(pendingScheduleDelete?.preview.matchesUnassigned ?? 0),
+        })}
+        onConfirm={() => void confirmScheduleDeletion()}
+        onOpenChange={(open) => {
+          if (!open && !deleteBusy) setPendingScheduleDelete(undefined);
+        }}
+        open={pendingScheduleDelete !== undefined}
+        title={intl.formatMessage(messages.resourceManagementDeleteSchedule)}
+        typeToConfirm={pendingScheduleDelete?.name}
+        typeToConfirmLabel={intl.formatMessage(messages.consequenceDialogTypeObjectName)}
+      />
+    </>
+  );
 }

@@ -23,8 +23,10 @@ export function Badge({
   ...rest
 }: BadgeProps): React.JSX.Element {
   const Component = Tag as ElementType;
+  const isLive = /(?:^|\s)(?:cl-badge--live|cl-state--live)(?:\s|$)/.test(className);
   return (
     <Component className={`cl-badge ${className}`.trim()} {...rest}>
+      {isLive && <span aria-hidden="true" className="cl-badge__dot cl-live-dot" />}
       {children}
     </Component>
   );

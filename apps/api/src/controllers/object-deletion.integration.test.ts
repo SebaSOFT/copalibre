@@ -80,7 +80,7 @@ describe('unreferenced object listing and deletion', () => {
   it('lists an unreferenced object and deletes it, dropping the usage total by its size', async () => {
     const before = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/storage-usage`,
+      url: `/api/organizations/liga-orbital/storage-usage`,
       token: 'organizer-org1',
     });
     const baselineBytes = before.json().totalBytes as number;
@@ -89,7 +89,7 @@ describe('unreferenced object listing and deletion', () => {
 
     const listed = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/storage-usage/objects`,
+      url: `/api/organizations/liga-orbital/storage-usage/objects`,
       token: 'organizer-org1',
     });
     expect(listed.statusCode).toBe(200);
@@ -97,7 +97,7 @@ describe('unreferenced object listing and deletion', () => {
 
     const deleted = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/storage-usage/objects/${objectId}`,
+      url: `/api/organizations/liga-orbital/storage-usage/objects/${objectId}`,
       token: 'organizer-org1',
     });
     expect(deleted.statusCode).toBe(200);
@@ -106,19 +106,40 @@ describe('unreferenced object listing and deletion', () => {
 
     const after = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/storage-usage`,
+      url: `/api/organizations/liga-orbital/storage-usage`,
       token: 'organizer-org1',
     });
     expect(after.json().totalBytes).toBe(baselineBytes);
 
     const listedAfter = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/storage-usage/objects`,
+      url: `/api/organizations/liga-orbital/storage-usage/objects`,
       token: 'organizer-org1',
     });
     expect(listedAfter.json().map((entry: { objectId: string }) => entry.objectId)).not.toContain(
       objectId,
     );
+  });
+
+  it('deletes the renditions and the legacy thumbnail together with their original', async () => {
+    const { objectId, storageKey } = await seedPassedObject();
+    const derived = [
+      `${storageKey}.w64.webp`,
+      `${storageKey}.w128.webp`,
+      `${storageKey}.w256.webp`,
+      `${storageKey}.thumbnail`,
+    ];
+    for (const key of derived) await storage.put(key, new Uint8Array(16));
+
+    const deleted = await request({
+      method: 'DELETE',
+      url: `/api/organizations/liga-orbital/storage-usage/objects/${objectId}`,
+      token: 'organizer-org1',
+    });
+
+    expect(deleted.statusCode).toBe(200);
+    expect(storage.objects.has(storageKey)).toBe(false);
+    for (const key of derived) expect(storage.objects.has(key)).toBe(false);
   });
 
   it("refuses deleting an object that is the organization's current emblem, naming it", async () => {
@@ -134,7 +155,7 @@ describe('unreferenced object listing and deletion', () => {
 
     const listed = await request({
       method: 'GET',
-      url: `/organizations/liga-orbital/storage-usage/objects`,
+      url: `/api/organizations/liga-orbital/storage-usage/objects`,
       token: 'organizer-org1',
     });
     expect(listed.json().map((entry: { objectId: string }) => entry.objectId)).not.toContain(
@@ -143,7 +164,7 @@ describe('unreferenced object listing and deletion', () => {
 
     const deleted = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/storage-usage/objects/${objectId}`,
+      url: `/api/organizations/liga-orbital/storage-usage/objects/${objectId}`,
       token: 'organizer-org1',
     });
     expect(deleted.statusCode).toBe(409);
@@ -153,7 +174,7 @@ describe('unreferenced object listing and deletion', () => {
   it('returns 404 deleting an object id that does not exist', async () => {
     const deleted = await request({
       method: 'DELETE',
-      url: `/organizations/liga-orbital/storage-usage/objects/019cf000-0000-7000-8000-0000000000ff`,
+      url: `/api/organizations/liga-orbital/storage-usage/objects/019cf000-0000-7000-8000-0000000000ff`,
       token: 'organizer-org1',
     });
     expect(deleted.statusCode).toBe(404);

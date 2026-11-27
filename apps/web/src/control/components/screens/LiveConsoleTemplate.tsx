@@ -1,37 +1,33 @@
-import { defineMessages, useIntl } from 'react-intl';
+import { useIntl } from 'react-intl';
+import { messages } from '../../i18n/messages.en.js';
 import { type TournamentResponse } from '../../lib/api-client.js';
 import { controlLinkClick } from '../../lib/control-navigation.js';
 import { Badge } from '../ui/atoms/badge.js';
 import { Card } from '../ui/atoms/card.js';
 import { Inline } from '../ui/atoms/layout/inline.js';
 import { Stack } from '../ui/atoms/layout/stack.js';
-import { messages } from '../../i18n/messages.en.js';
+import { Skeleton } from '../ui/atoms/skeleton.js';
 import { ListScreenLayout } from '../ui/layouts/list-screen-layout.js';
-
-// These two link
-// labels were hardcoded Spanish literals with no message id at all. Local
-// rather than in `messages.en.ts` — the same `auth.*`/`invitation.*`
-// namespace gap already restated in English
-// elsewhere (`AcceptInvitationForm` among them): no locale catalogue has these ids, so every
-// locale falls back to `defaultMessage`, and `check-atomic-composition.mjs`'s
-// catalogue-completeness rule only walks the shared `messages.en.ts` file,
-// not a component's own local descriptors.
-const localMessages = defineMessages({
-  viewMatches: { id: 'control.liveConsole.viewMatches', defaultMessage: 'View matches' },
-  matchReports: { id: 'control.liveConsole.matchReports', defaultMessage: 'Match reports' },
-});
+import { ReadState } from '../ui/layouts/read-state.js';
+import { EmptyState } from '../ui/molecules/empty-state.js';
 
 /**
  * Composes the screen from the data `LiveConsolePage` supplies: purely presentational, no API client reference and no
  * screen state of its own.
  */
 export function LiveConsoleTemplate({
+  failed,
   loading,
+  onRetry,
   organizationAlias,
+  staleSince,
   tournaments,
 }: {
+  readonly failed: boolean;
   readonly loading: boolean;
+  readonly onRetry: () => void;
   readonly organizationAlias: string;
+  readonly staleSince: number | undefined;
   readonly tournaments: readonly TournamentResponse[];
 }): React.JSX.Element {
   const intl = useIntl();
@@ -42,50 +38,38 @@ export function LiveConsoleTemplate({
         {intl.formatMessage(messages.liveConsoleSubtitle)}
       </p>
 
-      {loading ? (
-        <p>{intl.formatMessage(messages.liveConsoleLoading)}</p>
+      {loading || failed ? (
+        <Skeleton label={intl.formatMessage(messages.liveConsoleLoading)} variant="block" />
       ) : tournaments.length === 0 ? (
-        <Card>
-          <div style={{ padding: 'var(--cl-space-6)', textAlign: 'center' }}>
-            <p style={{ margin: '0 0 var(--cl-space-4)', color: 'var(--cl-text-muted)' }}>
-              {intl.formatMessage(messages.liveConsoleNoActiveTournaments)}
-            </p>
-            <a
-              className="cl-btn cl-btn--primary cl-focusable"
-              href={`/control/${organizationAlias}/tournaments/new`}
-              onClick={controlLinkClick(`/control/${organizationAlias}/tournaments/new`)}
-            >
-              {intl.formatMessage(messages.liveConsoleCreateTournament)}
-            </a>
-          </div>
-        </Card>
+        <EmptyState
+          action={{
+            label: intl.formatMessage(messages.liveConsoleCreateTournament),
+            onClick: () => window.location.assign(`/control/${organizationAlias}/tournaments/new`),
+          }}
+          description={intl.formatMessage(messages.liveConsoleSubtitle)}
+          heading={intl.formatMessage(messages.liveConsoleNoActiveTournaments)}
+          icon="trophy"
+        />
       ) : (
         <Stack gap="4">
           {tournaments.map((tournament) => (
             <Card key={tournament.tournamentId}>
               <Stack gap="3" padding="4">
                 <Inline align="center" gap="2" justify="between" wrap>
-                  <div>
-                    <h2 style={{ margin: 0, fontSize: 'var(--cl-font-size-lg)' }}>
-                      {tournament.name}
-                    </h2>
-                    <span
-                      style={{ fontSize: 'var(--cl-font-size-sm)', color: 'var(--cl-text-muted)' }}
-                    >
-                      {tournament.alias}
-                    </span>
-                  </div>
+                  <h2 style={{ margin: 0, fontSize: 'var(--cl-font-size-lg)' }}>
+                    {tournament.name}
+                  </h2>
                   <Badge
                     className={
                       tournament.status === 'started'
-                        ? 'cl-state--live'
+                        ? 'cl-state--muted'
                         : tournament.status === 'finished'
                           ? 'cl-state--positive'
                           : 'cl-state--upcoming'
                     }
                     label={intl.formatMessage(
                       tournament.status === 'started'
-                        ? messages.lifecycleLive
+                        ? messages.lifecycleInProgress
                         : tournament.status === 'finished'
                           ? messages.lifecycleFinished
                           : messages.lifecycleUpcoming,
@@ -101,7 +85,7 @@ export function LiveConsoleTemplate({
                       `/control/${organizationAlias}/tournaments/${tournament.alias}/matches-view`,
                     )}
                   >
-                    {intl.formatMessage(localMessages.viewMatches)}
+                    {intl.formatMessage(messages.liveConsoleViewMatches)}
                   </a>
                   <a
                     className="cl-btn cl-btn--secondary cl-focusable"
@@ -110,7 +94,7 @@ export function LiveConsoleTemplate({
                       `/control/${organizationAlias}/tournaments/${tournament.alias}/reports`,
                     )}
                   >
-                    {intl.formatMessage(localMessages.matchReports)}
+                    {intl.formatMessage(messages.liveConsoleMatchReports)}
                   </a>
                 </Inline>
               </Stack>
@@ -122,6 +106,15 @@ export function LiveConsoleTemplate({
   );
 
   return (
-    <ListScreenLayout listing={listingNode} title={intl.formatMessage(messages.navLiveConsole)} />
+    <ReadState
+      status={
+        failed ? 'failed-empty' : loading ? 'loading' : staleSince !== undefined ? 'stale' : 'ready'
+      }
+      title={intl.formatMessage(messages.navLiveConsole)}
+      staleSince={staleSince}
+      retry={onRetry}
+    >
+      <ListScreenLayout listing={listingNode} title={intl.formatMessage(messages.navLiveConsole)} />
+    </ReadState>
   );
 }

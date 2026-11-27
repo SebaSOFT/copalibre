@@ -34,8 +34,8 @@ function descriptor(): DisciplineDescriptor {
 }
 
 describe('zone and group draw routes (integration)', () => {
-  const base = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/1`;
-  const manualBase = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/2`;
+  const base = `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/1`;
+  const manualBase = `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/2`;
   let harness: Awaited<ReturnType<typeof buildTestApp>>;
   let zoneIds: readonly string[] = [];
   let stageOneId = '';
@@ -215,7 +215,7 @@ describe('zone and group draw routes (integration)', () => {
     });
     expect(publicGroups.statusCode).toBe(200);
     expect(publicGroups.json()).toEqual([
-      expect.objectContaining({ number: 1, name: 'Grupo manual', entrantIds: [] }),
+      expect.objectContaining({ number: 1, name: 'Grupo manual', entrantIds: [], entrants: [] }),
     ]);
   });
 
@@ -282,6 +282,13 @@ describe('zone and group draw routes (integration)', () => {
       const match = listedGroupsJson.find((g: { groupId: string }) => g.groupId === group.groupId);
       expect(match).toBeDefined();
       expect([...match.entrantIds].sort()).toEqual([...(groupEntrants[groupIndex] ?? [])].sort());
+      expect(match.entrants).toHaveLength(match.entrantIds.length);
+      expect(
+        match.entrants.every(
+          (entrant: { displayName?: string }) =>
+            typeof entrant.displayName === 'string' && entrant.displayName.trim() !== '',
+        ),
+      ).toBe(true);
     }
 
     await withTransaction(harness.scratch.db, async (uow) => {
@@ -403,7 +410,7 @@ describe('zone and group draw routes (integration)', () => {
     // stage 2 with two bands — reused here rather than re-created.
     const targetingStageTwo = await harness.request({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/2/promotion-plans`,
+      url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/2/promotion-plans`,
       token: 'organizer-org1',
     });
     expect(targetingStageTwo.statusCode).toBe(200);
@@ -438,7 +445,7 @@ describe('zone and group draw routes (integration)', () => {
         ...AUDIT,
       }),
     );
-    const secondBase = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/10`;
+    const secondBase = `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/10`;
     const enrollment = new EnrollmentRepository(harness.scratch.db);
     const repechajeEntrantIds: string[] = [];
     for (const name of ['Chimbas', '9 de Julio']) {
@@ -554,7 +561,7 @@ describe('zone and group draw routes (integration)', () => {
 
     const afterSecondPlan = await harness.request({
       method: 'GET',
-      url: `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/2/promotion-plans`,
+      url: `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/2/promotion-plans`,
       token: 'organizer-org1',
     });
     expect(afterSecondPlan.statusCode).toBe(200);
@@ -584,7 +591,7 @@ describe('zone and group draw routes (integration)', () => {
         ...AUDIT,
       }),
     );
-    const manualStageBase = `/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/3`;
+    const manualStageBase = `/api/organizations/${organizationAlias}/tournaments/${tournamentAlias}/stages/3`;
     const entrantIds = (
       await new EnrollmentRepository(harness.scratch.db).listEntrants(tournamentId)
     )
@@ -646,5 +653,121 @@ describe('zone and group draw routes (integration)', () => {
     });
     expect(zoneEntrants.statusCode).toBe(200);
     expect((zoneEntrants.json() as string[]).sort()).toEqual([...entrantIds].sort());
+  });
+
+  it('soft-deletes and restores zones and groups with authorization, audit, and outbox records', async () => {
+    const createdZone = await harness.request({
+      method: 'POST',
+      url: `${manualBase}/zones`,
+      token: 'organizer-org1',
+      payload: { name: 'Zona recuperable' },
+    });
+    expect(createdZone.statusCode).toBe(201);
+    const zone = createdZone.json() as { zoneId: string; number: number; name: string };
+
+    const createdGroup = await harness.request({
+      method: 'POST',
+      url: `${manualBase}/zones/${zone.number}/groups`,
+      token: 'organizer-org1',
+      payload: { name: 'Grupo recuperable' },
+    });
+    expect(createdGroup.statusCode).toBe(201);
+    const group = createdGroup.json() as { groupId: string; number: number; name: string };
+
+    const unauthenticatedGroupRestore = await harness.request({
+      method: 'POST',
+      url: `${manualBase}/zones/${zone.number}/groups/${group.number}/restore`,
+    });
+    expect(unauthenticatedGroupRestore.statusCode).toBe(401);
+    const participantGroupRestore = await harness.request({
+      method: 'POST',
+      url: `${manualBase}/zones/${zone.number}/groups/${group.number}/restore`,
+      token: 'participant-org1',
+    });
+    expect(participantGroupRestore.statusCode).toBe(403);
+
+    const removedGroup = await harness.request({
+      method: 'DELETE',
+      url: `${manualBase}/zones/${zone.number}/groups/${group.number}`,
+      token: 'organizer-org1',
+    });
+    expect(removedGroup.statusCode).toBe(200);
+    const hiddenGroups = await harness.request({
+      method: 'GET',
+      url: `${manualBase}/zones/${zone.number}/groups`,
+    });
+    expect(hiddenGroups.json()).toEqual([]);
+
+    const restoredGroup = await harness.request({
+      method: 'POST',
+      url: `${manualBase}/zones/${zone.number}/groups/${group.number}/restore`,
+      token: 'organizer-org1',
+    });
+    expect(restoredGroup.statusCode).toBe(200);
+    expect(restoredGroup.json()).toMatchObject({ groupId: group.groupId, name: group.name });
+
+    const removedZone = await harness.request({
+      method: 'DELETE',
+      url: `${manualBase}/zones/${zone.number}`,
+      token: 'organizer-org1',
+    });
+    expect(removedZone.statusCode).toBe(200);
+    const hiddenZones = await harness.request({ method: 'GET', url: `${manualBase}/zones` });
+    expect(hiddenZones.json()).not.toEqual(expect.arrayContaining([expect.objectContaining(zone)]));
+
+    const unauthenticatedZoneRestore = await harness.request({
+      method: 'POST',
+      url: `${manualBase}/zones/${zone.number}/restore`,
+    });
+    expect(unauthenticatedZoneRestore.statusCode).toBe(401);
+    const participantZoneRestore = await harness.request({
+      method: 'POST',
+      url: `${manualBase}/zones/${zone.number}/restore`,
+      token: 'participant-org1',
+    });
+    expect(participantZoneRestore.statusCode).toBe(403);
+
+    const restoredZone = await harness.request({
+      method: 'POST',
+      url: `${manualBase}/zones/${zone.number}/restore`,
+      token: 'organizer-org1',
+    });
+    expect(restoredZone.statusCode).toBe(200);
+    expect(restoredZone.json()).toMatchObject({ zoneId: zone.zoneId, name: zone.name });
+    const visibleZones = await harness.request({ method: 'GET', url: `${manualBase}/zones` });
+    expect(visibleZones.json()).toEqual(expect.arrayContaining([expect.objectContaining(zone)]));
+
+    const audit = await harness.scratch.db
+      .selectFrom('audit_log')
+      .select(['action', 'entity_id', 'actor'])
+      .where('entity_id', 'in', [zone.zoneId, group.groupId])
+      .where('action', 'in', ['zone.deleted', 'zone.restored', 'group.deleted', 'group.restored'])
+      .orderBy('action')
+      .execute();
+    expect(audit.map(({ action, actor }) => [action, actor])).toEqual([
+      ['group.deleted', 'user:organizer-1'],
+      ['group.restored', 'user:organizer-1'],
+      ['zone.deleted', 'user:organizer-1'],
+      ['zone.restored', 'user:organizer-1'],
+    ]);
+
+    const events = await harness.scratch.db
+      .selectFrom('outbox_events')
+      .select(['event_type', 'entity_id', 'payload'])
+      .where('entity_id', 'in', [zone.zoneId, group.groupId])
+      .where('event_type', 'in', [
+        'zone.deleted',
+        'zone.restored',
+        'group.deleted',
+        'group.restored',
+      ])
+      .orderBy('event_type')
+      .execute();
+    expect(events.map(({ event_type, payload }) => [event_type, payload.actor])).toEqual([
+      ['group.deleted', 'user:organizer-1'],
+      ['group.restored', 'user:organizer-1'],
+      ['zone.deleted', 'user:organizer-1'],
+      ['zone.restored', 'user:organizer-1'],
+    ]);
   });
 });

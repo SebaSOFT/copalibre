@@ -18,6 +18,7 @@ import {
   referenceStandings,
   referenceStandingsTable,
   referenceSeries,
+  referenceUndecidedMatches,
 } from './reference-fixtures.js';
 
 it('projects the multi-game fixture without inventing a decided winner', () => {
@@ -218,4 +219,17 @@ describe('referenceStandingsTable', () => {
       expect(Object.keys(row.statistics).sort()).toEqual([...table.columns].sort());
     }
   });
+});
+
+it('decides an undecided side only from a finalized feeder', () => {
+  const [semi1, semi2, final, third] = referenceUndecidedMatches();
+  expect(semi1?.state).toBe('final');
+  expect(semi2?.state).not.toBe('final');
+  // The decided feeder seats its winner and its loser; the live one leaves both sides named.
+  expect(final?.homeName).toBe(semi1?.homeName);
+  expect(third?.homeName).toBe(semi1?.awayName);
+  expect(final?.awayName).toBeUndefined();
+  expect(third?.awayName).toBeUndefined();
+  expect(final?.awaySource).toMatchObject({ kind: 'winner-of', nodeKey: semi2?.nodeKey });
+  expect(third?.awaySource).toMatchObject({ kind: 'loser-of', nodeKey: semi2?.nodeKey });
 });

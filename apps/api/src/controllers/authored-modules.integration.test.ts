@@ -32,6 +32,7 @@ import { DATABASE } from '../database.token.js';
 import { OBJECT_STORAGE } from '../object-storage.token.js';
 import { AuthoredModulesController } from './authored-modules.controller.js';
 import { TournamentsController } from './tournaments.controller.js';
+import { applyApiPathPrefix } from '../http/api-path-prefix.js';
 
 const AUDIT = { actor: 'user:authored-modules-test', authorizationContext: 'scope:test' };
 const ATTRIBUTION = { author: 'Test Author', licence: 'AGPL-3.0-only' };
@@ -150,6 +151,7 @@ describe('AuthoredModulesController (integration)', () => {
     authoredApp = authoredModuleRef.createNestApplication<NestFastifyApplication>(
       new FastifyAdapter(),
     );
+    applyApiPathPrefix(authoredApp);
     authoredApp.useGlobalPipes(createApiValidationPipe());
     await authoredApp.init();
     await (authoredApp as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -190,6 +192,7 @@ describe('AuthoredModulesController (integration)', () => {
     tournamentApp = tournamentModuleRef.createNestApplication<NestFastifyApplication>(
       new FastifyAdapter(),
     );
+    applyApiPathPrefix(tournamentApp);
     tournamentApp.useGlobalPipes(createApiValidationPipe());
     await tournamentApp.init();
     await (tournamentApp as NestFastifyApplication).getHttpAdapter().getInstance().ready();
@@ -226,7 +229,7 @@ describe('AuthoredModulesController (integration)', () => {
 
   describe('authorization', () => {
     it('refuses a non-super-admin caller validating a document', async () => {
-      const response = await inject('org-admin', 'POST', '/admin/authored-modules/validate', {
+      const response = await inject('org-admin', 'POST', '/api/admin/authored-modules/validate', {
         kind: 'discipline',
         document: disciplineDocument(),
       });
@@ -234,7 +237,7 @@ describe('AuthoredModulesController (integration)', () => {
     });
 
     it('refuses with no bearer token at all', async () => {
-      const response = await inject(undefined, 'POST', '/admin/authored-modules/validate', {
+      const response = await inject(undefined, 'POST', '/api/admin/authored-modules/validate', {
         kind: 'discipline',
         document: disciplineDocument(),
       });
@@ -244,7 +247,7 @@ describe('AuthoredModulesController (integration)', () => {
 
   describe('validate', () => {
     it('accepts a well-formed discipline document without installing it', async () => {
-      const response = await inject('super-admin', 'POST', '/admin/authored-modules/validate', {
+      const response = await inject('super-admin', 'POST', '/api/admin/authored-modules/validate', {
         kind: 'discipline',
         document: disciplineDocument({ alias: 'authored-validate-only-sport' }),
       });
@@ -258,7 +261,7 @@ describe('AuthoredModulesController (integration)', () => {
     });
 
     it('refuses a statistic with no aggregation mode, naming its own path', async () => {
-      const response = await inject('super-admin', 'POST', '/admin/authored-modules/validate', {
+      const response = await inject('super-admin', 'POST', '/api/admin/authored-modules/validate', {
         kind: 'discipline',
         document: disciplineDocument({
           alias: 'authored-bad-statistic-sport',
@@ -275,7 +278,7 @@ describe('AuthoredModulesController (integration)', () => {
     });
 
     it('refuses a collector referencing an event the discipline does not declare, naming its own path', async () => {
-      const response = await inject('super-admin', 'POST', '/admin/authored-modules/validate', {
+      const response = await inject('super-admin', 'POST', '/api/admin/authored-modules/validate', {
         kind: 'discipline',
         document: disciplineDocument({
           alias: 'authored-bad-collector-sport',
@@ -297,7 +300,7 @@ describe('AuthoredModulesController (integration)', () => {
     });
 
     it('refuses an alias the bundled catalogue reserves, naming the reservation', async () => {
-      const response = await inject('super-admin', 'POST', '/admin/authored-modules/validate', {
+      const response = await inject('super-admin', 'POST', '/api/admin/authored-modules/validate', {
         kind: 'discipline',
         document: disciplineDocument({ alias: 'football' }),
       });
@@ -312,7 +315,7 @@ describe('AuthoredModulesController (integration)', () => {
     });
 
     it('refuses a name with no English value', async () => {
-      const response = await inject('super-admin', 'POST', '/admin/authored-modules/validate', {
+      const response = await inject('super-admin', 'POST', '/api/admin/authored-modules/validate', {
         kind: 'discipline',
         document: disciplineDocument({
           alias: 'authored-no-english-sport',
@@ -324,7 +327,7 @@ describe('AuthoredModulesController (integration)', () => {
     });
 
     it('accepts a partially translated name (English plus one other language)', async () => {
-      const response = await inject('super-admin', 'POST', '/admin/authored-modules/validate', {
+      const response = await inject('super-admin', 'POST', '/api/admin/authored-modules/validate', {
         kind: 'discipline',
         document: disciplineDocument({
           alias: 'authored-partial-translation-sport',
@@ -338,7 +341,7 @@ describe('AuthoredModulesController (integration)', () => {
 
   describe('install, then create a tournament and play a match', () => {
     it('installs an authored discipline as an ordinary, source-kind "authored" module', async () => {
-      const install = await inject('super-admin', 'POST', '/admin/authored-modules', {
+      const install = await inject('super-admin', 'POST', '/api/admin/authored-modules', {
         kind: 'discipline',
         document: disciplineDocument(),
       });
@@ -357,7 +360,7 @@ describe('AuthoredModulesController (integration)', () => {
     });
 
     it('refuses installing a malformed document, carrying the same path-bearing failures', async () => {
-      const install = await inject('super-admin', 'POST', '/admin/authored-modules', {
+      const install = await inject('super-admin', 'POST', '/api/admin/authored-modules', {
         kind: 'discipline',
         document: disciplineDocument({
           alias: 'authored-bad-install-sport',
@@ -375,7 +378,7 @@ describe('AuthoredModulesController (integration)', () => {
     });
 
     it('installs a profile validated against the installed discipline, pre-creating both stages on tournament creation', async () => {
-      const install = await inject('super-admin', 'POST', '/admin/authored-modules', {
+      const install = await inject('super-admin', 'POST', '/api/admin/authored-modules', {
         kind: 'tournament-profile',
         document: profileDocument(),
         disciplineAlias: 'authored-test-sport',
@@ -400,7 +403,7 @@ describe('AuthoredModulesController (integration)', () => {
 
       const created = await injectTournament(
         'org-admin',
-        `/organizations/${organizationAlias}/tournaments`,
+        `/api/organizations/${organizationAlias}/tournaments`,
         {
           alias: 'copa-authored',
           name: 'Copa Authored',
@@ -431,7 +434,7 @@ describe('AuthoredModulesController (integration)', () => {
     });
 
     it('refuses a profile stage format the named discipline does not declare, naming the discipline and its declared formats', async () => {
-      const response = await inject('super-admin', 'POST', '/admin/authored-modules/validate', {
+      const response = await inject('super-admin', 'POST', '/api/admin/authored-modules/validate', {
         kind: 'tournament-profile',
         document: profileDocument({
           alias: 'authored-unsupported-format-cup',
@@ -546,14 +549,14 @@ describe('AuthoredModulesController (integration)', () => {
         .where('tournament_id', '=', tournamentId)
         .execute();
 
-      const reinstall = await inject('super-admin', 'POST', '/admin/authored-modules', {
+      const reinstall = await inject('super-admin', 'POST', '/api/admin/authored-modules', {
         kind: 'discipline',
         document: disciplineDocument(),
       });
       expect(reinstall.statusCode).toBe(409);
       expect((reinstall.json() as { message: string }).message).toContain('started-authored-cup');
 
-      const revision = await inject('super-admin', 'POST', '/admin/authored-modules', {
+      const revision = await inject('super-admin', 'POST', '/api/admin/authored-modules', {
         kind: 'discipline',
         document: disciplineDocument({ version: '1.1.0' }),
       });
@@ -588,7 +591,7 @@ describe('AuthoredModulesController (integration)', () => {
 
   describe('submit', () => {
     it('404s contributing an authored module that is not installed', async () => {
-      const response = await inject('super-admin', 'POST', '/admin/authored-modules/submit', {
+      const response = await inject('super-admin', 'POST', '/api/admin/authored-modules/submit', {
         kind: 'discipline',
         alias: 'no-such-authored-alias',
         version: '1.0.0',

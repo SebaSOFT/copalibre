@@ -1,21 +1,13 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page } from '../../../e2e/csp-guard.js';
+import { signInWithSessionCookie } from '../../../e2e/support/control-login.js';
 
 async function mockControlApis(page: Page, includeTournament = false): Promise<void> {
+  // Signed in before the app loads, as a browser holding a valid session cookie is.
+  await signInWithSessionCookie(page);
   await page.addInitScript((includeTournament) => {
-    // Write valid session into sessionStorage before app loads
-    const payload = btoa(JSON.stringify({ scp: 'copalibre.control' }));
-    const fakeToken = `header.${payload}.signature`;
-    window.sessionStorage.setItem(
-      'copalibre:session:v1',
-      JSON.stringify({
-        token: fakeToken,
-        expiresAtMs: Date.now() + 3600 * 1000,
-      }),
-    );
-
     window.fetch = async (input) => {
       const url = String(input);
-      if (url.includes('/organizations?mine=true')) {
+      if (url.includes('/api/organizations?mine=true')) {
         return Response.json([
           {
             organizationId: 'org-1',
@@ -25,7 +17,7 @@ async function mockControlApis(page: Page, includeTournament = false): Promise<v
           },
         ]);
       }
-      if (url.includes('/organizations/liga-mendocina/tournaments')) {
+      if (url.includes('/api/organizations/liga-mendocina/tournaments')) {
         return Response.json(
           includeTournament
             ? [
@@ -40,7 +32,7 @@ async function mockControlApis(page: Page, includeTournament = false): Promise<v
             : [],
         );
       }
-      if (url.includes('/organizations/liga-mendocina/storage/usage')) {
+      if (url.includes('/api/organizations/liga-mendocina/storage/usage')) {
         return Response.json({
           totalBytes: 1048576,
           objectCount: 4,
@@ -49,8 +41,8 @@ async function mockControlApis(page: Page, includeTournament = false): Promise<v
         });
       }
       if (
-        url.endsWith('/organizations/liga-mendocina') ||
-        url.includes('/organizations/liga-mendocina?')
+        url.endsWith('/api/organizations/liga-mendocina') ||
+        url.includes('/api/organizations/liga-mendocina?')
       ) {
         return Response.json({
           organizationId: 'org-1',
@@ -63,7 +55,7 @@ async function mockControlApis(page: Page, includeTournament = false): Promise<v
   }, includeTournament);
 }
 
-test('navigates to sidebar sections without 404 (Tournaments, Live Console, Organization, Analytics)', async ({
+test('navigates to sidebar sections without 404 (Dashboard, Live Console, Organization, Analytics)', async ({
   page,
 }) => {
   await mockControlApis(page);
@@ -74,11 +66,6 @@ test('navigates to sidebar sections without 404 (Tournaments, Live Console, Orga
   ).toHaveAttribute('href', '/liga-mendocina');
 
   // Verify no 404 screen is shown
-  await expect(page.locator('text=Pantalla no encontrada')).not.toBeVisible();
-
-  // Navigate to Torneos
-  await page.getByRole('link', { name: 'Torneos' }).click();
-  await expect(page).toHaveURL(/\/control\/liga-mendocina\/tournaments/);
   await expect(page.locator('text=Pantalla no encontrada')).not.toBeVisible();
 
   // Navigate to Consola en vivo
@@ -94,6 +81,11 @@ test('navigates to sidebar sections without 404 (Tournaments, Live Console, Orga
   // Navigate to Analítica
   await page.getByRole('link', { name: 'Analítica' }).click();
   await expect(page).toHaveURL(/\/control\/liga-mendocina\/analytics/);
+  await expect(page.locator('text=Pantalla no encontrada')).not.toBeVisible();
+
+  // Navigate back to Panel, the one entry for the organization's start screen
+  await page.getByRole('link', { name: 'Panel', exact: true }).click();
+  await expect(page).toHaveURL(/\/control\/liga-mendocina$/);
   await expect(page.locator('text=Pantalla no encontrada')).not.toBeVisible();
 });
 
@@ -115,8 +107,8 @@ test('mobile viewport provides accessible drawer navigation', async ({ page }) =
   ).toHaveAttribute('href', '/liga-mendocina');
 
   // Click a navigation link in the drawer
-  await dialog.getByRole('link', { name: 'Torneos' }).click();
-  await expect(page).toHaveURL(/\/control\/liga-mendocina\/tournaments/);
+  await dialog.getByRole('link', { name: 'Consola en vivo' }).click();
+  await expect(page).toHaveURL(/\/control\/liga-mendocina\/live/);
   await expect(page.locator('text=Pantalla no encontrada')).not.toBeVisible();
 });
 
@@ -125,8 +117,8 @@ test('mobile tournament card links directly to public and TV displays', async ({
   await mockControlApis(page, true);
   await page.goto('/control/liga-mendocina');
 
-  await expect(page.getByText('Torneo Apertura 2026')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Sitio público' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: /Torneo Apertura/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Público' })).toHaveAttribute(
     'href',
     '/liga-mendocina/tournaments/apertura-2026',
   );
@@ -141,8 +133,8 @@ test('desktop tournament card links directly to public and TV displays', async (
   await mockControlApis(page, true);
   await page.goto('/control/liga-mendocina');
 
-  await expect(page.getByText('Torneo Apertura 2026')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Sitio público' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: /Torneo Apertura/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Público' })).toHaveAttribute(
     'href',
     '/liga-mendocina/tournaments/apertura-2026',
   );

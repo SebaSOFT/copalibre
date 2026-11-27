@@ -5,9 +5,11 @@ import { commandClasses } from './commands/index.js';
 import {
   COMMAND_HELP,
   MODULE_SUBCOMMAND_HELP,
+  ORGANIZATION_SUBCOMMAND_HELP,
   TOURNAMENT_SUBCOMMAND_HELP,
   renderCommandHelp,
   renderModuleHelp,
+  renderOrganizationHelp,
   renderTopLevelHelp,
   renderTournamentHelp,
 } from './help-text.js';
@@ -69,6 +71,17 @@ export async function runCli(
       process.stderr.write(renderTournamentHelp());
       return 64;
     }
+  } else if (command === 'organization') {
+    const organizationHelp = organizationHelpFor(arguments_.slice(1));
+    if (organizationHelp !== undefined) {
+      process.stdout.write(organizationHelp);
+      return 0;
+    }
+    const sub = arguments_[1];
+    if (!ORGANIZATION_SUBCOMMAND_HELP.some((candidate) => candidate.name === sub)) {
+      process.stderr.write(renderOrganizationHelp());
+      return 64;
+    }
   } else if (command === 'dev' && arguments_[1] === 'demo' && HELP_FLAGS.has(arguments_[2] ?? '')) {
     process.stdout.write(renderCommandHelp('dev', COMMAND_HELP));
     return 0;
@@ -114,6 +127,15 @@ function tournamentHelpFor(arguments_: readonly string[]): string | undefined {
   if (!sub || HELP_FLAGS.has(sub)) return renderTournamentHelp();
   if (HELP_FLAGS.has(next ?? '') && TOURNAMENT_SUBCOMMAND_HELP.some((c) => c.name === sub)) {
     return renderCommandHelp(sub, TOURNAMENT_SUBCOMMAND_HELP);
+  }
+  return undefined;
+}
+
+function organizationHelpFor(arguments_: readonly string[]): string | undefined {
+  const [sub, next] = arguments_;
+  if (HELP_FLAGS.has(sub ?? '')) return renderOrganizationHelp();
+  if (HELP_FLAGS.has(next ?? '') && ORGANIZATION_SUBCOMMAND_HELP.some((c) => c.name === sub)) {
+    return renderCommandHelp(sub ?? '', ORGANIZATION_SUBCOMMAND_HELP);
   }
   return undefined;
 }

@@ -38,11 +38,11 @@ describe('the CalloutBanner molecule', () => {
         title="Ruleset Link"
         description="View official rules."
         actionLabel="Documentation"
-        actionHref="https://copalibre.app/docs"
+        actionHref="https://www.copalibre.app/docs"
       />,
     );
 
     const link = screen.getByRole('link', { name: /documentation/i });
-    expect(link.getAttribute('href')).toBe('https://copalibre.app/docs');
+    expect(link.getAttribute('href')).toBe('https://www.copalibre.app/docs');
   });
 });

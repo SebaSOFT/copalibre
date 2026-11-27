@@ -9,17 +9,25 @@ import {
   type Database,
   type StageMatchRecord,
 } from '@copalibre/persistence';
-import { decidingFactorLabel, type TraceNode } from '@copalibre/rules';
+import { decidingFactorNodeBetween, type TraceNode } from '@copalibre/rules';
 import {
   isImplicitGroup,
   isImplicitZone,
-  resolveLabel,
-  type EventDefinition,
+  type LocalizedLabel,
   type Tournament,
 } from '@copalibre/domain';
 import { readStandings } from '../standings/read.js';
+import { readPublicScheduleChanges, type PublicPlacement } from './schedule.js';
 import { readStageSeriesByPosition, type PublicSeriesState } from '../controllers/stage-series.js';
-import { elapsedSecondsOf } from '../controllers/segment-clock.js';
+import { eventLabelFields } from '../controllers/public-match-labels.js';
+import { segmentSummariesOf } from '../controllers/public-segments.js';
+import { publicClockOf } from '../controllers/segment-clock.js';
+import { readFixtureSources } from '../controllers/fixture-sources.js';
+import type { FixtureSourcesResponse } from '../dto/fixture-side-source.dto.js';
+import type {
+  PublicMatchClockResponse,
+  PublicSegmentSummaryResponse,
+} from '../dto/public-tournament.dto.js';
 
 /**
  * A stage/zone/group/series-agnostic flat list of matches — the shared read
@@ -27,33 +35,53 @@ import { elapsedSecondsOf } from '../controllers/segment-clock.js';
  * is present only for the internal caller (control-web) to build a full trace
  * from when the viewer is authorized; the public mapper never reads it.
  */
-export interface MatchesViewRow {
+export interface MatchesViewRow extends FixtureSourcesResponse {
   readonly matchId: string;
+  readonly scheduleVersion?: number;
+  readonly rescheduledFrom?: PublicPlacement | null;
   readonly stageNumber: number;
+  readonly stageName?: string;
   readonly matchNumber: number;
   readonly round: number;
   readonly status: 'upcoming' | 'live' | 'final';
   readonly homeEntrantId?: string;
   readonly homeName?: string;
   readonly homeAbbreviation?: string;
+  readonly homeClubId?: string;
+  readonly homeClubAlias?: string;
+  readonly homeEmblemObjectId?: string;
   readonly awayEntrantId?: string;
   readonly awayName?: string;
   readonly awayAbbreviation?: string;
+  readonly awayClubId?: string;
+  readonly awayClubAlias?: string;
+  readonly awayEmblemObjectId?: string;
   readonly homeScore?: number;
   readonly awayScore?: number;
   readonly clockSeconds?: number;
+  readonly clock?: PublicMatchClockResponse;
+  readonly segments?: readonly PublicSegmentSummaryResponse[];
   readonly venueName?: string;
   readonly scheduledAt?: string;
-  readonly latestEvent?: { readonly label: string; readonly occurredAt: string };
+  readonly latestEvent?: {
+    readonly definitionCode: string;
+    readonly label: string;
+    readonly labels?: LocalizedLabel;
+    readonly occurredAt: string;
+  };
   readonly zoneName?: string;
   readonly groupName?: string;
   readonly homePosition?: number;
   readonly awayPosition?: number;
   readonly series?: PublicSeriesState;
   readonly decidingFactor?: string;
-  /** Internal only — never serialized by the public mapper. */
-  readonly homeClubId?: string;
-  readonly awayClubId?: string;
+  readonly decidingFactorCode?: string;
+  readonly decidingFactorRule?: number;
+  /**
+   * The winning entrant of a finished match: the series winner, the higher score, or the side the
+   * standings rank first when a deciding factor settled a level match. Absent when no side won.
+   */
+  readonly winnerEntrantId?: string;
   readonly rawTrace?: readonly TraceNode[];
 }
 
@@ -99,13 +127,14 @@ export async function readMatchesView(
 async function readStageMatchesView(
   db: Kysely<Database>,
   tournament: Pick<Tournament, 'tournamentId' | 'organizationId' | 'disciplineRef'>,
-  stage: { readonly stageId: string; readonly number: number },
+  stage: { readonly stageId: string; readonly number: number; readonly name: string },
   onlyGroupId: string | undefined,
 ): Promise<readonly MatchesViewRow[]> {
   const competition = new CompetitionRepository(db);
   const readModel = new StageReadModel(db);
   const records = await readModel.matches(stage.stageId, onlyGroupId);
   if (records.length === 0) return [];
+  const fixtureSources = await readFixtureSources(db, stage.stageId);
 
   // The ordinal must come from the stage's full, unscoped match list — a
   // group-filtered `records` here would assign a different ordinal to the
@@ -119,14 +148,25 @@ async function readStageMatchesView(
 
   const fixtureGroups = await db
     .selectFrom('fixtures')
-    .select(['fixture_id', 'group_id'])
+    .select(['fixture_id', 'zone_id', 'group_id'])
     .where('stage_id', '=', stage.stageId)
     .execute();
-  const groupIdByFixture = new Map(
-    fixtureGroups.map((row) => [row.fixture_id, row.group_id ?? undefined] as const),
+  const scopeByFixture = new Map(
+    fixtureGroups.map(
+      (row) =>
+        [
+          row.fixture_id,
+          { zoneId: row.zone_id ?? undefined, groupId: row.group_id ?? undefined },
+        ] as const,
+    ),
   );
 
-  const zoneNamesByGroup = await zoneAndGroupNamesByGroupId(db, stage.stageId);
+  const zoneNames = await zoneAndGroupNamesByScope(db, stage.stageId);
+  const stageName = stage.name.trim();
+  const scheduleChanges = await readPublicScheduleChanges(
+    db,
+    records.map((record) => record.matchId),
+  );
 
   const entrantIds = new Set<string>();
   for (const record of records) {
@@ -134,21 +174,18 @@ async function readStageMatchesView(
     if (record.awayEntrantId) entrantIds.add(record.awayEntrantId);
   }
   const enrollment = new EnrollmentRepository(db);
-  const [names, clubIdByEntrant, descriptor, seriesByPosition, scheduleByMatch] = await Promise.all(
-    [
-      enrollment.resolveEntrantNames([...entrantIds]),
-      clubIdsOfEntrants(db, enrollment, [...entrantIds]),
-      new TournamentRepository(db).findDescriptor(
-        tournament.disciplineRef.descriptorId,
-        tournament.disciplineRef.version,
-      ),
-      seriesStatesByPosition(db, tournament.tournamentId, stage.stageId, records),
-      scheduleByMatchId(
-        db,
-        records.map((record) => record.matchId),
-      ),
-    ],
-  );
+  const [entrantDetails, descriptor, seriesByPosition, scheduleByMatch] = await Promise.all([
+    enrollment.resolveEntrantPodiumDetails([...entrantIds]),
+    new TournamentRepository(db).findDescriptor(
+      tournament.disciplineRef.descriptorId,
+      tournament.disciplineRef.version,
+    ),
+    seriesStatesByPosition(db, tournament.tournamentId, stage.stageId, records),
+    scheduleByMatchId(
+      db,
+      records.map((record) => record.matchId),
+    ),
+  ]);
   const definitionByCode = new Map(
     (descriptor?.eventDefinitions ?? []).map((definition) => [definition.code, definition]),
   );
@@ -157,7 +194,7 @@ async function readStageMatchesView(
   // reference (including `undefined` for a stage with no explicit group
   // structure), not one per match.
   const distinctGroupIds = [
-    ...new Set(records.map((record) => groupIdByFixture.get(record.fixtureId))),
+    ...new Set(records.map((record) => scopeByFixture.get(record.fixtureId)?.groupId)),
   ];
   const standingsByGroup = new Map<
     string | undefined,
@@ -169,58 +206,125 @@ async function readStageMatchesView(
 
   return Promise.all(
     records.map(async (record): Promise<MatchesViewRow> => {
-      const groupId = groupIdByFixture.get(record.fixtureId);
-      const zoneNames = groupId === undefined ? undefined : zoneNamesByGroup.get(groupId);
+      const scope = scopeByFixture.get(record.fixtureId);
+      const groupId = scope?.groupId;
+      const fromGroup = groupId === undefined ? undefined : zoneNames.byGroupId.get(groupId);
+      const fromZone =
+        scope?.zoneId === undefined ? undefined : zoneNames.byZoneId.get(scope.zoneId);
+      const resolvedZoneName = fromGroup?.zoneName ?? fromZone;
+      const resolvedGroupName = fromGroup?.groupName;
       const standings = standingsByGroup.get(groupId);
-      const series = seriesByPosition.get(`${record.round}:${record.position}`);
+      const series =
+        seriesByPosition.get(record.fixtureId) ??
+        seriesByPosition.get(`${record.round}:${record.position}`);
       const scores = record.scores;
       const status = publicMatchStatus(record.status);
 
-      const decidingFactor =
-        series === undefined && standings !== undefined
-          ? decidingFactorOf(standings.rawTrace, record.homeEntrantId, record.awayEntrantId)
+      const matchedDecidingFactor =
+        status === 'final' &&
+        series === undefined &&
+        standings !== undefined &&
+        record.homeEntrantId !== undefined &&
+        record.awayEntrantId !== undefined
+          ? decidingFactorNodeBetween(
+              standings.rawTrace,
+              record.homeEntrantId,
+              record.awayEntrantId,
+            )
           : undefined;
+
+      const winnerEntrantId = finalWinnerEntrantId({
+        status,
+        homeEntrantId: record.homeEntrantId,
+        awayEntrantId: record.awayEntrantId,
+        homeScore: scores?.[0],
+        awayScore: scores?.[1],
+        series,
+        decidingFactored: matchedDecidingFactor !== undefined,
+        homePosition:
+          record.homeEntrantId === undefined
+            ? undefined
+            : standings?.position.get(record.homeEntrantId),
+        awayPosition:
+          record.awayEntrantId === undefined
+            ? undefined
+            : standings?.position.get(record.awayEntrantId),
+      });
 
       const [events, segments] = await Promise.all([
         competition.listEvents(record.matchId),
         status === 'live' ? competition.listSegments(record.matchId) : Promise.resolve([]),
       ]);
       const latestEvent = events.at(-1);
-      const activeSegment = segments.find((segment) => segment.state === 'active');
+      const now = Date.now();
+      const clock = status === 'live' ? publicClockOf(segments, descriptor, now) : undefined;
+      const segmentSummaries =
+        status === 'live' && descriptor && segments.length > 0
+          ? segmentSummariesOf(descriptor, segments, events, [
+              record.homeEntrantId,
+              record.awayEntrantId,
+            ])
+          : undefined;
       const schedule = scheduleByMatch.get(record.matchId);
 
       return {
         matchId: record.matchId,
+        ...fixtureSources.get(record.matchId),
+        ...scheduleChanges.get(record.matchId),
         stageNumber: stage.number,
+        ...(stageName.length > 0 ? { stageName } : {}),
         matchNumber: matchOrdinals.get(record.matchId) ?? 1,
         round: record.round,
         status,
         ...(record.homeEntrantId === undefined ? {} : { homeEntrantId: record.homeEntrantId }),
         ...(record.homeEntrantId === undefined
           ? {}
-          : { homeName: names.get(record.homeEntrantId)?.name ?? 'Unknown' }),
+          : { homeName: entrantDetails.get(record.homeEntrantId)?.name ?? 'Unknown' }),
         ...(record.homeEntrantId === undefined
           ? {}
-          : { homeAbbreviation: names.get(record.homeEntrantId)?.abbreviation }),
+          : { homeAbbreviation: entrantDetails.get(record.homeEntrantId)?.abbreviation }),
+        ...(record.homeEntrantId === undefined
+          ? {}
+          : { homeClubId: entrantDetails.get(record.homeEntrantId)?.clubId }),
+        ...(record.homeEntrantId === undefined ||
+        !entrantDetails.get(record.homeEntrantId)?.clubAlias
+          ? {}
+          : { homeClubAlias: entrantDetails.get(record.homeEntrantId)?.clubAlias }),
+        ...(record.homeEntrantId === undefined
+          ? {}
+          : { homeEmblemObjectId: entrantDetails.get(record.homeEntrantId)?.emblemObjectId }),
         ...(record.awayEntrantId === undefined ? {} : { awayEntrantId: record.awayEntrantId }),
         ...(record.awayEntrantId === undefined
           ? {}
-          : { awayName: names.get(record.awayEntrantId)?.name ?? 'Unknown' }),
+          : { awayName: entrantDetails.get(record.awayEntrantId)?.name ?? 'Unknown' }),
         ...(record.awayEntrantId === undefined
           ? {}
-          : { awayAbbreviation: names.get(record.awayEntrantId)?.abbreviation }),
+          : { awayAbbreviation: entrantDetails.get(record.awayEntrantId)?.abbreviation }),
+        ...(record.awayEntrantId === undefined
+          ? {}
+          : { awayClubId: entrantDetails.get(record.awayEntrantId)?.clubId }),
+        ...(record.awayEntrantId === undefined ||
+        !entrantDetails.get(record.awayEntrantId)?.clubAlias
+          ? {}
+          : { awayClubAlias: entrantDetails.get(record.awayEntrantId)?.clubAlias }),
+        ...(record.awayEntrantId === undefined
+          ? {}
+          : { awayEmblemObjectId: entrantDetails.get(record.awayEntrantId)?.emblemObjectId }),
         ...(scores?.[0] === undefined ? {} : { homeScore: scores[0] }),
         ...(scores?.[1] === undefined ? {} : { awayScore: scores[1] }),
         ...(schedule?.venueName === undefined ? {} : { venueName: schedule.venueName }),
         ...(schedule?.scheduledAt === undefined ? {} : { scheduledAt: schedule.scheduledAt }),
-        ...(activeSegment === undefined
-          ? {}
-          : { clockSeconds: elapsedSecondsOf(activeSegment, Date.now()) }),
+        ...(clock === undefined ? {} : { clock, clockSeconds: clock.elapsedSeconds }),
+        ...(segmentSummaries === undefined ? {} : { segments: segmentSummaries }),
         ...(latestEvent === undefined
           ? {}
           : {
               latestEvent: {
-                label: eventLabel(latestEvent.definitionCode, definitionByCode),
+                definitionCode: latestEvent.definitionCode,
+                ...eventLabelFields(
+                  definitionByCode.get(latestEvent.definitionCode),
+                  latestEvent.definitionCode,
+                ),
                 occurredAt: latestEvent.occurredAt,
               },
             }),
@@ -228,8 +332,8 @@ async function readStageMatchesView(
         // series-settled cross never resolves a zone name for the same round/position.
         ...(series === undefined
           ? {
-              ...(zoneNames?.zoneName === undefined ? {} : { zoneName: zoneNames.zoneName }),
-              ...(zoneNames?.groupName === undefined ? {} : { groupName: zoneNames.groupName }),
+              ...(resolvedZoneName === undefined ? {} : { zoneName: resolvedZoneName }),
+              ...(resolvedGroupName === undefined ? {} : { groupName: resolvedGroupName }),
               ...(record.homeEntrantId === undefined || standings === undefined
                 ? {}
                 : { homePosition: standings.position.get(record.homeEntrantId) }),
@@ -238,17 +342,48 @@ async function readStageMatchesView(
                 : { awayPosition: standings.position.get(record.awayEntrantId) }),
             }
           : { series }),
-        ...(decidingFactor === undefined ? {} : { decidingFactor }),
-        ...(record.homeEntrantId === undefined
+        ...(matchedDecidingFactor === undefined
           ? {}
-          : { homeClubId: clubIdByEntrant.get(record.homeEntrantId) }),
-        ...(record.awayEntrantId === undefined
-          ? {}
-          : { awayClubId: clubIdByEntrant.get(record.awayEntrantId) }),
+          : {
+              decidingFactor: matchedDecidingFactor.node.label,
+              decidingFactorCode: matchedDecidingFactor.node.id,
+              decidingFactorRule: matchedDecidingFactor.rule,
+            }),
+        ...(winnerEntrantId === undefined ? {} : { winnerEntrantId }),
         ...(standings === undefined ? {} : { rawTrace: standings.rawTrace }),
       };
     }),
   );
+}
+
+/**
+ * The winning entrant of a finished match. A series settles by its own winner; otherwise the higher
+ * score wins; a level match wins for the side its standings rank first, and only when a deciding
+ * factor settled it. Undecided, live and genuinely drawn matches have no winner.
+ */
+export function finalWinnerEntrantId(input: {
+  readonly status: 'upcoming' | 'live' | 'final';
+  readonly homeEntrantId?: string;
+  readonly awayEntrantId?: string;
+  readonly homeScore?: number;
+  readonly awayScore?: number;
+  readonly series?: PublicSeriesState;
+  readonly decidingFactored: boolean;
+  readonly homePosition?: number;
+  readonly awayPosition?: number;
+}): string | undefined {
+  if (input.status !== 'final') return undefined;
+  if (input.series !== undefined) return input.series.winnerEntrantId;
+  const { homeEntrantId: home, awayEntrantId: away } = input;
+  if (home === undefined || away === undefined) return undefined;
+  if (input.homeScore !== undefined && input.awayScore !== undefined) {
+    if (input.homeScore > input.awayScore) return home;
+    if (input.homeScore < input.awayScore) return away;
+  }
+  if (!input.decidingFactored) return undefined;
+  if (input.homePosition === undefined || input.awayPosition === undefined) return undefined;
+  if (input.homePosition === input.awayPosition) return undefined;
+  return input.homePosition < input.awayPosition ? home : away;
 }
 
 function publicMatchStatus(status: string): 'upcoming' | 'live' | 'final' {
@@ -257,56 +392,32 @@ function publicMatchStatus(status: string): 'upcoming' | 'live' | 'final' {
   return 'upcoming';
 }
 
-function eventLabel(
-  definitionCode: string,
-  definitionByCode: ReadonlyMap<string, EventDefinition>,
-): string {
-  const definition = definitionByCode.get(definitionCode);
-  return definition ? resolveLabel(definition.label, 'en') : definitionCode;
-}
-
-async function clubIdsOfEntrants(
-  db: Kysely<Database>,
-  enrollment: EnrollmentRepository,
-  entrantIds: readonly string[],
-): Promise<ReadonlyMap<string, string>> {
-  if (entrantIds.length === 0) return new Map();
-  const entrantTeams = await db
-    .selectFrom('entrants')
-    .select(['entrant_id', 'team_id'])
-    .where('entrant_id', 'in', entrantIds)
-    .execute();
-  const teamIdByEntrant = new Map(
-    entrantTeams.flatMap((entrant) =>
-      entrant.team_id === null ? [] : [[entrant.entrant_id, entrant.team_id] as const],
-    ),
-  );
-  const clubIdByTeam = await enrollment.clubsOfTeams([...new Set(teamIdByEntrant.values())]);
-  return new Map(
-    [...teamIdByEntrant.entries()].flatMap(([entrantId, teamId]) => {
-      const clubId = clubIdByTeam.get(teamId);
-      return clubId === undefined ? [] : [[entrantId, clubId] as const];
-    }),
-  );
-}
-
-async function zoneAndGroupNamesByGroupId(
+async function zoneAndGroupNamesByScope(
   db: Kysely<Database>,
   stageId: string,
-): Promise<ReadonlyMap<string, { readonly zoneName?: string; readonly groupName?: string }>> {
+): Promise<{
+  readonly byGroupId: ReadonlyMap<
+    string,
+    { readonly zoneName?: string; readonly groupName?: string }
+  >;
+  readonly byZoneId: ReadonlyMap<string, string | undefined>;
+}> {
   const competition = new CompetitionRepository(db);
   const zones = await competition.listZonesOfStage(stageId);
-  const result = new Map<string, { readonly zoneName?: string; readonly groupName?: string }>();
+  const byGroupId = new Map<string, { readonly zoneName?: string; readonly groupName?: string }>();
+  const byZoneId = new Map<string, string | undefined>();
   for (const zone of zones) {
+    const zoneName = isImplicitZone(zone) ? undefined : zone.name;
+    byZoneId.set(zone.zoneId, zoneName);
     const groups = await competition.listGroupsOfZone(zone.zoneId);
     for (const group of groups) {
-      result.set(group.groupId, {
-        ...(isImplicitZone(zone) ? {} : { zoneName: zone.name }),
+      byGroupId.set(group.groupId, {
+        ...(zoneName === undefined ? {} : { zoneName }),
         ...(isImplicitGroup(group) ? {} : { groupName: group.name }),
       });
     }
   }
-  return result;
+  return { byGroupId, byZoneId };
 }
 
 async function seriesStatesByPosition(
@@ -345,17 +456,6 @@ async function positionAndTraceFor(
   } catch {
     return { position: new Map(), rawTrace: [] };
   }
-}
-
-function decidingFactorOf(
-  rawTrace: readonly TraceNode[],
-  homeEntrantId: string | undefined,
-  awayEntrantId: string | undefined,
-): string | undefined {
-  return (
-    (homeEntrantId === undefined ? undefined : decidingFactorLabel(rawTrace, homeEntrantId)) ??
-    (awayEntrantId === undefined ? undefined : decidingFactorLabel(rawTrace, awayEntrantId))
-  );
 }
 
 interface ScheduleInfo {

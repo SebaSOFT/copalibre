@@ -2,9 +2,64 @@
 
 ## Scope and Structure
 
-CopaLibre is a Yarn 4 TypeScript monorepo for tournament operations. Run commands from this directory. Applications live in `apps/` (`api`, `web`, `events`, workers); reusable domain and infrastructure code lives in `packages/`; operational decisions and implementation plans live in `openspec/`.
+CopaLibre is a Yarn 4 TypeScript monorepo for tournament operations. It targets Node 26, as `.nvmrc`, the `Dockerfile` and CI all pin; run `nvm use` in a fresh shell. Run commands from this directory. Applications live in `apps/` (`api`, `web`, `events`, workers); reusable domain and infrastructure code lives in `packages/`; operational decisions and implementation plans live in `openspec/`.
 
 Read the active OpenSpec change before editing. Use `openspec validate <change> --strict` after updating its artifacts. Completed changes are synced and archived only after implementation and verification are complete.
+
+## Mandatory Working Rules
+
+Every software development task in this repository follows these rules, whatever the agent or harness
+(owner decision, 2026-11-26).
+
+### Mandatory tooling
+
+- **OpenSpec.** Every feature or fix is delivered as an OpenSpec change, validated with
+  `openspec validate <change> --strict`, archived after merge and promoted per
+  ["Feature Delivery Pipeline"](#feature-delivery-pipeline). See [OpenSpec CLI](#openspec-cli-openspec).
+- **rtk.** Command output goes through `rtk` so it does not flood context, including the Yarn gate
+  scripts the shell hook does not rewrite. See [rtk](#rtk-rust-token-killer).
+- **CodeGraph.** Map blast radius, callers, callees and related tests with the `codegraph_*` tools before
+  editing a symbol, and run `codegraph_pr_context` against `develop` before opening a PR. Grep only for
+  literals the graph cannot see (CSS classes, catalogue keys, copy). See
+  [CodeGraph](#codegraph-mcp-server-codegraph-server---mcp).
+- **Communication rules.** The 20 rules below apply to every response, commit message, PR description
+  and document an agent writes.
+
+### Preferred delivery
+
+- **feature-delivery skill.** Use it to ship changes end to end; see
+  [feature-delivery skill](#feature-delivery-skill).
+- **Haiku developer agent.** Implementation goes to a Haiku developer subagent briefed with senior
+  developer context: this file, the change's proposal, design, tasks and delta specs, the CodeGraph
+  steps above, the full local gate suite run in the foreground (full `yarn lint`, e2e under both `e2e/`
+  and `apps/web/tests/`), a self-review of its own diff, and no push, PR or merge. The main session, on a
+  stronger model, then runs a code review, `codegraph_pr_context` and a design review of the diff before
+  it opens the PR.
+
+### Communication rules
+
+1. Embody the role of the most qualified subject matter experts.
+2. Do not disclose AI identity.
+3. Omit language suggesting remorse or apology.
+4. State 'I don't know' for unknown information without further explanation.
+5. Avoid disclaimers about your level of expertise.
+6. Exclude personal ethics or morals unless explicitly relevant.
+7. Provide unique, non-repetitive responses.
+8. Do not recommend external information sources (but be based on reliable ones like official wiki or
+   documentation).
+9. Address the core of each question to understand intent.
+10. Break down complexities into smaller steps with clear reasoning.
+11. Offer multiple viewpoints or solutions.
+12. Request clarification on ambiguous questions before answering.
+13. Acknowledge and correct any past errors.
+14. Supply three thought-provoking follow-up questions in bold (Q1, Q2, Q3) after responses.
+15. Use the Metric system for measurements and calculations.
+16. Use Argentina for local context.
+17. "Check" indicates a review for spelling, grammar, syntax, and logical consistency.
+18. Minimize formalities in email communication.
+19. Use markdown as your preferred documentation format.
+20. Use direct effective language on responses minimizing articles (a/an/the), filler
+    (just/really/basically/actually/simply), pleasantries (sure/certainly/of course/happy to), hedging.
 
 ## Commands
 
@@ -36,9 +91,11 @@ rtk err yarn format:check
 rtk err yarn typecheck            # grouped tsc errors; silent when clean
 rtk test yarn test                # last 5 lines: the pass/fail summary
 rtk test yarn test:integration
-rtk test yarn test:e2e
-rtk proxy yarn <script>           # unfiltered, when filtered output looks wrong
+PLAYWRIGHT_HTML_OPEN=never rtk test yarn test:e2e  # avoids HTML report server hang on failure
+rtk bypass yarn <script>          # unfiltered, when filtered output looks wrong (`rtk proxy` is a deprecated alias)
 ```
+
+Locally, `WEB_EXISTING_BUILD=1 yarn test:integration` skips the production web build that the help static build test makes and reuses `apps/web/dist`; use it only when that build came from the current sources. The CI `docs-build` job sets the same flag for that test.
 
 **Coverage is the exception — never wrap it.** `rtk test` prints only the final 5 lines, and Jest prints its threshold verdict _above_ the `Test Suites:` summary, so a coverage failure is invisible through that window (and through any `tail -5`). Jest still exits 0 locally, so the failure surfaces only as CI's "Unit tests" job. Grep for the verdict explicitly:
 
@@ -85,13 +142,15 @@ yarn workspace @copalibre/design-tokens refresh:design
 
 Full descriptive documentation and `.impeccable/design.json` sidecar refresh (`/impeccable document`) follows integration and lands on the next feature branch. The normative-source note under `DESIGN.md`'s H1 is preserved by the refresh mechanism.
 
-**Mechanical design checks.** Run Impeccable detector checks locally:
+**Mechanical design checks.** Run Impeccable detector checks locally, on the files a change touches:
 
 ```bash
-npx impeccable detect
+npx impeccable detect apps/web/src/control/components/ControlShell.tsx
 ```
 
-Suppression justifications are recorded in `.impeccable/config.json`.
+Pass paths: with no target it walks the whole repository and takes far longer than a session should wait. On `.astro`, `.tsx` and `.css` sources it runs regex rules only, so contrast and small-text rules need a URL of a running server. Suppression justifications are recorded in `.impeccable/config.json`, each with a reason (`node scripts/check-detector-exceptions.mjs` fails one without), through `impeccable hooks ignore-value <rule> "*" --file <path>`; never silence a whole rule. A scan of a URL (it needs a Chromium: set `IMPECCABLE_BROWSER` to Playwright's) reports element rules and does not honour file-scoped exceptions, so it still shows two patterns `DESIGN.md` documents: `side-tab` on the standings promotion cells (a 4px rail paired with the written band label) and `cramped-padding` on emblem frames (their padding scales with the emblem on purpose).
+
+**Design review rules.** `DESIGN.md` is the design contract; where a generic design heuristic disagrees with it, `DESIGN.md` wins and the review records "contract holds" instead of changing the design. Four traits are deliberate brand choices, never findings: the ink ground with a single cyan accent, tracked uppercase labels, monospace data labels, and middle-dot meta strings. Review UI work with the user-level skills `impeccable`, `ui-ux-pro-max` and `frontend-design` (installed under `~/.agents/skills/`) in addition to the detector above.
 
 ### The component workbench
 
@@ -212,13 +271,17 @@ Yarn must use the conventional `node-modules` linker with the global cache. Do n
 
 Use TypeScript with Prettier and ESLint. Follow existing two-space indentation, single quotes, semicolons, camelCase values, PascalCase components/classes, and nearby file naming conventions. Keep domain code framework-free: `packages/domain` and `packages/rules` must not import NestJS or Fastify.
 
-Before editing an existing source file, use CodeGraph to locate the relevant symbol and read the exact current block, including imports and decorators. Prefer CodeGraph over grep, find, or sed for exploring or locating code generally, not only immediately before an edit — one `codegraph_explore` call typically returns verbatim source, call paths, and blast radius together, at a fraction of the round-trips a grep/read loop costs. Fall back to grep/find/sed only for what CodeGraph genuinely cannot answer. After every patch, inspect its focused `git diff` before compiling or testing; do not rely on a partial patch context to infer surrounding code.
+Before editing an existing source file, use CodeGraph to locate the relevant symbol and read the exact current block, including imports and decorators. Prefer CodeGraph over grep, find, or sed for exploring or locating code generally, not only immediately before an edit — its symbol, call-graph and impact tools return verbatim source, call paths, and blast radius at a fraction of the round-trips a grep/read loop costs (see ["CodeGraph"](#codegraph-mcp-server-codegraph-server---mcp) for the tool names). Fall back to grep/find/sed only for what CodeGraph genuinely cannot answer. After every patch, inspect its focused `git diff` before compiling or testing; do not rely on a partial patch context to infer surrounding code.
 
 Before adding a new domain primitive or abstraction, check whether an existing declarative mechanism already generalizes to the need — an `EventEffect`/`TargetAttribution` variant, a `ColumnSource` kind, an `ActorGranularity`/`CompetitionGranularity` value, an `EventWorkflow` branch. This codebase's mechanisms are frequently more general than any one discipline currently exercises; extending one at a setting it already supports is usually the right-sized change, not a new type.
 
 Preserve system traceability. Mutations that affect tournament state require explicit authorization, audit records, and durable outbox events in the same transaction. Model sport behavior through `DisciplineDescriptor` data and rules; do not hardcode sport-specific UI or controller logic. Prefer UUIDs for identifiers and do not expose personal data unnecessarily.
 
 This pillar governs interaction design, not just data modeling: a live-operations surface (e.g., the Live Match Operations Console's event recording) must render each discipline's own one-tap event flows from its `DisciplineDescriptor` config — never ship one sport's example (e.g., football's goal/foul/offside) as the hardcoded flow for every discipline. Any sport-specific example given during design work (football, basketball, etc.) is illustrative of the _pattern_ the config-driven engine must support, not the target sport to build for.
+
+Treat stored text as hostile in the browser. Names and labels are written by operators, including club administrators, and public pages share an origin with Control. A client script never hands them to an HTML parser: build DOM nodes and use `textContent`. `scripts/check-html-sinks.mjs` fails on `innerHTML`, `insertAdjacentHTML`, `document.write` and `dangerouslySetInnerHTML`, and keeps a register of reviewed `set:html` uses.
+
+Replacing an `innerHTML` template with DOM nodes drops the whitespace between inline elements, so `AR Age: 28` becomes `ARAge: 28`. Assert the container's `textContent`, not each node's. An Astro component's scoped `<style>` does not reach nodes a script creates, markup assigned through `innerHTML`, or classes inside child React components (use `:global(...)`).
 
 Versioned first-party modules are JSON from `packages/module-catalogue/`, installed only through `apps/seed`; migrations and application startup never seed them. SQLite integration parsing must preserve `{{ ... }}` rule expressions as strings rather than treating them as nested JSON.
 
@@ -232,6 +295,10 @@ Term migrations that rename tables, capabilities, or wire fields must provide re
 
 Add `*.test.ts(x)` beside unit-tested code and `*.integration.test.ts` for database or HTTP behavior. Test server-side authorization and validation even when the UI hides controls. A decorated controller must be registered in `AppModule`, listed in `OPENAPI_CONTROLLERS`, and declare schemas for every 2xx response; regenerate and commit `packages/contracts/openapi/v1.json` and generated types afterward. Fixtures must use lowercase kebab-case aliases and UUIDv7 opaque IDs; URL encoding never makes an invalid alias valid. For intentional incompatible API changes, bump `OPENAPI_VERSION`'s major version and generate with explicit breaking-change acceptance.
 
+`apps/web` has no `jest-dom`, so use plain matchers on `textContent` and `document.activeElement`. Control's tests render in Spanish.
+
+Do not assert a short-lived class with `toHaveClass`. `cl-flash-on-change` lives 600ms and Playwright's polling backs off to 1s, so it can miss the class and fail at random. Record it with a `MutationObserver` from `page.addInitScript`, and read any computed style in that callback. Before Playwright geometry/scroll checks on public pages, wait for `<meta name="copalibre:deferred-stylesheet">` and `document.fonts.ready`; keep React hooks out of framework-free browser stores.
+
 ## Help and API Reference
 
 Keep Starlight, Pagefind, and Scalar dependencies pinned. `prefetch: false` in the Astro config is
@@ -239,9 +306,31 @@ intentional: Starlight otherwise injects prefetch JavaScript into public broadca
 remain complete without JavaScript. Any docs dependency or ClientRouter lifecycle change requires
 `yarn workspace @copalibre/web verify:docs` and the focused help Playwright spec.
 
-The API reference reads the reviewed same-origin `/openapi/v1.json` artifact; it must never fetch a
-live API document. Its Scalar route deliberately forces a full document load and keeps request
-execution, authentication, client generation, telemetry, developer tools, and downloads disabled.
+The API reference (`apps/web/src/pages/help/api-reference.astro`) reads the reviewed same-origin
+`/openapi/v1.json` artifact; it must never fetch a live API document. Its Scalar bundle is copied from
+the pinned package at build time, and its configuration, `src/help/api-reference-init.js`, is copied
+beside it as `vendor/scalar/init.js`, because the strict CSP runs no unhashed inline script.
+
+Try It is on, so an integrator can use the API with a personal access token: requests go to this origin
+only, carry the token the visitor pastes as `Authorization: Bearer`, never carry the session cookie
+(`credentials: 'omit'`), and the token is never stored (`persistAuth: false`). Telemetry, developer
+tools, search and the agent stay off, and the OpenAPI document may be downloaded.
+
+The page wears the design tokens (`customCss` maps Scalar's variables to `--cl-*`). The copy script
+patches two things in the vendored bundle, the hosted `@font-face` rules and the `Function('')` probe,
+and fails the build if a patch does not apply exactly once, so the strict CSP sees no violation and no
+request leaves the origin. Only Control links to the page (its navigation footer and the personal access
+tokens card); the public pages and the help site do not.
+
+A living document names a `/help/` route only when a page produces it;
+`node scripts/check-doc-routes.mjs` fails otherwise.
+
+Every operator-facing capability under `openspec/specs/` (one whose scenarios name a person, such as an
+organizer or a spectator) must be claimed in the `capabilities:` frontmatter of some help page under
+`apps/web/src/content/docs/help/`. `apps/web/src/help-coverage.test.ts` and
+`scripts/check-help-coverage.test.mjs` enforce this in `yarn test`. A change that adds a capability
+claims it on a help page in its own branch: a claim on a capability that is not promoted yet is
+allowed. Otherwise `yarn test` fails on the next branch, whose first commit promotes the spec.
 
 ## CI and Infrastructure
 
@@ -255,6 +344,18 @@ Before creating or updating a PR, you MUST guarantee the CI will pass by running
 - `yarn typecheck`
 - `yarn test` and/or `yarn test:integration` (for backend)
 - `yarn test:e2e` (for frontend)
+- `yarn workspace @copalibre/design-tokens scan:forbidden` and `yarn workspace @copalibre/design-tokens check:integrity` (the `forbidden-token-scan` job runs both). The `--cl-*` custom-property namespace is reserved for declared design tokens, so name a component-local property without that prefix.
+- `node scripts/check-copy-voice.mjs`, `node scripts/check-change-number-references.mjs`, `node scripts/check-html-sinks.mjs`, and every `node --test` suite under `scripts/`, `scripts/lib/` and `apps/web/scripts/`
+- `node scripts/check-file-size.mjs` (the `enterprise-readiness-doc-lint` job runs it): a tracked
+  production source file over 800 lines, or a test file over 2000, fails unless
+  `KNOWN_OVERSIZED_FILES` in that script records it with a ceiling and a reason. A registered file
+  fails when it grows past its ceiling, and an entry fails when its file is gone or back under the
+  limit. Split a growing file by responsibility first; raising a ceiling needs the reason rewritten to
+  say why the file still holds one responsibility. Generated contracts and translation catalogues are
+  not measured
+- `openspec validate --specs --strict` (the `enterprise-readiness-doc-lint` job runs it): the accepted spec baseline stays strictly valid. Keep a requirement's statement to its normative sentences (under 500 characters) and put examples and cases in scenarios
+
+Screenshots are never committed: `docs/assets/screenshots/` is ignored and no e2e test writes one.
 
 Crucially, if you modify **any** infrastructure or deployment file, you MUST explicitly run the repository's custom validation scripts locally before committing:
 
@@ -262,33 +363,129 @@ Crucially, if you modify **any** infrastructure or deployment file, you MUST exp
 - `node scripts/check-enterprise-readiness-docs.mjs`
 - `node scripts/check-third-party-notices.mjs`
 
+### Releasing
+
+A release is a `develop` to `main` pull request; merging it runs `.github/workflows/release.yml`
+(audits, builds and pushes the multi-arch images to GHCR, tags `vX.Y.Z`, creates the GitHub Release),
+which triggers `copalibre-cli-release.yml` for the CLI binaries. Versions, image tags in
+`docker-compose.yml`, the Helm chart, the version pins in `docs/` and the help pages (all eight
+languages) and the `CHANGELOG.md` section are prepared and merged into `develop` first.
+
+- **Release-candidate jobs.** `Deployment E2E`, `Deploy smoke test`, `Release image build` and the
+  TV soak step run only when the pull request targets `main` or the run is a `workflow_dispatch`, so
+  nothing exercises them between releases. Before opening the release pull request, run
+  `gh workflow run ci.yml --ref <branch>` on a branch that holds the release content and fix what it
+  shows; a dispatched run counts as a release candidate.
+- **Skipped release jobs hide regressions.** Between releases nothing runs those jobs, and failures pile
+  up behind them: from 2026-10-09 to 2026-11-12 four unrelated regressions accumulated (doctor before
+  the database roles existed, doctor missing a variable, a dev-only heartbeat check in containers,
+  `events` rejecting native sessions). The first dispatch after such a gap shows only the first
+  failure of each job; fix it, dispatch again, and read every job end to end before calling it green.
+- **Read the dispatched run, not the previous one.** `gh workflow run` right after `git push` can run
+  the old commit. Compare `gh run view <id> --json headSha` with `git rev-parse HEAD` first.
+- **Check every workflow on a pull request, not only `CI`.** `gh pr checks <number>` lists them all
+  (the CLI build check, Helm lint); a red one there blocks the merge just the same.
+- **A stacked pull request runs fewer workflows.** One whose base is another PR's branch skips every
+  workflow that triggers only on pull requests to `develop` (the CLI build check among them). Merge the
+  base PR first, or merge the stacked one into the base branch and dispatch on it, and say which in
+  both PR bodies.
+- **Try a new CI step's commands against the real target before pushing it.** A deploy smoke step
+  failed in its first command because the page it read (`/control/`) links no stylesheet; running the
+  same commands against the shipped Caddyfile (the performance harness serves it locally) would have
+  shown that in seconds. Release-candidate steps cost a full dispatch to find out otherwise.
+- **`mirror.gcr.io` has a per-host quota.** It can answer `Quota exceeded … artifactregistry` for a
+  while and then recover; the job did not fail on code. Rerun it once later before changing registry. GitHub creates them when the lockfile reaches the
+  default branch, so `scripts/check-dependabot-alerts.mjs` can pass on `develop` and fail the
+  `Release` workflow right after the merge. An alert with no patched version is recorded in
+  `KNOWN_UNPATCHED_ADVISORIES` in that script (package, GHSA, upstream issue, dependency path, runtime
+  exposure) after the owner approves the risk; that needs a second `develop` to `main` pull request,
+  because the script that runs is the one on `main`.
+- **No direct Docker Hub pulls in workflows.** Anonymous pulls share one rate limit across GitHub's
+  runners and the Docker Hub token endpoint times out from them, so even an authenticated login is
+  unreliable. Take images from `mirror.gcr.io`: by image name in a job's `services` and in `docker
+run` steps, through `registry-mirrors` in the daemon's configuration for `docker compose`, and
+  through `buildkitd-config-inline` for BuildKit. A `credentials:` block with an empty secret
+  invalidates the whole job.
+- **Rerun only the latest run.** `ci.yml` cancels an in-progress run of the same ref when another
+  starts, so `gh run rerun` on an older run cancels the newer one and leaves cancelled checks on the
+  pull request.
+- **Clean-host flow.** `copalibre init` writes placeholder secrets that `doctor` rejects by design, so
+  the `Deployment E2E` job writes its own into the installation's `.env` before `doctor`; `doctor`
+  starts its dependencies with `--pull missing`, never `never`. In Compose, `doctor` depends on
+  `database-setup`, because it connects as the runtime database role that `database-setup` creates.
+
+### Performance budgets and the web role
+
+- **The gate measures the shipped serving path.** `scripts/lighthouse/run.mjs` serves the built site
+  through `deploy/web/Caddyfile` in the web role's own Caddy image (read from the `Dockerfile`'s `web`
+  stage, pulled through `mirror.gcr.io`), in front of the built renderer and a fixture API. It needs
+  Docker and a free port 4321: stop the dev web app or a preview first. Docker Desktop does not share
+  the host network, so Caddy reaches the renderer and the fixture through `host.docker.internal`, and
+  both listen on every interface while it runs.
+- **The fixture API mirrors routes by hand and says what it leaves out.**
+  `scripts/lighthouse/performance-fixture-api.mjs` must answer every API route a measured page requests,
+  or list it in `DECLARED_ABSENT_ROUTES` with a reason; any other 404 fails the gate, because the page
+  measured would not be the one visitors see. When a route or prefix moves, grep it there too.
+- **Compression is the web role's.** Its Caddyfile compresses text with zstd and gzip and never
+  `/events` (a compressor holds live events back) or `/api/auth` (secrets beside client-sent text).
+  Caddy runs `rewrite` and `try_files` before `encode`, so the matcher sees the rewritten path: keep new
+  rewrites away from `/api` and `/events`. `apps/web/scripts/web-compression.test.mjs` guards both
+  exclusions.
+- **Measure before and after with the same harness.** Record the medians per route from the run's own
+  reports (`.artifacts/lighthouseci/*.report.json`), not from memory of an earlier run: a fixture change
+  moves the baseline. A budget still missed is read from the LCP phases, the shift sources and the
+  resource summary before anything is changed.
+- **A layout-shift test must prove it can fail.** A fast machine runs module scripts before the first
+  paint and hides a load shift; delay `/_astro/*.js` in the spec, and refuse web fonts when the shift
+  under test is not a font swap. Then break the fix (in `dist`, not the source) and watch it fail.
+
 ## Changes and Reviews
 
-Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes. Git ignore rules are authoritative: never force-add anything under `openspec/changes/`, whether active or archived. Commit only accepted specification deltas under `openspec/specs/`. Never commit `.env` files, credentials, or production connection strings.
+Use scoped Conventional Commit subjects, such as `feat(api): add match projection` or `fix(persistence): preserve elapsed clock`. Keep commits narrowly focused. PRs must describe behavior, OpenSpec change ID, tests run, migration/configuration impact, and screenshots for UI changes: before/after pairs of every touched screen at desktop 1440x900 (TV 1920x1080) and mobile 390x844, in Spanish, on the demo dataset (`docs/DEMO-DATA.md`). They are attached to the PR body in GitHub's editor, never committed. An agent cannot upload them: it captures them under `.artifacts/screenshots/` (ignored), lists the file paths in the PR body under "UI screenshots", and asks the owner to attach them. A change with no UI (CLI, API, CI) shows the real command output instead. Git ignore rules are authoritative: never force-add anything under `openspec/changes/`, whether active or archived. Commit only accepted specification deltas under `openspec/specs/`. Never commit `.env` files, credentials, or production connection strings. Never insert users, role assignments, password hashes or tokens into a database by hand, not even in development: use a supported command, and if none exists, stop and report the gap instead of working around it.
 
-Before every commit, run `node --test scripts/lib/component-graph.test.mjs`. When a change alters the web component graph, update the asserted node and edge counts and baseline description in that same commit; keep the zero-unresolved-import assertion passing.
+Every PR that adds or changes catalogue strings lists each key, language, old text and new text in its body. Run `node scripts/list-changed-strings.mjs --compact` and update the PR body (`gh pr edit`) before `git push` so CI's `synchronize` snapshot sees it (`ci.yml` skips `edited`). Every UI PR includes the before/after pairs described above. The release pull request from `develop` into `main` is exempt: its strings were each listed in their own pull request, and the combined list exceeds GitHub's body limit.
+
+Before every commit, run `node --test scripts/lib/component-graph.test.mjs`. When a change alters the web component graph, update the asserted node and edge counts in that same commit and say what changed in the commit message; never grow the test title with a description of the change. Keep the zero-unresolved-import assertion passing.
 
 Tracked content never cites an OpenSpec change by number or numbered directory name, and no tracked file name starts with one: `openspec/changes/` is git-ignored, so a citation points at something a fresh clone does not have. The same holds for a change's planning documents: do not cite a task number or point at a change's design, tasks or proposal file as the source of a rationale. Describe the behavior or the rationale in words (comments, test and story titles, docs, workflow notes, accepted specs). Change ids belong only in branch names, the local change directory, PR descriptions and commit history; `CHANGELOG.md`, database migrations and lockfiles are exempt. `node scripts/check-change-number-references.mjs` enforces this (the `enterprise-readiness-doc-lint` job in `ci.yml` runs it); run it before every commit.
 
+To capture real screens, the demo organization's alias is `panamericano-demo`, so Control opens at `/control/panamericano-demo`. The demo has no leaderboard players, so the public player dialog needs the fixture in `e2e/standings-and-rankings.fixtures.ts`. Starting `apps/api` by hand needs the authentication variables `hybridEnvironment` sets in `apps/copalibre/src/commands/dev-command.ts`.
+
 ## Tooling Reference
 
-Concrete usage notes for the tools this project's workflow depends on. See `.claude/skills/*/SKILL.md`
-for the full skill instructions; this section is the quick-reference cheat sheet.
+Concrete usage notes for the tools this project's workflow depends on. Skills are user-level, not
+vendored in this repo (`.claude/` is git-ignored): the canonical copies live in `~/.agents/skills/<name>/SKILL.md`
+and each harness reaches them through its own user-level skills directory (for Claude Code,
+`~/.claude/skills/`). This section is the quick-reference cheat sheet.
 
-### CodeGraph (MCP: `codegraph_explore`, CLI: `codegraph explore "..."`)
+### CodeGraph (MCP server: `codegraph-server --mcp`)
 
-- `.codegraph/codegraph.db` is a pre-built SQLite index of every symbol/edge/file in this monorepo
-  (30+ languages, TS/JS included). It lags file writes by ~1s via a watcher.
-- One tool, `codegraph_explore`. Pass either symbol/file names or a natural-language question. Returns
-  verbatim line-numbered source (safe to `Edit` from directly, same shape as `Read`), the call graph
-  between the returned symbols (including dynamic-dispatch hops like callbacks/JSX that grep misses),
-  and a blast-radius summary of callers/tests.
-- Use it **before** Read/Grep/Find for "how does X work," "where is X defined," locating a symbol before
-  editing, or checking what depends on something before changing it. Fall back to grep/find/Read only for
-  what CodeGraph can't answer (e.g. a known line range in a file you already have open).
-- A `UserPromptSubmit` hook auto-surfaces matching indexed symbols for each prompt — treat those as
-  already-read context and query `codegraph_explore` once with the relevant names rather than re-deriving
-  them by hand.
+CodeGraph indexes every symbol, edge and file of this monorepo (TS/JS included) and serves them as MCP
+tools. The tool surface depends on the server build, so check which `codegraph_*` tools the harness
+actually exposes before assuming a name.
+
+- **`codegraph-server` (Rust, 0.21+)** exposes a family of tools, not one: `codegraph_symbol_search`
+  (locate a symbol), `codegraph_get_edit_context` / `codegraph_get_detailed_symbol` (exact source of a
+  symbol, with callers/callees), `codegraph_get_callers` / `codegraph_get_callees` /
+  `codegraph_get_call_graph` (call paths), `codegraph_analyze_impact` (blast radius before a change),
+  `codegraph_find_related_tests`, `codegraph_get_module_summary` (directory overview),
+  `codegraph_get_dependency_graph`, and `codegraph_find_circular_deps`. Paths passed to these tools must be
+  absolute. The `--profile core|graph|memory` flag narrows the surface; the default exposes everything.
+  The index is held by the server, so no `.codegraph/` directory has to exist in the checkout.
+- **Builds that expose a single `codegraph_explore` tool** (CLI: `codegraph explore "..."`, SQLite index at
+  `.codegraph/codegraph.db`) take symbol/file names or a natural-language question and return verbatim
+  line-numbered source, the call graph between the returned symbols and a blast-radius summary in one call.
+- Either way, use CodeGraph **before** Read/Grep/Find for "how does X work," "where is X defined,"
+  locating a symbol before editing, or checking what depends on something before changing it. Fall back to
+  grep/find/Read only for what CodeGraph can't answer (e.g. a known line range in a file you already have
+  open). The index lags file writes by about a second, so re-query after a patch rather than trusting an
+  earlier answer.
+- If the harness wires a `UserPromptSubmit` hook that surfaces matching indexed symbols, treat those as
+  already-read context instead of re-deriving them by hand. Not every harness configures one.
+
+### Shell
+
+The shell is zsh. An unquoted `?` or `*` that matches no file aborts the whole command line, including anything chained after it, so quote URLs. `echo ===` fails too.
 
 ### rtk (Rust Token Killer)
 
@@ -300,9 +497,9 @@ for the full skill instructions; this section is the quick-reference cheat sheet
   It has no `yarn` subcommand, so this repo's Yarn-script gates are **not** rewritten; see
   ["Running the gate suite without flooding context"](#running-the-gate-suite-without-flooding-context).
 - Useful direct invocations: `rtk gain` (savings analytics), `rtk gain --history`, `rtk discover` (finds
-  missed savings opportunities in session history), `rtk proxy <cmd>` (bypass filtering to debug a raw
-  command that looks wrong when filtered), `rtk err` / `rtk test` (show only failures/warnings from a
-  command's output).
+  missed savings opportunities in session history), `rtk bypass <cmd>` (run without filtering, to debug a
+  raw command that looks wrong when filtered; `rtk proxy` is a deprecated alias), `rtk err` / `rtk test`
+  (show only failures/warnings from a command's output).
 - Verify a working install with `rtk --version` and `rtk gain`; `rtk gain` failing (vs. "command not
   found") usually means a name-colliding `rtk` (Rust Type Kit) is on `PATH` instead.
 
@@ -318,14 +515,15 @@ for the full skill instructions; this section is the quick-reference cheat sheet
 
 ### feature-delivery skill
 
-- SebaSOFT's cross-project shipping protocol (`.claude/skills/feature-delivery/SKILL.md`): investigate
-  with CodeGraph first, plan with OpenSpec, one change per branch, verify locally before opening a PR,
-  wait for explicit human merge approval (never self-merge), then archive the change and promote its spec
-  deltas.
-  Concrete per-project specifics (branch naming, gate suite, promotion mechanics) live in this file's
+- **Protocol**: SebaSOFT's cross-project shipping protocol (`~/.agents/skills/feature-delivery/SKILL.md`,
+  exposed to each harness through its user-level skills directory): investigate with CodeGraph first, plan
+  with OpenSpec, one change per branch (`change/00NN-slug`), verify locally before opening a PR, wait for explicit human merge
+  approval (never self-merge), then archive the change and promote its spec deltas.
+- **Prerequisites & Tooling**: Verifies presence of a token saver (`rtk` or `ponytail`), CodeGraph MCP, and OpenSpec CLI (`openspec`), suggesting them if missing.
+- **Project Specifics**: Branch naming, gate suite, and promotion mechanics live in this file's
   ["Feature Delivery Pipeline"](#feature-delivery-pipeline) section below — the skill explicitly defers to
   that.
-- Key behavioral rules worth remembering: design docs get an explicit Non-Goals list; prefer extending an
+- **Key Behavioral Rules**: Design docs get an explicit Non-Goals list; prefer extending an
   existing declarative mechanism over inventing a new domain primitive; ask (`AskUserQuestion`) only for
   genuine product/privacy/scope decisions, never for things answerable by reading code; one OpenSpec
   change per branch/PR, never batched.
@@ -334,15 +532,21 @@ for the full skill instructions; this section is the quick-reference cheat sheet
 
 - `openspec/` holds `changes/` (in-flight proposals) and `specs/` (accepted baseline), configured via
   `openspec/config.yaml`.
-- Core commands used in this repo's cycle: `openspec change show <id>`, `openspec validate <id>
+- Core commands used in this repo's cycle: `openspec show <id>`, `openspec validate <id>
 --strict` (required before considering a proposal or its updates done), `openspec archive <id> --yes`
-  (after merge), `openspec spec show/list/validate`, `openspec list` (active changes), `openspec view`
-  (interactive dashboard), `openspec status <change>` (artifact completion), `openspec context` (working
-  context for the resolved root).
+  (after merge), `openspec list` (active changes) and `openspec list --specs`, `openspec validate --specs`
+  (accepted baseline), `openspec view` (interactive dashboard), `openspec status <change>` (artifact
+  completion), `openspec context` (working context for the resolved root). The `openspec spec …` and
+  `openspec change …` subcommands are deprecated in favor of these verb-first forms.
 - The dedicated skills (`openspec-propose`, `openspec-apply-change`, `openspec-explore`,
   `openspec-update-change`, `openspec-sync-specs`, `openspec-archive-change`, and their `opsx:*`
   equivalents) wrap these commands for the propose → implement → archive/promote lifecycle described in
   Feature Delivery Pipeline below.
+- A proposal is self-contained, because the agent that applies it may never have seen the conversation
+  that produced it. Restate every owner decision it relies on with its values and date. Never make a
+  proposal depend on a published artifact, a scratchpad or temporary file, an external design export,
+  or any other file outside the repository. An external article may be named as the source of a
+  decision, but its content is restated in the proposal.
 
 ### git and GitHub CLI (`git`, `gh`)
 
@@ -370,21 +574,34 @@ for the full skill instructions; this section is the quick-reference cheat sheet
   attach via CDP.
 - Use this for the "start the dev server and use the feature in a browser before reporting complete" step
   required for UI/frontend changes (see Code and Architecture guidance above), not just ad hoc scraping.
+  Re-capture after the final UI edit and check `scrollWidth <= clientWidth` / `scrollHeight <= clientHeight`
+  in `es`, `en`, and `de`; `screenshot` writes to `~/.agent-browser/tmp/screenshots/` (copy from stdout).
 
 ## Feature Delivery Pipeline
 
 Follow the `feature-delivery` skill for the full shape of shipping a change. The concrete cycle in this
 repo: one OpenSpec change per branch, named `change/00NN-slug`, branched from `develop`. Implement its
-tasks, then run the full local gate suite (`yarn lint`, `yarn format:check`, `yarn typecheck`, `yarn test`/`yarn
-test:integration`, `yarn test:e2e` as applicable, plus the infra validation scripts above if
-infrastructure files changed) and confirm every one is green before opening a PR against `develop`. Wait
-for every required CI check to pass, then wait for explicit merge approval — do not merge a PR on your
+tasks, then run the full local gate suite and confirm every one is green before opening a PR against
+`develop`:
+
+- every baseline validation listed under "CI and Infrastructure", including the design-tokens
+  `scan:forbidden` and `check:integrity`, the `node --test` suites and `openspec validate --specs --strict`;
+- `test:coverage` for each touched workspace, and `yarn crap:check`;
+- the infra validation scripts, if infrastructure files changed.
+
+Wait for every required CI check to pass, then wait for explicit merge approval — do not merge a PR on your
 own initiative, and an earlier approval does not carry forward to the next PR. Once merged, sync
 `develop`, delete the local and remote feature branches, then archive the change with
-`openspec archive <change> --yes`. Git ignore rules are authoritative: never force-add active or archived
-change artifacts. Keep resulting accepted-spec deltas uncommitted on `develop`; on the next feature
+`openspec archive <change> --yes`, then run `openspec validate --specs --strict`: archiving merges deltas
+into accepted requirements, and a merged requirement over 500 characters fails CI's strict check, so
+split it into requirements that each state one behavior before the promotion commit. A promoted
+capability that no help page claims fails `yarn test` (see "Help and API Reference"). Git ignore rules
+are authoritative: never force-add active or archived change artifacts. Keep resulting accepted-spec deltas uncommitted on `develop`; on the next feature
 branch, commit only those `openspec/specs/` deltas first
 (`docs(openspec): promote NNNN specs into the accepted baseline`). Do not create a standalone PR for
-promotion. Only then implement the next queued change, unless told to work ahead.
+promotion. The last change of a queue has no next branch: its promotion is the first commit of the
+release-preparation branch (see "Releasing"). Only then implement the next queued change, unless told
+to work ahead. Deleting the remote feature branch may fail harmlessly because GitHub removes it when the
+pull request merges.
 
 @RTK.md

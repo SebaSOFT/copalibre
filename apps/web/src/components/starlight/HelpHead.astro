@@ -1,7 +1,10 @@
 ---
 import DefaultHead from '@astrojs/starlight/components/Head.astro';
-import { ClientRouter } from 'astro:transitions';
 ---
 
+<!--
+  No <ClientRouter />: Astro's Content Security Policy cannot follow it. A swapped-in page would run its
+  scripts under the first page's <meta> policy, whose hashes do not cover them. Help pages load as
+  ordinary documents, each with its own policy.
+-->
 <DefaultHead />
-<ClientRouter />

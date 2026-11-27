@@ -76,14 +76,10 @@ The match operations system SHALL maintain active on-field participation state f
 ### Requirement: A match roster is an authorized, audited, revisable write per entrant
 
 The system SHALL provide an authorized write that records one entrant's roster for one match, as an
-ordered set of members each carrying the person, a shirt number, the roster roles the discipline
-declares, and a starter-or-bench on-field state. The write SHALL be authorized by the `match.select-roster`
-capability, SHALL replace any prior selection for that same match and entrant rather than accumulating,
-and SHALL be audited on every write with its prior and resulting state.
-
-Member identity fields that duplicate a person's own record — display name and nationality — SHALL be
-snapshotted at selection time rather than resolved on read, so a later change to the person never
-rewrites a played match's roster.
+ordered set of members. The write SHALL be authorized by the `match.select-roster` capability, SHALL
+replace any prior selection for that same match and entrant rather than accumulating, and SHALL be
+audited on every write with its prior and resulting state. A member's display name and nationality
+SHALL be snapshotted at selection time rather than resolved on read.
 
 #### Scenario: Selecting a roster for one side
 - **WHEN** a subject holding `match.select-roster` submits a roster for one entrant of a match
@@ -116,6 +112,17 @@ rewrites a played match's roster.
   declared roster constraints describe
 - **THEN** the write is accepted, because the platform enforces only record integrity and what this
   organizer configured, never what a sport usually requires
+
+#### Scenario: A member carries its match details
+
+- **WHEN** a member is recorded
+- **THEN** it carries the person, a shirt number, the roster roles the discipline declares, and a
+  starter-or-bench on-field state
+
+#### Scenario: A later change to the person leaves a played roster alone
+
+- **WHEN** a rostered person's display name or nationality changes after selection
+- **THEN** the match roster keeps the values snapshotted when it was selected
 
 ### Requirement: Recorded-event person eligibility derives from the selected roster
 
@@ -186,3 +193,168 @@ without requiring direct database access.
 - **THEN** the request SHALL succeed, using either an explicit, grantable assignment or the admin's
   organization-scoped authority, rather than being refused with no path to remedy it
 
+### Requirement: A match is in progress only with a segment set running
+
+A match SHALL enter or resume the in-progress state only when a segment is set running. A Start command for a match with no segments SHALL first create its regulation plan. A Start or Resume command that still has no segment to set running SHALL be refused as a bad-request error. The match's status and segments SHALL stay unchanged after such a refusal.
+
+#### Scenario: Start is refused for a match with no segments
+
+- **WHEN** a Start command arrives for a scheduled match with no segments whose discipline declares no segment type, so no regulation plan exists
+- **THEN** the request is refused as a bad-request error, no segment is created and the match stays scheduled
+
+#### Scenario: Start without a named segment starts the first segment not yet ended
+
+- **WHEN** a Start command arrives for a scheduled match whose segments are all pending and names no segment
+- **THEN** the first segment not yet ended starts, and the match becomes in progress
+
+#### Scenario: Resume is refused when every segment has ended
+
+- **WHEN** a Resume command arrives for an in-progress match whose segments have all ended
+- **THEN** the request is refused as a bad-request error and no segment changes state
+
+### Requirement: Start creates the regulation plan of a match with no segments
+
+A Start command for a scheduled match with no segments SHALL create, in the same transaction, the regulation segments of the ruleset the match is played under, then set the first one running. Regulation SHALL be the discipline's first declared segment type, created once per `regulationCount`, or once per set needed to win a `bestOf`, or once when neither is configured.
+
+#### Scenario: A football match starts with two halves
+
+- **WHEN** an operator starts a scheduled football match with no segments under a ruleset whose regulation count is 2
+- **THEN** the match has two half segments, the first is running, the second is pending and the match is in progress
+
+#### Scenario: A best-of-three match starts with two sets
+
+- **WHEN** an operator starts a scheduled tennis match with no segments under a ruleset configured as best of 3
+- **THEN** the match has two set segments, and the first is running
+
+#### Scenario: An override changes the plan
+
+- **WHEN** the tournament ruleset overrides the regulation count to 4 and an operator starts a match with no segments
+- **THEN** four regulation segments are created
+
+#### Scenario: A match that already has segments keeps them
+
+- **WHEN** an operator starts a scheduled match that already has segments
+- **THEN** no segment is created and the first segment not yet ended starts
+
+### Requirement: Concurrent starts create one plan
+
+Two Start commands for the same scheduled match with no segments, arriving together or replayed from an offline queue, SHALL leave exactly one regulation plan. The later command SHALL be answered as a refusal or, when it repeats an idempotency key, with the recorded response.
+
+#### Scenario: Two operators press Start together
+
+- **WHEN** two Start commands with different idempotency keys arrive at the same time for a scheduled match with no segments
+- **THEN** one succeeds, the other is refused because the match is already in progress, and the match holds one plan
+
+#### Scenario: An offline start is replayed
+
+- **WHEN** a Start command is replayed with an idempotency key that already succeeded
+- **THEN** the recorded response is returned and no segment is created
+
+### Requirement: An operator adds a segment to a match in progress
+
+An authorized operator SHALL be able to append one segment of any type the discipline declares to an in-progress match. The segment SHALL be numbered after the last one, start pending, be audited with its actor, reach every console through the realtime stream, and honor an idempotency key.
+
+#### Scenario: Extra time is added
+
+- **WHEN** an operator adds an extra-time segment to an in-progress football match whose two halves have ended
+- **THEN** the match has a third segment of type extra time, pending, and the audit trail names the operator
+
+#### Scenario: A stuck match is repaired
+
+- **WHEN** an operator adds a half to an in-progress match that has no segments, then resumes
+- **THEN** the half runs and events can be recorded in it
+
+#### Scenario: A repeated addition creates one segment
+
+- **WHEN** the same add-segment request is sent twice with one idempotency key
+- **THEN** one segment is created and both responses are the same
+
+### Requirement: Adding a segment is refused only when the record would be incoherent
+
+Adding a segment SHALL be refused as a bad-request error when the match is not in progress or when the discipline does not declare the type. Adding a regulation segment beyond the configured maximum, or any declared conditional type, SHALL be accepted and reported as outside the plan.
+
+#### Scenario: A finalized match
+
+- **WHEN** an operator adds a segment to a finalized match
+- **THEN** the request is refused as a bad-request error and no segment is created
+
+#### Scenario: An undeclared type
+
+- **WHEN** an operator adds a segment of a type the discipline does not declare
+- **THEN** the request is refused as a bad-request error and no segment is created
+
+#### Scenario: A fourth set in a best of three
+
+- **WHEN** an operator adds a set to an in-progress best-of-three match that already has three sets
+- **THEN** the set is created and the console state reports set additions as outside the plan
+
+### Requirement: A time correction keeps the segment's state
+
+A correction of a segment's elapsed time that does not ask to activate the segment SHALL set the time and SHALL leave the segment's state unchanged: a running segment keeps running from the corrected time, a paused or not started segment stays stopped, and an ended segment stays ended. The correction SHALL be audited with its actor and the prior and resulting time.
+
+#### Scenario: A running half is corrected
+
+- **WHEN** an operator corrects the time of a running half to 20:50
+- **THEN** the half reads 20:50 and keeps running, and no other segment changes state
+
+#### Scenario: An ended half is corrected
+
+- **WHEN** an operator corrects the time of an ended half to 45:00
+- **THEN** the half reads 45:00 and stays ended
+
+### Requirement: A time correction is refused on a closed match and never reopens an ended segment
+
+A time correction SHALL be refused as a bad-request error when the match is closed: finalized, forfeited or not-required. A time correction that asks to activate a segment SHALL be refused as a bad-request error when that segment has ended. After either refusal the segments' times and states SHALL be unchanged. A time correction on a scheduled or an in-progress match SHALL be accepted.
+
+#### Scenario: A finalized match
+
+- **WHEN** a time correction arrives for a segment of a finalized match
+- **THEN** the request is refused as a bad-request error and the segment's time is unchanged
+
+#### Scenario: A forfeited match
+
+- **WHEN** a time correction arrives for a segment of a forfeited match
+- **THEN** the request is refused as a bad-request error and the segment's time is unchanged
+
+#### Scenario: An old console asks to activate an ended segment
+
+- **WHEN** a time correction with the request to activate arrives for an ended segment of an in-progress match
+- **THEN** the request is refused as a bad-request error and the segment stays ended
+
+#### Scenario: A scheduled match
+
+- **WHEN** a time correction without activation arrives for a segment of a scheduled match
+- **THEN** the time is set, the segment stays not started and the match stays scheduled
+
+### Requirement: An ended segment is reopened only by an explicit command with a reason
+
+An authorized operator with the clock-control capability SHALL be able to reopen an ended segment of an in-progress match with a non-empty reason. The segment SHALL return to paused with its time kept, the audit trail SHALL record the reason, actor and prior and resulting state, every console SHALL receive the change through the realtime stream, and a repeated idempotency key SHALL return the recorded response.
+
+#### Scenario: A half ended by mistake
+
+- **WHEN** an operator reopens the first half of an in-progress match with the reason "Ended by mistake"
+- **THEN** the half is paused with its time kept, and the audit trail shows the reason and the operator
+
+#### Scenario: A repeated reopen
+
+- **WHEN** the same reopen request is sent twice with one idempotency key
+- **THEN** both responses are the same and the audit trail holds one reopen
+
+### Requirement: Reopening is refused when the record would be incoherent
+
+Reopening SHALL be refused as a bad-request error when the reason is empty, when the segment has not ended, or when the match is not in progress. After a refusal the segment's state SHALL be unchanged.
+
+#### Scenario: No reason
+
+- **WHEN** an operator reopens an ended segment with an empty reason
+- **THEN** the request is refused as a bad-request error and the segment stays ended
+
+#### Scenario: A finalized match
+
+- **WHEN** an operator reopens an ended segment of a finalized or forfeited match
+- **THEN** the request is refused as a bad-request error and the segment stays ended
+
+#### Scenario: A segment that has not ended
+
+- **WHEN** an operator reopens a running or paused segment
+- **THEN** the request is refused as a bad-request error and the segment's state is unchanged

@@ -13,29 +13,36 @@
  * build time via `resultStateLabels()` and passes it down as a plain prop.
  */
 
+import type { IconName } from './icon-registry.js';
+
 export type ResultState =
   'live' | 'upcoming' | 'final' | 'disputed' | 'winner' | 'loser' | 'tbd' | 'cancelled';
 
 export interface StatePresentation {
   readonly state: ResultState;
   readonly label: string;
-  /** A shape, for viewers who distinguish neither the colour nor the word. */
-  readonly icon: string;
+  /**
+   * A shape, for viewers who distinguish neither the colour nor the word. It
+   * names a registry icon rather than a character: the brand faces have no
+   * glyph for these shapes, and drawing one as text made every page download
+   * a fallback font.
+   */
+  readonly icon: IconName;
   /** The token class; `cl-state-*` maps onto semantic tokens. */
   readonly className: string;
 }
 
 export type ResultStateLabels = Readonly<Record<ResultState, string>>;
 
-const ICON: Readonly<Record<ResultState, string>> = {
-  live: '●',
-  upcoming: '◷',
-  final: '✓',
-  disputed: '!',
-  winner: '▲',
-  loser: '▽',
-  tbd: '—',
-  cancelled: '×',
+const ICON: Readonly<Record<ResultState, IconName>> = {
+  live: 'live',
+  upcoming: 'calendar',
+  final: 'check',
+  disputed: 'alert',
+  winner: 'winner',
+  loser: 'loser',
+  tbd: 'minus',
+  cancelled: 'close',
 };
 
 const CLASS_NAME: Readonly<Record<ResultState, string>> = {
@@ -60,8 +67,34 @@ const ALL_STATES: readonly ResultState[] = [
   'cancelled',
 ];
 
+/**
+ * Whether a match in this state carries a score to show. A disputed match keeps the score it was recorded
+ * with; an upcoming, cancelled or undecided match has none, so its score position reads as a dash.
+ */
+export function stateHasScore(state: ResultState): boolean {
+  return state === 'live' || state === 'final' || state === 'disputed';
+}
+
+/** The token class of a result state: the one source every state badge reads, the TV badges included. */
+export function stateClassName(state: ResultState): string {
+  return CLASS_NAME[state];
+}
+
 export function presentState(state: ResultState, labels: ResultStateLabels): StatePresentation {
-  return { state, label: labels[state], icon: ICON[state], className: CLASS_NAME[state] };
+  return { state, label: labels[state], icon: ICON[state], className: stateClassName(state) };
+}
+
+/**
+ * View-level delayed presentation: uses the upcoming tone with the amber warning token,
+ * clock icon, and localized delayed label so delayed is never conveyed by colour alone.
+ */
+export function presentDelayedState(label: string): StatePresentation {
+  return {
+    state: 'upcoming',
+    label,
+    icon: 'clock',
+    className: 'cl-state--delayed',
+  };
 }
 
 /** Every state, for the legend the page shows once. */
@@ -82,4 +115,9 @@ export function decide(
   if (home === undefined || away === undefined) return undefined;
   if (home === away) return { home: 'final', away: 'final' };
   return home > away ? { home: 'winner', away: 'loser' } : { home: 'loser', away: 'winner' };
+}
+
+/** The state's registry icon, for an atom that carries its own text label. */
+export function resultStateIcon(state: ResultState): IconName {
+  return ICON[state];
 }

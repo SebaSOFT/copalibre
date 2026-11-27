@@ -31,6 +31,7 @@ export {
   PlacementAdvancementError,
   CyclicFixtureGraphError,
   InvalidCustomBracketError,
+  PersistedGraphError,
 } from './errors.js';
 export {
   previewStageTransition,
@@ -69,6 +70,14 @@ export {
   type QualifiedEntrant,
   type GroupPromotionOutcome,
 } from './qualification/promotion.js';
+export {
+  qualifierLabels,
+  qualifierPositionsByZone,
+  withQualifierSources,
+  type QualifierLabel,
+  type QualifierPlanGroup,
+  type QualifierSeed,
+} from './qualification/qualifier-positions.js';
 export {
   allocateSeeds,
   drawGroups,
@@ -158,12 +167,19 @@ export {
   type TableProjection,
 } from './statistics/table-projection.js';
 export {
+  persistedMatchId,
+  resolvePersistedNodes,
   resolveAdvancement,
   advanceEntrants,
   unlockedByFinalization,
   playableMatches,
   type ResolvedSlot,
   type ResolvedMatch,
+  type PersistedFixtureNode,
+  type PersistedGraphResolution,
+  type PersistedNodeOutcome,
+  type PersistedZoneInput,
+  type QualifierEntrants,
 } from './advancement/index.js';
 export {
   classifyEngineMutation,

@@ -1,5 +1,12 @@
 import { Readable } from 'node:stream';
-import type { ObjectStorageAdapter } from '@copalibre/object-storage';
+import {
+  EMBLEM_RENDITION_CONTENT_TYPE,
+  EMBLEM_RENDITION_WIDTHS,
+  emblemRenditionKey,
+  hasEmblemRenditions,
+  renderEmblemRendition,
+  type ObjectStorageAdapter,
+} from '@copalibre/object-storage';
 import {
   ObjectMetadataRepository,
   OBJECT_PROCESSING_REQUESTED_EVENT,
@@ -8,7 +15,6 @@ import {
   type Database,
 } from '@copalibre/persistence';
 import type { Kysely } from 'kysely';
-import sharp from 'sharp';
 import type { JobHandler } from './dispatcher.js';
 import { payloadOf } from './relay-runner.js';
 
@@ -17,13 +23,10 @@ export interface ObjectScanner {
   scanStream(stream: Readable): Promise<{ isInfected: boolean; viruses: string[] }>;
 }
 
-const THUMBNAIL_CONTENT_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
-const THUMBNAIL_MAX_DIMENSION = 320;
-
 /**
  * Async media processing for the object-storage capability's own registry:
- * malware scan, then — for an image content type — a
- * thumbnail rendition. `object_metadata` starts every row `pending`; this is
+ * malware scan, then — for a raster image — the WebP renditions the
+ * emblem routes serve. `object_metadata` starts every row `pending`; this is
  * the only writer of `passed`/`failed` for a row it owns.
  */
 export function objectProcessingHandler(input: {
@@ -62,17 +65,17 @@ export function objectProcessingHandler(input: {
       return;
     }
 
-    if (THUMBNAIL_CONTENT_TYPES.has(object.contentType)) {
-      const thumbnail = await sharp(Buffer.from(stored.body))
-        .resize(THUMBNAIL_MAX_DIMENSION, THUMBNAIL_MAX_DIMENSION, {
-          fit: 'inside',
-          withoutEnlargement: true,
-        })
-        .toBuffer();
-      // Derived, regeneratable from the original — no metadata row of its
-      // own, matching module-distribution's own asset-vs-derived-output
-      // distinction: only the source object is authoritative.
-      await input.storage.put(`${object.storageKey}.thumbnail`, thumbnail, object.contentType);
+    if (hasEmblemRenditions(object.contentType)) {
+      // Derived, regeneratable from the original — no metadata row of their
+      // own: only the source object is authoritative. The API makes any
+      // missing one on request, from the same function.
+      for (const width of EMBLEM_RENDITION_WIDTHS) {
+        await input.storage.put(
+          emblemRenditionKey(object.storageKey, width),
+          await renderEmblemRendition(stored.body, width),
+          EMBLEM_RENDITION_CONTENT_TYPE,
+        );
+      }
     }
 
     await metadata.markPassed(objectId);

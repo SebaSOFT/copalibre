@@ -24,8 +24,8 @@ describe('default module catalogue', () => {
       'liga-ida-vuelta',
     ]);
     expect(catalogue.assets.map((asset) => asset.reference.key)).toEqual([
-      'modules/football/1.3.0/football-01.jpg',
-      'modules/tennis/1.2.0/tennis-01.jpg',
+      'modules/football/1.4.0/football-01.jpg',
+      'modules/tennis/1.3.0/tennis-01.jpg',
     ]);
     expect(catalogue.assets.every((asset) => asset.body.byteLength > 0)).toBe(true);
     expect(catalogue.disciplines).toEqual(
@@ -159,11 +159,30 @@ describe('default module catalogue', () => {
     );
   });
 
-  it('declares football 1.3.0 offside, VAR review, penalty shootout, and stoppage time', async () => {
+  it('names every table, column and counted value in all eight languages', async () => {
+    const catalogue = await loadDefaultModuleCatalogue();
+    const languages = ['de', 'en', 'es', 'fr', 'it', 'pt', 'ru', 'zh'];
+
+    for (const discipline of catalogue.disciplines) {
+      const labels = [
+        ...(discipline.tableLayouts ?? []).flatMap((layout) => [
+          layout.label,
+          ...layout.columns.map((column) => column.header),
+        ]),
+        ...discipline.statistics.map((statistic) => statistic.label),
+        ...(discipline.collectors ?? []).map((collector) => collector.label),
+      ];
+      for (const label of labels) {
+        expect(Object.keys(label as object).sort()).toEqual(languages);
+      }
+    }
+  });
+
+  it('declares football 1.4.0 offside, VAR review, penalty shootout, and stoppage time', async () => {
     const catalogue = await loadDefaultModuleCatalogue();
     const football = catalogue.disciplines.find((descriptor) => descriptor.alias === 'football');
     if (!football) throw new Error('Expected football catalogue document');
-    expect(football.version).toBe('1.3.0');
+    expect(football.version).toBe('1.4.0');
 
     const codes = new Set(football.eventDefinitions.map((definition) => definition.code));
     expect(codes.has('offside')).toBe(true);
@@ -193,11 +212,11 @@ describe('default module catalogue', () => {
     expect(football.segmentTypes.map((segment) => segment.name)).toContain('penalty-shootout');
   });
 
-  it('declares tennis 1.2.0 doubles label and best-of-five win condition matching domain builder', async () => {
+  it('declares tennis 1.3.0 doubles label and best-of-five win condition matching domain builder', async () => {
     const catalogue = await loadDefaultModuleCatalogue();
     const tennis = catalogue.disciplines.find((descriptor) => descriptor.alias === 'tennis');
     if (!tennis) throw new Error('Expected tennis catalogue document');
-    expect(tennis.version).toBe('1.2.0');
+    expect(tennis.version).toBe('1.3.0');
 
     const uiMetadata = tennis.uiMetadata as {
       participantTypeLabels?: Record<string, unknown>;

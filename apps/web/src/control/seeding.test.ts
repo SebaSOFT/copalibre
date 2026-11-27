@@ -224,7 +224,12 @@ describe('layoutBracket', () => {
     const final = nodeOf(layout, 'SE-R2-M1');
 
     expect(final.slots.every((slot) => slot.pending)).toBe(true);
-    expect(final.slots[0]?.label).toBe('Ganador del SE-R1-M1');
+    expect(final.slots[0]?.source).toMatchObject({
+      kind: 'winner-of',
+      nodeKey: 'SE-R1-M1',
+      round: 1,
+      position: 1,
+    });
   });
 
   it('returns an empty canvas for a stage with no structure', () => {

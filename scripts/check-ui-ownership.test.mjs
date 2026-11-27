@@ -181,6 +181,34 @@ test('raw <table> triggers violation', () => {
   assert.equal(violations[0].line, 4);
 });
 
+test('icon packages may only be imported by the registry and rendering atoms', () => {
+  const violations = checkFileOwnership(
+    'control/components/MatchPage.tsx',
+    "import { Clock } from 'lucide-react';",
+  );
+  assert.equal(violations.length, 1);
+  assert.match(violations[0].message, /Icon package import/);
+  assert.deepEqual(
+    checkFileOwnership('lib/icon-registry.ts', "import { Clock } from 'lucide-react';"),
+    [],
+  );
+});
+
+test('raw SVG icons must use an Icon atom, while connector geometry remains owned', () => {
+  assert.match(
+    checkFileOwnership('control/components/MatchPage.tsx', 'return <svg><path /></svg>;')[0]
+      .message,
+    /Render icons through the owned Icon atom/,
+  );
+  assert.deepEqual(
+    checkFileOwnership(
+      'components/ui/organisms/BracketGraph.astro',
+      'return <svg><polyline /></svg>;',
+    ),
+    [],
+  );
+});
+
 test('raw table parts outside the table owner each trigger their own violation', () => {
   const code = `
     export function BadTable() {
@@ -516,19 +544,24 @@ test('registers key on the path, so two files with one name are not confused', (
   assert.equal(checkFileOwnership('pages/somewhere/else/[personId].astro', card).length, 1);
 });
 
-test('a file inside a ui/ directory is the design language, not a bypass of it', () => {
-  // Ownership is expressed by directory on every surface: control/components/ui
-  // and components/ui alike. That is why the public primitives moved there
-  // rather than being named in an allowlist.
+test('ui/atoms files define the design language while other ui tiers remain checked', () => {
+  // Only the atom tier is exempt from adoption checks on every surface. A
+  // layout, molecule, organism or template under ui/ is governed like any
+  // other consumer of the owned primitives.
   const uiPath = fileURLToPath(new URL('../apps/web/src/components/ui/atoms', import.meta.url));
   const scanned = Object.keys(
     scanEverySurface(fileURLToPath(new URL('../apps/web/src', import.meta.url))),
   );
   assert.ok(existsSync(join(uiPath, 'Button.astro')), 'expected the public Button primitive');
   assert.equal(
-    scanned.filter((f) => f.includes('/ui/')).length,
+    scanned.filter((f) => f.includes('/ui/atoms/')).length,
     0,
-    'no file inside a ui/ directory should be scanned',
+    'no file inside the atom tier should be scanned',
+  );
+  assert.equal(
+    checkFileOwnership('control/components/ui/layouts/future-template.tsx', '<form />').length,
+    1,
+    'a non-atom tier inside ui/ should be scanned',
   );
 });
 

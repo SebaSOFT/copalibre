@@ -21,27 +21,27 @@ const MATCH: LiveMatch = {
 };
 
 /**
- * Rendered inside the lower-third overlay bug (`.tv-lower-third__bug`,
+ * Rendered inside the corner bug (`.tv-overlay-bug`,
  * `TvDashboard.tsx`) — an OBS/vMix browser-source composited over a live
  * camera feed, never shown on its own. See
  * "TV/Kiosk Monitor/TvMatchIndicators" for the same component inside the
  * venue kiosk's scorebug header instead; the component's own markup never
  * changes between the two, only its host does.
  *
- * Wrapped in the same `tv-root-container tv-lower-third` outer markup
+ * Wrapped in the same `tv-root-container tv-overlay-root tv-overlay-root--scorebug` outer markup
  * production renders (`TvDashboard.tsx`'s `presentation === 'lower'` branch):
  * `tv-preview.css` bottom-anchors that exact class inside the story stage, so
  * the bug sits low in frame with clear space above it, the way it actually
  * sits over a full 16:9 camera feed — not flush against the story's own top.
  */
-function StreamWidgetLowerThird({
+function StreamWidgetCornerBug({
   children,
 }: {
   readonly children: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <div className="tv-root-container tv-lower-third">
-      <div className="tv-lower-third__bug cl-chamfer">{children}</div>
+    <div className="tv-root-container tv-overlay-root tv-overlay-root--scorebug">
+      <div className="tv-overlay-bug cl-chamfer">{children}</div>
     </div>
   );
 }
@@ -55,9 +55,9 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <StreamWidgetLowerThird>
+      <StreamWidgetCornerBug>
         <Story />
-      </StreamWidgetLowerThird>
+      </StreamWidgetCornerBug>
     ),
   ],
   parameters: { layout: 'fullscreen' },

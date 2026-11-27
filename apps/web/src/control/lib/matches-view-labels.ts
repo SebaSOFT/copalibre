@@ -1,5 +1,8 @@
+import type { SideSourceMessages } from '../../lib/side-source.js';
 import type { IntlShape } from 'react-intl';
 import type { MatchCardLabels } from '../../lib/i18n/public-intl.js';
+import { tiebreakerLabelsForCatalog } from '../../lib/tiebreaker-labels.js';
+import { TIEBREAKER_LABELS } from './tiebreaker-labels.js';
 import { messages } from '../i18n/messages.en.js';
 
 /**
@@ -10,6 +13,9 @@ import { messages } from '../i18n/messages.en.js';
  */
 export function matchCardLabelsFromControlIntl(intl: IntlShape): MatchCardLabels {
   return {
+    matchHeading: intl.formatMessage(messages.matchesViewCardHeading, { match: '{match}' }),
+    roundHeading: intl.formatMessage(messages.scheduleBuilderFixtureRound, { round: '{round}' }),
+    sideSource: sideSourceLabelsFromControlIntl(intl),
     state: {
       live: intl.formatMessage(messages.matchesViewResultStateLive),
       upcoming: intl.formatMessage(messages.matchesViewResultStateUpcoming),
@@ -46,8 +52,7 @@ export function matchCardLabelsFromControlIntl(intl: IntlShape): MatchCardLabels
       position: '{position}',
     }),
     position: intl.formatMessage(messages.matchesViewPosition, { position: '{position}' }),
-    decidedBy: intl.formatMessage(messages.matchesViewDecidedBy, { factor: '{factor}' }),
-    decidedByAriaLabel: intl.formatMessage(messages.matchesViewDecidedByAriaLabel),
+    tiebreakers: tiebreakerLabelsForCatalog(intl, TIEBREAKER_LABELS),
     fullTraceHeading: intl.formatMessage(messages.matchesViewFullTraceHeading),
     seriesAriaLabel: intl.formatMessage(messages.matchesViewSeriesAriaLabel, {
       bestOf: '{bestOf}',
@@ -64,5 +69,60 @@ export function matchCardLabelsFromControlIntl(intl: IntlShape): MatchCardLabels
       away: '{away}',
     }),
     versus: intl.formatMessage(messages.matchesViewVersus),
+  };
+}
+
+/** Plain templates shared by server-rendered and client-rendered side sources. */
+export function sideSourceLabelsFromControlIntl(intl: IntlShape): SideSourceMessages {
+  return {
+    winner: intl.formatMessage(messages.sideSourceWinner, { match: '{match}' }),
+    loser: intl.formatMessage(messages.sideSourceLoser, { match: '{match}' }),
+    winnerShort: intl.formatMessage(messages.sideSourceWinnerShort, { match: '{match}' }),
+    loserShort: intl.formatMessage(messages.sideSourceLoserShort, { match: '{match}' }),
+    awaiting: intl.formatMessage(messages.sideSourceAwaiting, { source: '{source}' }),
+    round: intl.formatMessage(messages.sideSourceRound, {
+      round: '{round}',
+      position: '{position}',
+    }),
+    roundShort: intl.formatMessage(messages.sideSourceRoundShort, {
+      round: '{round}',
+      position: '{position}',
+    }),
+    match: intl.formatMessage(messages.sideSourceMatch, { position: '{position}' }),
+    matchShort: intl.formatMessage(messages.sideSourceMatchShort, { position: '{position}' }),
+    final: intl.formatMessage(messages.sideSourceFinal),
+    finalShort: intl.formatMessage(messages.sideSourceFinalShort),
+    semiFinal: intl.formatMessage(messages.sideSourceSemiFinal, { position: '{position}' }),
+    semiFinalShort: intl.formatMessage(messages.sideSourceSemiFinalShort, {
+      position: '{position}',
+    }),
+    quarterFinal: intl.formatMessage(messages.sideSourceQuarterFinal, { position: '{position}' }),
+    quarterFinalShort: intl.formatMessage(messages.sideSourceQuarterFinalShort, {
+      position: '{position}',
+    }),
+    place: intl.formatMessage(messages.sideSourcePlace, { place: '{place}' }),
+    places: intl.formatMessage(messages.sideSourcePlaces, { from: '{from}', to: '{to}' }),
+    unknown: intl.formatMessage(messages.sideSourceUnknown),
+    seed: intl.formatMessage(messages.sideSourceSeed, { seed: '{seed}' }),
+    bye: intl.formatMessage(messages.sideSourceBye),
+    qualifierGroup: intl.formatMessage(messages.sideSourceQualifierGroup, {
+      rank: '{rank}',
+      group: '{group}',
+    }),
+    qualifierGroupNumber: intl.formatMessage(messages.sideSourceQualifierGroupNumber, {
+      number: '{number}',
+    }),
+    qualifierBest: intl.formatMessage(messages.sideSourceQualifierBest, { rank: '{rank}' }),
+    qualifierNthBest: intl.formatMessage(messages.sideSourceQualifierNthBest, {
+      order: '{order}',
+      rank: '{rank}',
+    }),
+    qualifierRunnerUp: intl.formatMessage(messages.sideSourceQualifierRunnerUp),
+    qualifier: intl.formatMessage(messages.sideSourceQualifier, { number: '{number}' }),
+    qualifierShort: intl.formatMessage(messages.sideSourceQualifierShort, { number: '{number}' }),
+    ordinal1: intl.formatMessage(messages.sideSourceOrdinal1),
+    ordinal2: intl.formatMessage(messages.sideSourceOrdinal2),
+    ordinal3: intl.formatMessage(messages.sideSourceOrdinal3),
+    ordinalOther: intl.formatMessage(messages.sideSourceOrdinalOther, { n: '{n}' }),
   };
 }

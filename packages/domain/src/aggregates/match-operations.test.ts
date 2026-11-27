@@ -1,6 +1,7 @@
 import type { RecordedEvent } from '../events/event-log.js';
 import {
   applyMatchCommand,
+  reopenSegment,
   runningTimers,
   validateRoster,
   type MatchCommand,
@@ -128,6 +129,69 @@ describe('applyMatchCommand', () => {
     if (result.ok) return;
     expect(result.error.message).toContain('no running segment');
   });
+
+  it('refuses to start a scheduled match that has no segment to start', () => {
+    const result = applyMatchCommand({ matchId: 'm-1', status: 'scheduled' }, 'start');
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('MATCH_OPERATION_INVALID');
+    expect(result.error.message).toContain('no segment to start');
+  });
+
+  it('refuses to resume an in-progress match when no segment is left to resume', () => {
+    const result = applyMatchCommand({ matchId: 'm-1', status: 'in-progress' }, 'resume');
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('MATCH_OPERATION_INVALID');
+    expect(result.error.message).toContain('no segment to resume');
+  });
+
+  it('starts a scheduled match when the segment to start is pending', () => {
+    const result = applyMatchCommand({ matchId: 'm-1', status: 'scheduled' }, 'start', {
+      state: 'pending',
+    });
+
+    expect(result.ok && result.value).toMatchObject({
+      status: 'in-progress',
+      clockRunning: true,
+      segmentState: 'active',
+    });
+  });
+});
+
+describe('reopenSegment', () => {
+  it('returns an ended segment of an in-progress match to pending, with its time kept by the caller', () => {
+    const result = reopenSegment({ matchId: 'm-1', status: 'in-progress' }, { state: 'completed' });
+
+    expect(result.ok && result.value).toEqual({
+      status: 'in-progress',
+      clockRunning: false,
+      segmentState: 'pending',
+    });
+  });
+
+  it.each(['pending', 'active'] as const)('refuses a %s segment, which has not ended', (state) => {
+    const result = reopenSegment({ matchId: 'm-1', status: 'in-progress' }, { state });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('MATCH_OPERATION_INVALID');
+    expect(result.error.message).toContain('no ended segment to reopen');
+  });
+
+  it.each(['scheduled', 'finalized', 'forfeited', 'not-required'] as const)(
+    'refuses an ended segment of a %s match',
+    (status) => {
+      const result = reopenSegment({ matchId: 'm-1', status }, { state: 'completed' });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error.code).toBe('MATCH_OPERATION_INVALID');
+      expect(result.error.message).toContain('only while it is in progress');
+    },
+  );
 });
 
 describe('runningTimers', () => {

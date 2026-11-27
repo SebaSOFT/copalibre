@@ -6,7 +6,8 @@ Example config: [`deploy/proxy/Caddyfile`](../../../deploy/proxy/Caddyfile).
 
 1. Point `COPALIBRE_APP_HOST`, `COPALIBRE_API_HOST`, and `COPALIBRE_EVENTS_HOST` at the public host
    names for the web, API, and SSE endpoints. Caddy terminates TLS at this layer — Docker Compose
-   does not expose a public TLS listener of its own.
+   does not expose a public TLS listener of its own. Each site sends `Strict-Transport-Security`
+   for one year; add `includeSubDomains` only when every subdomain serves HTTPS.
 2. Set `ACME_EMAIL` so Caddy can request certificates automatically.
 3. Copy the Caddyfile into place (or point Caddy's `--config` flag at it) and start Caddy in front of
    the running Compose installation.
@@ -57,6 +58,20 @@ window. Do not reopen traffic to a partially upgraded stack.
 If only the proxy reload fails, keep its previous known-good configuration and diagnose the error.
 If the application upgrade fails after migration, use the documented backup recovery procedure;
 reverting proxy routes or old container tags does not roll back the database.
+
+## Static assets and font types
+
+CopaLibre serves its own fonts from the application origin, under `/_astro/` with the scripts and
+styles. The web container sends them as `font/woff2` and `font/woff`, and `reverse_proxy` passes that
+`Content-Type` through. Do not add a `file_server` or `header Content-Type` rule for those paths on
+the edge.
+
+## Security headers
+
+The web container sends a `Content-Security-Policy` and its companion headers on every page;
+server-rendered pages carry two policies, and a browser needs both. `reverse_proxy` passes them through. Do not add a `header Content-Security-Policy` rule on the
+edge, which would replace the application's policies.
+`copalibre doctor --check-proxy` fails when the policy does not reach the browser.
 
 ## SSE conformance
 
