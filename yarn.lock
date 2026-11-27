@@ -753,16 +753,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@astrojs/node@npm:^11.1.13":
-  version: 11.1.13
-  resolution: "@astrojs/node@npm:11.1.13"
+"@astrojs/node@npm:^11.1.14":
+  version: 11.1.14
+  resolution: "@astrojs/node@npm:11.1.14"
   dependencies:
     "@astrojs/internal-helpers": "npm:^0.13.2"
     send: "npm:^1.2.1"
     server-destroy: "npm:^1.0.1"
   peerDependencies:
     astro: ^7.2.1
-  checksum: 10c0/41dc41a4891b358e6c03aa78124d4de11202dff4e88538319f6cb51172966638d7db509f94ff184d3e4186feb7e04326290227df605a53675270241d9830f531
+  checksum: 10c0/eccb1a10991e268360dc55c0e0d75d4ffd5a8f53955d479343b5cc8710a000cc5fb0823b9a014b21bd64516ca44287125da9e7d740bfc4d66421e4a10ea2d5cb
   languageName: node
   linkType: hard
 
@@ -2407,7 +2407,7 @@ __metadata:
   resolution: "@copalibre/web@workspace:apps/web"
   dependencies:
     "@astrojs/check": "npm:^0.9.10"
-    "@astrojs/node": "npm:^11.1.13"
+    "@astrojs/node": "npm:^11.1.14"
     "@astrojs/react": "npm:^7.1.0"
     "@astrojs/starlight": "npm:0.42.6"
     "@cfworker/json-schema": "npm:4.1.6"
