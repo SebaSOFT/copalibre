@@ -171,7 +171,6 @@ export const KNOWN_OVERSIZED_FILES = new Map([
     { ceiling: 2784, reason: SPLIT },
   ],
   ['apps/web/src/control/match-console-route.test.tsx', { ceiling: 2158, reason: SPLIT }],
-  ['apps/web/src/components/tv/TvDashboard.test.tsx', { ceiling: 2982, reason: SPLIT }],
   ['e2e/standings-and-rankings.spec.ts', { ceiling: 2004, reason: SPLIT }],
 ]);
 
