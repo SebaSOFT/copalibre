@@ -285,3 +285,22 @@ Release security checks SHALL retain redacted JSON and Markdown reports for succ
 - **WHEN** a release security probe fails
 - **THEN** the CI run retains the redacted reproduction and remediation status even though publication is blocked
 - **AND** raw credentials and sensitive runtime data are excluded from retained artifacts
+
+### Requirement: Release notes are grouped by role
+
+Each release section of `CHANGELOG.md` SHALL list breaking changes and upgrade steps first. It SHALL
+then group every other change under the role that acts on it: public visitors, organization
+administrators, system administrators, integrators and contributors. Each pull request SHALL appear
+once in the section.
+
+#### Scenario: A Control panel change
+- **WHEN** a release includes a pull request that changes a Control screen
+- **THEN** its entry is under "Organization administrators"
+
+#### Scenario: A change two roles meet
+- **WHEN** a pull request adds a TV overlay mode that an administrator configures and viewers watch
+- **THEN** it is listed once, under the role that configures it
+
+#### Scenario: Tooling changes
+- **WHEN** a pull request changes CI, tests or a repository check
+- **THEN** its entry is under "Contributors"
