@@ -40,7 +40,6 @@ export const KNOWN_OVERSIZED_FILES = new Map([
     'apps/web/src/control/components/screens/PreferencesTemplate.tsx',
     { ceiling: 1021, reason: SPLIT },
   ],
-  ['apps/web/src/control/components/TournamentSetupWizard.tsx', { ceiling: 1185, reason: SPLIT }],
   ['apps/web/src/control/components/DescriptorBuilderWizard.tsx', { ceiling: 1057, reason: SPLIT }],
   ['apps/web/src/control/lib/activity-formatting.ts', { ceiling: 1007, reason: SPLIT }],
   ['apps/web/src/lib/reference-fixtures.ts', { ceiling: 1220, reason: SPLIT }],

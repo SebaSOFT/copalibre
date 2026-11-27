@@ -242,8 +242,10 @@ export const KNOWN_INLINE_LAYOUT = new Map([
   // Remaining inline layout is the distribution-bar chart pending its own
   // presentation primitive; one tiebreak disclosure's inline layout was removed.
   ['control/components/screens/StandingsTemplate.tsx', 3],
+  // Historical debt from before the rule existed, moved with the wizard steps.
+  ['control/components/tournament-setup/TournamentSetupFormatSteps.tsx', 5],
   // The GIVEN/WHEN/THEN rule composition was extracted into its own organism.
-  ['control/components/TournamentSetupWizard.tsx', 9],
+  ['control/components/tournament-setup/TournamentSetupRulesStep.tsx', 4],
   // A stage is genuinely an ordered list; the layout primitives (Stack/
   // Inline/Grid) only ever render a <div> and cannot become an <ol>, the
   // same class of exception as AstroPreview.tsx's <iframe> above.
@@ -320,7 +322,7 @@ export const KNOWN_RAW_STYLE_VALUES = new Map([
   ['control/components/NativeAuthRoutes.tsx', 7],
   ['control/components/RosterRoleSelector.tsx', 1],
   ['control/components/screens/StandingsTemplate.tsx', 1],
-  ['control/components/TournamentSetupWizard.tsx', 1],
+  ['control/components/tournament-setup/TournamentSetupRulesStep.tsx', 1],
   ['control/components/ui/molecules/callout-banner.tsx', 2],
   ['control/components/ui/molecules/tiebreaker-sequence.tsx', 2],
   // The step-indicator grid's `minmax(8rem, 1fr)`/`minmax(min(100%, 6rem), 1fr)`

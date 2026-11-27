@@ -146,7 +146,8 @@ export const KNOWN_RAW_ELEMENTS = new Map([
   ['control/components/NativeAuthRoutes.tsx', 3],
   ['control/components/RosterSelectionStep.tsx', 3],
   ['control/components/screens/ScheduleBuilderTemplate.tsx', 3],
-  ['control/components/TournamentSetupWizard.tsx', 5],
+  ['control/components/tournament-setup/TournamentSetupFormatSteps.tsx', 2],
+  ['control/components/tournament-setup/TournamentSetupRulesStep.tsx', 3],
 ]);
 
 /**
