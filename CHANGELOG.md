@@ -82,6 +82,7 @@
 - The CLI binary loads `sharp` only when it makes a rendition, so it starts on every platform ([#552](https://github.com/SebaSOFT/copalibre/pull/552)).
 - Security release gate: static checks and a Git-history secret scan run before any image is published, with fixes for the findings it reproduced ([#515](https://github.com/SebaSOFT/copalibre/pull/515)).
 - Harden native authentication and the development stack ([#449](https://github.com/SebaSOFT/copalibre/pull/449)).
+- The runtime image installs the Debian security updates published after its base image was built, including the fix for CVE-2025-6020 in PAM ([#616](https://github.com/SebaSOFT/copalibre/pull/616)).
 - The events service verifies native sessions against the API's key set, so Control's live stream accepts them beside an external provider ([#523](https://github.com/SebaSOFT/copalibre/pull/523)).
 - `copalibre doctor` warns about each organization whose stored time zone the runtime does not know, and names it. The warning does not stop `copalibre start` ([#607](https://github.com/SebaSOFT/copalibre/pull/607)).
 - Upgrading gives every club without an alias, or with a UUID as its alias, a suggested alias before the alias becomes required. The migration writes no audit event and no redirect ([#594](https://github.com/SebaSOFT/copalibre/pull/594)).
