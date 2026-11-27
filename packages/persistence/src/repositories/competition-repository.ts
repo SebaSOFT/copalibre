@@ -17,7 +17,7 @@ import type {
   RawStageStatusCount,
   TournamentCompletionSummary,
 } from '@copalibre/domain';
-import type { Kysely, Transaction } from 'kysely';
+import type { Kysely } from 'kysely';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 import type { PersistedFixtureNode } from '../fixture-graph.js';
@@ -34,12 +34,11 @@ import { SegmentTimerRepository } from './competition/segment-timer-repository.j
 import { MatchEventRepository } from './competition/match-event-repository.js';
 import { MatchRosterRepository } from './competition/match-roster-repository.js';
 import { FixtureSurplusRepository } from './competition/fixture-surplus-repository.js';
-import { assertStageHasNoFixtures, findMatchIn } from './competition/competition-support.js';
+import { assertStageHasNoFixtures } from './competition/competition-support.js';
 
 import type { GroupAssignment, PersistedDraw } from './competition/draw-repository.js';
 import type {
   StageDeletionConsequences,
-  StageDeletionDatabase,
   StageDeletionResult,
 } from './competition/stage-repository.js';
 export type { GroupAssignment, PersistedDraw } from './competition/draw-repository.js';
@@ -325,68 +324,9 @@ export class CompetitionRepository {
     return this.draws.assignGroupsManually(uow, input);
   }
 
-  private persistZoneDraw(
-    uow: UnitOfWork,
-    input: { readonly stageId: string } & AuditContext,
-    assignment: GroupAssignment,
-    zoneCount: number,
-    replay?: { readonly seed: number; readonly constraints: readonly DrawConstraint[] },
-  ): Promise<readonly Zone[]> {
-    return this.draws.persistZoneDraw(uow, input, assignment, zoneCount, replay);
-  }
-
-  private persistGroupDraw(
-    uow: UnitOfWork,
-    input: { readonly zoneId: string } & AuditContext,
-    assignment: GroupAssignment,
-    groupCount: number,
-    replay?: { readonly seed: number; readonly constraints: readonly DrawConstraint[] },
-  ): Promise<readonly Group[]> {
-    return this.draws.persistGroupDraw(uow, input, assignment, groupCount, replay);
-  }
-
-  private assertGroupAssignment(assignment: GroupAssignment, count: number): void {
-    return this.draws.assertGroupAssignment(assignment, count);
-  }
-
-  private assertAssignmentEntrants(
-    assignment: GroupAssignment,
-    expectedEntrantIds: readonly string[],
-    kind: 'group',
-  ): void {
-    return this.draws.assertAssignmentEntrants(assignment, expectedEntrantIds, kind);
-  }
-
   /** Public: also guards `TournamentRepository.updateStageConfiguration`, one layer over. */
   assertStageHasNoFixtures(uow: UnitOfWork, stageId: string): Promise<void> {
     return assertStageHasNoFixtures(uow, stageId);
-  }
-
-  private resolveFixtureScope(
-    uow: UnitOfWork,
-    input: { readonly stageId: string } & AuditContext,
-    fixture: { readonly zoneId?: string; readonly groupId?: string },
-  ): Promise<{ readonly zoneId: string; readonly groupId: string }> {
-    return this.fixtures.resolveFixtureScope(uow, input, fixture);
-  }
-
-  private assertLegacyFixtureWritesAllowed(
-    uow: UnitOfWork,
-    stageId: string,
-    zoneIds?: readonly string[],
-  ): Promise<void> {
-    return this.fixtures.assertLegacyFixtureWritesAllowed(uow, stageId, zoneIds);
-  }
-
-  private insertFixtureGraph(
-    uow: UnitOfWork,
-    input: {
-      readonly stageId: string;
-      readonly zoneId: string;
-      readonly nodes: readonly PersistedFixtureNode[];
-    } & AuditContext,
-  ): Promise<readonly Fixture[]> {
-    return this.fixtures.insertFixtureGraph(uow, input);
   }
 
   createStageInTournament(
@@ -439,13 +379,6 @@ export class CompetitionRepository {
     input: { readonly stageId: string; readonly confirmationName: string } & AuditContext,
   ): Promise<StageDeletionResult> {
     return this.stages.deleteStage(uow, input);
-  }
-
-  private stageDeletionConsequences(
-    db: StageDeletionDatabase,
-    stageId: string,
-  ): Promise<StageDeletionConsequences> {
-    return this.stages.stageDeletionConsequences(db, stageId);
   }
 
   /** Bulk fixture insert — the shape the generator will hand over. */
@@ -728,13 +661,6 @@ export class CompetitionRepository {
   /** Reads through the caller's transaction when given one, so a write it just made is visible. */
   findMatch(matchId: string, uow?: UnitOfWork): Promise<Match | undefined> {
     return this.matches.findMatch(matchId, uow);
-  }
-
-  private findMatchIn(
-    executor: Kysely<Database> | Transaction<Database>,
-    matchId: string,
-  ): Promise<Match | undefined> {
-    return findMatchIn(executor, matchId);
   }
 
   /** The stages of one edition, in order. */

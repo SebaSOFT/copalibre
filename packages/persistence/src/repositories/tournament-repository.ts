@@ -7,7 +7,7 @@ import {
   type Tournament,
   type TournamentRuleset,
 } from '@copalibre/domain';
-import type { Kysely, Transaction } from 'kysely';
+import type { Kysely } from 'kysely';
 import type { Database } from '../schema.js';
 import type { UnitOfWork } from '../transaction.js';
 import { DisciplineDescriptorRepository } from './tournament/discipline-descriptor-repository.js';
@@ -211,12 +211,6 @@ export class TournamentRepository {
   listPublishedByOrganization(organizationId: string): Promise<readonly Tournament[]> {
     return this.queries.listPublishedByOrganization(organizationId);
   }
-  private findInTransaction(
-    uow: UnitOfWork,
-    tournamentId: string,
-  ): Promise<Tournament | undefined> {
-    return this.queries.findInTransaction(uow, tournamentId);
-  }
   findById(tournamentId: string): Promise<Tournament | undefined> {
     return this.queries.findById(tournamentId);
   }
@@ -231,18 +225,6 @@ export class TournamentRepository {
   }
   findLatestStageConfiguration(stageId: string): Promise<StageConfiguration | undefined> {
     return this.rulesets.findLatestStageConfiguration(stageId);
-  }
-  private latestRulesetVersion(
-    executor: Kysely<Database> | Transaction<Database>,
-    tournamentId: string,
-  ): Promise<number> {
-    return this.rulesets.latestRulesetVersion(executor, tournamentId);
-  }
-  private rulesetIdFor(
-    executor: Kysely<Database> | Transaction<Database>,
-    tournamentId: string,
-  ): Promise<string> {
-    return this.rulesets.rulesetIdFor(executor, tournamentId);
   }
 }
 

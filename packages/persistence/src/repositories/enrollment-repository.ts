@@ -55,14 +55,6 @@ export class EnrollmentRepository {
   ): Promise<Club | undefined> {
     return this.clubTeams.findClubByAlias(executor, organizationId, alias);
   }
-  private assertClubAliasFree(
-    executor: Kysely<Database> | Transaction<Database>,
-    organizationId: string,
-    alias: string,
-    clubId?: string,
-  ): Promise<void> {
-    return this.clubTeams.assertClubAliasFree(executor, organizationId, alias, clubId);
-  }
   updateClub(
     uow: UnitOfWork,
     input: {
@@ -138,13 +130,6 @@ export class EnrollmentRepository {
   listRegisteredTeamAliases(tournamentId: string): Promise<readonly string[]> {
     return this.clubTeams.listRegisteredTeamAliases(tournamentId);
   }
-  private suggestTeamAlias(
-    executor: Kysely<Database> | Transaction<Database>,
-    organizationId: string,
-    name: string,
-  ): Promise<string> {
-    return this.clubTeams.suggestTeamAlias(executor, organizationId, name);
-  }
   registerEntrant(
     uow: UnitOfWork,
     input: {
@@ -217,35 +202,6 @@ export class EnrollmentRepository {
   }
   listEntrants(tournamentId: string): Promise<readonly Entrant[]> {
     return this.entrants.listEntrants(tournamentId);
-  }
-  private resolveRegistrationAbbreviation(
-    executor: Kysely<Database> | Transaction<Database>,
-    input: {
-      readonly tournamentId: string;
-      readonly entrantRef: Entrant['entrantRef'];
-      readonly abbreviation?: string;
-    },
-  ): Promise<string | undefined> {
-    return this.entrants.resolveRegistrationAbbreviation(executor, input);
-  }
-  private derivedEntrantAbbreviation(
-    executor: Kysely<Database> | Transaction<Database>,
-    entrantRef: Entrant['entrantRef'],
-  ): Promise<string | undefined> {
-    return this.entrants.derivedEntrantAbbreviation(executor, entrantRef);
-  }
-  private isEntrantAbbreviationAvailable(
-    executor: Kysely<Database> | Transaction<Database>,
-    tournamentId: string,
-    abbreviation: string,
-    excludingEntrantId?: string,
-  ): Promise<boolean> {
-    return this.entrants.isEntrantAbbreviationAvailable(
-      executor,
-      tournamentId,
-      abbreviation,
-      excludingEntrantId,
-    );
   }
   listParticipantEntrants(organizationId: string, personId: string): Promise<readonly Entrant[]> {
     return this.participants.listParticipantEntrants(organizationId, personId);

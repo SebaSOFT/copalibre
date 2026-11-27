@@ -67,10 +67,12 @@ describe('outcome writer routing', () => {
       'match-control/corrections.ts:handleCorrect:reinstateAnulledMatches',
       'match-control/corrections.ts:handleCorrect:supersedeResult',
     ]);
-    // The one delegated writer is private and both callers resolve in their transaction.
-    const moved = filesOf(join(root, 'match-control'))
+    // The one delegated writer is exported from `match-control/context.ts` for the handlers
+    // that share it, and every caller resolves in its transaction. Counting its calls across
+    // the whole API source, not only `match-control/`, keeps a new caller elsewhere visible.
+    const sources = filesOf(root)
       .map((path) => readFileSync(path, 'utf8'))
       .join('\n');
-    expect(moved.match(/(?<!function )anullSurplusOf\(/g)).toHaveLength(3);
+    expect(sources.match(/(?<!function )anullSurplusOf\(/g)).toHaveLength(3);
   });
 });

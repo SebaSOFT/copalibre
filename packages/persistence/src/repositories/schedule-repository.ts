@@ -4,7 +4,6 @@ import {
   type ResourceAssignment,
   type Schedule,
   type ScheduleConflict,
-  type ScheduleContext,
   type ScheduleSlot,
   type Venue,
 } from '@copalibre/domain';
@@ -18,13 +17,11 @@ import { ScheduleQueryRepository } from './schedule/schedule-queries.js';
 import { SchedulePublicationRepository } from './schedule/schedule-publication.js';
 import { ScheduleDefinitionRepository } from './schedule/schedule-definition-repository.js';
 import {
-  type ScheduleReason,
   type ScheduleBatch,
   type SchedulePreview,
   type SchedulePlacementHistory,
   type OrganizationScheduleEntry,
   type ScheduleAssignmentDetail,
-  type CurrentPlacement,
 } from './schedule/schedule-support.js';
 
 /**
@@ -211,67 +208,11 @@ export class ScheduleRepository {
   ): Promise<readonly ResourceAssignment[]> {
     return this.publication.publishSchedule(uow, input);
   }
-  private publishedChanges(
-    uow: UnitOfWork,
-    input: ScheduleBatch,
-    context: ScheduleContext,
-    current: ReadonlyMap<string, CurrentPlacement>,
-    changed: readonly string[],
-    reasonFor: (matchId: string) => ScheduleReason | undefined,
-  ): Promise<readonly Record<string, unknown>[]> {
-    return this.publication.publishedChanges(uow, input, context, current, changed, reasonFor);
-  }
-  private publishPlacementEvents(
-    uow: UnitOfWork,
-    input: ScheduleBatch & AuditContext,
-    context: ScheduleContext,
-    current: ReadonlyMap<string, CurrentPlacement>,
-    matchIds: readonly string[],
-  ): Promise<void> {
-    return this.publication.publishPlacementEvents(uow, input, context, current, matchIds);
-  }
-  private refuseNotRequired(
-    executor: Kysely<Database>,
-    matchIds: readonly string[],
-  ): Promise<void> {
-    return this.publication.refuseNotRequired(executor, matchIds);
-  }
-  private refuseUnplacedWithdrawals(
-    executor: Kysely<Database>,
-    matchIds: readonly string[],
-  ): Promise<void> {
-    return this.publication.refuseUnplacedWithdrawals(executor, matchIds);
-  }
-  private currentPlacements(
-    executor: Kysely<Database>,
-    matchIds: readonly string[],
-  ): Promise<ReadonlyMap<string, CurrentPlacement>> {
-    return this.publication.currentPlacements(executor, matchIds);
-  }
-  private timeZoneOf(uow: UnitOfWork, organizationId: string): Promise<string | undefined> {
-    return this.publication.timeZoneOf(uow, organizationId);
-  }
-  private lockResources(
-    uow: UnitOfWork,
-    assignments: readonly ResourceAssignment[],
-    context: ScheduleContext,
-  ): Promise<void> {
-    return this.publication.lockResources(uow, assignments, context);
-  }
   listScheduleForStage(stageId: string): Promise<readonly ResourceAssignment[]> {
     return this.queries.listScheduleForStage(stageId);
   }
   listScheduleDetailsForStage(stageId: string): Promise<readonly ScheduleAssignmentDetail[]> {
     return this.queries.listScheduleDetailsForStage(stageId);
-  }
-  private contextFor(organizationId: string, uow?: UnitOfWork): Promise<ScheduleContext> {
-    return this.publication.contextFor(organizationId, uow);
-  }
-  private occupancyByTournament(
-    executor: Kysely<Database>,
-    tournamentIds: readonly string[],
-  ): Promise<ReadonlyMap<string, number>> {
-    return this.queries.occupancyByTournament(executor, tournamentIds);
   }
   listScheduleHistory(matchId: string): Promise<readonly SchedulePlacementHistory[]> {
     return this.queries.listScheduleHistory(matchId);
