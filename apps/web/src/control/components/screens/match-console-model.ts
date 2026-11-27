@@ -13,7 +13,7 @@ export const segmentIdOf = (segment: ConsoleSegment | undefined): string =>
 export const variantOf = (primary: boolean): 'primary' | 'secondary' =>
   primary ? 'primary' : 'secondary';
 
-/** The secondary actor fields of the permitted events, one per field name, keeping the first label. */
+/** The secondary actor fields of the permitted events, one per field name. */
 export function secondaryActorFieldsOf(permittedEvents: readonly ConsoleEventDefinition[]) {
   // Deduplicated by field name, keeping the first declaration's label: two
   // event definitions may prompt for the same field, and the chip row shows it
