@@ -33,14 +33,15 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
-import {
-  IconBallBasketball,
-  IconBallFootball,
-  IconBallTennis,
-  IconCards,
-  IconPodium,
-  IconScoreboard,
-} from '@tabler/icons-react';
+// One module per icon. Since 3.52 the package root resolves to its ES module entry, which imports
+// all ~6,500 icons: Jest loads that graph again for every test file and runs out of heap. The
+// per-icon subpaths are the imports tabler recommends over the deprecated root namespaces.
+import IconBallBasketball from '@tabler/icons-react/icons/IconBallBasketball';
+import IconBallFootball from '@tabler/icons-react/icons/IconBallFootball';
+import IconBallTennis from '@tabler/icons-react/icons/IconBallTennis';
+import IconCards from '@tabler/icons-react/icons/IconCards';
+import IconPodium from '@tabler/icons-react/icons/IconPodium';
+import IconScoreboard from '@tabler/icons-react/icons/IconScoreboard';
 import { ICON_TOKENS } from '@copalibre/design-tokens';
 import {
   ICON_REGISTRY,
