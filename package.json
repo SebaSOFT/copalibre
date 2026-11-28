@@ -43,7 +43,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "jest": "^30.5.2",
     "license-checker-rseidelsohn": "^5.0.1",
-    "lighthouse": "12.6.1",
+    "lighthouse": "12.8.2",
     "playwright-core": "1.65.1",
     "prettier": "^3.10.1",
     "prettier-plugin-astro": "^1.1.2",
