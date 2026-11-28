@@ -89,6 +89,78 @@ jobs:
           gh release upload "v${{ steps.version.outputs.version }}" \
             'apps/copalibre/install.sh#install.sh' --clobber
 
+  # The MCPB bundle packs the bundled CLI (dist/bundle.cjs), so it is built here, from the tagged
+  # commit, like the binaries. Smithery gets the same bundle, only in the run that attaches it.
+  upload-mcpb:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    name: Publish MCPB bundle
+    needs: upload-installer
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.inputs.ref || github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      # The checked-out commit must be the one v<version> names, and a
+      # workflow_run must come from a successful Release push in this
+      # repository; a same-version commit or an upstream success alone is not.
+      - name: Verify release source
+        run: node scripts/verify-release-source.mjs
+
+      - id: version
+        run: |
+          version=$(node -p "require('./apps/copalibre/package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v${{ steps.version.outputs.version }}"
+          if gh release view "$tag" --json assets --jq '.assets[].name' 2>/dev/null \
+              | grep -qx 'copalibre.mcpb'; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - run: corepack enable
+        if: steps.check.outputs.published != 'true'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.check.outputs.published != 'true'
+        with:
+          node-version: 26
+          cache: yarn
+      - run: yarn install --immutable
+        if: steps.check.outputs.published != 'true'
+      - run: yarn workspace @copalibre/copalibre run build
+        if: steps.check.outputs.published != 'true'
+      - run: yarn workspace @copalibre/copalibre run bundle
+        if: steps.check.outputs.published != 'true'
+      - run: yarn workspace @copalibre/copalibre run build:mcpb
+        if: steps.check.outputs.published != 'true'
+
+      - name: Upload MCPB bundle to GitHub Release
+        if: steps.check.outputs.published != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "v${{ steps.version.outputs.version }}" \
+            'apps/copalibre/dist/copalibre.mcpb#copalibre.mcpb' --clobber
+
+      - name: Publish to Smithery
+        if: steps.check.outputs.published != 'true'
+        env:
+          SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
+        # The Smithery CLI is a pinned devDependency, installed and audited with the rest of the
+        # lockfile; nothing is downloaded and run with the key in scope.
+        run: yarn smithery mcp publish apps/copalibre/dist/copalibre.mcpb -n SebaSOFT/copalibre
+
   build-and-upload:
     if: >-
       github.event_name == 'workflow_dispatch' ||

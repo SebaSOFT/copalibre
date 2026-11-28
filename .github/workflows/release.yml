@@ -191,22 +191,6 @@ jobs:
           fi
           gh release create "v${{ steps.version.outputs.version }}" --generate-notes $prerelease_flag
 
-      - name: Build MCPB bundle
-        if: steps.check.outputs.exists != 'true'
-        run: yarn workspace @copalibre/copalibre build:mcpb
-
-      - name: Upload MCPB bundle to GitHub Release
-        if: steps.check.outputs.exists != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload "v${{ steps.version.outputs.version }}" \
-            'apps/copalibre/dist/copalibre.mcpb#copalibre.mcpb' --clobber
-
-      - name: Publish to Smithery
-        if: steps.check.outputs.exists != 'true'
-        env:
-          SMITHERY_API_KEY: ${{ secrets.SMITHERY_API_KEY }}
-        # The Smithery CLI is a pinned devDependency, installed and audited above with
-        # the rest of the lockfile; nothing is downloaded and run with the key in scope.
-        run: yarn smithery mcp publish apps/copalibre/dist/copalibre.mcpb -n SebaSOFT/copalibre
+      # The MCPB bundle is a CLI asset: copalibre-cli-release.yml builds it from the tagged
+      # commit, attaches it and publishes it to Smithery, beside the installer and the binaries,
+      # once this run succeeds. This job never compiles the CLI, so it cannot build the bundle.
