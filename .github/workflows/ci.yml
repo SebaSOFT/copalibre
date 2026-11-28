@@ -1329,7 +1329,7 @@ jobs:
   # gives it an organization and its administrator, upgrades it with this
   # revision's CLI to the images the build job made, and checks the rows, the
   # move to PostgreSQL 18, the removal of 17 and the administrator's sign-in.
-  # 1.0.5 is the oldest release whose images are published; 1.2.6 the newest.
+  # 1.0.5 is the oldest release whose images are published, 1.2.6 the last 1.x, 2.0.0 the newest.
   upgrade-e2e:
     name: Upgrade from ${{ matrix.from }}
     runs-on: ubuntu-latest
@@ -1340,7 +1340,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        from: ['1.2.6', '1.0.5']
+        from: ['2.0.0', '1.2.6', '1.0.5']
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable
