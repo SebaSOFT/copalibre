@@ -93,7 +93,7 @@ accept() {
 ACCEPTED_BEFORE=false
 case "${FROM_VERSION}" in
   # These releases sign in natively behind their gateway; 1.0.x only through an external provider.
-  1.1.* | 1.2.*)
+  1.1.* | 1.2.* | 2.*)
     [ "$(accept /auth/accept-invitation)" = 200 ] || fail "the invitation could not be accepted on ${FROM_VERSION}"
     ACCEPTED_BEFORE=true
     ;;
