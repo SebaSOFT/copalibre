@@ -84,11 +84,40 @@ test('every publishing job of the CLI release verifies its source before uploadi
   const jobs = workflow
     .split(/\n {2}(?=[a-z-]+:\n)/)
     .filter((job) => job.includes('gh release upload'));
-  assert.equal(jobs.length, 2);
+  assert.equal(jobs.length, 3);
   for (const job of jobs) {
     const verify = job.indexOf('node scripts/verify-release-source.mjs');
     assert.ok(verify > 0, 'job verifies its source');
     assert.ok(verify < job.indexOf('gh release upload'), 'verification runs before upload');
     assert.match(job, /fetch-depth: 0/);
   }
+});
+
+test('the MCPB bundle is built from the compiled CLI, in the CLI release only', () => {
+  const read = (name) =>
+    readFileSync(new URL(`../.github/workflows/${name}`, import.meta.url), 'utf8');
+  // release.yml never compiles the CLI: v2.0.0's bundle step failed there on a missing
+  // dist/bundle.cjs, after the tag and the GitHub Release already existed.
+  assert.doesNotMatch(read('release.yml'), /build:mcpb|smithery mcp publish/);
+  const job = read('copalibre-cli-release.yml')
+    .split(/\n {2}(?=[a-z-]+:\n)/)
+    .find((candidate) => candidate.startsWith('upload-mcpb:'));
+  assert.ok(job, 'the CLI release has an upload-mcpb job');
+  const order = [
+    'node scripts/verify-release-source.mjs',
+    'yarn workspace @copalibre/copalibre run build\n',
+    'yarn workspace @copalibre/copalibre run bundle',
+    'yarn workspace @copalibre/copalibre run build:mcpb',
+    'gh release upload',
+    'smithery mcp publish',
+  ].map((step) => job.indexOf(step));
+  assert.ok(
+    order.every((position) => position > 0),
+    'every step is present',
+  );
+  assert.deepEqual(
+    [...order].sort((a, b) => a - b),
+    order,
+    'steps run in this order',
+  );
 });

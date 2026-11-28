@@ -43,8 +43,7 @@ already exist, it:
   `.trivyignore.yaml`, records the full security verdict, then pushes those same archives, tagged
   with the exact version and with `latest`, and checks the registry holds the digests it scanned,
 - creates and pushes that tag,
-- creates a GitHub Release with auto-generated notes,
-- packages the standalone MCPB bundle (`copalibre.mcpb`) with matching manifest version, attaches it to the GitHub Release, and publishes it to Smithery using `SMITHERY_API_KEY`.
+- creates a GitHub Release with auto-generated notes.
 
 If the tag already exists (a merge to `main` that didn't carry a version bump — a hotfix cherry-pick,
 say), the workflow completes without doing any of the above. This is intentional, not a failure: a
@@ -60,6 +59,16 @@ only place a release actually gets created). One job per target
 (`apps/copalibre/scripts/build-binary.mjs`), and uploads it to the GitHub Release `release.yml`
 already tagged. Idempotent per-asset, same reasoning as `release.yml` itself: a re-run whose asset
 is already attached to the release is a no-op.
+
+The same workflow packages the standalone MCPB bundle (`copalibre.mcpb`, manifest version matching
+the release) from the compiled and bundled CLI, attaches it to the GitHub Release, and publishes it
+to Smithery using `SMITHERY_API_KEY`, in the run that attaches it. It lives here and not in
+`release.yml` because that job never compiles the CLI: 2.0.0's bundle step failed there after the
+tag and the Release already existed.
+
+To attach missing assets to a release that already exists, dispatch `copalibre-cli-release.yml` with
+`ref` set to the tag (for example `v2.0.0`). Each job verifies the checked-out commit is the one the
+tag names, and uploads only what the release lacks.
 
 `postject` (the tool that injects the SEA blob) patches a target binary's bytes without executing
 it, so every target builds regardless of the runner's own OS/arch — except macOS code-signing
