@@ -9,6 +9,7 @@ export const RELEASED_COMPOSE_FINGERPRINTS: Readonly<Record<string, string>> = {
   '1.2.1': 'a46abea5fbca9de6b6f08ab8875fcf8073b9ab98e088d0752da860481e94138f',
   '1.2.5': '39eeadb07c71ab6d787cf8e92784b75cc41ac8dd5136cad7210c6fc55ecc0712',
   '1.2.6': '98709a3a09b91cbaa9447fba24032de3da42a5de1603c64fc665fd8dbbde2e48',
+  '2.0.0': '11fe498e855d6842ca646d6f7b72463983f2379267c90be5a855f6967102b105',
 };
 
 /** The SHA-256 of the gateway Caddyfile each stable release shipped, where it shipped one. */
@@ -18,4 +19,5 @@ export const RELEASED_GATEWAY_CADDYFILE_FINGERPRINTS: Readonly<Record<string, st
   '1.2.1': 'd2cb5e8b1fe6ee6a6aa8b95cc401808523527e4e9111c67293683a5ab7a138ad',
   '1.2.5': '46eff9cc595942169cf949eb618ca9a18aed423df5d28779d103b255695aedd2',
   '1.2.6': '46eff9cc595942169cf949eb618ca9a18aed423df5d28779d103b255695aedd2',
+  '2.0.0': 'ea92d24a1aeb11a120490917e3a26444ef363cf9cd7a40e4b838bdeae1863d71',
 };
