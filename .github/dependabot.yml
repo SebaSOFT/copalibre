@@ -52,8 +52,11 @@ updates:
       # Lighthouse 13 depends on @sentry/node 11, which pulls the `sentry` CLI under
       # FSL-1.1-Apache-2.0, a license the license:check allowlist does not admit (#621).
       # @lhci/cli 0.16 pins lighthouse 13. Both stay on 12 / 0.15 until that changes.
+      # The root lighthouse pin is the exact version @lhci/cli 0.15.1 depends on (12.6.1), so the INP
+      # flow (scripts/lighthouse/inp.mjs) and the LHCI audit run the same engine. A lone bump
+      # (12.8.2 was #625) installs a second Lighthouse next to the one LHCI uses. Lighthouse moves
+      # only with @lhci/cli, by hand.
       - dependency-name: 'lighthouse'
-        update-types: ['version-update:semver-major']
       - dependency-name: '@lhci/cli'
         versions: ['>=0.16.0']
 
