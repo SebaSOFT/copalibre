@@ -1,4 +1,14 @@
 version: 2
+# Every entry targets develop: version updates land where features do and reach main with the next
+# release pull request, like any other change. (Security updates always open against the default
+# branch; GitHub does not let target-branch move them.)
+#
+# Minor and patch updates of an ecosystem come as one grouped pull request a week; each major
+# update comes alone, because it is the one that needs reading. Without the groups Dependabot opened
+# one pull request per package, five at a time: closing them freed the slots and the next five came.
+#
+# The cooldown keeps Dependabot from proposing a release younger than Yarn's npmMinimalAgeGate
+# (.yarnrc.yml, 24h), which `yarn install` would refuse.
 updates:
   # Covers every Yarn workspace under apps/*/packages/* through the single
   # root yarn.lock — Dependabot's npm ecosystem already resolves a Yarn
@@ -6,16 +16,26 @@ updates:
   # is correct, not one per workspace.
   - package-ecosystem: 'npm'
     directory: '/'
+    target-branch: 'develop'
     schedule:
       interval: 'weekly'
+    cooldown:
+      default-days: 2
     groups:
       # @imgly/background-removal serves WebAssembly built for one exact onnxruntime-web release and
       # declares it as an exact peer. A lone runtime bump breaks background removal while every build
       # passes, so the two move together; scripts/check-runtime-peers.mjs catches a manual bump.
+      # First, so the catch-all group below never takes these two.
       background-removal:
         patterns:
           - '@imgly/background-removal'
           - 'onnxruntime-web'
+      npm-minor-and-patch:
+        patterns:
+          - '*'
+        update-types:
+          - 'minor'
+          - 'patch'
     # The group only moves both together when @imgly/background-removal publishes a release; until
     # then Dependabot opens a lone onnxruntime-web bump every time upstream ships one (1.21.0 ->
     # 1.31.1 was #545), and that bump is wrong: IMG.LY serves the .wasm and .mjs for 1.21.0 only, and
@@ -29,13 +49,30 @@ updates:
       # through. Drop this entry once typescript-eslint and ts-jest support 7.
       - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
+      # Lighthouse 13 depends on @sentry/node 11, which pulls the `sentry` CLI under
+      # FSL-1.1-Apache-2.0, a license the license:check allowlist does not admit (#621).
+      # @lhci/cli 0.16 pins lighthouse 13. Both stay on 12 / 0.15 until that changes.
+      - dependency-name: 'lighthouse'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@lhci/cli'
+        versions: ['>=0.16.0']
 
   - package-ecosystem: 'github-actions'
     directory: '/'
+    target-branch: 'develop'
     schedule:
       interval: 'weekly'
+    cooldown:
+      default-days: 2
+    groups:
+      github-actions:
+        patterns:
+          - '*'
 
   - package-ecosystem: 'docker'
     directory: '/'
+    target-branch: 'develop'
     schedule:
       interval: 'weekly'
+    cooldown:
+      default-days: 2
